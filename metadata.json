@@ -1,0 +1,6 @@
+{
+  "name": "LetsHunt",
+  "description": "5-day deer hunting forecast prediction based on real-time barometric pressure trends, temperature drops, wind, post-storm conditions, and solunar activity.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

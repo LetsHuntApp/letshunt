@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* Fallback card background colors using rgb slash notation to ensure opacity setting works flawlessly in all browsers */
+.bg-slate-900\/\[var\(--card-opacity\)\],
+[class*="bg-slate-900/[var(--card-opacity)]"] {
+  background-color: rgb(15 23 42 / var(--card-opacity, 0.9)) !important;
+}
+
+.bg-slate-950\/\[var\(--card-opacity\)\],
+[class*="bg-slate-950/[var(--card-opacity)]"] {
+  background-color: rgb(2 6 23 / var(--card-opacity, 0.9)) !important;
+}
+
+.bg-white\/\[var\(--card-opacity\)\],
+[class*="bg-white/[var(--card-opacity)]"] {
+  background-color: rgb(255 255 255 / var(--card-opacity, 0.9)) !important;
+}
+
+.bg-amber-50\/\[var\(--card-opacity\)\],
+[class*="bg-amber-50/[var(--card-opacity)]"],
+[class*="bg-[#f7f5ed]/[var(--card-opacity)]"] {
+  background-color: rgb(247 245 237 / var(--card-opacity, 0.9)) !important;
+}
+
+[class*="bg-[#f2efe4]/[var(--card-opacity)]"] {
+  background-color: rgb(242 239 228 / var(--card-opacity, 0.9)) !important;
+}
+
+/* Gradients support using rgb slash notation to preserve layout and design */
+.via-slate-900\/\[var\(--card-opacity\)\],
+[class*="via-slate-900/[var(--card-opacity)]"] {
+  --tw-gradient-via: rgb(15 23 42 / var(--card-opacity, 0.9)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+.via-white\/\[var\(--card-opacity\)\],
+[class*="via-white/[var(--card-opacity)]"] {
+  --tw-gradient-via: rgb(255 255 255 / var(--card-opacity, 0.9)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+.to-slate-950\/\[var\(--card-opacity\)\],
+[class*="to-slate-950/[var(--card-opacity)]"] {
+  --tw-gradient-to: rgb(2 6 23 / var(--card-opacity, 0.9)) !important;
+}
+
+/* Forecast card custom backdrop colors */
+[class*="bg-slate-50/[var(--card-opacity)]"] {
+  background-color: rgb(248 250 252 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-emerald-950/[var(--card-opacity)]"] {
+  background-color: rgb(2 47 31 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-emerald-50/[var(--card-opacity)]"] {
+  background-color: rgb(236 253 245 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-amber-950/[var(--card-opacity)]"] {
+  background-color: rgb(69 26 3 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-amber-50/[var(--card-opacity)]"] {
+  background-color: rgb(255 251 235 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-rose-950/[var(--card-opacity)]"] {
+  background-color: rgb(76 5 25 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-rose-50/[var(--card-opacity)]"] {
+  background-color: rgb(255 241 242 / var(--card-opacity, 0.9)) !important;
+}
+
+/* Also support half opacity calculations e.g. calc(var(--card-opacity)*0.7) */
+[class*="bg-emerald-950/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(2 47 31 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+[class*="bg-emerald-50/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(236 253 245 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+[class*="bg-amber-950/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(69 26 3 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+[class*="bg-amber-50/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(255 251 235 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+[class*="bg-rose-950/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(76 5 25 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+[class*="bg-rose-50/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(255 241 242 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+
+/* Recharts Focus and White Box Overrides */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-wrapper *:focus,
+.recharts-surface,
+.recharts-surface:focus,
+.recharts-layer:focus,
+.recharts-bar-rectangle:focus,
+.recharts-pie-sector:focus,
+.recharts-sector:focus,
+.recharts-active-shape:focus,
+svg:focus,
+path:focus,
+rect:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-wrapper .recharts-default-tooltip {
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: rgba(16, 185, 129, 0.08) !important;
+}
+
