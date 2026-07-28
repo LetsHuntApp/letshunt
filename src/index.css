@@ -26,6 +26,19 @@
   background-color: rgb(242 239 228 / var(--card-opacity, 0.9)) !important;
 }
 
+/* Hunting theme color fallbacks for card-opacity */
+[class*="bg-[#eae1cf]/[var(--card-opacity)]"] {
+  background-color: rgb(234 225 207 / var(--card-opacity, 0.9)) !important;
+}
+
+[class*="bg-[#eee6d6]/[var(--card-opacity)]"] {
+  background-color: rgb(238 230 214 / var(--card-opacity, 0.9)) !important;
+}
+
+[class*="bg-[#f4eee1]/[var(--card-opacity)]"] {
+  background-color: rgb(244 238 225 / var(--card-opacity, 0.9)) !important;
+}
+
 /* Gradients support using rgb slash notation to preserve layout and design */
 .via-slate-900\/\[var\(--card-opacity\)\],
 [class*="via-slate-900/[var(--card-opacity)]"] {
@@ -42,6 +55,28 @@
 .to-slate-950\/\[var\(--card-opacity\)\],
 [class*="to-slate-950/[var(--card-opacity)]"] {
   --tw-gradient-to: rgb(2 6 23 / var(--card-opacity, 0.9)) !important;
+}
+
+/* Hunting & Olive gradient fallbacks for card-opacity */
+[class*="from-[#f4eee1]/[var(--card-opacity)]"] {
+  --tw-gradient-from: rgb(244 238 225 / var(--card-opacity, 0.9)) !important;
+}
+[class*="via-[#eae1cf]/[var(--card-opacity)]"] {
+  --tw-gradient-via: rgb(234 225 207 / var(--card-opacity, 0.9)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+[class*="to-[#e0d6c0]/[var(--card-opacity)]"] {
+  --tw-gradient-to: rgb(224 214 192 / var(--card-opacity, 0.9)) !important;
+}
+[class*="from-[#f7f5ed]/[var(--card-opacity)]"] {
+  --tw-gradient-from: rgb(247 245 237 / var(--card-opacity, 0.9)) !important;
+}
+[class*="via-[#efebd9]/[var(--card-opacity)]"] {
+  --tw-gradient-via: rgb(239 235 217 / var(--card-opacity, 0.9)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+[class*="to-[#e8e4d5]/[var(--card-opacity)]"] {
+  --tw-gradient-to: rgb(232 228 213 / var(--card-opacity, 0.9)) !important;
 }
 
 /* Forecast card custom backdrop colors */

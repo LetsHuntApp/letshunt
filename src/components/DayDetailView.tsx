@@ -167,9 +167,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       <div
         className={`rounded-3xl p-3 sm:p-4 border shadow-xl relative overflow-hidden transition-colors backdrop-blur-xl ${
           theme === 'hunting'
-            ? 'bg-gradient-to-br from-[#f4eee1] via-[#eae1cf] to-[#e0d6c0] border-2 border-[#c85a17]/40 text-[#2a1b0e] shadow-lg ring-1 ring-[#c85a17]/20'
+            ? 'bg-gradient-to-br from-[#f4eee1]/[var(--card-opacity)] via-[#eae1cf]/[var(--card-opacity)] to-[#e0d6c0]/[var(--card-opacity)] border-2 border-[#c85a17]/40 text-[#2a1b0e] shadow-lg ring-1 ring-[#c85a17]/20'
             : (theme === 'olive' || theme === 'hunting')
-            ? 'bg-gradient-to-br from-[#f7f5ed] via-[#efebd9] to-[#e8e4d5] border-2 border-[#556b2f]/40 text-[#1e2e1b] shadow-lg ring-1 ring-[#556b2f]/20'
+            ? 'bg-gradient-to-br from-[#f7f5ed]/[var(--card-opacity)] via-[#efebd9]/[var(--card-opacity)] to-[#e8e4d5]/[var(--card-opacity)] border-2 border-[#556b2f]/40 text-[#1e2e1b] shadow-lg ring-1 ring-[#556b2f]/20'
             : isExcellentDay
             ? isDark
               ? 'bg-gradient-to-br from-emerald-950/50 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-600/50 text-slate-100'
@@ -480,7 +480,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           {/* Right: Prime Hunt Windows Quick Card */}
           <div
             className={`w-full lg:w-auto rounded-2xl p-2.5 sm:p-3 border flex flex-col sm:flex-row lg:flex-col gap-2 min-w-[250px] ${
-              isDark ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-slate-50/[var(--card-opacity)] backdrop-blur-md border-slate-200'
+              isDark ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800' : theme === 'hunting' ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-md border-[#d4c4a8]' : (theme === 'olive' || theme === 'hunting') ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0]' : 'bg-slate-50/[var(--card-opacity)] backdrop-blur-md border-slate-200'
             }`}
           >
             <div className="flex items-center justify-between gap-2.5 text-xs">
@@ -543,7 +543,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           {/* Factor Breakdown */}
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
-              isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
+              isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : theme === 'hunting' ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-md border-[#d4c4a8]' : (theme === 'olive' || theme === 'hunting') ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0]' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
             }`}
           >
             <div
@@ -644,7 +644,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           {/* Solunar & Moon Card */}
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
-              isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800 text-slate-100' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 text-slate-900'
+              isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800 text-slate-100' : theme === 'hunting' ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-md border-[#d4c4a8] text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0] text-[#1e2e1b]' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 text-slate-900'
             }`}
           >
             <div className="flex items-center justify-between mb-3">
@@ -657,7 +657,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
             <div
               className={`p-3 rounded-xl border flex items-center justify-between text-xs mb-3 ${
-                isDark ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-slate-50/[var(--card-opacity)] backdrop-blur-md border-slate-200'
+              isDark ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800' : theme === 'hunting' ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-md border-[#d4c4a8]' : (theme === 'olive' || theme === 'hunting') ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0]' : 'bg-slate-50/[var(--card-opacity)] backdrop-blur-md border-slate-200'
               }`}
             >
               <div>
