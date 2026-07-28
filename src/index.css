@@ -116,3 +116,12 @@ rect:focus {
   fill: rgba(16, 185, 129, 0.08) !important;
 }
 
+/* ===== HUNTING THEME ===== */
+.hunting {
+  --hunting-bg: #f5f0e8;
+  --hunting-text: #2c1810;
+  --hunting-accent: #c85a17;
+  --hunting-border: #d4c5a9;
+  --hunting-highlight: #d4692c;
+}
+

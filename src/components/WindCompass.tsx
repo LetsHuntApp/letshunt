@@ -245,14 +245,14 @@ export const WindCompass: React.FC<WindCompassProps> = ({
       className={`flex flex-col rounded-2xl border shadow-md transition-colors overflow-hidden ${
         isDark
           ? `${hasCustomBackground ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md' : 'bg-slate-900/90'} border-slate-800 text-slate-100`
-          : theme === 'olive'
+          : (theme === 'olive' || theme === 'hunting')
           ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0] text-[#1e2e1b]'
           : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-md' : 'bg-white'} border-slate-200 text-slate-900`
       }`}
     >
       {/* Tab Selector & Header */}
       <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
-        isDark ? 'border-slate-800 bg-slate-950/40' : theme === 'olive' ? 'border-[#d8d2c0] bg-[#efebd9]' : 'border-slate-100 bg-slate-50'
+        isDark ? 'border-slate-800 bg-slate-950/40' : (theme === 'olive' || theme === 'hunting') ? 'border-[#d8d2c0] bg-[#efebd9]' : 'border-slate-100 bg-slate-50'
       }`}>
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-black tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">

@@ -137,7 +137,7 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   };
 
   const getScoreBadgeColor = (score: number) => {
-    if (theme === 'olive') {
+    if ((theme === 'olive' || theme === 'hunting')) {
       if (score >= 90) return 'bg-[#2d4a27] text-white border-[#556b2f] shadow-sm';
       if (score >= 76) return 'bg-[#556b2f] text-white border-[#8a9a5b] shadow-sm';
       if (score >= 46) return 'bg-[#b87333] text-white border-[#d4a373] shadow-sm';
@@ -156,13 +156,13 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
       if (isSelected) {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
-          : theme === 'olive'
+          : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#2d4a27] ring-2 ring-[#556b2f]/40 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-emerald-600 ring-2 ring-emerald-600/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
         ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-700/30 hover:border-emerald-700/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
-        : theme === 'olive'
+        : (theme === 'olive' || theme === 'hunting')
         ? `bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#556b2f]/35 hover:border-[#556b2f]/60 shadow-xs text-[#1e2e1b] transition-all ${glass}`
         : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-600/25 hover:border-emerald-600/50 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all ${glass}`;
     }
@@ -171,13 +171,13 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
       if (isSelected) {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
-          : theme === 'olive'
+          : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#556b2f] ring-2 ring-[#556b2f]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
         ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/30 hover:border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
-        : theme === 'olive'
+        : (theme === 'olive' || theme === 'hunting')
         ? `bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#556b2f]/30 hover:border-[#556b2f]/50 shadow-xs text-[#1e2e1b] transition-all ${glass}`
         : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-500/25 hover:border-emerald-500/50 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all ${glass}`;
     }
@@ -186,13 +186,13 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
       if (isSelected) {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
-          : theme === 'olive'
+          : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#b87333] ring-2 ring-[#b87333]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
         ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-amber-500/30 hover:border-amber-500/60 shadow-md shadow-amber-950/20 hover:shadow-amber-500/5 transition-all ${glass}`
-        : theme === 'olive'
+        : (theme === 'olive' || theme === 'hunting')
         ? `bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#b87333]/30 hover:border-[#b87333]/50 shadow-xs text-[#1e2e1b] transition-all ${glass}`
         : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-amber-500/25 hover:border-amber-500/50 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all ${glass}`;
     }
@@ -201,13 +201,13 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
     if (isSelected) {
       return isDark
         ? `bg-slate-900/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10 scale-[1.01] z-10 ${glass}`
-        : theme === 'olive'
+        : (theme === 'olive' || theme === 'hunting')
         ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#8b3a3a] ring-2 ring-[#8b3a3a]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
         : `bg-white/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/30 shadow-md shadow-rose-500/5 scale-[1.01] z-10 ${glass}`;
     }
     return isDark
       ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-rose-500/30 hover:border-rose-500/60 shadow-md shadow-rose-950/20 hover:shadow-rose-500/5 transition-all ${glass}`
-      : theme === 'olive'
+      : (theme === 'olive' || theme === 'hunting')
       ? `bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#8b3a3a]/30 hover:border-[#8b3a3a]/50 shadow-xs text-[#1e2e1b] transition-all ${glass}`
       : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-rose-500/25 hover:border-rose-500/50 shadow-sm hover:shadow-md hover:shadow-rose-500/5 transition-all ${glass}`;
   };

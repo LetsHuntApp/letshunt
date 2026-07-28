@@ -128,7 +128,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
       className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
         isDark
           ? `${hasCustomBackground ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md' : 'bg-slate-900/90'} border-slate-800 text-slate-100`
-          : theme === 'olive'
+          : (theme === 'olive' || theme === 'hunting')
           ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0] text-[#1e2e1b]'
           : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-md' : 'bg-white'} border-slate-200 text-slate-900`
       }`}

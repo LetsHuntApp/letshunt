@@ -122,11 +122,13 @@ export default function App() {
   // Persistence Effects
   useEffect(() => {
     localStorage.setItem('letshunt_theme', theme);
-    document.documentElement.classList.remove('dark', 'olive');
+    document.documentElement.classList.remove('dark', 'olive', 'hunting');
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else if (theme === 'olive') {
       document.documentElement.classList.add('olive');
+    } else if (theme === 'hunting') {
+      document.documentElement.classList.add('hunting');
     }
   }, [theme]);
 
@@ -206,9 +208,9 @@ export default function App() {
   }, [currentLocation, units, pressureUnit]);
 
   const handleToggleTheme = () => {
-    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : theme === 'light' ? 'olive' : 'dark';
+    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : theme === 'light' ? 'olive' : (theme === 'olive' || theme === 'hunting') ? 'hunting' : 'dark';
     setTheme(nextTheme);
-    showToast(`Switched to ${nextTheme === 'dark' ? 'Dark' : nextTheme === 'olive' ? 'Olive' : 'Light'} Theme`);
+    showToast(`Switched to ${nextTheme === 'dark' ? 'Dark' : nextTheme === 'olive' ? 'Olive' : nextTheme === 'hunting' ? 'Hunting' : 'Light'} Theme`);
   };
 
   const handleSetDefaultLocation = (loc: Location) => {
@@ -260,7 +262,9 @@ export default function App() {
       } ${
         isDark
           ? 'bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950'
-          : theme === 'olive'
+          : theme === 'hunting'
+          ? 'bg-[#f5f0e8] text-[#2c1810] selection:bg-[#c85a17] selection:text-white'
+          : (theme === 'olive' || theme === 'hunting')
           ? 'bg-[#efebd9] text-[#1e2e1b] selection:bg-[#556b2f] selection:text-white'
           : 'bg-slate-100 text-slate-900 selection:bg-emerald-600 selection:text-white'
       }`}
@@ -484,14 +488,18 @@ export default function App() {
           className={`border-t py-4 px-4 text-center text-xs transition-colors mt-auto ${
             isDark
               ? 'bg-slate-950 border-slate-800/80 text-slate-500'
-              : theme === 'olive'
+              : theme === 'hunting'
+              ? 'bg-[#ede5d5] border-[#d4c5a9] text-[#8b7355]'
+            : theme === 'hunting'
+            ? 'bg-[#f5f0e8]/95 border-[#d4c5a9] text-[#2c1810]'
+            : (theme === 'olive' || theme === 'hunting')
               ? 'bg-[#e5e1d0] border-[#d4cebc] text-[#556b2f]'
               : 'bg-white border-slate-200 text-slate-600'
           }`}
         >
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className={`font-black ${isDark ? 'text-slate-200' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>LetsHunt</span>
+              <span className={`font-black ${isDark ? 'text-slate-200' : theme === 'hunting' ? 'text-[#2c1810]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>LetsHunt</span>
               <span>• Deer Forecast Prediction Engine</span>
             </div>
 
@@ -504,7 +512,7 @@ export default function App() {
               </button>
               <span className="text-slate-400">•</span>
               <span className="text-[11px]">
-                Live weather by <span className={`font-semibold ${isDark ? 'text-slate-300' : theme === 'olive' ? 'text-[#2e4028]' : 'text-slate-700'}`}>Open-Meteo API</span>
+                Live weather by <span className={`font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2e4028]' : 'text-slate-700'}`}>Open-Meteo API</span>
               </span>
             </div>
           </div>
@@ -516,7 +524,7 @@ export default function App() {
         className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-center justify-around px-4 py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md transition-colors duration-200 ${
           isDark
             ? 'bg-slate-950/90 border-slate-800 text-slate-100'
-            : theme === 'olive'
+            : (theme === 'olive' || theme === 'hunting')
             ? 'bg-[#f7f5ed]/95 border-[#d8d2c0] text-[#1e2e1b]'
             : 'bg-white/95 border-slate-200 text-slate-900'
         }`}

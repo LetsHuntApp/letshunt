@@ -704,7 +704,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
         className={`p-5 sm:p-6 rounded-3xl border shadow-xl relative overflow-hidden transition-all ${
           isDark
             ? 'bg-slate-900/90 border-slate-800 text-slate-100'
-            : theme === 'olive'
+            : (theme === 'olive' || theme === 'hunting')
             ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
             : 'bg-white/95 border-slate-200 text-slate-900'
         }`}

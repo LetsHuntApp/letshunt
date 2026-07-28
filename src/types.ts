@@ -1,4 +1,4 @@
-export type ThemeMode = 'dark' | 'light' | 'olive';
+export type ThemeMode = 'dark' | 'light' | 'olive' | 'hunting';
 
 export interface Location {
   id?: string;

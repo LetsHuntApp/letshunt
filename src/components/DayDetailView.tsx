@@ -136,7 +136,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   }, [selectedHour, day, units, pressureUnit, location]);
 
   const scoreStrokeColor =
-    theme === 'olive'
+    (theme === 'olive' || theme === 'hunting')
       ? (currentScore >= 90 ? '#2d4a27' : currentScore >= 76 ? '#556b2f' : currentScore >= 46 ? '#b87333' : '#8b3a3a')
       : currentScore >= 90
       ? (isDark ? '#34d399' : '#047857') // emerald-400 (Vibrant Green) vs emerald-700 (Pine Forest Green)
@@ -147,7 +147,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       : '#f43f5e'; // rose-500 (Terracotta)
 
   const scoreTextColor =
-    theme === 'olive'
+    (theme === 'olive' || theme === 'hunting')
       ? 'text-[#1e2e1b]'
       : currentScore >= 90
       ? 'text-emerald-800 dark:text-emerald-400'
@@ -162,7 +162,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       {/* Hero Overview Header Card */}
       <div
         className={`rounded-3xl p-3 sm:p-4 border shadow-xl relative overflow-hidden transition-colors backdrop-blur-xl ${
-          theme === 'olive'
+          (theme === 'olive' || theme === 'hunting')
             ? 'bg-gradient-to-br from-[#f7f5ed] via-[#efebd9] to-[#e8e4d5] border-2 border-[#556b2f]/40 text-[#1e2e1b] shadow-lg ring-1 ring-[#556b2f]/20'
             : isExcellentDay
             ? isDark
@@ -184,7 +184,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
         {/* Glow backdrop */}
         <div
           className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl pointer-events-none ${
-            theme === 'olive'
+            (theme === 'olive' || theme === 'hunting')
               ? 'bg-[#556b2f]/15'
               : isExcellentDay
               ? 'bg-emerald-700/10'
@@ -202,7 +202,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             <div className="flex flex-row items-center justify-center gap-3 sm:gap-5 flex-shrink-0 self-center sm:self-auto">
               {/* Circular Gauge Score */}
               <div className={`relative flex items-center justify-center shrink-0 transition-all ${
-                theme === 'olive'
+                (theme === 'olive' || theme === 'hunting')
                   ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#f2efe4] border-2 border-[#556b2f] shadow-xl ring-4 ring-[#556b2f]/25'
                   : 'w-32 h-32 sm:w-36 sm:h-36'
               }`}>
@@ -214,7 +214,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     cy="50"
                     r="40"
                     fill="transparent"
-                    stroke={isDark ? '#1e293b' : theme === 'olive' ? '#ded8c8' : '#e2e8f0'}
+                    stroke={isDark ? '#1e293b' : (theme === 'olive' || theme === 'hunting') ? '#ded8c8' : '#e2e8f0'}
                     strokeWidth="8"
                   />
                   {/* Colored Indicator */}
@@ -224,7 +224,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     r="40"
                     fill="transparent"
                     stroke={scoreStrokeColor}
-                    strokeWidth={theme === 'olive' ? "10" : "8"}
+                    strokeWidth={(theme === 'olive' || theme === 'hunting') ? "10" : "8"}
                     strokeDasharray={`${2 * Math.PI * 40}`}
                     strokeDashoffset={`${2 * Math.PI * 40 * (1 - currentScore / 100)}`}
                     strokeLinecap="round"
@@ -234,21 +234,21 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className="text-center z-10 flex flex-col items-center justify-center">
                   <DeerIcon 
                     className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${scoreTextColor} -mb-0.5`} 
-                    style={{ color: isDark || theme === 'olive' ? scoreStrokeColor : undefined }}
+                    style={{ color: isDark || (theme === 'olive' || theme === 'hunting') ? scoreStrokeColor : undefined }}
                   />
-                  <div className={`font-black tracking-tight leading-none ${theme === 'olive' ? 'text-3xl sm:text-4xl text-[#1e2e1b]' : 'text-2xl sm:text-3xl'}`}>
+                  <div className={`font-black tracking-tight leading-none ${(theme === 'olive' || theme === 'hunting') ? 'text-3xl sm:text-4xl text-[#1e2e1b]' : 'text-2xl sm:text-3xl'}`}>
                     {currentScore}
                   </div>
                   <div 
                     className={`text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1 ${
-                      theme === 'olive' ? 'text-[#2d4a27]' : scoreTextColor
+                      (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : scoreTextColor
                     }`}
-                    style={{ color: isDark || theme === 'olive' ? scoreStrokeColor : undefined }}
+                    style={{ color: isDark || (theme === 'olive' || theme === 'hunting') ? scoreStrokeColor : undefined }}
                   >
                     {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-500 dark:text-amber-400" />}
                     <span>{getRatingFromScore(currentScore)}</span>
                   </div>
-                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${theme === 'olive' ? 'text-[#556b2f]' : isDark ? 'text-slate-400' : 'text-slate-500'} -mt-0.5 opacity-90`}>
+                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${(theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : isDark ? 'text-slate-400' : 'text-slate-500'} -mt-0.5 opacity-90`}>
                     SCORE
                   </div>
                 </div>
