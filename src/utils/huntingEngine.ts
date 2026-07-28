@@ -859,3 +859,47 @@ export function getBestStandForWind(windDeg: number): { name: string; type: stri
     return null;
   }
 }
+
+function parseSolunarTimeRange(
+  rangeStr: string,
+  referenceDate: Date
+): { start: number; end: number } | null {
+  const parts = rangeStr.split(' - ');
+  if (parts.length !== 2) return null;
+
+  const parseToMs = (timeStr: string): number | null => {
+    const match = timeStr.trim().match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+    if (!match) return null;
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = match[3].toUpperCase();
+    if (ampm === 'PM' && hours !== 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+    const d = new Date(referenceDate);
+    d.setHours(hours, minutes, 0, 0);
+    return d.getTime();
+  };
+
+  const start = parseToMs(parts[0]);
+  const end = parseToMs(parts[1]);
+  if (start === null || end === null) return null;
+  return { start, end };
+}
+
+export function getSolunarRating(
+  timestamp: number,
+  solunar: SolunarInfo
+): 'High' | 'Medium' | 'Normal' {
+  const date = new Date(timestamp);
+  const major1 = parseSolunarTimeRange(solunar.major1, date);
+  const major2 = parseSolunarTimeRange(solunar.major2, date);
+  const minor1 = parseSolunarTimeRange(solunar.minor1, date);
+  const minor2 = parseSolunarTimeRange(solunar.minor2, date);
+
+  if (major1 && timestamp >= major1.start && timestamp <= major1.end) return 'High';
+  if (major2 && timestamp >= major2.start && timestamp <= major2.end) return 'High';
+  if (minor1 && timestamp >= minor1.start && timestamp <= minor1.end) return 'Medium';
+  if (minor2 && timestamp >= minor2.start && timestamp <= minor2.end) return 'Medium';
+
+  return 'Normal';
+}

@@ -5,6 +5,7 @@ import {
   celsiusToFahrenheit,
   format12HourTime,
   formatTimeRange12h,
+  getSolunarRating,
   getWeatherDetails,
   getWindDirectionText,
   hpaToInHg,
@@ -294,7 +295,7 @@ export async function fetch5DayHuntingForecast(
         weatherDesc: isRainBreakHour ? 'Rain Break (Dry Window)' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
         huntScore: hScore,
         isPrimeWindow,
-        solunarRating: isPrimeWindow || isRainBreakHour ? 'High' : hour === 12 ? 'Medium' : 'Normal',
+        solunarRating: getSolunarRating(hDate.getTime(), solunar),
       };
     });
 
@@ -457,6 +458,9 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
         huntScore: isPrimeWindow ? score + 10 : score - 5,
         isPrimeWindow,
         solunarRating: isPrimeWindow ? 'High' : 'Normal',
+        // Note: The fallback does not compute true solunar periods; it uses a loose
+        // prime-window proxy for the solunar rating. Real Open-Meteo data applies
+        // the full getSolunarRating function.
       });
     }
 
