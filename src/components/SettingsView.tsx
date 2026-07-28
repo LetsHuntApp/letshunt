@@ -180,30 +180,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto"
           >
             <span>Back to Dashboard</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setTheme('hunting');
-                  showToast('Hunting Theme Activated');
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                  theme === 'hunting'
-                    ? 'bg-[#c85a17]/20 border-[#c85a17] ring-2 ring-[#c85a17]/30 text-[#2c1810]'
-                    : isDark
-                    ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <span className="text-lg leading-none">🦌</span>
-                  {theme === 'hunting' && <Check className="w-3.5 h-3.5 text-[#c85a17]" />}
-                </div>
-                <div>
-                  <div className="font-black text-xs">Hunting</div>
-                  <div className="text-[9px] text-[#c85a17]">Rustic Autumn</div>
-                </div>
-              </button>
+          </button>
             </div>
       </div>
 
@@ -603,7 +580,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </h2>
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <button
                 onClick={() => {
                   setTheme('dark');
@@ -670,6 +647,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div>
                   <div className="font-black text-xs">Olive</div>
                   <div className="text-[9px] text-[#556b2f]">Beige & Earthy</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setTheme('hunting');
+                  showToast('Hunting Theme Activated');
+                }}
+                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                  theme === 'hunting'
+                    ? 'bg-[#c85a17]/20 border-[#c85a17] ring-2 ring-[#c85a17]/30 text-[#2c1810]'
+                    : isDark
+                    ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <div className="flex items-center justify-between w-full mb-1">
+                  <span className="text-base leading-none">🦌</span>
+                  {theme === 'hunting' && <Check className="w-3.5 h-3.5 text-[#c85a17]" />}
+                </div>
+                <div>
+                  <div className="font-black text-xs">Hunting</div>
+                  <div className="text-[9px] text-[#c85a17]">Rustic Autumn</div>
                 </div>
               </button>
             </div>

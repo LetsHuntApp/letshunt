@@ -127,6 +127,8 @@ export const Header: React.FC<HeaderProps> = ({
       className={`sticky top-0 z-50 px-3 sm:px-6 py-1.5 transition-colors duration-200 border-b ${
         isDark
           ? 'bg-slate-950/90 backdrop-blur-md border-slate-800/80 shadow-lg text-slate-100'
+          : theme === 'hunting'
+          ? 'bg-[#f4eee1]/95 backdrop-blur-md border-[#d4c4a8] shadow-xs text-[#2a1b0e]'
           : (theme === 'olive' || theme === 'hunting')
           ? 'bg-[#f7f5ed]/95 backdrop-blur-md border-[#d8d2c0] shadow-xs text-[#1e2e1b]'
           : 'bg-white/95 backdrop-blur-md border-slate-200 shadow-sm text-slate-900'
@@ -145,7 +147,9 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shadow-md overflow-hidden border ${
-                (theme === 'olive' || theme === 'hunting')
+                theme === 'hunting'
+                  ? 'bg-gradient-to-br from-[#c85a17] to-[#8b3a0f] border-[#c85a17]/30'
+                  : (theme === 'olive' || theme === 'hunting')
                   ? 'bg-gradient-to-br from-[#556b2f] to-[#2d4a27] border-[#8a9a5b]/30'
                   : 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-400/20'
               }`}>
@@ -161,8 +165,8 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               <span className="text-xs sm:text-base font-black tracking-wider uppercase font-sans">
-                <span className={isDark ? 'text-white' : (theme === 'olive' || theme === 'hunting') ? 'text-[#1e2e1b]' : 'text-slate-900'}>Lets</span>
-                <span className={(theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}>Hunt</span>
+                <span className={isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#1e2e1b]' : 'text-slate-900'}>Lets</span>
+                <span className={theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}>Hunt</span>
               </span>
             </div>
 
@@ -173,6 +177,8 @@ export const Header: React.FC<HeaderProps> = ({
               className={`p-1.5 sm:p-2 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 border ${
                 isDark
                   ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-emerald-400'
+                  : theme === 'hunting'
+                  ? 'bg-[#eae1cf] border-[#d4c4a8] hover:bg-[#e0d6c0] text-[#c85a17]'
                   : (theme === 'olive' || theme === 'hunting')
                   ? 'bg-[#efebd9] border-[#d8d2c0] hover:bg-[#e8e4d2] text-[#556b2f]'
                   : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-emerald-600'
@@ -188,12 +194,14 @@ export const Header: React.FC<HeaderProps> = ({
                 className={`flex items-center border rounded-xl px-2 py-1 sm:py-1.5 transition-all ${
                   isDark
                     ? 'bg-slate-900/90 border-slate-800 focus-within:border-emerald-500'
+: theme === 'hunting'
+? 'bg-[#eae1cf] border-[#d4c4a8] focus-within:border-[#c85a17]'
                     : (theme === 'olive' || theme === 'hunting')
                     ? 'bg-[#efebd9] border-[#d8d2c0] focus-within:border-[#556b2f]'
                     : 'bg-slate-50 border-slate-200 focus-within:border-emerald-600'
                 }`}
               >
-                <Search className={`w-3 h-3 mr-1.5 flex-shrink-0 ${isDark ? 'text-slate-400' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`} />
+                <Search className={`w-3 h-3 mr-1.5 flex-shrink-0 ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`} />
                 <input
                   type="text"
                   value={searchQuery}
@@ -203,13 +211,15 @@ export const Header: React.FC<HeaderProps> = ({
                   className={`w-full bg-transparent text-[11px] sm:text-xs focus:outline-none ${
                     isDark
                       ? 'text-white placeholder-slate-500'
+                      : theme === 'hunting'
+                      ? 'text-[#2a1b0e] placeholder-[#8b7355]'
                       : (theme === 'olive' || theme === 'hunting')
                       ? 'text-[#1e2e1b] placeholder-[#8c8675]'
                       : 'text-slate-900 placeholder-slate-400'
                   }`}
                 />
                 {isSearching && (
-                  <div className={`w-3 h-3 border-2 border-t-transparent rounded-full animate-spin ml-1 flex-shrink-0 ${(theme === 'olive' || theme === 'hunting') ? 'border-[#556b2f]' : 'border-emerald-500'}`} />
+                  <div className={`w-3 h-3 border-2 border-t-transparent rounded-full animate-spin ml-1 flex-shrink-0 ${theme === 'hunting' ? 'border-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'border-[#556b2f]' : 'border-emerald-500'}`} />
                 )}
               </div>
 
@@ -219,6 +229,8 @@ export const Header: React.FC<HeaderProps> = ({
                   className={`absolute top-full left-0 right-0 mt-1 border rounded-xl shadow-2xl overflow-hidden z-50 max-h-56 overflow-y-auto divide-y ${
                     isDark
                       ? 'bg-slate-900 border-slate-700 divide-slate-800 text-slate-200'
+                      : theme === 'hunting'
+                      ? 'bg-[#f4eee1] border-[#d4c4a8] divide-[#e5dcc8] text-[#2a1b0e]'
                       : (theme === 'olive' || theme === 'hunting')
                       ? 'bg-[#f7f5ed] border-[#d8d2c0] divide-[#e5e0cf] text-[#1e2e1b]'
                       : 'bg-white border-slate-200 divide-slate-100 text-slate-800'
@@ -235,15 +247,17 @@ export const Header: React.FC<HeaderProps> = ({
                       className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2 text-xs ${
                         isDark
                           ? 'hover:bg-emerald-950/50 hover:text-emerald-300'
+                          : theme === 'hunting'
+                          ? 'hover:bg-[#e8ddca] hover:text-[#c85a17]'
                           : (theme === 'olive' || theme === 'hunting')
                           ? 'hover:bg-[#e8e3d3] hover:text-[#2d4a27]'
                           : 'hover:bg-emerald-50 hover:text-emerald-800'
                       }`}
                     >
-                      <MapPin className={`w-3 h-3 flex-shrink-0 ${(theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
+<MapPin className={`w-3 h-3 flex-shrink-0 ${theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
                       <div className="truncate">
                         <span className="font-semibold">{loc.name}</span>
-                        <span className={`ml-1 text-[10px] ${isDark ? 'text-slate-400' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
+                        <span className={`ml-1 text-[10px] ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
                           {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
                         </span>
                       </div>
@@ -255,11 +269,13 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Active Location Badge */}
             <div className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-xl border max-w-[130px] md:max-w-[180px] lg:max-w-[220px] flex-shrink-0 ${
-              (theme === 'olive' || theme === 'hunting')
+              theme === 'hunting'
+                ? 'bg-[#c85a17]/10 border-[#c85a17]/25'
+                : (theme === 'olive' || theme === 'hunting')
                 ? 'bg-[#556b2f]/10 border-[#556b2f]/25'
                 : 'bg-emerald-500/10 border-emerald-500/20'
             }`}>
-              <MapPin className={`w-3 h-3 flex-shrink-0 ${(theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
+              <MapPin className={`w-3 h-3 flex-shrink-0 ${theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
               <span className={`text-[11px] font-bold truncate ${(theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {currentLocation.name}
               </span>

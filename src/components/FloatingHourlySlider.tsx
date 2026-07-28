@@ -77,6 +77,8 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         style={{
           backgroundColor: isDark
             ? 'rgba(2, 6, 23, var(--slider-opacity, 0.98))'
+            : theme === 'hunting'
+            ? 'rgba(234, 225, 207, var(--slider-opacity, 0.98))'
             : (theme === 'olive' || theme === 'hunting')
             ? 'rgba(247, 245, 237, var(--slider-opacity, 0.98))'
             : 'rgba(255, 255, 255, var(--slider-opacity, 0.98))'
@@ -84,6 +86,8 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         className={`rounded-2xl backdrop-blur-xl border shadow-2xl p-2 sm:p-2.5 transition-all ${
           isDark
             ? 'border-slate-700/80 text-slate-100 shadow-emerald-950/30'
+            : theme === 'hunting'
+            ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
             : (theme === 'olive' || theme === 'hunting')
             ? 'border-[#d8d2c0] text-[#1e2e1b] shadow-[#556b2f]/10'
             : 'border-slate-300 text-slate-900 shadow-slate-500/20'

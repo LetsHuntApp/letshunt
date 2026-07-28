@@ -116,12 +116,28 @@ rect:focus {
   fill: rgba(16, 185, 129, 0.08) !important;
 }
 
-/* ===== HUNTING THEME ===== */
+/* ===== HUNTING THEME (RUSTIC AUTUMN BACKWOODS) ===== */
 .hunting {
-  --hunting-bg: #f5f0e8;
-  --hunting-text: #2c1810;
+  --hunting-bg: #f4eee1;
+  --hunting-text: #2a1b0e;
   --hunting-accent: #c85a17;
-  --hunting-border: #d4c5a9;
-  --hunting-highlight: #d4692c;
+  --hunting-accent-hover: #b34e12;
+  --hunting-border: #d4c4a8;
+  --hunting-highlight: #d9631e;
+  --hunting-card: #eae1cf;
+}
+
+/* Backwoods Rustic Outdoor Serif Typography for Hunting Theme */
+.hunting h1,
+.hunting h2,
+.hunting h3,
+.hunting h4,
+.hunting .font-serif-hunting {
+  font-family: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif !important;
+}
+
+.hunting .font-brand-hunting {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif !important;
+  letter-spacing: 0.05em;
 }
 
