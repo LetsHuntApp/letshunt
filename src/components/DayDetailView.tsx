@@ -137,7 +137,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
   const scoreStrokeColor =
     theme === 'hunting'
-      ? (currentScore >= 90 ? '#c85a17' : currentScore >= 76 ? '#8b7355' : currentScore >= 46 ? '#d4c4a8' : '#8b3a3a')
+      ? (currentScore >= 90 ? '#1a6b3c' : currentScore >= 76 ? '#4a8c5e' : currentScore >= 46 ? '#c85a17' : '#8b3a3a')
       : (theme === 'olive' || theme === 'hunting')
       ? (currentScore >= 90 ? '#2d4a27' : currentScore >= 76 ? '#556b2f' : currentScore >= 46 ? '#b87333' : '#8b3a3a')
       : currentScore >= 90
@@ -150,7 +150,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
   const scoreTextColor =
     theme === 'hunting'
-      ? 'text-[#2a1b0e]'
+      ? (currentScore >= 90 ? 'text-[#1a6b3c]' : currentScore >= 76 ? 'text-[#4a8c5e]' : currentScore >= 46 ? 'text-[#c85a17]' : 'text-[#8b3a3a]')
       : (theme === 'olive' || theme === 'hunting')
       ? 'text-[#1e2e1b]'
       : currentScore >= 90

@@ -136,10 +136,10 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
     }
   };
 
-  const getScoreBadgeColor = (score: number) => {
+const getScoreBadgeColor = (score: number) => {
     if (theme === 'hunting') {
-      if (score >= 90) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
-      if (score >= 76) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
+      if (score >= 90) return 'bg-[#1a6b3c] text-white border-[#1a6b3c] shadow-sm';
+      if (score >= 76) return 'bg-[#4a8c5e] text-white border-[#4a8c5e] shadow-sm';
       if (score >= 46) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
     } else if ((theme === 'olive' || theme === 'hunting')) {
@@ -162,7 +162,7 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
-          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#c85a17] ring-2 ring-[#c85a17]/40 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
+          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#1a6b3c] ring-2 ring-[#1a6b3c]/40 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#2d4a27] ring-2 ring-[#556b2f]/40 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-emerald-600 ring-2 ring-emerald-600/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
@@ -181,7 +181,7 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
-          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#c85a17] ring-2 ring-[#c85a17]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
+          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#4a8c5e] ring-2 ring-[#4a8c5e]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#556b2f] ring-2 ring-[#556b2f]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
