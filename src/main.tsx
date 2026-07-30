@@ -3,14 +3,18 @@ import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Register Service Worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    const swUrl = `${import.meta.env.BASE_URL}sw.js`;
-    navigator.serviceWorker.register(swUrl, { scope: import.meta.env.BASE_URL }).catch((err) => {
-      console.log('SW registration failed:', err);
-    });
-  });
+// APP_VERSION: increment on each deploy to force PWA cache refresh
+const APP_VERSION = '14';
+
+if (typeof window !== 'undefined') {
+  const stored = localStorage.getItem('letsHuntVersion');
+  if (stored !== APP_VERSION) {
+    localStorage.setItem('letsHuntVersion', APP_VERSION);
+    if (stored !== null) {
+      // Hard reload to bust all caches
+      window.location.reload();
+    }
+  }
 }
 
 createRoot(document.getElementById('root')!).render(
