@@ -521,66 +521,70 @@ function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, thr
 }
 
 // ---- Focused OCR Date Extraction (timestamp bar only) ----
-async function extractDateFromImageOCR(file: File): Promise<string | undefined> {
-  try {
-    const { createWorker } = await import('tesseract.js');
+// Accept optional pre-created worker to avoid re-loading Tesseract per photo.
+async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<string | undefined> {
+  const img = await loadImageForOCR(file);
+  if (!img) return undefined;
 
-    const img = await loadImageForOCR(file);
-    if (!img) return undefined;
+  const targetWidth = Math.min(1600, Math.max(800, img.width));
+  const scale = targetWidth / img.width;
 
-    const targetWidth = Math.min(1600, Math.max(800, img.width));
-    const scale = targetWidth / img.width;
+  // Bottom 6-10% — just two regions, most likely to contain the timestamp bar
+  const cropRegions = [
+    { yRatio: 0.92, hRatio: 0.08 },
+    { yRatio: 0.94, hRatio: 0.06 },
+  ];
 
-    // Only crop the bottom 5-10% — the timestamp bar. No top crops.
-    const cropRegions = [
-      { yRatio: 0.90, hRatio: 0.10 },
-      { yRatio: 0.92, hRatio: 0.08 },
-      { yRatio: 0.94, hRatio: 0.06 },
-      { yRatio: 0.95, hRatio: 0.05 },
-    ];
+  // Just 3 thresholds instead of 6
+  const thresholds = [140, 120, 100];
 
-    const thresholds = [140, 120, 160, 100, 180, 80];
+  const tryWorker = async (worker: any): Promise<string | undefined> => {
+    for (const region of cropRegions) {
+      const cropH = Math.round(img.height * region.hRatio);
+      const cropY = Math.round(img.height * region.yRatio);
+      if (cropY + cropH > img.height) continue;
 
-    tryDateFromOCR: for (const psm of ['7', '6']) {
-      const worker = await createWorker('eng');
-      await worker.setParameters({ tessedit_pageseg_mode: psm });
+      const cw = targetWidth;
+      const ch = Math.max(30, Math.round(cropH * scale));
 
-      for (const region of cropRegions) {
-        const cropH = Math.round(img.height * region.hRatio);
-        const cropY = Math.round(img.height * region.yRatio);
-        if (cropY + cropH > img.height) continue;
+      const canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) continue;
 
-        const cw = targetWidth;
-        const ch = Math.max(30, Math.round(cropH * scale));
-
-        const canvas = document.createElement('canvas');
-        canvas.width = cw;
-        canvas.height = ch;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) continue;
-
-        for (const thresh of thresholds) {
-          ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, cw, ch);
-          const processed = binarizeForOCR(ctx, cw, ch, thresh);
-          if (!processed) continue;
-          const { data: { text } } = await worker.recognize(processed);
-          // Try full text first, then filtered
-          for (const input of [text, stripNonDateText(text)]) {
-            const iso = parseOCRTextToISO(input);
-            if (iso) {
-              const dt = new Date(iso);
-              const fMod = new Date(file.lastModified);
-              const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
-              if (!isNaN(dt.getTime()) && dt.getTime() <= Date.now() && dt.getFullYear() >= 2000 && diffYears <= 3) {
-                await worker.terminate();
-                return iso;
-              }
+      for (const thresh of thresholds) {
+        ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, cw, ch);
+        const processed = binarizeForOCR(ctx, cw, ch, thresh);
+        if (!processed) continue;
+        const { data: { text } } = await worker.recognize(processed);
+        for (const input of [text, stripNonDateText(text)]) {
+          const iso = parseOCRTextToISO(input);
+          if (iso) {
+            const dt = new Date(iso);
+            const fMod = new Date(file.lastModified);
+            const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
+            if (!isNaN(dt.getTime()) && dt.getTime() <= Date.now() && dt.getFullYear() >= 2000 && diffYears <= 3) {
+              return iso;
             }
           }
         }
       }
-      await worker.terminate();
     }
+    return undefined;
+  };
+
+  try {
+    if (existingWorker) {
+      return await tryWorker(existingWorker);
+    }
+    // No existing worker supplied — create a temporary one
+    const { createWorker } = await import('tesseract.js');
+    const worker = await createWorker('eng');
+    await worker.setParameters({ tessedit_pageseg_mode: '7' });
+    const result = await tryWorker(worker);
+    await worker.terminate();
+    return result;
   } catch (e) {
     console.debug('[OCR] Failed to extract date:', e);
   }
@@ -760,6 +764,16 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   const imported: TrailCameraPhoto[] = [];
   let successCount = 0;
 
+  // Pre-create a single Tesseract worker to reuse across all photos
+  let ocrWorker: any = undefined;
+  try {
+    const { createWorker } = await import('tesseract.js');
+    ocrWorker = await createWorker('eng');
+    await ocrWorker.setParameters({ tessedit_pageseg_mode: '7' });
+  } catch {
+    // OCR worker failed to init — proceed without it
+  }
+
   for (let i = 0; i < fileArray.length; i++) {
     const file = fileArray[i];
     const id = `cam_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
@@ -775,8 +789,8 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
 
       // Date: filename > OCR > file.lastModified
       let dateTime = parseDateFromFilename(file.name);
-      if (!dateTime) {
-        dateTime = await extractDateFromImageOCR(file);
+      if (!dateTime && ocrWorker) {
+        dateTime = await extractDateFromImageOCR(file, ocrWorker);
       }
       if (!dateTime || !isDateReasonable(dateTime, file.lastModified)) {
         const fallback = new Date(file.lastModified);
@@ -808,6 +822,11 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     }
 
     onProgress?.(i + 1, fileArray.length);
+  }
+
+  // Clean up the shared OCR worker
+  if (ocrWorker) {
+    try { await ocrWorker.terminate(); } catch { /* ignore */ }
   }
 
   return imported;
