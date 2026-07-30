@@ -384,35 +384,20 @@ function parseOCRTextToISO(rawText: string): string | undefined {
   for (let text of candidateTexts) {
     text = text.replace(/[\t\r]+/g, ' ').trim();
 
-    // Helper: if time capture groups are present, return parsed components; else null
-    const parseTime = (text: string, re: RegExp): { y: number; mo: number; d: number; hh: number; mm: number; ss: number } | null => {
-      const m = text.match(re);
-      if (!m) return null;
+    // Helper: given regex match groups, build ISO. Returns null if invalid.
+    const buildISO = (m: RegExpExecArray, yIdx: number, moIdx: number, dIdx: number, hhIdx: number, mmIdx: number, ssIdx: number, apIdx: number): string | null => {
+      const y = parseInt(m[yIdx], 10);
+      let mo = parseInt(m[moIdx], 10);
+      let d = parseInt(m[dIdx], 10);
+      let hh = parseInt(m[hhIdx], 10);
+      let mm = m[mmIdx] !== undefined ? parseInt(m[mmIdx], 10) : 0;
+      let ss = m[ssIdx] !== undefined ? parseInt(m[ssIdx], 10) : 0;
+      const ap = m[apIdx]?.toUpperCase();
 
-      // Must have at least one non-date capture group to indicate time was present
-      const hasTime = m[4] !== undefined;
-      if (!hasTime) return null;
-
-      let y = 0, mo = 0, d = 0;
-      let hh = parseInt(m[4], 10);
-      let mm = m[5] !== undefined ? parseInt(m[5], 10) : 0;
-      let ss = m[6] !== undefined ? parseInt(m[6], 10) : 0;
-      const ap = m[7]?.toUpperCase();
-
-      if (re.source.includes('20\\d{2}')) {
-        // YYYY first
-        y = parseInt(m[1], 10);
-        mo = parseInt(m[2], 10);
-        d = parseInt(m[3], 10);
-      } else {
-        // MM/DD first; if DD>12 it's DD/MM
-        mo = parseInt(m[2], 10);
-        d = parseInt(m[1], 10);
-        y = parseInt(m[3], 10);
-        if (d > 12 && d <= 31 && mo >= 1 && mo <= 12) {
-          // It's DD/MM, swap
-          const tmp = d; d = mo; mo = tmp;
-        }
+      // DD/MM vs MM/DD disambiguation for non-YYYY-first patterns
+      // If day > 12 it can't be MM/DD, so swap
+      if (yIdx > moIdx && d > 12 && d <= 31 && mo >= 1 && mo <= 12) {
+        const tmp = d; d = mo; mo = tmp;
       }
 
       if (ap === 'PM' && hh < 12) hh += 12;
@@ -422,21 +407,25 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       if (d < 1 || d > 31) return null;
       if (hh > 23 || mm > 59 || ss > 59) return null;
 
-      return { y, mo, d, hh, mm, ss };
+      const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+      if (isNaN(new Date(iso).getTime())) return null;
+      return iso;
     };
 
-    // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM)
-    let result = parseTime(text, /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?\b/i);
-    if (result) {
-      const iso = `${result.y}-${String(result.mo).padStart(2,'0')}-${String(result.d).padStart(2,'0')}T${String(result.hh).padStart(2,'0')}:${String(result.mm).padStart(2,'0')}:${String(result.ss).padStart(2,'0')}`;
-      if (!isNaN(new Date(iso).getTime())) return iso;
+    // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM)  — groups: y=1, mo=2, d=3, hh=4, mm=5, ss=6, ap=7
+    let re = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?\b/i;
+    let m = text.match(re);
+    if (m) {
+      const iso = buildISO(m, 1, 2, 3, 4, 5, 6, 7);
+      if (iso) return iso;
     }
 
-    // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM)
-    result = parseTime(text, /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?\b/i);
-    if (result) {
-      const iso = `${result.y}-${String(result.mo).padStart(2,'0')}-${String(result.d).padStart(2,'0')}T${String(result.hh).padStart(2,'0')}:${String(result.mm).padStart(2,'0')}:${String(result.ss).padStart(2,'0')}`;
-      if (!isNaN(new Date(iso).getTime())) return iso;
+    // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM)  — groups: mo=1, d=2, y=3, hh=4, mm=5, ss=6, ap=7
+    re = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?\b/i;
+    m = text.match(re);
+    if (m) {
+      const iso = buildISO(m, 3, 1, 2, 4, 5, 6, 7);
+      if (iso) return iso;
     }
 
     // Pattern 3: MON DD YYYY HH:MM(:SS) (AM/PM)
