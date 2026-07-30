@@ -387,6 +387,8 @@ export default function App() {
           <TrailCameraView
             theme={theme}
             currentLocation={currentLocation}
+            units={units}
+            pressureUnit={pressureUnit}
             showToast={showToast}
           />
         ) : loading ? (

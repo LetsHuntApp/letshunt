@@ -11,6 +11,8 @@ interface TrailCameraAnalyticsProps {
   targets?: TrailCameraTarget[];
   filter?: TrailCameraFilterState;
   onFilterChange?: (filter: TrailCameraFilterState) => void;
+  units?: string;
+  pressureUnit?: string;
 }
 
 const BAR_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
@@ -22,6 +24,8 @@ export const TrailCameraAnalytics: React.FC<TrailCameraAnalyticsProps> = ({
   targets = [],
   filter,
   onFilterChange,
+  units = 'imperial',
+  pressureUnit = 'inHg',
 }) => {
   const isDark = theme === 'dark';
 
@@ -35,10 +39,10 @@ export const TrailCameraAnalytics: React.FC<TrailCameraAnalyticsProps> = ({
 
   const activeAnalytics = useMemo(() => {
     if (photos && photos.length > 0) {
-      return computeAnalytics(currentPhotos);
+      return computeAnalytics(currentPhotos, units, pressureUnit);
     }
     return initialAnalytics;
-  }, [photos, currentPhotos, initialAnalytics]);
+  }, [photos, currentPhotos, initialAnalytics, units, pressureUnit]);
 
   const selectedTarget = targets.find((t) => t.id === targetId);
 
@@ -213,7 +217,25 @@ export const TrailCameraAnalytics: React.FC<TrailCameraAnalyticsProps> = ({
               </div>
             </div>
 
-            {/* 3. Temperature Range */}
+            {/* 3. Wind Speed */}
+            <div className={cardStyle}>
+              <div className="flex items-center gap-2">
+                <Wind className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-extrabold text-xs uppercase tracking-wider">Photos by Wind Speed</h3>
+              </div>
+              <div className="h-48 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={activeAnalytics.byWindSpeed} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} />
+                    <YAxis stroke="#94a3b8" fontSize={10} allowDecimals={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="count" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* 4. Temperature Range */}
             <div className={cardStyle}>
               <div className="flex items-center gap-2">
                 <Thermometer className="w-4 h-4 text-rose-400" />

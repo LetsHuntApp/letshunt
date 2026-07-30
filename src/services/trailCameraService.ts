@@ -906,6 +906,7 @@ export function filterPhotos(photos: TrailCameraPhoto[], filter: TrailCameraFilt
 // ---- Analytics ----
 export interface AnalyticsData {
   byWindDirection: { name: string; count: number }[];
+  byWindSpeed: { name: string; count: number }[];
   byTemperatureRange: { name: string; count: number }[];
   byWeatherCondition: { name: string; count: number }[];
   byPressureRange: { name: string; count: number }[];
@@ -916,27 +917,54 @@ export interface AnalyticsData {
   withWeather: number;
 }
 
-const TEMP_RANGES = [
-  { label: '< 20°F', min: -Infinity, max: 20 },
-  { label: '20-35°F', min: 20, max: 35 },
-  { label: '35-50°F', min: 35, max: 50 },
-  { label: '50-65°F', min: 50, max: 65 },
-  { label: '65-80°F', min: 65, max: 80 },
-  { label: '> 80°F', min: 80, max: Infinity },
-];
-
-const PRESSURE_RANGES = [
-  { label: '< 29.50 inHg', min: -Infinity, max: 29.5 },
-  { label: '29.50-29.90 inHg', min: 29.5, max: 29.9 },
-  { label: '29.90-30.20 inHg', min: 29.9, max: 30.2 },
-  { label: '30.20-30.50 inHg', min: 30.2, max: 30.5 },
-  { label: '> 30.50 inHg', min: 30.5, max: Infinity },
-];
-
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WIND_DIRS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+const WIND_SPEED_RANGES_IMP = [
+  { label: '0-5 mph', min: 0, max: 5 },
+  { label: '5-10 mph', min: 5, max: 10 },
+  { label: '10-15 mph', min: 10, max: 15 },
+  { label: '15-20 mph', min: 15, max: 20 },
+  { label: '20+ mph', min: 20, max: Infinity },
+];
+const WIND_SPEED_RANGES_MET = [
+  { label: '0-8 km/h', min: 0, max: 8 },
+  { label: '8-16 km/h', min: 8, max: 16 },
+  { label: '16-24 km/h', min: 16, max: 24 },
+  { label: '24-32 km/h', min: 24, max: 32 },
+  { label: '32+ km/h', min: 32, max: Infinity },
+];
 
-export function computeAnalytics(photos: TrailCameraPhoto[]): AnalyticsData {
+export function computeAnalytics(photos: TrailCameraPhoto[], units: string = 'imperial', pressureUnit: string = 'inHg'): AnalyticsData {
+  const isMetric = units === 'metric';
+  const isHpa = pressureUnit === 'hPa';
+
+  const tempRangeLabels = isMetric
+    ? ['< -6°C', '-6 to 1°C', '1 to 10°C', '10 to 18°C', '18 to 26°C', '> 26°C']
+    : ['< 20°F', '20-35°F', '35-50°F', '50-65°F', '65-80°F', '> 80°F'];
+
+  const pressureRangeLabels = isHpa
+    ? ['< 999 hPa', '999-1013 hPa', '1013-1023 hPa', '1023-1033 hPa', '> 1033 hPa']
+    : ['< 29.50 inHg', '29.50-29.90 inHg', '29.90-30.20 inHg', '30.20-30.50 inHg', '> 30.50 inHg'];
+
+  const windSpeedRanges = isMetric ? WIND_SPEED_RANGES_MET : WIND_SPEED_RANGES_IMP;
+
+  const TEMP_RANGES = [
+    { label: tempRangeLabels[0], min: -Infinity, max: 20 },
+    { label: tempRangeLabels[1], min: 20, max: 35 },
+    { label: tempRangeLabels[2], min: 35, max: 50 },
+    { label: tempRangeLabels[3], min: 50, max: 65 },
+    { label: tempRangeLabels[4], min: 65, max: 80 },
+    { label: tempRangeLabels[5], min: 80, max: Infinity },
+  ];
+
+  const PRESSURE_RANGES = [
+    { label: pressureRangeLabels[0], min: -Infinity, max: 29.5 },
+    { label: pressureRangeLabels[1], min: 29.5, max: 29.9 },
+    { label: pressureRangeLabels[2], min: 29.9, max: 30.2 },
+    { label: pressureRangeLabels[3], min: 30.2, max: 30.5 },
+    { label: pressureRangeLabels[4], min: 30.5, max: Infinity },
+  ];
+
   const withWeather = photos.filter((p) => p.weather);
   const totalPhotos = photos.length;
 
@@ -946,6 +974,18 @@ export function computeAnalytics(photos: TrailCameraPhoto[]): AnalyticsData {
     byWindDir.set(key, (byWindDir.get(key) || 0) + 1);
   }
   const byWindDirection = WIND_DIRS.map((name) => ({ name, count: byWindDir.get(name) || 0 }));
+
+  const byWindSpd = new Map<string, number>();
+  for (const p of withWeather) {
+    const s = isMetric ? p.weather!.windSpeedKmh : p.weather!.windSpeedMph;
+    for (const r of windSpeedRanges) {
+      if (s >= r.min && s < r.max) {
+        byWindSpd.set(r.label, (byWindSpd.get(r.label) || 0) + 1);
+        break;
+      }
+    }
+  }
+  const byWindSpeed = windSpeedRanges.map((r) => ({ name: r.label, count: byWindSpd.get(r.label) || 0 }));
 
   const byTemp = new Map<string, number>();
   for (const p of withWeather) {
@@ -1009,6 +1049,7 @@ export function computeAnalytics(photos: TrailCameraPhoto[]): AnalyticsData {
 
   return {
     byWindDirection,
+    byWindSpeed,
     byTemperatureRange,
     byWeatherCondition,
     byPressureRange,
