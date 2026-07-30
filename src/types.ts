@@ -174,6 +174,7 @@ export interface TrailCameraPhoto {
   isFavorite: boolean;
   tags?: string[];
   weather?: HistoricalWeatherData;
+  rawOcrText?: string;
 }
 
 export interface TrailCameraTarget {

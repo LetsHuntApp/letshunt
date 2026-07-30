@@ -378,10 +378,11 @@ function computeMeanGray(ctx: CanvasRenderingContext2D, w: number, h: number): n
 //
 // Every OCR result is logged via console.debug so you can open DevTools and
 // see exactly what Tesseract returns at each stage.
-async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<string | undefined> {
+async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<{dateTime?: string, rawTexts: string[]}> {
+  const rawTexts: string[] = [];
   const img = await loadImageForOCR(file);
-  if (!img) return undefined;
-  console.debug(`[OCR] Image: ${img.width}x${img.height}`);
+  if (!img) return { rawTexts };
+  console.warn(`[OCR] Image: ${img.width}x${img.height}`);
 
   // Inline helper: invert every pixel of a canvas in-place (white↔black swap)
   const invertCanvas = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
@@ -425,42 +426,55 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     const cropH = Math.round(img.height * hRatio);
     const cropY = img.height - cropH;
 
-    // 1. Draw the strip scaled-up onto a temp canvas
+    // Cap canvas width at 8192 to prevent Tesseract's internal scaler
+    // from destroying ultra-wide images (21K+ px) into "2×36" thumbnails.
+    const MAX_CANVAS_W = 8192;
+    let canvasW = Math.round(img.width * (targetH / cropH));
+    if (canvasW > MAX_CANVAS_W) {
+      const scale = MAX_CANVAS_W / canvasW;
+      canvasW = MAX_CANVAS_W;
+      targetH = Math.round(targetH * scale);
+    }
+    // Minimum dimension guard: Tesseract's internal scaler crashes on
+    // images smaller than ~100px in either dimension.
+    const MIN_DIM = 100;
+    if (canvasW < MIN_DIM) canvasW = MIN_DIM;
+    if (targetH < MIN_DIM) targetH = MIN_DIM;
+
     const tmp = document.createElement('canvas');
-    tmp.width = Math.round(img.width * (targetH / cropH));
+    tmp.width = canvasW;
     tmp.height = targetH;
-    const ctx = tmp.getContext('2d');
+    const ctx = tmp.getContext('2d', { willReadFrequently: true });
     if (!ctx) return undefined;
 
     // Draw the bottom strip of the ORIGINAL image at the up-scaled size
-    ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, tmp.width, tmp.height);
+    ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, canvasW, targetH);
 
     // ─ Strategy A: raw (colour) image — works when contrast is high ─
     const rawText = (await worker.recognize(tmp.toDataURL('image/png'))).data.text;
-    console.debug(`[OCR] ${label} raw: "${rawText.slice(0, 120)}"`);
+    rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
+    console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
-    if (r) { console.debug(`[OCR] ✓ raw ${label}: ${r}`); return r; }
+    if (r) { console.warn(`[OCR] ✓ raw ${label}: ${r}`); return r; }
 
     // ─ Strategy B: invert (white-on-dark → black-on-white) ─
-    // Trail-cam bars are ALWAYS white text on black. Inverting gives
-    // black text on white, which matches Tesseract's training data best.
     invertCanvas(tmp, ctx);
     const invText = (await worker.recognize(tmp.toDataURL('image/png'))).data.text;
-    console.debug(`[OCR] ${label} inverted: "${invText.slice(0, 120)}"`);
+    rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
+    console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
-    if (r) { console.debug(`[OCR] ✓ inverted ${label}: ${r}`); return r; }
+    if (r) { console.warn(`[OCR] ✓ inverted ${label}: ${r}`); return r; }
 
     // ─ Strategy C: binarize the inverted image ─
-    // Removes colour noise from the inverted image so Tesseract sees only
-    // pure black pixels on pure white.
-    const meanGray = computeMeanGray(ctx, tmp.width, tmp.height);
+    const meanGray = computeMeanGray(ctx, canvasW, targetH);
     const thresh = Math.min(180, Math.max(100, meanGray * 0.5));
-    const bwUrl = binarizeForOCR(ctx, tmp.width, tmp.height, thresh, false);
+    const bwUrl = binarizeForOCR(ctx, canvasW, targetH, thresh, false);
     if (bwUrl) {
       const bwText = (await worker.recognize(bwUrl)).data.text;
-      console.debug(`[OCR] ${label} binarized: "${bwText.slice(0, 120)}"`);
+      rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
+      console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
-      if (r) { console.debug(`[OCR] ✓ binarized ${label}: ${r}`); return r; }
+      if (r) { console.warn(`[OCR] ✓ binarized ${label}: ${r}`); return r; }
     }
 
     return undefined;
@@ -478,14 +492,13 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       // PSM 7 = single uniform line of text (best for timestamp bar)
       // PSM 3 = fully automatic page segmentation (fallback)
       for (const psm of ['7', '3']) {
-        console.debug(`[OCR] Setting PSM=${psm}`);
+        console.warn(`[OCR] Setting PSM=${psm}`);
         await worker.setParameters({ tessedit_pageseg_mode: psm });
 
         for (let si = 0; si < strips.length; si++) {
           const { hRatio, targetH, label } = strips[si];
           const result = await tryStrip(worker, hRatio, targetH, `PSM${psm} ${label}`);
-          if (result) return result;
-          // Yield to keep the UI responsive
+          if (result) return { dateTime: result, rawTexts };
           await new Promise((r) => setTimeout(r, 0));
         }
       }
@@ -493,10 +506,10 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       if (shouldTerminate) await worker.terminate();
     }
   } catch (e) {
-    console.debug('[OCR] Failed to extract date:', e);
+    console.warn('[OCR] Failed to extract date:', e);
   }
 
-  return undefined;
+  return { rawTexts };
 }
 
 // ---- Bulk re-OCR for previously failed photos ----
@@ -531,9 +544,9 @@ export async function reRunOcrOnPhotos(
       }
       const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
       const file = new File([blob], `reocr_${id}.${ext}`, { type: blob.type });
-      const dateTime = await extractDateFromImageOCR(file, ocrWorker);
-      if (dateTime) {
-        await updatePhoto(id, { dateTime });
+      const ocrResult = await extractDateFromImageOCR(file, ocrWorker);
+      if (ocrResult.dateTime) {
+        await updatePhoto(id, { dateTime: ocrResult.dateTime });
         updated++;
       } else {
         stillFailed++;
@@ -705,65 +718,20 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   let successCount = 0;
 
   // Pre-create a single Tesseract worker to reuse across all photos.
-  // Tesseract.js loads WASM + traineddata from CDN at runtime — the default
-  // jsdelivr URL sometimes gets blocked by firewalls, corporate proxies,
-  // or CSP headers. We provide an explicit fallback CDN chain.
+  // The default CDN (jsdelivr @v7.0.0) loads correctly; explicit
+  // workerPath/corePath/langPath configurations with wrong version
+  // numbers were causing spurious NetworkErrors before the fallback.
   let ocrWorker: any = undefined;
   try {
     const { createWorker } = await import('tesseract.js');
-
-    // Try primary CDN (jsdelivr) first, then fall back to unpkg.
-    const workerConfigs = [
-      {
-        name: 'jsdelivr',
-        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js',
-        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/tesseract-core.wasm',
-        langPath: 'https://cdn.jsdelivr.net/npm/@tesseract-data/eng@4.1.0',
-      },
-      {
-        name: 'unpkg',
-        workerPath: 'https://unpkg.com/tesseract.js@7.0.0/dist/worker.min.js',
-        corePath: 'https://unpkg.com/tesseract.js-core@6.0.0/tesseract-core.wasm',
-        langPath: 'https://unpkg.com/@tesseract-data/eng@4.1.0',
-      },
-    ];
-
-    for (const cfg of workerConfigs) {
-      try {
-        console.debug(`[OCR] Trying worker CDN: ${cfg.name}`);
-        ocrWorker = await createWorker('eng', 1, {
-          workerPath: cfg.workerPath,
-          corePath: cfg.corePath,
-          langPath: cfg.langPath,
-        });
-        console.debug(`[OCR] ✓ Worker initialized via ${cfg.name}`);
-        break;
-      } catch (e) {
-        console.debug(`[OCR] ${cfg.name} failed:`, (e as Error).message?.slice(0, 200));
-      }
-    }
-
-    // Fallback: no explicit CDN — let tesseract.js use its own default
-    if (!ocrWorker) {
-      console.debug('[OCR] Explicit CDNs failed, trying Tesseract.js default paths…');
-      ocrWorker = await createWorker('eng');
-      console.debug('[OCR] ✓ Worker initialized via default paths');
-    }
+    ocrWorker = await createWorker('eng');
+    console.log('[OCR] ✓ Tesseract worker initialized');
   } catch (ocrInitErr) {
-    // Every init path failed — the dynamic import of tesseract.js OR every
-    // CDN download attempt threw. Either tesseract.js cannot be bundled by
-    // Vite (build issue) OR every CDN is unreachable from this network.
     console.error(
       '[OCR] ⚠️  TESSERACT.JS FAILED TO INITIALIZE — EVERY PHOTO WILL SHOW "OCR Failed".\n' +
       'Underlying error:', ocrInitErr, '\n\n' +
-      'Possible causes:\n' +
-      '  1. tesseract.js could not be loaded from node_modules (Vite build issue)\n' +
-      '  2. jsdelivr + unpkg CDNs are blocked by firewall / VPN / corporate proxy\n' +
-      '  3. Content-Security-Policy header blocking cross-origin WASM or scripts\n' +
-      '  4. You are offline\n\n' +
       'Check the Network tab in DevTools for failed requests.\n' +
-      'You can still import photos — tap any "OCR Failed" badge in the gallery\n' +
-      'to set the date/timestamp manually for that photo.'
+      'You can still tap any "OCR Failed" badge in the gallery to set the date manually.'
     );
   }
 
@@ -781,10 +749,15 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
       // We NEVER use file.lastModified as a fallback — it represents the file's
       // copy/download time, not the capture time.
       let dateTime: string | undefined = validateFilenameDate(parseDateFromFilename(file.name));
+      let rawOcrText: string | undefined;
       if (!dateTime && ocrWorker) {
-        console.debug(`[OCR] Attempting OCR for "${file.name}"...`);
-        dateTime = await extractDateFromImageOCR(file, ocrWorker);
-        console.debug(`[OCR] Result for "${file.name}": ${dateTime || 'FAILED — no date set'}`);
+        console.warn(`[OCR] Attempting OCR for "${file.name}"...`);
+        const ocrResult = await extractDateFromImageOCR(file, ocrWorker);
+        dateTime = ocrResult.dateTime;
+        // Only store raw OCR text when OCR fails (keep IndexedDB lean).
+        // Cap at 8 entries / 1000 chars to avoid storing huge diagnostic strings.
+        rawOcrText = dateTime ? undefined : (ocrResult.rawTexts.length > 0 ? ocrResult.rawTexts.slice(0, 8).join(' | ').slice(0, 1000) : undefined);
+        console.warn(`[OCR] Result for "${file.name}": ${dateTime || 'FAILED — no date set'} (${ocrResult.rawTexts.length} attempts)`);
       } else if (!ocrWorker) {
         console.warn(`[OCR] No worker available for "${file.name}" — skipping OCR`);
       }
@@ -796,9 +769,10 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
         importedAt: Date.now(),
         dateTime,
         isFavorite: false,
+        rawOcrText,
       };
 
-      console.debug(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
+      console.warn(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
 
       await putInStore(PHOTOS_STORE, photo);
       await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl || '' });

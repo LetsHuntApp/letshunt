@@ -513,16 +513,26 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                     </div>
                   )}
                   {!ocrSucceeded ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDateModal(photo.id);
-                      }}
-                      className="font-extrabold text-amber-300 drop-shadow underline decoration-dotted underline-offset-2 hover:text-amber-200 text-left w-full truncate"
-                      title="OCR could not read the timestamp bar. Click to set the date manually."
-                    >
-                      {NO_DATE_BADGE}
-                    </button>
+                    <div className="space-y-0.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDateModal(photo.id);
+                        }}
+                        className="font-extrabold text-amber-300 drop-shadow underline decoration-dotted underline-offset-2 hover:text-amber-200 text-left w-full truncate"
+                        title="OCR could not read the timestamp bar. Click to set the date manually."
+                      >
+                        {NO_DATE_BADGE}
+                      </button>
+                      {photo.rawOcrText && (
+                        <div
+                          className="text-[9px] text-slate-400 truncate leading-tight"
+                          title={`Raw OCR output: ${photo.rawOcrText}`}
+                        >
+                          OCR saw: {photo.rawOcrText.slice(0, 60)}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div
                       className="font-extrabold truncate drop-shadow"
