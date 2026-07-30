@@ -427,24 +427,32 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Header Card */}
-      <div className={`${cardBase} ${cardBg} flex flex-wrap items-center justify-between gap-4`}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
-            <Camera className="w-5 h-5 sm:w-6 sm:h-6" />
+      <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 sm:gap-4`}>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
+            <Camera className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight">Trail Camera Intelligence</h2>
-            <p className="text-xs opacity-70">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-lg font-black tracking-tight truncate">Trail Camera</h2>
+            <p className="hidden sm:block text-xs opacity-70">
               Bulk photo import, automatic historical weather matching & deer movement analytics.
             </p>
           </div>
         </div>
 
         {/* Sub-Tab Navigation Buttons */}
-        <div className="flex flex-wrap items-center gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-800/80">
+        <div className={`flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 ${
+          isDark
+            ? 'bg-slate-950/60 border-slate-800/80'
+            : isHunting
+            ? 'bg-[#dccab8]/60 border-[#c4b498]'
+            : isOlive
+            ? 'bg-[#e5dfcd]/60 border-[#cbc5b0]'
+            : 'bg-slate-100/80 border-slate-200'
+        }`}>
           <button
             onClick={() => setActiveTab('gallery')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'gallery'
                 ? 'bg-emerald-500 text-slate-950 shadow-md'
                 : isDark
@@ -453,15 +461,15 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 ? 'text-[#8b7355] hover:text-[#2a1b0e]'
                 : isOlive
                 ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <LayoutGrid className="w-3.5 h-3.5" /> Gallery ({photos.length})
+            <LayoutGrid className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Gallery</span> ({photos.length})
           </button>
 
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'analytics'
                 ? 'bg-emerald-500 text-slate-950 shadow-md'
                 : isDark
@@ -470,10 +478,10 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 ? 'text-[#8b7355] hover:text-[#2a1b0e]'
                 : isOlive
                 ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <BarChart3 className="w-3.5 h-3.5" /> Analytics
+            <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Analytics</span>
           </button>
         </div>
       </div>
@@ -491,10 +499,10 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           />
 
           {/* Location Management Strip */}
-          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-3 text-xs`}>
-            <div className="flex items-center gap-2 overflow-x-auto py-0.5">
-              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0">
-                <MapPin className="w-3.5 h-3.5 text-sky-400" /> Spots:
+          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-thin">
+              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
+                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
               </span>
               {allSpots.length === 0 ? (
                 <span className="text-[10px] opacity-50 italic">No spots added yet</span>
@@ -505,8 +513,12 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                       key={spot.id}
                       className={`px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 flex items-center gap-1 ${
                         spot._isMapPin
-                          ? 'text-amber-300 bg-amber-900/40 border-amber-600/40'
-                          : 'text-sky-300 bg-slate-900/60 border-slate-700'
+                          ? isDark
+                            ? 'text-amber-300 bg-amber-900/40 border-amber-600/40'
+                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
+                          : isDark
+                            ? 'text-sky-300 bg-slate-800/80 border-slate-700'
+                            : 'text-sky-700 bg-sky-100/80 border-sky-200'
                       }`}
                     >
                       {spot._isMapPin ? <TreePine className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
@@ -519,17 +531,17 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
             <button
               onClick={() => setIsLocationModalOpen(true)}
-              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md`}
+              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5`}
             >
-              <Plus className="w-3.5 h-3.5" /> Add Spot
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Add </span>Spot
             </button>
           </div>
 
           {/* Target Management Strip */}
-          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-3 text-xs`}>
-            <div className="flex items-center gap-2 overflow-x-auto py-0.5">
-              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0">
-                <Crosshair className="w-3.5 h-3.5 text-emerald-400" /> Targets:
+          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-thin">
+              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
+                <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
               </span>
               {targets.length === 0 ? (
                 <span className="text-[10px] opacity-50 italic">No targets defined</span>
@@ -549,9 +561,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
             <button
               onClick={() => setIsTargetManagerOpen(true)}
-              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md`}
+              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5`}
             >
-              <Crosshair className="w-3.5 h-3.5" /> Manage Targets
+              <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Manage </span>Targets
             </button>
           </div>
 
