@@ -478,7 +478,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       )}
 
       {activeTab === 'analytics' && (
-        <TrailCameraAnalytics theme={theme} analytics={analytics} />
+        <TrailCameraAnalytics
+          theme={theme}
+          analytics={analytics}
+          photos={photos}
+          targets={targets}
+          filter={filter}
+          onFilterChange={setFilter}
+        />
       )}
 
       {activeTab === 'insights' && (
