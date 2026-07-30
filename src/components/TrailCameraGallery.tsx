@@ -237,7 +237,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
           <p className="text-sm font-bold">No photos match your current filter or no photos imported yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
           {paginatedPhotos.map((photo) => {
             const isSelected = selectedIds.includes(photo.id);
             const thumbUrl = thumbnails[photo.id];
@@ -480,11 +480,11 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               Assign {selectedIds.length} selected photo(s) to a saved camera location to fetch historical weather.
             </p>
 
-            <select
-              value={targetLocationId}
-              onChange={(e) => setTargetLocationId(e.target.value)}
-              className={`w-full p-2 text-xs rounded-xl border ${tc.selectBg}`}
-            >
+<select
+                value={targetLocationId}
+                onChange={(e) => setTargetLocationId(e.target.value)}
+                className={`w-full p-2 text-xs rounded-xl border max-h-40 overflow-y-auto ${tc.selectBg}`}
+              >
               <option value="">Select a Camera Location...</option>
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id}>{loc.name}</option>

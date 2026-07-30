@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, LayoutGrid, BarChart3, Sparkles, Plus, MapPin, Trash2, X, Crosshair } from 'lucide-react';
+import { Camera, LayoutGrid, BarChart3, Sparkles, Plus, MapPin, Trash2, X, Crosshair, Navigation, Target } from 'lucide-react';
 import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -54,6 +54,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // New Location Modal State
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [newLocName, setNewLocName] = useState('');
+  const [newLocLat, setNewLocLat] = useState<number | null>(null);
+  const [newLocLon, setNewLocLon] = useState<number | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   // Target Manager State
   const [isTargetManagerOpen, setIsTargetManagerOpen] = useState(false);
@@ -240,14 +243,37 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     const newLoc: TrailCameraLocation = {
       id: `loc_${Date.now()}`,
       name: newLocName.trim(),
-      latitude: currentLocation.latitude,
-      longitude: currentLocation.longitude,
+      latitude: newLocLat ?? currentLocation.latitude,
+      longitude: newLocLon ?? currentLocation.longitude,
     };
     await saveCameraLocation(newLoc);
     setLocations([...locations, newLoc]);
     setNewLocName('');
+    setNewLocLat(null);
+    setNewLocLon(null);
     setIsLocationModalOpen(false);
     showToast(`Added camera spot "${newLoc.name}"`);
+  };
+
+  const handleUseGPS = () => {
+    if (!navigator.geolocation) {
+      showToast('Geolocation is not supported by your browser');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setNewLocLat(pos.coords.latitude);
+        setNewLocLon(pos.coords.longitude);
+        setGpsLoading(false);
+        showToast(`GPS location set: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+      },
+      (err) => {
+        setGpsLoading(false);
+        showToast('GPS location access denied or unavailable');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   // Filtered Photos
@@ -324,7 +350,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
         </div>
 
         {/* Sub-Tab Navigation Buttons */}
-        <div className="flex items-center gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-800/80">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-800/80">
           <button
             onClick={() => setActiveTab('gallery')}
             className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -513,6 +539,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           locations={locations}
           targets={targets}
           onAssignLocation={(id, locId) => handleAssignLocation(id, locId)}
+          showToast={showToast}
         />
       )}
 
@@ -557,6 +584,46 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               onChange={(e) => setNewLocName(e.target.value)}
               className={`w-full p-2.5 text-sm rounded-xl border outline-none ${modalInputBg}`}
             />
+
+            {/* GPS Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleUseGPS}
+                  disabled={gpsLoading}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all border cursor-pointer ${
+                    isDark
+                      ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-400 hover:bg-emerald-600/30 disabled:opacity-40'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40'
+                  }`}
+                >
+                  {gpsLoading ? (
+                    <>
+                      <Navigation className="w-3.5 h-3.5 animate-spin" /> Getting GPS...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="w-3.5 h-3.5" /> Set GPS Location
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {(newLocLat != null || newLocLon != null) && (
+                <div className="flex items-center gap-2 text-xs font-mono opacity-80">
+                  <Target className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{newLocLat?.toFixed(6)}, {newLocLon?.toFixed(6)}</span>
+                  <button
+                    type="button"
+                    onClick={() => { setNewLocLat(null); setNewLocLon(null); }}
+                    className="ml-auto text-slate-400 hover:text-white text-[10px] font-bold uppercase tracking-wider"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
