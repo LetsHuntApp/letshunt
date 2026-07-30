@@ -287,6 +287,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
         cameraLocationName: targetLoc.name,
         latitude: targetLoc.latitude,
         longitude: targetLoc.longitude,
+        weather: undefined, // Clear old weather so it re-fetches for new location
       });
     }
 
@@ -583,6 +584,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             onAssignTags={handleAssignTags}
             locations={allSpots}
             targets={targets}
+            units={units}
           />
         </div>
       )}

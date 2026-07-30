@@ -14,6 +14,7 @@ interface TrailCameraGalleryProps {
   onAssignTags: (ids: string[], targetId: string) => void;
   locations: TrailCameraLocation[];
   targets: TrailCameraTarget[];
+  units?: string;
 }
 
 const ITEMS_PER_PAGE = 36;
@@ -94,6 +95,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   onAssignTags,
   locations,
   targets,
+  units = 'imperial',
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -389,9 +391,9 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
                   {photo.weather && (
                     <div className="flex items-center gap-2 text-[10px] font-semibold text-emerald-300 opacity-90 pt-0.5">
-                      <span>{photo.weather.temperature}°F</span>
+                      <span>{photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>
                       <span>•</span>
-                      <span>{photo.weather.windDirection} {photo.weather.windSpeedMph}mph</span>
+                      <span>{photo.weather.windDirection} {units === 'metric' ? photo.weather.windSpeedKmh : photo.weather.windSpeedMph}{units === 'metric' ? 'km/h' : 'mph'}</span>
                     </div>
                   )}
                 </div>

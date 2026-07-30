@@ -405,16 +405,18 @@ function parseOCRTextToISO(rawText: string): string | undefined {
 
   const fixNumericTypos = (s: string) => {
     return s
-      .replace(/([0-9])[O|o|Q|D]/g, '$10')
-      .replace(/[O|o|Q|D]([0-9])/g, '0$1')
-      .replace(/([0-9])[l|I|i|!|\|]/g, '$11')
-      .replace(/[l|I|i|!|\|]([0-9])/g, '1$1')
-      .replace(/([0-9])[Z|z]/g, '$12')
-      .replace(/[Z|z]([0-9])/g, '2$1')
-      .replace(/([0-9])[S|s]/g, '$15')
-      .replace(/[S|s]([0-9])/g, '5$1')
-      .replace(/([0-9])[B]/g, '$18')
-      .replace(/[B]([0-9])/g, '8$1');
+      .replace(/([0-9])[OoQqD]/g, '$10')
+      .replace(/[OoQqD]([0-9])/g, '0$1')
+      .replace(/([0-9])[lI!|]/g, '$11')
+      .replace(/[lI!|]([0-9])/g, '1$1')
+      .replace(/([0-9])[Zz]/g, '$12')
+      .replace(/[Zz]([0-9])/g, '2$1')
+      .replace(/([0-9])[Ss]/g, '$15')
+      .replace(/[Ss]([0-9])/g, '5$1')
+      .replace(/([0-9])[Bb]/g, '$18')
+      .replace(/[Bb]([0-9])/g, '8$1')
+      .replace(/[Aa]([0-9])/g, '4$1')
+      .replace(/([0-9])[Aa]/g, '$14');
   };
 
   const candidateTexts = [
@@ -431,8 +433,11 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     JULY: '07', AUGUST: '08', SEPTEMBER: '09', OCTOBER: '10', NOVEMBER: '11', DECEMBER: '12'
   };
 
+  // Normalize a text candidate before matching
+  const normalize = (s: string) => s.replace(/[\t\r]+/g, ' ').trim();
+
   for (let text of candidateTexts) {
-    text = text.replace(/[\t]+/g, ' ').trim();
+    text = normalize(text);
 
     // Pattern 1: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD with optional HH:MM:SS
     const reIso = /\b(20\d{2})[-/.:\s](\d{1,2})[-/.:\s](\d{1,2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
@@ -476,14 +481,38 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       }
     }
 
+    // Pattern 2b: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (EU format, common in trail cams)
+    // Only match if first group > 12 (so it definitely isn't a month)
+    const reEu = /\b(\d{1,2})[-/.:](\d{1,2})[-/.:](20\d{2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    m = text.match(reEu);
+    if (m) {
+      let d = parseInt(m[1], 10);
+      let mo = parseInt(m[2], 10);
+      let y = parseInt(m[3], 10);
+      // Only accept as DD-MM if day > 12 and month <= 12
+      if (d > 12 && d <= 31 && mo >= 1 && mo <= 12) {
+        let hh = m[4] ? parseInt(m[4], 10) : 12;
+        let mm = m[5] ? parseInt(m[5], 10) : 0;
+        let ss = m[6] ? parseInt(m[6], 10) : 0;
+        const ampm = m[7] ? m[7].toUpperCase() : null;
+        if (ampm === 'PM' && hh < 12) hh += 12;
+        if (ampm === 'AM' && hh === 12) hh = 0;
+        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+          const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+          if (!isNaN(new Date(iso).getTime())) return iso;
+        }
+      }
+    }
+
     // Pattern 3: Text Month, e.g. "OCT 15 2024 06:30:45 PM" or "15-OCT-2024"
-    const reMonthName = /\b(?:(\d{1,2})[-/\s])?([A-Za-z]{3,9})[-/\s](\d{1,2})[-/\s](20\d{2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    // Match: optional day prefix, month name, then day, then year
+    const reMonthName = /\b(?:(\d{1,2})\s*[-/\s])?\s*([A-Za-z]{3,9})\s*[-/\s]?\s*(\d{1,2})\s*[-/\s]?\s*(20\d{2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
     m = text.match(reMonthName);
     if (m) {
       const monthStr = m[2].toUpperCase();
       const monthNum = monthMap[monthStr];
       if (monthNum) {
-        let d = m[1] ? parseInt(m[1], 10) : parseInt(m[3], 10);
+        let d = parseInt(m[3], 10);
         let y = parseInt(m[4], 10);
         let hh = m[5] ? parseInt(m[5], 10) : 12;
         let mm = m[6] ? parseInt(m[6], 10) : 0;
@@ -499,9 +528,36 @@ function parseOCRTextToISO(rawText: string): string | undefined {
         }
       }
     }
+
+    // Pattern 4: YYYYMMDD_HHMMSS or YYYY-MM-DD_HH-MM-SS (no separators or underscores)
+    const reCompact = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[.:-]?(\d{2})(?:[.:-]?(\d{2}))?\b/;
+    m = text.match(reCompact);
+    if (m) {
+      let y = parseInt(m[1], 10);
+      let mo = parseInt(m[2], 10);
+      let d = parseInt(m[3], 10);
+      let hh = parseInt(m[4], 10);
+      let mm = parseInt(m[5], 10);
+      let ss = m[6] ? parseInt(m[6], 10) : 0;
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+        const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        if (!isNaN(new Date(iso).getTime())) return iso;
+      }
+    }
   }
 
   return undefined;
+}
+
+function isDateReasonable(isoDate: string, fileLastModified: number): boolean {
+  const dt = new Date(isoDate);
+  if (isNaN(dt.getTime())) return false;
+  if (dt.getFullYear() < 2000) return false;
+  if (dt.getTime() > Date.now()) return false;
+  const fMod = new Date(fileLastModified);
+  if (isNaN(fMod.getTime())) return true; // can't check, so accept
+  const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
+  return diffYears <= 3;
 }
 
 function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
@@ -520,11 +576,29 @@ function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
   });
 }
 
+// ---- Preprocess a crop canvas: grayscale + binarization (returns dataUrl or null) ----
+function binarizeCrop(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number, invert: boolean): string | null {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    const bw = invert ? (gray > threshold ? 0 : 255) : (gray > threshold ? 255 : 0);
+    data[i] = bw;
+    data[i + 1] = bw;
+    data[i + 2] = bw;
+  }
+  ctx.putImageData(imgData, 0, 0);
+  return ctx.canvas.toDataURL('image/png');
+}
+
 // ---- OCR Date Extraction (fallback for trail cam photos) ----
 async function extractDateFromImageOCR(file: File): Promise<string | undefined> {
   try {
     const { createWorker } = await import('tesseract.js');
     const worker = await createWorker('eng');
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6',
+    });
 
     const img = await loadImageForOCR(file);
     if (!img) {
@@ -532,58 +606,89 @@ async function extractDateFromImageOCR(file: File): Promise<string | undefined> 
       return undefined;
     }
 
-    // Trail camera date banners are on bottom 18% or top 18% or full image
-    const crops = [
-      { yRatio: 0.82, hRatio: 0.18 },
-      { yRatio: 0.0, hRatio: 0.18 },
-      { yRatio: 0.0, hRatio: 1.0 },
-    ];
+    const w = Math.min(1600, Math.max(800, img.width));
 
-    for (const crop of crops) {
-      const canvas = document.createElement('canvas');
-      const cropWidth = img.width;
-      const cropHeight = Math.max(60, Math.round(img.height * crop.hRatio));
+    // Multiple crop regions to capture date banners in various positions
+    const crops: { yRatio: number; hRatio: number }[] = [];
+    for (let y = 0; y <= 0.9; y += 0.1) {
+      crops.push({ yRatio: y, hRatio: Math.min(0.15, 1 - y) });
+    }
+    // Also try full image
+    crops.push({ yRatio: 0.0, hRatio: 1.0 });
+    // Also try narrow strips at top and bottom
+    crops.push({ yRatio: 0.0, hRatio: 0.06 });
+    crops.push({ yRatio: 0.94, hRatio: 0.06 });
+
+    // Deduplicate by string key
+    const seen = new Set<string>();
+    const uniqueCrops = crops.filter((c) => {
+      const key = `${c.yRatio.toFixed(2)}_${c.hRatio.toFixed(2)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    for (const crop of uniqueCrops) {
+      const cropHeight = Math.max(40, Math.round(img.height * crop.hRatio));
       const cropY = Math.round(img.height * crop.yRatio);
+      if (cropY + cropHeight > img.height) continue;
 
-      const targetWidth = Math.min(1600, Math.max(800, cropWidth));
-      const scale = targetWidth / cropWidth;
-      canvas.width = targetWidth;
-      canvas.height = Math.round(cropHeight * scale);
+      const scale = w / img.width;
+      const cw = w;
+      const ch = Math.round(cropHeight * scale);
 
+      const canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      ctx.drawImage(img, 0, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+      // Draw crop region
+      ctx.drawImage(img, 0, cropY, img.width, cropHeight, 0, 0, cw, ch);
 
-      // Preprocess: Grayscale + High-contrast binarization
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        const bw = gray > 128 ? 255 : 0;
-        data[i] = bw;
-        data[i + 1] = bw;
-        data[i + 2] = bw;
-      }
-      ctx.putImageData(imgData, 0, 0);
+      // Try multiple binarization strategies
+      const strategies: { threshold: number; invert: boolean }[] = [
+        { threshold: 128, invert: false },
+        { threshold: 160, invert: false },
+        { threshold: 96, invert: false },
+        { threshold: 64, invert: false },
+        { threshold: 180, invert: false },
+        { threshold: 128, invert: true },
+        { threshold: 160, invert: true },
+      ];
 
-      const dataUrl = canvas.toDataURL('image/png');
-      const { data: { text } } = await worker.recognize(dataUrl);
-
-      const iso = parseOCRTextToISO(text);
-      if (iso) {
-        await worker.terminate();
-        return iso;
+      for (const strat of strategies) {
+        // Redraw crop for each strategy
+        ctx.drawImage(img, 0, cropY, img.width, cropHeight, 0, 0, cw, ch);
+        const processed = binarizeCrop(ctx, cw, ch, strat.threshold, strat.invert);
+        if (!processed) continue;
+        const { data: { text } } = await worker.recognize(processed);
+        const iso = parseOCRTextToISO(text);
+        if (iso) {
+          // Sanity check: date should not be in the future and not before 2000
+          const dt = new Date(iso);
+          const fMod = new Date(file.lastModified);
+          const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
+          if (!isNaN(dt.getTime()) && dt.getTime() <= Date.now() && dt.getFullYear() >= 2000 && diffYears <= 3) {
+            await worker.terminate();
+            return iso;
+          }
+        }
       }
 
       // Try non-binarized pass on crop
-      ctx.drawImage(img, 0, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, cropY, img.width, cropHeight, 0, 0, cw, ch);
       const rawDataUrl = canvas.toDataURL('image/jpeg', 0.9);
       const { data: { text: rawText } } = await worker.recognize(rawDataUrl);
       const rawIso = parseOCRTextToISO(rawText);
       if (rawIso) {
-        await worker.terminate();
-        return rawIso;
+        const dt = new Date(rawIso);
+        const fMod = new Date(file.lastModified);
+        const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
+        if (!isNaN(dt.getTime()) && dt.getTime() <= Date.now() && dt.getFullYear() >= 2000 && diffYears <= 3) {
+          await worker.terminate();
+          return rawIso;
+        }
       }
     }
 
@@ -765,7 +870,7 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
         // Try OCR on trail cam photo for datestamps
         dateTime = await extractDateFromImageOCR(file);
       }
-      if (!dateTime) {
+      if (!dateTime || !isDateReasonable(dateTime, file.lastModified)) {
         const fallback = new Date(file.lastModified);
         dateTime = !isNaN(fallback.getTime()) ? fallback.toISOString() : new Date().toISOString();
       }

@@ -161,7 +161,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
     }
 
     if (lat && lon) {
-      const weather = await matchWeatherForPhoto({ ...photo, latitude: lat, longitude: lon });
+      const weather = await matchWeatherForPhoto({ ...photo, latitude: lat, longitude: lon, weather: undefined });
       if (weather) {
         await updatePhoto(photo.id, {
           weather,
