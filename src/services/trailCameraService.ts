@@ -462,6 +462,27 @@ export async function matchWeatherForPhoto(photo: TrailCameraPhoto): Promise<His
   return data;
 }
 
+// ---- Filename Date Parsing (fallback when EXIF stripped on mobile) ----
+function parseDateFromFilename(fileName: string): string | undefined {
+  const patterns: { re: RegExp; fmt: (m: RegExpExecArray) => string }[] = [
+    // IMG_20260729_120000 or 20260729_120000
+    { re: /(\d{4})(\d{2})(\d{2})[_\-](\d{2})(\d{2})(\d{2})/, fmt: (m) => `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}` },
+    // 2026-07-29 12.00.00 (iPhone with dots)
+    { re: /(\d{4})[-_]?(\d{2})[-_]?(\d{2})[\s._-]+(\d{2})\.(\d{2})\.(\d{2})/, fmt: (m) => `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}` },
+    // 2026-07-29 (date only, no time)
+    { re: /(\d{4})[-_](\d{2})[-_](\d{2})/, fmt: (m) => `${m[1]}-${m[2]}-${m[3]}T12:00:00` },
+  ];
+
+  for (const p of patterns) {
+    const m = p.re.exec(fileName);
+    if (m) {
+      const iso = p.fmt(m);
+      const d = new Date(iso);
+      if (!isNaN(d.getTime())) return iso;
+    }
+  }
+}
+
 // ---- Import Photos ----
 export async function importPhotos(files: FileList | File[], onProgress?: (completed: number, total: number) => void): Promise<TrailCameraPhoto[]> {
   const fileArray = Array.from(files);
@@ -481,17 +502,31 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
 
       const fileBlob = new Blob([file], { type: file.type });
 
+      // Best date: EXIF > filename > file.lastModified
+      let dateTime = exif?.dateTime;
+      if (!dateTime) {
+        dateTime = parseDateFromFilename(file.name);
+      }
+      if (!dateTime) {
+        const fallback = new Date(file.lastModified);
+        dateTime = !isNaN(fallback.getTime()) ? fallback.toISOString() : new Date().toISOString();
+      }
+
       const photo: TrailCameraPhoto = {
         id,
         fileName: file.name,
         fileSize: file.size,
         importedAt: Date.now(),
-        dateTime: exif?.dateTime || new Date(file.lastModified).toISOString(),
+        dateTime,
         cameraModel: exif?.cameraModel,
         latitude: exif?.latitude,
         longitude: exif?.longitude,
         isFavorite: false,
       };
+
+      if (!exif) {
+        console.debug(`[cam] No EXIF for "${file.name}", using dateTime=${dateTime} (filename=${!!parseDateFromFilename(file.name)}, lastModified=${!!file.lastModified})`);
+      }
 
       await putInStore(PHOTOS_STORE, photo);
       await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl || '' });
