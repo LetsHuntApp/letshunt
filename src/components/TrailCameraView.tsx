@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, LayoutGrid, BarChart3, Sparkles, Plus, MapPin, Trash2, X, Crosshair, Navigation, Target } from 'lucide-react';
-import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget } from '../types';
+import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X } from 'lucide-react';
+import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
 import { TrailCameraGallery } from './TrailCameraGallery';
 import { TrailCameraDetail } from './TrailCameraDetail';
 import { TrailCameraAnalytics } from './TrailCameraAnalytics';
-import { TrailCameraInsights } from './TrailCameraInsights';
 import { TrailCameraTargetManager } from './TrailCameraTargetManager';
 import {
   getAllPhotos,
@@ -15,13 +14,11 @@ import {
   updatePhoto,
   getCameraLocations,
   saveCameraLocation,
-  deleteCameraLocation,
   getTargets,
   saveTarget,
   deleteTarget,
   filterPhotos,
   computeAnalytics,
-  generateInsights,
   matchWeatherForPhoto,
 } from '../services/trailCameraService';
 
@@ -44,6 +41,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [photos, setPhotos] = useState<TrailCameraPhoto[]>([]);
   const [locations, setLocations] = useState<TrailCameraLocation[]>([]);
   const [targets, setTargets] = useState<TrailCameraTarget[]>([]);
+  const [mapPins, setMapPins] = useState<SavedPin[]>([]);
   const [filter, setFilter] = useState<TrailCameraFilterState>({});
   const [selectedPhoto, setSelectedPhoto] = useState<TrailCameraPhoto | null>(null);
 
@@ -72,6 +70,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       const allLocs = await getCameraLocations();
       const allTargets = await getTargets();
 
+      // Load map pins from localStorage (stands, food plots, etc.)
+      let savedPins: SavedPin[] = [];
+      try {
+        const raw = localStorage.getItem('letshunt_saved_pins');
+        if (raw) savedPins = JSON.parse(raw);
+      } catch { /* ignore parse errors */ }
+      setMapPins(savedPins);
+
       // Ensure current active location exists in saved camera locations
       if (allLocs.length === 0 && currentLocation) {
         const defaultCamLoc: TrailCameraLocation = {
@@ -95,6 +101,21 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       showToast('Failed to load trail camera data');
     }
   };
+
+  // Merge camera locations with map pins for the spots list
+  const allSpots = useMemo(() => {
+    const locIds = new Set(locations.map((l) => l.id));
+    const fromPins: TrailCameraLocation[] = mapPins
+      .filter((p) => !locIds.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        latitude: p.lat,
+        longitude: p.lng,
+        _isMapPin: true,
+      }));
+    return [...locations, ...fromPins];
+  }, [locations, mapPins]);
 
   // Background Historical Weather Fetcher
   const matchWeatherBackground = async (photoList: TrailCameraPhoto[], locList: TrailCameraLocation[]) => {
@@ -200,10 +221,16 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     showToast(`Deleted ${ids.length} photo(s)`);
   };
 
-  // Assign Location
+  // Assign Location (supports both camera locations and map pins)
   const handleAssignLocation = async (ids: string | string[], locationId: string) => {
-    const targetLoc = locations.find((l) => l.id === locationId);
+    const targetLoc = allSpots.find((l) => l.id === locationId);
     if (!targetLoc) return;
+
+    // If it's a map pin not yet saved as camera location, save it now
+    if (!locations.some((l) => l.id === targetLoc.id)) {
+      await saveCameraLocation(targetLoc);
+      setLocations((prev) => [...prev, targetLoc]);
+    }
 
     const idArray = Array.isArray(ids) ? ids : [ids];
     for (const id of idArray) {
@@ -281,11 +308,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     return filterPhotos(photos, filter);
   }, [photos, filter]);
 
-  // Analytics & Insights
-  const { analytics, insights } = useMemo(() => {
-    const data = computeAnalytics(photos);
-    const ins = generateInsights(photos, data);
-    return { analytics: data, insights: ins };
+  // Analytics
+  const analytics = useMemo(() => {
+    return computeAnalytics(photos);
   }, [photos]);
 
   // Theme-aware class helpers
@@ -384,23 +409,6 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           >
             <BarChart3 className="w-3.5 h-3.5" /> Analytics
           </button>
-
-          <button
-            onClick={() => setActiveTab('insights')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'insights'
-                ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : isDark
-                ? 'text-slate-400 hover:text-white'
-                : isHunting
-                ? 'text-[#8b7355] hover:text-[#2a1b0e]'
-                : isOlive
-                ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Pattern Insights
-          </button>
         </div>
       </div>
 
@@ -422,14 +430,25 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0">
                 <MapPin className="w-3.5 h-3.5 text-sky-400" /> Spots:
               </span>
-              {locations.map((loc) => (
-                <span
-                  key={loc.id}
-                  className="px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 text-sky-300 bg-slate-900/60 border-slate-700"
-                >
-                  {loc.name}
-                </span>
-              ))}
+              {allSpots.length === 0 ? (
+                <span className="text-[10px] opacity-50 italic">No spots added yet</span>
+              ) : (
+                allSpots.map((spot) => {
+                  return (
+                    <span
+                      key={spot.id}
+                      className={`px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 flex items-center gap-1 ${
+                        spot._isMapPin
+                          ? 'text-amber-300 bg-amber-900/40 border-amber-600/40'
+                          : 'text-sky-300 bg-slate-900/60 border-slate-700'
+                      }`}
+                    >
+                      {spot._isMapPin ? <TreePine className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                      {spot.name}
+                    </span>
+                  );
+                })
+              )}
             </div>
 
             <button
@@ -475,7 +494,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             theme={theme}
             filter={filter}
             onFilterChange={setFilter}
-            locations={locations}
+            locations={allSpots}
             targets={targets}
             totalPhotosCount={photos.length}
             filteredPhotosCount={filteredPhotos.length}
@@ -497,7 +516,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             onDeletePhotos={handleDeletePhotos}
             onAssignLocation={handleAssignLocation}
             onAssignTags={handleAssignTags}
-            locations={locations}
+            locations={allSpots}
             targets={targets}
           />
         </div>
@@ -514,15 +533,6 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
         />
       )}
 
-      {activeTab === 'insights' && (
-        <TrailCameraInsights
-          theme={theme}
-          insights={insights}
-          totalPhotosCount={photos.length}
-          weatherMatchedCount={analytics.withWeather}
-        />
-      )}
-
       {/* Full Resolution Photo Detail Modal */}
       {selectedPhoto && (
         <TrailCameraDetail
@@ -536,7 +546,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             setSelectedPhoto(null);
           }}
           onNavigate={(p) => setSelectedPhoto(p)}
-          locations={locations}
+          locations={allSpots}
           targets={targets}
           onAssignLocation={(id, locId) => handleAssignLocation(id, locId)}
           showToast={showToast}

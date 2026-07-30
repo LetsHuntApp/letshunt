@@ -138,6 +138,7 @@ export interface TrailCameraLocation {
   name: string;
   latitude?: number;
   longitude?: number;
+  _isMapPin?: boolean;
 }
 
 export interface HistoricalWeatherData {
