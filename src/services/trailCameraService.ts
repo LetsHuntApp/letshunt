@@ -704,16 +704,66 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   const imported: TrailCameraPhoto[] = [];
   let successCount = 0;
 
-  // Pre-create a single Tesseract worker to reuse across all photos
+  // Pre-create a single Tesseract worker to reuse across all photos.
+  // Tesseract.js loads WASM + traineddata from CDN at runtime — the default
+  // jsdelivr URL sometimes gets blocked by firewalls, corporate proxies,
+  // or CSP headers. We provide an explicit fallback CDN chain.
   let ocrWorker: any = undefined;
   try {
     const { createWorker } = await import('tesseract.js');
-    ocrWorker = await createWorker('eng');
+
+    // Try primary CDN (jsdelivr) first, then fall back to unpkg.
+    const workerConfigs = [
+      {
+        name: 'jsdelivr',
+        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/tesseract-core.wasm',
+        langPath: 'https://cdn.jsdelivr.net/npm/@tesseract-data/eng@4.1.0',
+      },
+      {
+        name: 'unpkg',
+        workerPath: 'https://unpkg.com/tesseract.js@7.0.0/dist/worker.min.js',
+        corePath: 'https://unpkg.com/tesseract.js-core@6.0.0/tesseract-core.wasm',
+        langPath: 'https://unpkg.com/@tesseract-data/eng@4.1.0',
+      },
+    ];
+
+    for (const cfg of workerConfigs) {
+      try {
+        console.debug(`[OCR] Trying worker CDN: ${cfg.name}`);
+        ocrWorker = await createWorker('eng', 1, {
+          workerPath: cfg.workerPath,
+          corePath: cfg.corePath,
+          langPath: cfg.langPath,
+        });
+        console.debug(`[OCR] ✓ Worker initialized via ${cfg.name}`);
+        break;
+      } catch (e) {
+        console.debug(`[OCR] ${cfg.name} failed:`, (e as Error).message?.slice(0, 200));
+      }
+    }
+
+    // Fallback: no explicit CDN — let tesseract.js use its own default
+    if (!ocrWorker) {
+      console.debug('[OCR] Explicit CDNs failed, trying Tesseract.js default paths…');
+      ocrWorker = await createWorker('eng');
+      console.debug('[OCR] ✓ Worker initialized via default paths');
+    }
   } catch (ocrInitErr) {
-    // Tesseract WASM or language data failed to load (CDN blocked, offline, etc.)
-    console.warn(
-      '[OCR] Failed to initialize Tesseract worker. All photos will import with no date. Underlying error:',
-      ocrInitErr
+    // Every init path failed — the dynamic import of tesseract.js OR every
+    // CDN download attempt threw. Either tesseract.js cannot be bundled by
+    // Vite (build issue) OR every CDN is unreachable from this network.
+    console.error(
+      '[OCR] ⚠️  TESSERACT.JS FAILED TO INITIALIZE — EVERY PHOTO WILL SHOW "OCR Failed".\n' +
+      'Underlying error:', ocrInitErr, '\n\n' +
+      'Possible causes:\n' +
+      '  1. tesseract.js could not be loaded from node_modules (Vite build issue)\n' +
+      '  2. jsdelivr + unpkg CDNs are blocked by firewall / VPN / corporate proxy\n' +
+      '  3. Content-Security-Policy header blocking cross-origin WASM or scripts\n' +
+      '  4. You are offline\n\n' +
+      'Check the Network tab in DevTools for failed requests.\n' +
+      'You can still import photos — tap any "OCR Failed" badge in the gallery\n' +
+      'to set the date/timestamp manually for that photo.'
     );
   }
 
