@@ -391,7 +391,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
                   {photo.weather && (
                     <div className="flex items-center gap-2 text-[10px] font-semibold text-emerald-300 opacity-90 pt-0.5">
-                      <span>{photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>
+                      <span>{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>
                       <span>•</span>
                       <span>{photo.weather.windDirection} {units === 'metric' ? photo.weather.windSpeedKmh : photo.weather.windSpeedMph}{units === 'metric' ? 'km/h' : 'mph'}</span>
                     </div>

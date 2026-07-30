@@ -117,7 +117,7 @@ export function getMoonPhase(date: Date): { phase: number; illumination: number;
 }
 
 // ---- EXIF Parsing (robust) ----
-function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: string; latitude?: number; longitude?: number } | undefined {
+function parseEXIFMetadata(buffer: ArrayBuffer): { cameraModel?: string; latitude?: number; longitude?: number } | undefined {
   try {
     const dv = new DataView(buffer);
     if (dv.byteLength < 4) return;
@@ -129,11 +129,10 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
       let pos = 2;
       while (pos + 4 < dv.byteLength) {
         const marker = dv.getUint16(pos);
-        if (marker === 0xFFDA || marker === 0xFFD9) break; // SOS or EOI
+        if (marker === 0xFFDA || marker === 0xFFD9) break;
         if (marker === 0xFFE1) {
           const segLen = dv.getUint16(pos + 2);
           if (segLen >= 8 && pos + 10 <= dv.byteLength) {
-            // "Exif\0\0"
             if (dv.getUint8(pos + 4) === 0x45 && dv.getUint8(pos + 5) === 0x78 &&
                 dv.getUint8(pos + 6) === 0x69 && dv.getUint8(pos + 7) === 0x66 &&
                 dv.getUint8(pos + 8) === 0x00 && dv.getUint8(pos + 9) === 0x00) {
@@ -154,9 +153,8 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
         }
       }
     } else if (dv.getUint32(0) === 0x89504E47) {
-      // PNG format: scan PNG chunks for eXIf or tIME
+      // PNG format: scan for eXIf chunk
       let pos = 8;
-      let pTimeIso: string | undefined;
       while (pos + 8 < dv.byteLength) {
         const chunkLen = dv.getUint32(pos);
         const chunkType = String.fromCharCode(
@@ -165,22 +163,11 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
         if (chunkType === 'eXIf' && pos + 8 + chunkLen <= dv.byteLength) {
           tiffStart = pos + 8;
           break;
-        } else if (chunkType === 'tIME' && chunkLen >= 7 && pos + 15 <= dv.byteLength) {
-          const yr = dv.getUint16(pos + 8);
-          const mo = dv.getUint8(pos + 10);
-          const dy = dv.getUint8(pos + 11);
-          const hr = dv.getUint8(pos + 12);
-          const mn = dv.getUint8(pos + 13);
-          const sc = dv.getUint8(pos + 14);
-          pTimeIso = `${yr}-${String(mo).padStart(2, '0')}-${String(dy).padStart(2, '0')}T${String(hr).padStart(2, '0')}:${String(mn).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
         }
         pos += 12 + chunkLen;
       }
-      if (tiffStart < 0 && pTimeIso) {
-        return { dateTime: pTimeIso };
-      }
     } else if (dv.getUint32(0) === 0x52494646 && dv.getUint32(8) === 0x57454250) {
-      // WebP format: scan chunks for EXIF
+      // WebP format
       let pos = 12;
       while (pos + 8 < dv.byteLength) {
         const fourcc = String.fromCharCode(
@@ -199,7 +186,6 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
         pos += 8 + chunkLen + (chunkLen % 2);
       }
     } else {
-      // Direct TIFF file
       if (dv.getUint16(0) === 0x4949 || dv.getUint16(0) === 0x4D4D) {
         tiffStart = 0;
       }
@@ -224,7 +210,6 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
     const entries = read16(offset);
     if (entries < 1 || entries > 300) return;
 
-    let dateTimeOriginal: string | undefined;
     let cameraModel: string | undefined;
     let gpsLat: number | undefined;
     let gpsLon: number | undefined;
@@ -242,42 +227,13 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
       const count = read32(entryOffset + 4);
       const valueOffset = entryOffset + 8;
 
-      if ((tag === 0x0132 || tag === 0x9003 || tag === 0x9004) && type === 2) {
-        const strOff = count <= 4 ? valueOffset : tiffStart + read32(valueOffset);
-        if (strOff + count <= dv.byteLength) {
-          const strVal = readString(dv, strOff, count);
-          if (strVal && !dateTimeOriginal) dateTimeOriginal = strVal;
-        }
-      } else if (tag === 0x0110 && type === 2) {
+      if (tag === 0x0110 && type === 2) {
         const strOff = count <= 4 ? valueOffset : tiffStart + read32(valueOffset);
         if (strOff + count <= dv.byteLength) {
           cameraModel = readString(dv, strOff, count);
         }
       } else if (tag === 0x8825) {
         gpsIfdOffset = read32(valueOffset);
-      } else if (tag === 0x8769) {
-        const exifOffsetVal = read32(valueOffset);
-        if (exifOffsetVal > 0 && tiffStart + exifOffsetVal + 2 <= dv.byteLength) {
-          const exifEntries = read16(tiffStart + exifOffsetVal);
-          if (exifEntries > 0 && exifEntries <= 300) {
-            for (let j = 0; j < exifEntries; j++) {
-              const exifEntryOff = tiffStart + exifOffsetVal + 2 + j * 12;
-              if (exifEntryOff + 12 > dv.byteLength) break;
-              const exifTag = read16(exifEntryOff);
-              const exifType = read16(exifEntryOff + 2);
-              const exifCount = read32(exifEntryOff + 4);
-              const exifValOff = exifEntryOff + 8;
-
-              if ((exifTag === 0x9003 || exifTag === 0x9004 || exifTag === 0x0132) && exifType === 2) {
-                const strOff = exifCount <= 4 ? exifValOff : tiffStart + read32(exifValOff);
-                if (strOff + exifCount <= dv.byteLength) {
-                  const strVal = readString(dv, strOff, exifCount);
-                  if (strVal && !dateTimeOriginal) dateTimeOriginal = strVal;
-                }
-              }
-            }
-          }
-        }
       }
     }
 
@@ -320,29 +276,7 @@ function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: 
       if (gpsLonRef === 'W') gpsLon = -gpsLon;
     }
 
-    let dateTimeISO: string | undefined;
-    if (dateTimeOriginal) {
-      const clean = dateTimeOriginal.trim().replace(/\0/g, '');
-      const parts = clean.split(/\s+/);
-      if (parts.length >= 2) {
-        const dateParts = parts[0].split(/[:\-\/.]/);
-        if (dateParts.length === 3) {
-          const y = dateParts[0].length === 2 ? `20${dateParts[0]}` : dateParts[0];
-          const m = dateParts[1].padStart(2, '0');
-          const d = dateParts[2].padStart(2, '0');
-          const timeParts = parts[1].split(':');
-          const hh = (timeParts[0] || '00').padStart(2, '0');
-          const mm = (timeParts[1] || '00').padStart(2, '0');
-          const ss = (timeParts[2] || '00').padStart(2, '0');
-          const isoCandidate = `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
-          if (!isNaN(new Date(isoCandidate).getTime())) {
-            dateTimeISO = isoCandidate;
-          }
-        }
-      }
-    }
-
-    return { dateTime: dateTimeISO, cameraModel, latitude: gpsLat, longitude: gpsLon };
+    return { cameraModel, latitude: gpsLat, longitude: gpsLon };
   } catch {
     return;
   }
@@ -401,8 +335,6 @@ function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
 function parseOCRTextToISO(rawText: string): string | undefined {
   if (!rawText) return undefined;
 
-  const lines = rawText.split(/[\r\n]+/);
-
   const fixNumericTypos = (s: string) => {
     return s
       .replace(/([0-9])[OoQqD]/g, '$10')
@@ -422,125 +354,97 @@ function parseOCRTextToISO(rawText: string): string | undefined {
   const candidateTexts = [
     rawText,
     fixNumericTypos(rawText),
-    ...lines,
-    ...lines.map(fixNumericTypos),
   ];
 
-  const monthMap: Record<string, string> = {
-    JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
-    JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
-    JANUARY: '01', FEBRUARY: '02', MARCH: '03', APRIL: '04', JUNE: '06',
-    JULY: '07', AUGUST: '08', SEPTEMBER: '09', OCTOBER: '10', NOVEMBER: '11', DECEMBER: '12'
-  };
-
-  // Normalize a text candidate before matching
-  const normalize = (s: string) => s.replace(/[\t\r]+/g, ' ').trim();
+  // Filter OCR text to only keep date-like segments
+  const dateLikeLines = rawText.split(/[\r\n]+/)
+    .map(l => l.trim())
+    .filter(l => {
+      // Must contain at least 3 digits (for a date) and at least one separator
+      const digits = (l.match(/\d/g) || []).length;
+      const hasSep = /[/.:\-\s]/.test(l);
+      return digits >= 3 && hasSep;
+    });
+  candidateTexts.push(...dateLikeLines);
+  candidateTexts.push(...dateLikeLines.map(fixNumericTypos));
 
   for (let text of candidateTexts) {
-    text = normalize(text);
+    text = text.replace(/[\t\r]+/g, ' ').trim();
 
-    // Pattern 1: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD with optional HH:MM:SS
-    const reIso = /\b(20\d{2})[-/.:\s](\d{1,2})[-/.:\s](\d{1,2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
-    let m = text.match(reIso);
+    // Pattern A: YYYY/MM/DD, YYYY-MM-DD, YYYY.MM.DD with optional HH:MM(:SS) AM/PM
+    let m = text.match(/\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i);
     if (m) {
-      let y = parseInt(m[1], 10);
-      let mo = parseInt(m[2], 10);
-      let d = parseInt(m[3], 10);
-      let hh = m[4] ? parseInt(m[4], 10) : 12;
-      let mm = m[5] ? parseInt(m[5], 10) : 0;
-      let ss = m[6] ? parseInt(m[6], 10) : 0;
-      const ampm = m[7] ? m[7].toUpperCase() : null;
-
-      if (ampm === 'PM' && hh < 12) hh += 12;
-      if (ampm === 'AM' && hh === 12) hh = 0;
-
-      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
-        const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+      let y = +m[1], mo = +m[2], d = +m[3];
+      let hh = m[4] ? +m[4] : 12, mm = m[5] ? +m[5] : 0, ss = m[6] ? +m[6] : 0;
+      const ap = m[7]?.toUpperCase();
+      if (ap === 'PM' && hh < 12) hh += 12;
+      if (ap === 'AM' && hh === 12) hh = 0;
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
+        const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         if (!isNaN(new Date(iso).getTime())) return iso;
       }
     }
 
-    // Pattern 2: MM/DD/YYYY or MM-DD-YYYY or MM.DD.YYYY
-    const reUs = /\b(\d{1,2})[-/.:](\d{1,2})[-/.:](20\d{2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
-    m = text.match(reUs);
+    // Pattern B: MM/DD/YYYY, MM-DD-YYYY, MM.DD.YYYY with optional time
+    m = text.match(/\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i);
     if (m) {
-      let mo = parseInt(m[1], 10);
-      let d = parseInt(m[2], 10);
-      let y = parseInt(m[3], 10);
-      let hh = m[4] ? parseInt(m[4], 10) : 12;
-      let mm = m[5] ? parseInt(m[5], 10) : 0;
-      let ss = m[6] ? parseInt(m[6], 10) : 0;
-      const ampm = m[7] ? m[7].toUpperCase() : null;
-
-      if (ampm === 'PM' && hh < 12) hh += 12;
-      if (ampm === 'AM' && hh === 12) hh = 0;
-
-      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
-        const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+      let mo = +m[1], d = +m[2], y = +m[3];
+      let hh = m[4] ? +m[4] : 12, mm = m[5] ? +m[5] : 0, ss = m[6] ? +m[6] : 0;
+      const ap = m[7]?.toUpperCase();
+      if (ap === 'PM' && hh < 12) hh += 12;
+      if (ap === 'AM' && hh === 12) hh = 0;
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
+        const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         if (!isNaN(new Date(iso).getTime())) return iso;
       }
     }
 
-    // Pattern 2b: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (EU format, common in trail cams)
-    // Only match if first group > 12 (so it definitely isn't a month)
-    const reEu = /\b(\d{1,2})[-/.:](\d{1,2})[-/.:](20\d{2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
-    m = text.match(reEu);
+    // Pattern C: DD/MM/YYYY (when day > 12 to disambiguate from MM/DD)
+    m = text.match(/\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i);
     if (m) {
-      let d = parseInt(m[1], 10);
-      let mo = parseInt(m[2], 10);
-      let y = parseInt(m[3], 10);
-      // Only accept as DD-MM if day > 12 and month <= 12
+      let d = +m[1], mo = +m[2], y = +m[3];
       if (d > 12 && d <= 31 && mo >= 1 && mo <= 12) {
-        let hh = m[4] ? parseInt(m[4], 10) : 12;
-        let mm = m[5] ? parseInt(m[5], 10) : 0;
-        let ss = m[6] ? parseInt(m[6], 10) : 0;
-        const ampm = m[7] ? m[7].toUpperCase() : null;
-        if (ampm === 'PM' && hh < 12) hh += 12;
-        if (ampm === 'AM' && hh === 12) hh = 0;
-        if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
-          const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        let hh = m[4] ? +m[4] : 12, mm = m[5] ? +m[5] : 0, ss = m[6] ? +m[6] : 0;
+        const ap = m[7]?.toUpperCase();
+        if (ap === 'PM' && hh < 12) hh += 12;
+        if (ap === 'AM' && hh === 12) hh = 0;
+        if (hh <= 23 && mm <= 59) {
+          const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
           if (!isNaN(new Date(iso).getTime())) return iso;
         }
       }
     }
 
-    // Pattern 3: Text Month, e.g. "OCT 15 2024 06:30:45 PM" or "15-OCT-2024"
-    // Match: optional day prefix, month name, then day, then year
-    const reMonthName = /\b(?:(\d{1,2})\s*[-/\s])?\s*([A-Za-z]{3,9})\s*[-/\s]?\s*(\d{1,2})\s*[-/\s]?\s*(20\d{2})(?:[\sT]+(\d{1,2})[:.-](\d{1,2})(?:[:.-](\d{1,2}))?\s*(AM|PM)?)?\b/i;
-    m = text.match(reMonthName);
+    // Pattern D: MON DD YYYY or DD-MON-YYYY with optional time
+    const monRe = /\b([A-Za-z]{3,9})\s*[-/.\s]?\s*(\d{1,2})\s*[-/.\s]?\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
+    m = text.match(monRe);
     if (m) {
-      const monthStr = m[2].toUpperCase();
+      const monthMap: Record<string, string> = {
+        JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
+        JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
+      };
+      const monthStr = m[1].toUpperCase().slice(0, 3);
       const monthNum = monthMap[monthStr];
       if (monthNum) {
-        let d = parseInt(m[3], 10);
-        let y = parseInt(m[4], 10);
-        let hh = m[5] ? parseInt(m[5], 10) : 12;
-        let mm = m[6] ? parseInt(m[6], 10) : 0;
-        let ss = m[7] ? parseInt(m[7], 10) : 0;
-        const ampm = m[8] ? m[8].toUpperCase() : null;
-
-        if (ampm === 'PM' && hh < 12) hh += 12;
-        if (ampm === 'AM' && hh === 12) hh = 0;
-
-        if (d >= 1 && d <= 31 && hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
-          const iso = `${y}-${monthNum}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+        let d = +m[2], y = +m[3];
+        let hh = m[4] ? +m[4] : 12, mm = m[5] ? +m[5] : 0, ss = m[6] ? +m[6] : 0;
+        const ap = m[7]?.toUpperCase();
+        if (ap === 'PM' && hh < 12) hh += 12;
+        if (ap === 'AM' && hh === 12) hh = 0;
+        if (d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
+          const iso = `${y}-${monthNum}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
           if (!isNaN(new Date(iso).getTime())) return iso;
         }
       }
     }
 
-    // Pattern 4: YYYYMMDD_HHMMSS or YYYY-MM-DD_HH-MM-SS (no separators or underscores)
-    const reCompact = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[.:-]?(\d{2})(?:[.:-]?(\d{2}))?\b/;
-    m = text.match(reCompact);
+    // Pattern E: YYYYMMDD_HHMMSS or YYYYMMDDHHMMSS (compact, no separators)
+    m = text.match(/\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[:.]?(\d{2})(?:[:.]?(\d{2}))?\b/);
     if (m) {
-      let y = parseInt(m[1], 10);
-      let mo = parseInt(m[2], 10);
-      let d = parseInt(m[3], 10);
-      let hh = parseInt(m[4], 10);
-      let mm = parseInt(m[5], 10);
-      let ss = m[6] ? parseInt(m[6], 10) : 0;
-      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
-        const iso = `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+      let y = +m[1], mo = +m[2], d = +m[3];
+      let hh = +m[4], mm = +m[5], ss = m[6] ? +m[6] : 0;
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
+        const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         if (!isNaN(new Date(iso).getTime())) return iso;
       }
     }
@@ -576,13 +480,13 @@ function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
   });
 }
 
-// ---- Preprocess a crop canvas: grayscale + binarization (returns dataUrl or null) ----
-function binarizeCrop(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number, invert: boolean): string | null {
+// ---- Binarize a canvas region for OCR ----
+function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number): string | null {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
   for (let i = 0; i < data.length; i += 4) {
     const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    const bw = invert ? (gray > threshold ? 0 : 255) : (gray > threshold ? 255 : 0);
+    const bw = gray > threshold ? 255 : 0;
     data[i] = bw;
     data[i + 1] = bw;
     data[i + 2] = bw;
@@ -591,51 +495,36 @@ function binarizeCrop(ctx: CanvasRenderingContext2D, w: number, h: number, thres
   return ctx.canvas.toDataURL('image/png');
 }
 
-// ---- OCR Date Extraction (fallback for trail cam photos) ----
+// ---- Focused OCR Date Extraction (timestamp bar only) ----
 async function extractDateFromImageOCR(file: File): Promise<string | undefined> {
   try {
     const { createWorker } = await import('tesseract.js');
     const worker = await createWorker('eng');
-    await worker.setParameters({
-      tessedit_pageseg_mode: '6',
-    });
+    await worker.setParameters({ tessedit_pageseg_mode: '7' });
 
     const img = await loadImageForOCR(file);
-    if (!img) {
-      await worker.terminate();
-      return undefined;
-    }
+    if (!img) { await worker.terminate(); return undefined; }
 
-    const w = Math.min(1600, Math.max(800, img.width));
+    const targetWidth = Math.min(1600, Math.max(800, img.width));
+    const scale = targetWidth / img.width;
 
-    // Multiple crop regions to capture date banners in various positions
-    const crops: { yRatio: number; hRatio: number }[] = [];
-    for (let y = 0; y <= 0.9; y += 0.1) {
-      crops.push({ yRatio: y, hRatio: Math.min(0.15, 1 - y) });
-    }
-    // Also try full image
-    crops.push({ yRatio: 0.0, hRatio: 1.0 });
-    // Also try narrow strips at top and bottom
-    crops.push({ yRatio: 0.0, hRatio: 0.06 });
-    crops.push({ yRatio: 0.94, hRatio: 0.06 });
+    // Crop bottom 5-10% for the timestamp bar, also try top 5%
+    const cropRegions: { yRatio: number; hRatio: number }[] = [
+      { yRatio: 0.90, hRatio: 0.10 },
+      { yRatio: 0.92, hRatio: 0.08 },
+      { yRatio: 0.95, hRatio: 0.05 },
+      { yRatio: 0.0, hRatio: 0.08 },
+      { yRatio: 0.0, hRatio: 0.05 },
+    ];
 
-    // Deduplicate by string key
-    const seen = new Set<string>();
-    const uniqueCrops = crops.filter((c) => {
-      const key = `${c.yRatio.toFixed(2)}_${c.hRatio.toFixed(2)}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    // Try increasing width expansions (wider crops help when text spans the whole bar)
+    for (const region of cropRegions) {
+      const cropH = Math.round(img.height * region.hRatio);
+      const cropY = Math.round(img.height * region.yRatio);
+      if (cropY + cropH > img.height) continue;
 
-    for (const crop of uniqueCrops) {
-      const cropHeight = Math.max(40, Math.round(img.height * crop.hRatio));
-      const cropY = Math.round(img.height * crop.yRatio);
-      if (cropY + cropHeight > img.height) continue;
-
-      const scale = w / img.width;
-      const cw = w;
-      const ch = Math.round(cropHeight * scale);
+      const cw = targetWidth;
+      const ch = Math.max(30, Math.round(cropH * scale));
 
       const canvas = document.createElement('canvas');
       canvas.width = cw;
@@ -643,29 +532,17 @@ async function extractDateFromImageOCR(file: File): Promise<string | undefined> 
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      // Draw crop region
-      ctx.drawImage(img, 0, cropY, img.width, cropHeight, 0, 0, cw, ch);
+      ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, cw, ch);
 
-      // Try multiple binarization strategies
-      const strategies: { threshold: number; invert: boolean }[] = [
-        { threshold: 128, invert: false },
-        { threshold: 160, invert: false },
-        { threshold: 96, invert: false },
-        { threshold: 64, invert: false },
-        { threshold: 180, invert: false },
-        { threshold: 128, invert: true },
-        { threshold: 160, invert: true },
-      ];
-
-      for (const strat of strategies) {
-        // Redraw crop for each strategy
-        ctx.drawImage(img, 0, cropY, img.width, cropHeight, 0, 0, cw, ch);
-        const processed = binarizeCrop(ctx, cw, ch, strat.threshold, strat.invert);
+      // Try thresholds from light to dark (trail cams usually have white text on dark bar)
+      for (const thresh of [140, 120, 160, 100, 180, 80]) {
+        ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, cw, ch);
+        const processed = binarizeForOCR(ctx, cw, ch, thresh);
         if (!processed) continue;
         const { data: { text } } = await worker.recognize(processed);
-        const iso = parseOCRTextToISO(text);
+        const clean = stripNonDateText(text);
+        const iso = parseOCRTextToISO(clean);
         if (iso) {
-          // Sanity check: date should not be in the future and not before 2000
           const dt = new Date(iso);
           const fMod = new Date(file.lastModified);
           const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
@@ -675,21 +552,6 @@ async function extractDateFromImageOCR(file: File): Promise<string | undefined> 
           }
         }
       }
-
-      // Try non-binarized pass on crop
-      ctx.drawImage(img, 0, cropY, img.width, cropHeight, 0, 0, cw, ch);
-      const rawDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      const { data: { text: rawText } } = await worker.recognize(rawDataUrl);
-      const rawIso = parseOCRTextToISO(rawText);
-      if (rawIso) {
-        const dt = new Date(rawIso);
-        const fMod = new Date(file.lastModified);
-        const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
-        if (!isNaN(dt.getTime()) && dt.getTime() <= Date.now() && dt.getFullYear() >= 2000 && diffYears <= 3) {
-          await worker.terminate();
-          return rawIso;
-        }
-      }
     }
 
     await worker.terminate();
@@ -697,6 +559,26 @@ async function extractDateFromImageOCR(file: File): Promise<string | undefined> 
     console.debug('[OCR] Failed to extract date:', e);
   }
   return undefined;
+}
+
+// ---- Remove known non-date text from OCR output ----
+function stripNonDateText(text: string): string {
+  // Remove lines that are mostly letters without numbers (camera names, model numbers, etc.)
+  const lines = text.split(/[\r\n]+/);
+  const cleaned = lines.filter((line) => {
+    const s = line.trim();
+    if (!s) return false;
+    // Keep lines that contain at least 2 digits
+    const digitCount = (s.match(/\d/g) || []).length;
+    if (digitCount < 2) return false;
+    // Skip lines that are all letters (camera names, descriptions)
+    const letterCount = (s.match(/[A-Za-z]/g) || []).length;
+    if (letterCount > 0 && digitCount === 0) return false;
+    // Skip battery and temperature indicators
+    if (/batt|temp|°[CF]|%|ir\s*on/i.test(s)) return false;
+    return true;
+  });
+  return cleaned.join(' ');
 }
 
 // ---- Filename Date Parsing (fallback when EXIF stripped on mobile) ----
@@ -854,20 +736,16 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
 
     try {
       const buffer = await file.arrayBuffer();
-      const exif = parseEXIFDate(buffer);
+      const exif = parseEXIFMetadata(buffer);
 
       const thumbnailBlob = await generateThumbnail(file, 300);
       const thumbnailDataUrl = thumbnailBlob ? await blobToDataURL(thumbnailBlob) : undefined;
 
       const fileBlob = new Blob([file], { type: file.type });
 
-      // Best date: EXIF > filename > OCR > file.lastModified
-      let dateTime = exif?.dateTime;
+      // Date: filename > OCR > file.lastModified
+      let dateTime = parseDateFromFilename(file.name);
       if (!dateTime) {
-        dateTime = parseDateFromFilename(file.name);
-      }
-      if (!dateTime) {
-        // Try OCR on trail cam photo for datestamps
         dateTime = await extractDateFromImageOCR(file);
       }
       if (!dateTime || !isDateReasonable(dateTime, file.lastModified)) {
@@ -1053,22 +931,39 @@ export function computeAnalytics(photos: TrailCameraPhoto[], units: string = 'im
 
   const windSpeedRanges = isMetric ? WIND_SPEED_RANGES_MET : WIND_SPEED_RANGES_IMP;
 
-  const TEMP_RANGES = [
-    { label: tempRangeLabels[0], min: -Infinity, max: 20 },
-    { label: tempRangeLabels[1], min: 20, max: 35 },
-    { label: tempRangeLabels[2], min: 35, max: 50 },
-    { label: tempRangeLabels[3], min: 50, max: 65 },
-    { label: tempRangeLabels[4], min: 65, max: 80 },
-    { label: tempRangeLabels[5], min: 80, max: Infinity },
-  ];
+  const TEMP_RANGES = isMetric
+    ? [
+        { label: tempRangeLabels[0], min: -Infinity, max: -6 },
+        { label: tempRangeLabels[1], min: -6, max: 1 },
+        { label: tempRangeLabels[2], min: 1, max: 10 },
+        { label: tempRangeLabels[3], min: 10, max: 18 },
+        { label: tempRangeLabels[4], min: 18, max: 26 },
+        { label: tempRangeLabels[5], min: 26, max: Infinity },
+      ]
+    : [
+        { label: tempRangeLabels[0], min: -Infinity, max: 20 },
+        { label: tempRangeLabels[1], min: 20, max: 35 },
+        { label: tempRangeLabels[2], min: 35, max: 50 },
+        { label: tempRangeLabels[3], min: 50, max: 65 },
+        { label: tempRangeLabels[4], min: 65, max: 80 },
+        { label: tempRangeLabels[5], min: 80, max: Infinity },
+      ];
 
-  const PRESSURE_RANGES = [
-    { label: pressureRangeLabels[0], min: -Infinity, max: 29.5 },
-    { label: pressureRangeLabels[1], min: 29.5, max: 29.9 },
-    { label: pressureRangeLabels[2], min: 29.9, max: 30.2 },
-    { label: pressureRangeLabels[3], min: 30.2, max: 30.5 },
-    { label: pressureRangeLabels[4], min: 30.5, max: Infinity },
-  ];
+  const PRESSURE_RANGES = isHpa
+    ? [
+        { label: pressureRangeLabels[0], min: -Infinity, max: 999 },
+        { label: pressureRangeLabels[1], min: 999, max: 1013 },
+        { label: pressureRangeLabels[2], min: 1013, max: 1023 },
+        { label: pressureRangeLabels[3], min: 1023, max: 1033 },
+        { label: pressureRangeLabels[4], min: 1033, max: Infinity },
+      ]
+    : [
+        { label: pressureRangeLabels[0], min: -Infinity, max: 29.5 },
+        { label: pressureRangeLabels[1], min: 29.5, max: 29.9 },
+        { label: pressureRangeLabels[2], min: 29.9, max: 30.2 },
+        { label: pressureRangeLabels[3], min: 30.2, max: 30.5 },
+        { label: pressureRangeLabels[4], min: 30.5, max: Infinity },
+      ];
 
   const withWeather = photos.filter((p) => p.weather);
   const totalPhotos = photos.length;
@@ -1094,7 +989,7 @@ export function computeAnalytics(photos: TrailCameraPhoto[], units: string = 'im
 
   const byTemp = new Map<string, number>();
   for (const p of withWeather) {
-    const t = p.weather!.temperature;
+    const t = isMetric ? Math.round((p.weather!.temperature - 32) * 5 / 9) : p.weather!.temperature;
     for (const r of TEMP_RANGES) {
       if (t >= r.min && t < r.max) {
         byTemp.set(r.label, (byTemp.get(r.label) || 0) + 1);
@@ -1115,7 +1010,7 @@ export function computeAnalytics(photos: TrailCameraPhoto[], units: string = 'im
 
   const byPress = new Map<string, number>();
   for (const p of withWeather) {
-    const pr = p.weather!.pressureInHg;
+    const pr = isHpa ? p.weather!.pressureHpa : p.weather!.pressureInHg;
     for (const r of PRESSURE_RANGES) {
       if (pr >= r.min && pr < r.max) {
         byPress.set(r.label, (byPress.get(r.label) || 0) + 1);
