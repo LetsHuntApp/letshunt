@@ -37,6 +37,47 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < photos.length - 1;
 
+  // Theme-aware card background
+  const cardBg = isDark
+    ? 'bg-slate-900/40 border border-slate-800'
+    : theme === 'hunting'
+    ? 'bg-[#eae1cf]/80 border border-[#d4c4a8]'
+    : theme === 'olive'
+    ? 'bg-[#f7f5ed]/80 border border-[#d8d2c0]'
+    : 'bg-white/80 border border-slate-200';
+
+  const inputBg = isDark
+    ? 'bg-slate-900 border-slate-700 text-white'
+    : theme === 'hunting'
+    ? 'bg-[#f4eee1] border-[#d4c4a8] text-[#2a1b0e]'
+    : theme === 'olive'
+    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-white border-slate-300 text-slate-900';
+
+  const selectBg = isDark
+    ? 'bg-slate-900/60 border-slate-700/80 text-white'
+    : theme === 'hunting'
+    ? 'bg-[#f4eee1] border-[#d4c4a8] text-[#2a1b0e]'
+    : theme === 'olive'
+    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-slate-50 border-slate-300 text-slate-900';
+
+  const modalBg = isDark
+    ? 'bg-slate-950 border-slate-800 text-slate-100'
+    : theme === 'hunting'
+    ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+    : theme === 'olive'
+    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-white border-slate-200 text-slate-900';
+
+  const buttonSecondaryBg = isDark
+    ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+    : theme === 'hunting'
+    ? 'bg-[#e8ddca] hover:bg-[#e0d6c0] border-[#d4c4a8] text-[#2a1b0e]'
+    : theme === 'olive'
+    ? 'bg-[#e8e3d5] hover:bg-[#e0dbce] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-900';
+
   useEffect(() => {
     let objectUrl: string | null = null;
     let active = true;
@@ -164,15 +205,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
 
       {/* Sidebar Metadata & Weather Details */}
       <div
-        className={`w-full md:w-80 lg:w-96 flex flex-col justify-between border-t md:border-t-0 md:border-l p-4 sm:p-5 overflow-y-auto max-h-[50vh] md:max-h-full ${
-          isDark
-            ? 'bg-slate-950 border-slate-800 text-slate-100'
-            : theme === 'hunting'
-            ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
-            : (theme === 'olive' || theme === 'hunting')
-            ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
-            : 'bg-white border-slate-200 text-slate-900'
-        }`}
+        className={`w-full md:w-80 lg:w-96 flex flex-col justify-between border-t md:border-t-0 md:border-l p-4 sm:p-5 overflow-y-auto max-h-[50vh] md:max-h-full ${modalBg}`}
       >
         <div className="space-y-4">
           {/* Header Row */}
@@ -195,7 +228,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
               className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all border ${
                 photo.isFavorite
                   ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
-                  : 'bg-slate-800/40 border-slate-700 hover:bg-slate-800'
+                  : buttonSecondaryBg
               }`}
             >
               <Star className={`w-4 h-4 ${photo.isFavorite ? 'fill-slate-950' : ''}`} />
@@ -217,7 +250,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
           </div>
 
           {/* Time & Camera Model */}
-          <div className="space-y-2 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/80 text-xs">
+          <div className={`space-y-2 p-3 rounded-2xl ${cardBg} text-xs`}>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-emerald-400" />
               <span className="font-bold">{dateStr}</span>
@@ -242,7 +275,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
             <select
               value={selectedLocId}
               onChange={(e) => handleLocationChange(e.target.value)}
-              className="w-full p-2 text-xs font-bold rounded-xl bg-slate-900/60 border border-slate-700/80 text-white"
+              className={`w-full p-2 text-xs font-bold rounded-xl border ${selectBg}`}
             >
               <option value="">Unassigned Location</option>
               {locations.map((loc) => (
@@ -259,7 +292,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
 
             {photo.weather ? (
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Thermometer className="w-4 h-4 text-rose-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Temp</div>
@@ -267,7 +300,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Wind className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Wind</div>
@@ -275,7 +308,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Gauge className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Pressure</div>
@@ -283,7 +316,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Droplets className="w-4 h-4 text-blue-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Humidity</div>
@@ -291,7 +324,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2 col-span-2">
+                <div className={`p-2.5 rounded-xl flex items-center gap-2 col-span-2 ${cardBg}`}>
                   <Moon className="w-4 h-4 text-amber-300 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Moon Phase</div>
@@ -299,7 +332,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   </div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 col-span-2">
+                <div className={`p-2.5 rounded-xl col-span-2 ${cardBg}`}>
                   <div className="opacity-60 text-[10px]">Weather Condition</div>
                   <div className="font-bold">{photo.weather.weatherDesc}</div>
                 </div>
@@ -334,7 +367,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add observations (e.g. 8-pointer heading east, mature doe with fawn)..."
-                  className="w-full p-2.5 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-emerald-500"
+                  className={`w-full p-2.5 text-xs rounded-xl border outline-none focus:border-emerald-500 ${inputBg}`}
                 />
                 <button
                   onClick={handleSaveNotes}
@@ -344,7 +377,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-xs font-semibold opacity-90 italic">
+              <div className={`p-3 rounded-xl border ${cardBg} text-xs font-semibold opacity-90 italic`}>
                 {photo.notes || 'No notes added for this photo yet.'}
               </div>
             )}

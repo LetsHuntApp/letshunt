@@ -10,28 +10,41 @@ interface TrailCameraInsightsProps {
   weatherMatchedCount: number;
 }
 
+const getThemeClasses = (theme: ThemeMode) => {
+  const isDark = theme === 'dark';
+  const isHunting = theme === 'hunting';
+  const isOlive = theme === 'olive';
+
+  return {
+    cardBg: isDark
+      ? 'bg-slate-900/80 border-slate-800 text-slate-100'
+      : isHunting
+      ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+      : isOlive
+      ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+      : 'bg-white border-slate-200 text-slate-900',
+    innerBg: isDark
+      ? 'bg-slate-950/40 border-slate-800 text-emerald-400'
+      : isHunting
+      ? 'bg-[#d8cbb8]/60 border-[#d4c4a8] text-[#2a1b0e]'
+      : isOlive
+      ? 'bg-[#e8e4d5]/60 border-[#d8d2c0] text-[#1e2e1b]'
+      : 'bg-slate-100/60 border-slate-200 text-emerald-700',
+  };
+};
+
 export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
   theme,
   insights,
   totalPhotosCount,
   weatherMatchedCount,
 }) => {
-  const isDark = theme === 'dark';
-
-  const cardStyle = `rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3 transition-all ${
-    isDark
-      ? 'bg-slate-900/80 border-slate-800 text-slate-100'
-      : theme === 'hunting'
-      ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
-      : (theme === 'olive' || theme === 'hunting')
-      ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
-      : 'bg-white border-slate-200 text-slate-900'
-  }`;
+  const tc = getThemeClasses(theme);
 
   return (
     <div className="space-y-6">
       {/* Intro Header Card */}
-      <div className={cardStyle}>
+      <div className={`rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3 transition-all ${tc.cardBg}`}>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
             <Sparkles className="w-4 h-4" />
@@ -47,7 +60,7 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
 
       {/* Insights Grid */}
       {insights.length === 0 || insights[0]?.label === 'Not Enough Data' ? (
-        <div className={cardStyle}>
+        <div className={`rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3 transition-all ${tc.cardBg}`}>
           <div className="flex items-start gap-3 p-2">
             <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -69,7 +82,7 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
                 : 'bg-slate-700/40 text-slate-300 border-slate-600/40';
 
             return (
-              <div key={idx} className={cardStyle}>
+              <div key={idx} className={`rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3 transition-all ${tc.cardBg}`}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -82,7 +95,7 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
                   </span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-800 text-xs sm:text-sm font-bold text-emerald-400">
+                <div className={`p-3 rounded-xl border ${tc.innerBg}`}>
                   "{insight.detail}"
                 </div>
               </div>

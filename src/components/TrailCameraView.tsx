@@ -35,6 +35,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   showToast,
 }) => {
   const isDark = theme === 'dark';
+  const isHunting = theme === 'hunting';
+  const isOlive = theme === 'olive' || theme === 'hunting';
+
   const [activeTab, setActiveTab] = useState<TrailCameraTab>('gallery');
   const [photos, setPhotos] = useState<TrailCameraPhoto[]>([]);
   const [locations, setLocations] = useState<TrailCameraLocation[]>([]);
@@ -78,6 +81,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       matchWeatherBackground(allPhotos, allLocs);
     } catch (err) {
       console.error('Failed to load trail camera data:', err);
+      showToast('Failed to load trail camera data');
     }
   };
 
@@ -234,28 +238,61 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     return { analytics: data, insights: ins };
   }, [photos]);
 
+  // Theme-aware class helpers
+  const cardBase = 'rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3';
+  const cardBg = isDark
+    ? 'bg-slate-900/80 border-slate-800 text-slate-100'
+    : isHunting
+    ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+    : isOlive
+    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-white border-slate-200 text-slate-900';
+
+  const inputBase = 'w-full p-2 text-sm rounded-xl border outline-none';
+  const inputBg = isDark
+    ? 'bg-slate-950 border-slate-700 text-white'
+    : 'bg-slate-50 border-slate-300 text-slate-900';
+
+  const buttonPrimary = 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1';
+  const buttonPrimaryBg = isDark
+    ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500'
+    : 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500';
+
+  const buttonSecondary = 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1';
+  const buttonSecondaryBg = isDark
+    ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+    : isHunting
+    ? 'bg-[#e8ddca] border-[#d4c4a8] text-[#2a1b0e] hover:bg-[#dccab8]'
+    : isOlive
+    ? 'bg-[#efe9d7] border-[#d8d2c0] text-[#1e2e1b] hover:bg-[#e5dfcd]'
+    : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200';
+
+  const buttonDanger = 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1';
+  const buttonDangerBg = 'bg-rose-600 hover:bg-rose-500 text-white border-rose-500/30 shadow-md';
+
+  const buttonSky = 'px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1';
+  const buttonSkyBg = 'bg-sky-600 hover:bg-sky-500 text-white border-sky-500/30 shadow-md';
+
+  const modalBg = isDark
+    ? 'bg-slate-900 border-slate-700 text-slate-100'
+    : isHunting
+    ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+    : isOlive
+    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-white border-slate-200 text-slate-900';
+
+  const modalInputBg = isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900';
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Header Card */}
-      <div
-        className={`rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl flex flex-wrap items-center justify-between gap-4 ${
-          isDark
-            ? 'bg-slate-900/80 border-slate-800 text-slate-100'
-            : theme === 'hunting'
-            ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
-            : (theme === 'olive' || theme === 'hunting')
-            ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
-            : 'bg-white border-slate-200 text-slate-900'
-        }`}
-      >
+      <div className={`${cardBase} ${cardBg} flex flex-wrap items-center justify-between gap-4`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
             <Camera className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight">
-              Trail Camera Intelligence
-            </h2>
+            <h2 className="text-base sm:text-lg font-black tracking-tight">Trail Camera Intelligence</h2>
             <p className="text-xs opacity-70">
               Bulk photo import, automatic historical weather matching & deer movement analytics.
             </p>
@@ -269,7 +306,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'gallery'
                 ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : isDark
+                ? 'text-slate-400 hover:text-white'
+                : isHunting
+                ? 'text-[#8b7355] hover:text-[#2a1b0e]'
+                : isOlive
+                ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" /> Gallery ({photos.length})
@@ -280,7 +323,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'analytics'
                 ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : isDark
+                ? 'text-slate-400 hover:text-white'
+                : isHunting
+                ? 'text-[#8b7355] hover:text-[#2a1b0e]'
+                : isOlive
+                ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" /> Analytics
@@ -291,7 +340,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'insights'
                 ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : isDark
+                ? 'text-slate-400 hover:text-white'
+                : isHunting
+                ? 'text-[#8b7355] hover:text-[#2a1b0e]'
+                : isOlive
+                ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" /> Pattern Insights
@@ -312,7 +367,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           />
 
           {/* Location Management Strip */}
-          <div className="flex items-center justify-between gap-2 p-3 rounded-2xl bg-slate-900/40 backdrop-blur-md border border-slate-700/50 text-xs">
+          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-3 text-xs`}>
             <div className="flex items-center gap-2 overflow-x-auto py-0.5">
               <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0">
                 <MapPin className="w-3.5 h-3.5 text-sky-400" /> Saved Camera Spots:
@@ -320,7 +375,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               {locations.map((loc) => (
                 <span
                   key={loc.id}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 text-sky-300 font-bold border border-slate-700 flex-shrink-0"
+                  className="px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 text-sky-300 bg-slate-900/60 border-slate-700"
                 >
                   {loc.name}
                 </span>
@@ -329,7 +384,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
             <button
               onClick={() => setIsLocationModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs flex items-center gap-1 flex-shrink-0 cursor-pointer shadow-md"
+              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md`}
             >
               <Plus className="w-3.5 h-3.5" /> Add Camera Spot
             </button>
@@ -392,7 +447,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       {/* Add New Camera Location Modal */}
       {isLocationModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 text-slate-100 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+          <div className={`${modalBg} rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl`}>
             <div className="flex items-center justify-between">
               <h3 className="text-base font-extrabold flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-sky-400" /> New Trail Cam Spot
@@ -411,20 +466,20 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               placeholder="Camera Spot Name..."
               value={newLocName}
               onChange={(e) => setNewLocName(e.target.value)}
-              className="w-full p-2.5 text-xs rounded-xl bg-slate-950 border border-slate-700 text-white outline-none focus:border-sky-500 font-bold"
+              className={`w-full p-2.5 text-sm rounded-xl border outline-none ${modalInputBg}`}
             />
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setIsLocationModalOpen(false)}
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"
+                className={`px-3 py-1.5 text-sm font-bold rounded-xl ${buttonSecondaryBg}`}
               >
                 Cancel
               </button>
               <button
                 disabled={!newLocName.trim()}
                 onClick={handleAddLocation}
-                className="px-4 py-1.5 text-xs font-bold rounded-xl bg-sky-600 hover:bg-sky-500 text-white disabled:opacity-50"
+                className={`px-4 py-1.5 text-sm font-bold rounded-xl ${buttonSkyBg} disabled:opacity-50`}
               >
                 Save Spot
               </button>

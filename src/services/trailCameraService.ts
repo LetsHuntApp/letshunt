@@ -397,6 +397,9 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     const thumbnailBlob = await generateThumbnail(file, 300);
     const thumbnailDataUrl = await blobToDataURL(thumbnailBlob);
 
+    // Convert File to Blob for reliable IndexedDB storage
+    const fileBlob = new Blob([file], { type: file.type });
+
     const photo: TrailCameraPhoto = {
       id,
       fileName: file.name,
@@ -410,7 +413,7 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     };
 
     await putInStore(PHOTOS_STORE, photo);
-    await putInStore(FULL_IMAGES_STORE, { id, blob: file, thumbnailUrl: thumbnailDataUrl });
+    await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl });
     imported.push(photo);
     onProgress?.(i + 1, fileArray.length);
   }
