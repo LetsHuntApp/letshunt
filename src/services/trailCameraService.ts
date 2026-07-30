@@ -384,18 +384,17 @@ function parseOCRTextToISO(rawText: string): string | undefined {
   for (let text of candidateTexts) {
     text = text.replace(/[\t\r]+/g, ' ').trim();
 
-    // Helper: given regex match groups, build ISO. Returns null if invalid.
-    const buildISO = (m: RegExpExecArray, yIdx: number, moIdx: number, dIdx: number, hhIdx: number, mmIdx: number, ssIdx: number, apIdx: number): string | null => {
+    // Helper: given regex match groups, return ISO string or null
+    const buildISO = (m: RegExpExecArray, yIdx: number, moIdx: number, dIdx: number, hhIdx: number | null, mmIdx: number | null, ssIdx: number | null, apIdx: number | null): string | null => {
       const y = parseInt(m[yIdx], 10);
       let mo = parseInt(m[moIdx], 10);
       let d = parseInt(m[dIdx], 10);
-      let hh = parseInt(m[hhIdx], 10);
-      let mm = m[mmIdx] !== undefined ? parseInt(m[mmIdx], 10) : 0;
-      let ss = m[ssIdx] !== undefined ? parseInt(m[ssIdx], 10) : 0;
-      const ap = m[apIdx]?.toUpperCase();
+      let hh = hhIdx != null ? parseInt(m[hhIdx], 10) : 12;
+      let mm = mmIdx != null && m[mmIdx] !== undefined ? parseInt(m[mmIdx], 10) : 0;
+      let ss = ssIdx != null && m[ssIdx] !== undefined ? parseInt(m[ssIdx], 10) : 0;
+      const ap = apIdx != null && m[apIdx] !== undefined ? m[apIdx].toUpperCase() : null;
 
       // DD/MM vs MM/DD disambiguation for non-YYYY-first patterns
-      // If day > 12 it can't be MM/DD, so swap
       if (yIdx > moIdx && d > 12 && d <= 31 && mo >= 1 && mo <= 12) {
         const tmp = d; d = mo; mo = tmp;
       }
@@ -412,36 +411,38 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       return iso;
     };
 
-    // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM)  — groups: y=1, mo=2, d=3, hh=4, mm=5, ss=6, ap=7
-    let re = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?\b/i;
+    // Pattern 1: YYYY/MM/DD with optional HH:MM(:SS) (AM/PM)
+    let re = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
     let m = text.match(re);
     if (m) {
-      const iso = buildISO(m, 1, 2, 3, 4, 5, 6, 7);
+      const iso = buildISO(m, 1, 2, 3, m[4] !== undefined ? 4 : null, m[4] !== undefined ? 5 : null, m[4] !== undefined ? 6 : null, m[4] !== undefined ? 7 : null);
       if (iso) return iso;
     }
 
-    // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM)  — groups: mo=1, d=2, y=3, hh=4, mm=5, ss=6, ap=7
-    re = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?\b/i;
+    // Pattern 2: MM/DD/YYYY with optional HH:MM(:SS) (AM/PM)
+    re = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
     m = text.match(re);
     if (m) {
-      const iso = buildISO(m, 3, 1, 2, 4, 5, 6, 7);
+      const iso = buildISO(m, 3, 1, 2, m[4] !== undefined ? 4 : null, m[4] !== undefined ? 5 : null, m[4] !== undefined ? 6 : null, m[4] !== undefined ? 7 : null);
       if (iso) return iso;
     }
 
-    // Pattern 3: MON DD YYYY HH:MM(:SS) (AM/PM)
+    // Pattern 3: MON DD YYYY with optional HH:MM(:SS) (AM/PM)
     const monthMap: Record<string, string> = {
       JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
       JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
     };
     const monRe = /\b([A-Za-z]{3,9})\s*[-/.\s]?\s*(\d{1,2})\s*[-/.\s]?\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
-    const mMon = text.match(monRe);
-    if (mMon) {
-      const monthStr = mMon[1].toUpperCase().slice(0, 3);
+    m = text.match(monRe);
+    if (m) {
+      const monthStr = m[1].toUpperCase().slice(0, 3);
       const monthNum = monthMap[monthStr];
-      if (monthNum && mMon[4] !== undefined) {
-        let d = parseInt(mMon[2], 10), y = parseInt(mMon[3], 10);
-        let hh = parseInt(mMon[4], 10), mm = parseInt(mMon[5], 10), ss = mMon[6] ? parseInt(mMon[6], 10) : 0;
-        const ap = mMon[7]?.toUpperCase();
+      if (monthNum) {
+        const d = parseInt(m[2], 10), y = parseInt(m[3], 10);
+        let hh = m[4] !== undefined ? parseInt(m[4], 10) : 12;
+        let mm = m[5] !== undefined ? parseInt(m[5], 10) : 0;
+        let ss = m[6] !== undefined ? parseInt(m[6], 10) : 0;
+        const ap = m[7]?.toUpperCase();
         if (ap === 'PM' && hh < 12) hh += 12;
         if (ap === 'AM' && hh === 12) hh = 0;
         if (d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
@@ -451,14 +452,29 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       }
     }
 
-    // Pattern 4: YYYYMMDD_HHMMSS (compact, no separators)
-    const compactRe = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[:.]?(\d{2})(?:[:.]?(\d{2}))?\b/;
-    const mCompact = text.match(compactRe);
+    // Pattern 4: YYYYMMDD_HHMMSS or YYYYMMDD (compact, no separators)
+    let compactRe: RegExp;
+    let mCompact: RegExpExecArray | null;
+
+    // Try with time first
+    compactRe = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[:.]?(\d{2})(?:[:.]?(\d{2}))?\b/;
+    mCompact = text.match(compactRe);
     if (mCompact) {
       let y = parseInt(mCompact[1], 10), mo = parseInt(mCompact[2], 10), d = parseInt(mCompact[3], 10);
       let hh = parseInt(mCompact[4], 10), mm = parseInt(mCompact[5], 10), ss = mCompact[6] ? parseInt(mCompact[6], 10) : 0;
       if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
         const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+        if (!isNaN(new Date(iso).getTime())) return iso;
+      }
+    }
+
+    // Date-only compact (YYYYMMDD)
+    compactRe = /\b(20\d{2})(\d{2})(\d{2})\b(?!\s*\d)/;
+    mCompact = text.match(compactRe);
+    if (mCompact) {
+      let y = parseInt(mCompact[1], 10), mo = parseInt(mCompact[2], 10), d = parseInt(mCompact[3], 10);
+      if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T12:00:00`;
         if (!isNaN(new Date(iso).getTime())) return iso;
       }
     }
@@ -494,13 +510,13 @@ function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
   });
 }
 
-// ---- Binarize a canvas region for OCR ----
-function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number): string | null {
+// ---- Binarize a canvas region for OCR (auto-threshold from mean) ----
+function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number, invert: boolean): string | null {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
   for (let i = 0; i < data.length; i += 4) {
     const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-    const bw = gray > threshold ? 255 : 0;
+    const bw = gray > threshold ? (invert ? 0 : 255) : (invert ? 255 : 0);
     data[i] = bw;
     data[i + 1] = bw;
     data[i + 2] = bw;
@@ -509,32 +525,64 @@ function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, thr
   return ctx.canvas.toDataURL('image/png');
 }
 
+function computeMeanGray(ctx: CanvasRenderingContext2D, w: number, h: number): number {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+  let sum = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  }
+  return sum / (data.length / 4);
+}
+
 // ---- Focused OCR Date Extraction (timestamp bar only) ----
 // Accept optional pre-created worker to avoid re-loading Tesseract per photo.
 async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<string | undefined> {
   const img = await loadImageForOCR(file);
   if (!img) return undefined;
 
-  const targetWidth = Math.min(1600, Math.max(800, img.width));
-  const scale = targetWidth / img.width;
+  // Scan the bottom 10-30% in overlapping bands to catch any camera's info bar position
+  const cropRegions: { yRatio: number; hRatio: number }[] = [];
+  for (let y = 0.70; y <= 0.94; y += 0.04) {
+    cropRegions.push({ yRatio: y, hRatio: 0.08 });
+  }
 
-  // Bottom 6-10% — just two regions, most likely to contain the timestamp bar
-  const cropRegions = [
-    { yRatio: 0.92, hRatio: 0.08 },
-    { yRatio: 0.94, hRatio: 0.06 },
+  // Fixed threshold pairs: (normal threshold, inverted threshold)
+  // Inverted handles white-on-dark text; normal handles dark-on-light
+  const thresholdPairs: { normal: number; invert: number }[] = [
+    { normal: 140, invert: 100 },
+    { normal: 100, invert: 60 },
   ];
 
-  // Just 3 thresholds instead of 6
-  const thresholds = [140, 120, 100];
+  // Reusable check for a parsed ISO result
+  const checkResult = (iso: string | undefined, fMod: number): string | undefined => {
+    if (!iso) return undefined;
+    const dt = new Date(iso);
+    if (isNaN(dt.getTime())) return undefined;
+    if (dt.getFullYear() < 2000 || dt.getTime() > Date.now()) return undefined;
+    const dF = new Date(fMod);
+    if (!isNaN(dF.getTime()) && Math.abs(dt.getFullYear() - dF.getFullYear()) > 3) return undefined;
+    return iso;
+  };
 
   const tryWorker = async (worker: any): Promise<string | undefined> => {
+    // Draw full image once for reuse in cropping
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = img.width;
+    fullCanvas.height = img.height;
+    const fullCtx = fullCanvas.getContext('2d');
+    if (!fullCtx) return undefined;
+    fullCtx.drawImage(img, 0, 0);
+
     for (const region of cropRegions) {
       const cropH = Math.round(img.height * region.hRatio);
       const cropY = Math.round(img.height * region.yRatio);
       if (cropY + cropH > img.height) continue;
 
-      const cw = targetWidth;
-      const ch = Math.max(30, Math.round(cropH * scale));
+      // Upscale cropped area to a readable height
+      const targetHeight = 240;
+      const cw = Math.round(img.width * (targetHeight / cropH));
+      const ch = targetHeight;
 
       const canvas = document.createElement('canvas');
       canvas.width = cw;
@@ -542,21 +590,35 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      for (const thresh of thresholds) {
-        ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, cw, ch);
-        const processed = binarizeForOCR(ctx, cw, ch, thresh);
-        if (!processed) continue;
-        const { data: { text } } = await worker.recognize(processed);
-        for (const input of [text, stripNonDateText(text)]) {
-          const iso = parseOCRTextToISO(input);
-          if (iso) {
-            const dt = new Date(iso);
-            const fMod = new Date(file.lastModified);
-            const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
-            if (!isNaN(dt.getTime()) && dt.getTime() <= Date.now() && dt.getFullYear() >= 2000 && diffYears <= 3) {
-              return iso;
-            }
-          }
+      ctx.drawImage(fullCanvas, 0, cropY, img.width, cropH, 0, 0, cw, ch);
+
+      // Compute mean gray to decide if text is light-on-dark or dark-on-light
+      const meanGray = computeMeanGray(ctx, cw, ch);
+
+      // Try grayscale (no binarization) — always; useful for clean high-contrast bars
+      const grayData = canvas.toDataURL('image/png');
+      const { data: { text: grayText } } = await worker.recognize(grayData);
+      let r = checkResult(parseOCRTextToISO(grayText), file.lastModified);
+      if (r) return r;
+      r = checkResult(parseOCRTextToISO(stripNonDateText(grayText)), file.lastModified);
+      if (r) return r;
+
+      // Try binarized with threshold pairs
+      for (const pair of thresholdPairs) {
+        // Order attempts by region brightness
+        const attempts = meanGray < 100
+          ? [{ thresh: pair.invert, invert: true }, { thresh: pair.normal, invert: false }]
+          : [{ thresh: pair.normal, invert: false }, { thresh: pair.invert, invert: true }];
+
+        for (const attempt of attempts) {
+          ctx.drawImage(fullCanvas, 0, cropY, img.width, cropH, 0, 0, cw, ch);
+          const processed = binarizeForOCR(ctx, cw, ch, attempt.thresh, attempt.invert);
+          if (!processed) continue;
+          const { data: { text } } = await worker.recognize(processed);
+          r = checkResult(parseOCRTextToISO(text), file.lastModified);
+          if (r) return r;
+          r = checkResult(parseOCRTextToISO(stripNonDateText(text)), file.lastModified);
+          if (r) return r;
         }
       }
     }
@@ -567,10 +629,9 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     if (existingWorker) {
       return await tryWorker(existingWorker);
     }
-    // No existing worker supplied — create a temporary one
     const { createWorker } = await import('tesseract.js');
     const worker = await createWorker('eng');
-    await worker.setParameters({ tessedit_pageseg_mode: '7' });
+    await worker.setParameters({ tessedit_pageseg_mode: '6' });
     const result = await tryWorker(worker);
     await worker.terminate();
     return result;
@@ -781,7 +842,16 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
       if (!dateTime && ocrWorker) {
         dateTime = await extractDateFromImageOCR(file, ocrWorker);
       }
-      if (!dateTime || !isDateReasonable(dateTime, file.lastModified)) {
+      if (dateTime && isDateReasonable(dateTime, file.lastModified)) {
+        // If the extracted time is the default 12:00:00, merge in file.lastModified's hour
+        if (dateTime.endsWith('T12:00:00') || dateTime.slice(11, 13) === '12' && dateTime.slice(14, 19) === '00:00') {
+          const lm = new Date(file.lastModified);
+          if (!isNaN(lm.getTime())) {
+            const lmHour = String(lm.getHours()).padStart(2, '0');
+            dateTime = dateTime.slice(0, 11) + lmHour + dateTime.slice(13);
+          }
+        }
+      } else {
         const fallback = new Date(file.lastModified);
         dateTime = !isNaN(fallback.getTime()) ? fallback.toISOString() : new Date().toISOString();
       }
