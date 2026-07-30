@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, LayoutGrid, BarChart3, Sparkles, Plus, MapPin, Trash2, X, RefreshCw } from 'lucide-react';
-import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab } from '../types';
+import { Camera, LayoutGrid, BarChart3, Sparkles, Plus, MapPin, Trash2, X, Crosshair } from 'lucide-react';
+import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
 import { TrailCameraGallery } from './TrailCameraGallery';
 import { TrailCameraDetail } from './TrailCameraDetail';
 import { TrailCameraAnalytics } from './TrailCameraAnalytics';
 import { TrailCameraInsights } from './TrailCameraInsights';
+import { TrailCameraTargetManager } from './TrailCameraTargetManager';
 import {
   getAllPhotos,
   importPhotos,
@@ -15,6 +16,9 @@ import {
   getCameraLocations,
   saveCameraLocation,
   deleteCameraLocation,
+  getTargets,
+  saveTarget,
+  deleteTarget,
   filterPhotos,
   computeAnalytics,
   generateInsights,
@@ -41,6 +45,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [activeTab, setActiveTab] = useState<TrailCameraTab>('gallery');
   const [photos, setPhotos] = useState<TrailCameraPhoto[]>([]);
   const [locations, setLocations] = useState<TrailCameraLocation[]>([]);
+  const [targets, setTargets] = useState<TrailCameraTarget[]>([]);
   const [filter, setFilter] = useState<TrailCameraFilterState>({});
   const [selectedPhoto, setSelectedPhoto] = useState<TrailCameraPhoto | null>(null);
 
@@ -52,6 +57,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [newLocName, setNewLocName] = useState('');
 
+  // Target Manager State
+  const [isTargetManagerOpen, setIsTargetManagerOpen] = useState(false);
+
   // Load photos & locations on mount
   useEffect(() => {
     loadData();
@@ -61,6 +69,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     try {
       const allPhotos = await getAllPhotos();
       const allLocs = await getCameraLocations();
+      const allTargets = await getTargets();
 
       // Ensure current active location exists in saved camera locations
       if (allLocs.length === 0 && currentLocation) {
@@ -76,6 +85,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
       setPhotos(allPhotos);
       setLocations(allLocs);
+      setTargets(allTargets);
 
       // Auto match weather for photos in background
       matchWeatherBackground(allPhotos, allLocs);
@@ -208,6 +218,22 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     setPhotos(fresh);
     showToast(`Assigned ${idArray.length} photo(s) to spot "${targetLoc.name}"`);
     matchWeatherBackground(fresh, locations);
+  };
+
+  // Assign Tags (bulk)
+  const handleAssignTags = async (ids: string[], targetId: string) => {
+    for (const id of ids) {
+      const photo = photos.find((p) => p.id === id);
+      if (!photo) continue;
+      const current = photo.tags || [];
+      if (!current.includes(targetId)) {
+        await updatePhoto(id, { tags: [...current, targetId] });
+      }
+    }
+    const fresh = await getAllPhotos();
+    setPhotos(fresh);
+    const t = targets.find((x) => x.id === targetId);
+    showToast(`Tagged ${ids.length} photo(s) as "${t?.name || 'target'}"`);
   };
 
   // Add New Location
@@ -374,7 +400,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-3 text-xs`}>
             <div className="flex items-center gap-2 overflow-x-auto py-0.5">
               <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0">
-                <MapPin className="w-3.5 h-3.5 text-sky-400" /> Saved Camera Spots:
+                <MapPin className="w-3.5 h-3.5 text-sky-400" /> Spots:
               </span>
               {locations.map((loc) => (
                 <span
@@ -390,7 +416,37 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               onClick={() => setIsLocationModalOpen(true)}
               className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md`}
             >
-              <Plus className="w-3.5 h-3.5" /> Add Camera Spot
+              <Plus className="w-3.5 h-3.5" /> Add Spot
+            </button>
+          </div>
+
+          {/* Target Management Strip */}
+          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-3 text-xs`}>
+            <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0">
+                <Crosshair className="w-3.5 h-3.5 text-emerald-400" /> Targets:
+              </span>
+              {targets.length === 0 ? (
+                <span className="text-[10px] opacity-50 italic">No targets defined</span>
+              ) : (
+                targets.map((t) => (
+                  <span
+                    key={t.id}
+                    className="px-2.5 py-1 rounded-lg font-bold flex-shrink-0 text-white text-[11px] flex items-center gap-1"
+                    style={{ backgroundColor: t.color }}
+                  >
+                    <Crosshair className="w-3 h-3" />
+                    {t.name}
+                  </span>
+                ))
+              )}
+            </div>
+
+            <button
+              onClick={() => setIsTargetManagerOpen(true)}
+              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md`}
+            >
+              <Crosshair className="w-3.5 h-3.5" /> Manage Targets
             </button>
           </div>
 
@@ -400,6 +456,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             filter={filter}
             onFilterChange={setFilter}
             locations={locations}
+            targets={targets}
             totalPhotosCount={photos.length}
             filteredPhotosCount={filteredPhotos.length}
           />
@@ -412,7 +469,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             onToggleFavorite={handleToggleFavorite}
             onDeletePhotos={handleDeletePhotos}
             onAssignLocation={handleAssignLocation}
+            onAssignTags={handleAssignTags}
             locations={locations}
+            targets={targets}
           />
         </div>
       )}
@@ -444,7 +503,25 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           }}
           onNavigate={(p) => setSelectedPhoto(p)}
           locations={locations}
+          targets={targets}
           onAssignLocation={(id, locId) => handleAssignLocation(id, locId)}
+        />
+      )}
+
+      {/* Target Manager Modal */}
+      {isTargetManagerOpen && (
+        <TrailCameraTargetManager
+          theme={theme}
+          targets={targets}
+          onSave={async (t) => {
+            await saveTarget(t);
+            setTargets([...targets, t]);
+          }}
+          onDelete={async (id) => {
+            await deleteTarget(id);
+            setTargets(targets.filter((x) => x.id !== id));
+          }}
+          onClose={() => setIsTargetManagerOpen(false)}
         />
       )}
 

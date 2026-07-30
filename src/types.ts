@@ -171,13 +171,21 @@ export interface TrailCameraPhoto {
   cameraLocationName?: string;
   notes?: string;
   isFavorite: boolean;
+  tags?: string[];
   weather?: HistoricalWeatherData;
+}
+
+export interface TrailCameraTarget {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export interface TrailCameraFilterState {
   dateStart?: string;
   dateEnd?: string;
   cameraLocationId?: string;
+  targetId?: string;
   windDirection?: string;
   windSpeedMin?: number;
   windSpeedMax?: number;

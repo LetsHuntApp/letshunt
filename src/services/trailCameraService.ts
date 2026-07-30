@@ -1,11 +1,12 @@
-import { TrailCameraPhoto, TrailCameraFilterState, HistoricalWeatherData, TrailCameraLocation } from '../types';
+import { TrailCameraPhoto, TrailCameraFilterState, HistoricalWeatherData, TrailCameraLocation, TrailCameraTarget } from '../types';
 
 const DB_NAME = 'LetsHuntTrailCams';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const PHOTOS_STORE = 'photos';
 const FULL_IMAGES_STORE = 'fullImages';
 const WEATHER_CACHE_STORE = 'weatherCache';
 const LOCATIONS_STORE = 'cameraLocations';
+const TARGETS_STORE = 'targets';
 const ANALYTICS_CACHE_STORE = 'analyticsCache';
 
 function openDB(): Promise<IDBDatabase> {
@@ -29,6 +30,9 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(LOCATIONS_STORE)) {
         db.createObjectStore(LOCATIONS_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(TARGETS_STORE)) {
+        db.createObjectStore(TARGETS_STORE, { keyPath: 'id' });
       }
       if (!db.objectStoreNames.contains(ANALYTICS_CACHE_STORE)) {
         db.createObjectStore(ANALYTICS_CACHE_STORE, { keyPath: 'id' });
@@ -566,12 +570,26 @@ export async function deleteCameraLocation(id: string): Promise<void> {
   await deleteFromStore(LOCATIONS_STORE, id);
 }
 
+// ---- Targets ----
+export async function getTargets(): Promise<TrailCameraTarget[]> {
+  return getAllFromStore<TrailCameraTarget>(TARGETS_STORE);
+}
+
+export async function saveTarget(target: TrailCameraTarget): Promise<void> {
+  await putInStore(TARGETS_STORE, target);
+}
+
+export async function deleteTarget(id: string): Promise<void> {
+  await deleteFromStore(TARGETS_STORE, id);
+}
+
 // ---- Filtering ----
 export function filterPhotos(photos: TrailCameraPhoto[], filter: TrailCameraFilterState): TrailCameraPhoto[] {
   return photos.filter((p) => {
     if (filter.dateStart && p.dateTime && p.dateTime < filter.dateStart) return false;
     if (filter.dateEnd && p.dateTime && p.dateTime > filter.dateEnd + 'T23:59:59') return false;
     if (filter.cameraLocationId && p.cameraLocationId !== filter.cameraLocationId) return false;
+    if (filter.targetId && !(p.tags || []).includes(filter.targetId)) return false;
     if (filter.searchQuery) {
       const q = filter.searchQuery.toLowerCase();
       if (!p.fileName.toLowerCase().includes(q) && !p.notes?.toLowerCase().includes(q)) return false;

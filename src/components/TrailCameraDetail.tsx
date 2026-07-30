@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save } from 'lucide-react';
-import { ThemeMode, TrailCameraPhoto, TrailCameraLocation } from '../types';
+import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair } from 'lucide-react';
+import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getFullImageBlob, getThumbnailUrl, updatePhoto } from '../services/trailCameraService';
 
 interface TrailCameraDetailProps {
@@ -12,6 +12,7 @@ interface TrailCameraDetailProps {
   onDeletePhoto: (id: string) => void;
   onNavigate: (photo: TrailCameraPhoto) => void;
   locations: TrailCameraLocation[];
+  targets: TrailCameraTarget[];
   onAssignLocation: (id: string, locationId: string) => void;
 }
 
@@ -24,6 +25,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   onDeletePhoto,
   onNavigate,
   locations,
+  targets,
   onAssignLocation,
 }) => {
   const isDark = theme === 'dark';
@@ -123,6 +125,14 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
     if (locId) {
       onAssignLocation(photo.id, locId);
     }
+  };
+
+  const handleToggleTag = (targetId: string) => {
+    const current = photo.tags || [];
+    const updated = current.includes(targetId)
+      ? current.filter((t) => t !== targetId)
+      : [...current, targetId];
+    onUpdatePhoto(photo.id, { tags: updated });
   };
 
   const d = photo.dateTime ? new Date(photo.dateTime) : null;
@@ -282,6 +292,41 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 <option key={loc.id} value={loc.id}>{loc.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* Target Tags */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+              <Crosshair className="w-3.5 h-3.5 text-emerald-400" /> Target Tags
+            </label>
+            {targets.length === 0 ? (
+              <p className="text-[10px] opacity-50 italic">No targets defined. Create some from the gallery view.</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {targets.map((t) => {
+                  const active = (photo.tags || []).includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => handleToggleTag(t.id)}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                        active
+                          ? 'text-white shadow-md'
+                          : 'opacity-60 hover:opacity-100'
+                      }`}
+                      style={{
+                        backgroundColor: active ? t.color : 'transparent',
+                        borderColor: t.color,
+                        color: active ? '#fff' : undefined,
+                      }}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
+                      {t.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Historical Weather Info */}

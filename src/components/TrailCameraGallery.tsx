@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ThemeMode, TrailCameraPhoto, TrailCameraLocation } from '../types';
+import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair } from 'lucide-react';
+import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl } from '../services/trailCameraService';
 
 interface TrailCameraGalleryProps {
@@ -10,7 +10,9 @@ interface TrailCameraGalleryProps {
   onToggleFavorite: (photo: TrailCameraPhoto) => void;
   onDeletePhotos: (ids: string[]) => void;
   onAssignLocation: (ids: string[], locationId: string) => void;
+  onAssignTags: (ids: string[], targetId: string) => void;
   locations: TrailCameraLocation[];
+  targets: TrailCameraTarget[];
 }
 
 const ITEMS_PER_PAGE = 36;
@@ -87,7 +89,9 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   onToggleFavorite,
   onDeletePhotos,
   onAssignLocation,
+  onAssignTags,
   locations,
+  targets,
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -95,6 +99,8 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [assignLocationModalOpen, setAssignLocationModalOpen] = useState(false);
   const [targetLocationId, setTargetLocationId] = useState('');
+  const [assignTargetModalOpen, setAssignTargetModalOpen] = useState(false);
+  const [targetAssignId, setTargetAssignId] = useState('');
 
   const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
   const paginatedPhotos = photos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -149,6 +155,13 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
     setAssignLocationModalOpen(false);
   };
 
+  const handleAssignSelectedTarget = () => {
+    if (selectedIds.length === 0 || !targetAssignId) return;
+    onAssignTags(selectedIds, targetAssignId);
+    setSelectedIds([]);
+    setAssignTargetModalOpen(false);
+  };
+
   return (
     <div className="space-y-4">
       {/* Gallery Action Bar */}
@@ -186,7 +199,15 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               onClick={() => setAssignLocationModalOpen(true)}
               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
             >
-              <MapPin className="w-3.5 h-3.5" /> Assign Camera Spot
+              <MapPin className="w-3.5 h-3.5" /> Assign Spot
+            </button>
+
+            <button
+              onClick={() => { setTargetAssignId(''); setAssignTargetModalOpen(true); }}
+              disabled={targets.length === 0}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
+            >
+              <Crosshair className="w-3.5 h-3.5" /> Tag Target
             </button>
 
             <button
@@ -281,6 +302,24 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
                 {/* Bottom Card Info */}
                 <div className="relative p-2 text-white text-[11px] space-y-0.5 z-10 leading-tight">
+                  {(photo.tags || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-1">
+                      {photo.tags!.map((tId) => {
+                        const t = targets.find((x) => x.id === tId);
+                        if (!t) return null;
+                        return (
+                          <span
+                            key={t.id}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-sm"
+                            style={{ backgroundColor: t.color, color: '#fff' }}
+                          >
+                            <Crosshair className="w-2 h-2" />
+                            {t.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="font-extrabold truncate drop-shadow">{dateStr} {timeStr}</div>
                   {photo.cameraLocationName && (
                     <div className="text-[10px] text-sky-300 font-bold truncate flex items-center gap-0.5">
@@ -326,6 +365,47 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>
+        </div>
+      )}
+
+      {/* Assign Target Modal */}
+      {assignTargetModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`${tc.modalBg} rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl`}>
+            <h3 className="text-base font-extrabold flex items-center gap-2">
+              <Crosshair className="w-5 h-5 text-emerald-400" /> Tag With Target
+            </h3>
+            <p className="text-xs opacity-70">
+              Tag {selectedIds.length} selected photo(s) with a target to track activity patterns for specific deer.
+            </p>
+
+            <select
+              value={targetAssignId}
+              onChange={(e) => setTargetAssignId(e.target.value)}
+              className={`w-full p-2 text-xs rounded-xl border ${tc.selectBg}`}
+            >
+              <option value="">Select Target...</option>
+              {targets.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setAssignTargetModalOpen(false)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl ${tc.cancelBtn}`}
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!targetAssignId}
+                onClick={handleAssignSelectedTarget}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50"
+              >
+                Tag Photos
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

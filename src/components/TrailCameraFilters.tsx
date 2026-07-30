@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Filter, X, Search, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
-import { ThemeMode, TrailCameraFilterState, TrailCameraLocation } from '../types';
+import { ThemeMode, TrailCameraFilterState, TrailCameraLocation, TrailCameraTarget } from '../types';
 
 interface TrailCameraFiltersProps {
   theme: ThemeMode;
   filter: TrailCameraFilterState;
   onFilterChange: (filter: TrailCameraFilterState) => void;
   locations: TrailCameraLocation[];
+  targets: TrailCameraTarget[];
   totalPhotosCount: number;
   filteredPhotosCount: number;
 }
@@ -20,6 +21,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   filter,
   onFilterChange,
   locations,
+  targets,
   totalPhotosCount,
   filteredPhotosCount,
 }) => {
@@ -160,6 +162,23 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
                 <option key={loc.id} value={loc.id}>
                   {loc.name}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Target Tag */}
+          <div className="space-y-1">
+            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Target Tag</label>
+            <select
+              value={filter.targetId || ''}
+              onChange={(e) => onFilterChange({ ...filter, targetId: e.target.value || undefined })}
+              className={`w-full p-1.5 text-xs rounded-xl border ${
+                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+              }`}
+            >
+              <option value="">All Targets</option>
+              {targets.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
