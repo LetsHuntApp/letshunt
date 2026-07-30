@@ -611,10 +611,13 @@ function parseDateFromFilename(fileName: string): string | undefined {
 // ---- Historical Weather ----
 async function fetchHistoricalWeather(lat: number, lon: number, dateTimeStr: string): Promise<HistoricalWeatherData | null> {
   try {
+    // Parse date and hour directly from the string to avoid timezone side-effects
+    const dateStr = dateTimeStr.slice(0, 10);
+    const hourMatch = dateTimeStr.match(/T(\d{1,2})/);
+    const targetHour = hourMatch ? parseInt(hourMatch[1], 10) : 12;
     const d = new Date(dateTimeStr);
     if (isNaN(d.getTime())) return null;
-    const dateStr = d.toISOString().split('T')[0];
-    const targetHour = d.getHours();
+
     const now = new Date();
     const diffDays = (now.getTime() - d.getTime()) / (1000 * 3600 * 24);
 
@@ -633,13 +636,14 @@ async function fetchHistoricalWeather(lat: number, lon: number, dateTimeStr: str
     const data = await response.json();
     if (!data?.hourly?.time?.length) return null;
 
-    const targetDate = dateStr;
+    // Find the hourly slot closest to the photo's hour using string-parsed hours
     let closestIndex = -1;
     let minDiff = Infinity;
     for (let i = 0; i < data.hourly.time.length; i++) {
-      const hDate = new Date(data.hourly.time[i]);
-      if (hDate.toISOString().split('T')[0] !== targetDate) continue;
-      const diff = Math.abs(hDate.getHours() - targetHour);
+      const apiTime = data.hourly.time[i];
+      if (!apiTime || apiTime.slice(0, 10) !== dateStr) continue;
+      const apiHour = parseInt(apiTime.slice(11, 13), 10);
+      const diff = Math.abs(apiHour - targetHour);
       if (diff < minDiff) { minDiff = diff; closestIndex = i; }
     }
     if (closestIndex === -1) return null;
