@@ -1,0 +1,356 @@
+import React, { useState, useEffect } from 'react';
+import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save } from 'lucide-react';
+import { ThemeMode, TrailCameraPhoto, TrailCameraLocation } from '../types';
+import { getFullImageBlob, getThumbnailUrl, updatePhoto } from '../services/trailCameraService';
+
+interface TrailCameraDetailProps {
+  theme: ThemeMode;
+  photo: TrailCameraPhoto;
+  photos: TrailCameraPhoto[];
+  onClose: () => void;
+  onUpdatePhoto: (id: string, updates: Partial<TrailCameraPhoto>) => void;
+  onDeletePhoto: (id: string) => void;
+  onNavigate: (photo: TrailCameraPhoto) => void;
+  locations: TrailCameraLocation[];
+  onAssignLocation: (id: string, locationId: string) => void;
+}
+
+export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
+  theme,
+  photo,
+  photos,
+  onClose,
+  onUpdatePhoto,
+  onDeletePhoto,
+  onNavigate,
+  locations,
+  onAssignLocation,
+}) => {
+  const isDark = theme === 'dark';
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [notes, setNotes] = useState(photo.notes || '');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [selectedLocId, setSelectedLocId] = useState(photo.cameraLocationId || '');
+
+  const currentIndex = photos.findIndex((p) => p.id === photo.id);
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < photos.length - 1;
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let active = true;
+
+    const loadFullImage = async () => {
+      setZoomLevel(1);
+      setNotes(photo.notes || '');
+      setSelectedLocId(photo.cameraLocationId || '');
+
+      const blob = await getFullImageBlob(photo.id);
+      if (blob && active) {
+        objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+      } else {
+        const thumb = await getThumbnailUrl(photo.id);
+        if (active) setImageUrl(thumb || null);
+      }
+    };
+
+    loadFullImage();
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [photo.id]);
+
+  const handleSaveNotes = () => {
+    onUpdatePhoto(photo.id, { notes });
+    setIsEditingNotes(false);
+  };
+
+  const handlePrev = () => {
+    if (hasPrev) onNavigate(photos[currentIndex - 1]);
+  };
+
+  const handleNext = () => {
+    if (hasNext) onNavigate(photos[currentIndex + 1]);
+  };
+
+  const handleLocationChange = (locId: string) => {
+    setSelectedLocId(locId);
+    if (locId) {
+      onAssignLocation(photo.id, locId);
+    }
+  };
+
+  const d = photo.dateTime ? new Date(photo.dateTime) : null;
+  const dateStr = d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown Date';
+  const timeStr = d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Unknown Time';
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col md:flex-row overflow-hidden animate-fadeIn">
+      {/* Top Mobile Bar */}
+      <div className="md:hidden flex items-center justify-between p-3 bg-black/80 border-b border-slate-800 text-white z-20">
+        <span className="font-extrabold text-xs truncate max-w-[200px]">{photo.fileName}</span>
+        <button onClick={onClose} className="p-2 rounded-xl bg-slate-800 text-white">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Main Image Viewport Area */}
+      <div className="relative flex-1 flex items-center justify-center bg-black p-2 sm:p-4 overflow-hidden select-none">
+        {imageUrl ? (
+          <div className="relative w-full h-full flex items-center justify-center overflow-auto">
+            <img
+              src={imageUrl}
+              alt={photo.fileName}
+              style={{ transform: `scale(${zoomLevel})`, transition: 'transform 0.15s ease-out' }}
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl origin-center"
+            />
+          </div>
+        ) : (
+          <div className="text-slate-500 text-xs font-bold animate-pulse">Loading Full Image...</div>
+        )}
+
+        {/* Floating Zoom Controls */}
+        <div className="absolute bottom-4 left-4 z-20 flex items-center gap-1 bg-slate-900/80 border border-slate-700/80 backdrop-blur-md p-1.5 rounded-2xl text-white shadow-xl">
+          <button
+            onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
+            className="p-1.5 hover:bg-slate-800 rounded-xl transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
+          <span className="text-[10px] font-black px-1 min-w-[36px] text-center">
+            {Math.round(zoomLevel * 100)}%
+          </span>
+          <button
+            onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.25))}
+            className="p-1.5 hover:bg-slate-800 rounded-xl transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          {zoomLevel !== 1 && (
+            <button
+              onClick={() => setZoomLevel(1)}
+              className="p-1.5 hover:bg-slate-800 rounded-xl text-amber-400"
+              title="Reset Zoom"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Prev / Next Navigation Arrows */}
+        {hasPrev && (
+          <button
+            onClick={handlePrev}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-white hover:bg-slate-800 transition-all shadow-xl hover:scale-105"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+        {hasNext && (
+          <button
+            onClick={handleNext}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-3 rounded-2xl bg-slate-900/80 border border-slate-700 text-white hover:bg-slate-800 transition-all shadow-xl hover:scale-105"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+      </div>
+
+      {/* Sidebar Metadata & Weather Details */}
+      <div
+        className={`w-full md:w-80 lg:w-96 flex flex-col justify-between border-t md:border-t-0 md:border-l p-4 sm:p-5 overflow-y-auto max-h-[50vh] md:max-h-full ${
+          isDark
+            ? 'bg-slate-950 border-slate-800 text-slate-100'
+            : theme === 'hunting'
+            ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+            : (theme === 'olive' || theme === 'hunting')
+            ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+            : 'bg-white border-slate-200 text-slate-900'
+        }`}
+      >
+        <div className="space-y-4">
+          {/* Header Row */}
+          <div className="hidden md:flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-emerald-500">
+              Photo Metadata
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-xl hover:bg-slate-800/20 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Action Row: Favorite & Delete */}
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <button
+              onClick={() => onUpdatePhoto(photo.id, { isFavorite: !photo.isFavorite })}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-all border ${
+                photo.isFavorite
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                  : 'bg-slate-800/40 border-slate-700 hover:bg-slate-800'
+              }`}
+            >
+              <Star className={`w-4 h-4 ${photo.isFavorite ? 'fill-slate-950' : ''}`} />
+              <span>{photo.isFavorite ? 'Favorited' : 'Favorite'}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (confirm('Delete this photo permanently?')) {
+                  onDeletePhoto(photo.id);
+                  onClose();
+                }
+              }}
+              className="p-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-400 hover:text-white border border-rose-500/30 transition-all"
+              title="Delete Photo"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Time & Camera Model */}
+          <div className="space-y-2 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/80 text-xs">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span className="font-bold">{dateStr}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-400" />
+              <span className="font-bold">{timeStr}</span>
+            </div>
+            {photo.cameraModel && (
+              <div className="flex items-center gap-2 opacity-80">
+                <Camera className="w-4 h-4 text-slate-400" />
+                <span>Model: {photo.cameraModel}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Camera Location Selector */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+              <MapPin className="w-3.5 h-3.5 text-sky-400" /> Camera Spot
+            </label>
+            <select
+              value={selectedLocId}
+              onChange={(e) => handleLocationChange(e.target.value)}
+              className="w-full p-2 text-xs font-bold rounded-xl bg-slate-900/60 border border-slate-700/80 text-white"
+            >
+              <option value="">Unassigned Location</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Historical Weather Info */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-wider opacity-70">
+              Historical Weather Conditions
+            </label>
+
+            {photo.weather ? (
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                  <Thermometer className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                  <div>
+                    <div className="opacity-60 text-[10px]">Temp</div>
+                    <div className="font-bold">{photo.weather.temperature}°F</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                  <Wind className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                  <div>
+                    <div className="opacity-60 text-[10px]">Wind</div>
+                    <div className="font-bold">{photo.weather.windDirection} {photo.weather.windSpeedMph}mph</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                  <Gauge className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <div>
+                    <div className="opacity-60 text-[10px]">Pressure</div>
+                    <div className="font-bold">{photo.weather.pressureInHg} inHg ({photo.weather.pressureTrend})</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2">
+                  <Droplets className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <div>
+                    <div className="opacity-60 text-[10px]">Humidity</div>
+                    <div className="font-bold">{photo.weather.humidity}%</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 flex items-center gap-2 col-span-2">
+                  <Moon className="w-4 h-4 text-amber-300 flex-shrink-0" />
+                  <div>
+                    <div className="opacity-60 text-[10px]">Moon Phase</div>
+                    <div className="font-bold">{photo.weather.moonPhaseName} ({photo.weather.moonIllumination}% lit)</div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800 col-span-2">
+                  <div className="opacity-60 text-[10px]">Weather Condition</div>
+                  <div className="font-bold">{photo.weather.weatherDesc}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs text-center font-semibold">
+                No historical weather matched yet. Assign a camera location above to fetch local weather data.
+              </div>
+            )}
+          </div>
+
+          {/* User Notes */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5" /> Hunter Notes
+              </label>
+              {!isEditingNotes && (
+                <button
+                  onClick={() => setIsEditingNotes(true)}
+                  className="text-xs text-emerald-400 hover:underline font-bold"
+                >
+                  Edit Notes
+                </button>
+              )}
+            </div>
+
+            {isEditingNotes ? (
+              <div className="space-y-2">
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add observations (e.g. 8-pointer heading east, mature doe with fawn)..."
+                  className="w-full p-2.5 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={handleSaveNotes}
+                  className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Notes
+                </button>
+              </div>
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-xs font-semibold opacity-90 italic">
+                {photo.notes || 'No notes added for this photo yet.'}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

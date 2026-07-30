@@ -16,7 +16,8 @@ import { MapView } from './components/MapView';
 import { LogsAndStatsView } from './components/LogsAndStatsView';
 import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
-import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, Trophy } from 'lucide-react';
+import { TrailCameraView } from './components/TrailCameraView';
+import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, Trophy, Camera } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
   name: 'Madison',
@@ -27,8 +28,8 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
 };
 
 export default function App() {
-  // Navigation tab state: 'dashboard', 'settings', 'details', 'map', or 'logs'
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs'>('dashboard');
+  // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
 
   // Theme state: dark or light
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
@@ -382,6 +383,12 @@ export default function App() {
             showToast={showToast}
             onNavigateToMap={() => setActiveTab('map')}
           />
+        ) : activeTab === 'trailcams' ? (
+          <TrailCameraView
+            theme={theme}
+            currentLocation={currentLocation}
+            showToast={showToast}
+          />
         ) : loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
             <div className="relative w-16 h-16">
@@ -583,6 +590,23 @@ export default function App() {
         >
           <Trophy className="w-4.5 h-4.5" />
           <span className="text-[9px] tracking-wider uppercase">Logs & Stats</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('trailcams');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+            activeTab === 'trailcams'
+              ? 'text-emerald-500 font-extrabold scale-105'
+              : isDark
+              ? 'text-slate-400 hover:text-slate-200 font-semibold'
+              : 'text-slate-500 hover:text-slate-900 font-semibold'
+          }`}
+        >
+          <Camera className="w-4.5 h-4.5" />
+          <span className="text-[9px] tracking-wider uppercase">Trail Cams</span>
         </button>
 
         <button

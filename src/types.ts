@@ -131,6 +131,65 @@ export interface SavedPolygon {
   createdAt: number;
 }
 
+export type TrailCameraTab = 'gallery' | 'analytics' | 'insights';
+
+export interface TrailCameraLocation {
+  id: string;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface HistoricalWeatherData {
+  windDirection: string;
+  windDirectionDeg: number;
+  windSpeedMph: number;
+  windSpeedKmh: number;
+  temperature: number;
+  pressureInHg: number;
+  pressureHpa: number;
+  pressureTrend: string;
+  humidity: number;
+  moonPhase: number;
+  moonIllumination: number;
+  moonPhaseName: string;
+  weatherCode: number;
+  weatherDesc: string;
+  precipitationMm: number;
+}
+
+export interface TrailCameraPhoto {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  importedAt: number;
+  dateTime?: string;
+  cameraModel?: string;
+  latitude?: number;
+  longitude?: number;
+  cameraLocationId?: string;
+  cameraLocationName?: string;
+  notes?: string;
+  isFavorite: boolean;
+  weather?: HistoricalWeatherData;
+}
+
+export interface TrailCameraFilterState {
+  dateStart?: string;
+  dateEnd?: string;
+  cameraLocationId?: string;
+  windDirection?: string;
+  windSpeedMin?: number;
+  windSpeedMax?: number;
+  tempMin?: number;
+  tempMax?: number;
+  weatherConditions?: string[];
+  pressureMin?: number;
+  pressureMax?: number;
+  moonPhase?: string;
+  searchQuery?: string;
+}
+
 export type DeerGender = 'Buck' | 'Doe' | 'Button Buck' | 'Shed Buck' | 'Other';
 
 export interface DeerKillLog {

@@ -9,6 +9,7 @@ import {
   Home,
   Map,
   Trophy,
+  Camera,
 } from 'lucide-react';
 import { Location, UnitSystem, ThemeMode } from '../types';
 import { searchLocations } from '../services/weatherService';
@@ -29,8 +30,8 @@ interface HeaderProps {
   onToggleFavorite: (loc: Location) => void;
   onOpenGuide: () => void;
   onOpenPwaModal: () => void;
-  activeTab: 'dashboard' | 'settings' | 'map' | 'details' | 'logs';
-  onTabChange: (tab: 'dashboard' | 'settings' | 'map' | 'logs') => void;
+  activeTab: 'dashboard' | 'settings' | 'map' | 'details' | 'logs' | 'trailcams';
+  onTabChange: (tab: 'dashboard' | 'settings' | 'map' | 'logs' | 'trailcams') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -371,6 +372,22 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
                 <span className="hidden xs:inline">Logs & Stats</span>
+              </button>
+
+              <button
+                onClick={() => onTabChange('trailcams')}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
+                  activeTab === 'trailcams'
+                    ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
+                    : isDark
+                    ? 'text-slate-400 hover:text-slate-200'
+                    : (theme === 'olive' || theme === 'hunting')
+                    ? 'text-[#3d4f21] hover:text-[#1e2e1b]'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" />
+                <span className="hidden xs:inline">Trail Cams</span>
               </button>
 
               <button
