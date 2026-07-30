@@ -15,6 +15,8 @@ interface TrailCameraDetailProps {
   targets: TrailCameraTarget[];
   onAssignLocation: (id: string, locationId: string) => void;
   showToast: (msg: string) => void;
+  units?: string;
+  pressureUnit?: string;
 }
 
 export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
@@ -29,6 +31,8 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   targets,
   onAssignLocation,
   showToast,
+  units = 'imperial',
+  pressureUnit = 'inHg',
 }) => {
   const isDark = theme === 'dark';
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -431,7 +435,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   <Thermometer className="w-4 h-4 text-rose-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Temp</div>
-                    <div className="font-bold">{photo.weather.temperature}°F</div>
+                    <div className="font-bold">{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</div>
                   </div>
                 </div>
 
@@ -439,7 +443,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   <Wind className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Wind</div>
-                    <div className="font-bold">{photo.weather.windDirection} {photo.weather.windSpeedMph}mph</div>
+                    <div className="font-bold">{photo.weather.windDirection} {units === 'metric' ? `${photo.weather.windSpeedKmh}km/h` : `${photo.weather.windSpeedMph}mph`}</div>
                   </div>
                 </div>
 
@@ -447,7 +451,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   <Gauge className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   <div>
                     <div className="opacity-60 text-[10px]">Pressure</div>
-                    <div className="font-bold">{photo.weather.pressureInHg} inHg ({photo.weather.pressureTrend})</div>
+                    <div className="font-bold">{pressureUnit === 'hPa' ? `${photo.weather.pressureHpa} hPa` : `${photo.weather.pressureInHg} inHg`} ({photo.weather.pressureTrend})</div>
                   </div>
                 </div>
 

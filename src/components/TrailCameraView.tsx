@@ -631,6 +631,8 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           targets={targets}
           onAssignLocation={(id, locId) => handleAssignLocation(id, locId)}
           showToast={showToast}
+          units={units}
+          pressureUnit={pressureUnit}
         />
       )}
 
