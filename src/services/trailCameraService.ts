@@ -206,15 +206,24 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     }
   }
 
+  // Collect ALL valid dates from ALL candidate texts, then pick the
+  // one with the most time information. This implements majority-rule
+  // consensus: a typo-fixed candidate with full time (e.g. "1:50AM")
+  // beats a raw-text candidate with date-only (e.g. "1T50AM" which
+  // fails the time portion of the regex).
+  let bestISO: string | undefined;
+  let bestScore = 0; // 1=date only, 2=date+hh:mm, 3=date+hh:mm+AM/PM
+
   for (let text of candidateTexts) {
     text = text.replace(/[\t\r]+/g, ' ').trim();
 
-    // Helper: given regex match groups, return ISO string or null
-    const buildISO = (m: RegExpExecArray, yIdx: number, moIdx: number, dIdx: number, hhIdx: number | null, mmIdx: number | null, ssIdx: number | null, apIdx: number | null): string | null => {
+    // Helper: given regex match groups, return ISO string and its time-score, or null
+    const buildISO = (m: RegExpExecArray, yIdx: number, moIdx: number, dIdx: number, hhIdx: number | null, mmIdx: number | null, ssIdx: number | null, apIdx: number | null): { iso: string; score: number } | null => {
       const y = parseInt(m[yIdx], 10);
       let mo = parseInt(m[moIdx], 10);
       let d = parseInt(m[dIdx], 10);
-      let hh = hhIdx != null ? parseInt(m[hhIdx], 10) : 12;
+      const hasTime = hhIdx != null && m[hhIdx] !== undefined;
+      let hh = hasTime ? parseInt(m[hhIdx], 10) : 12;
       let mm = mmIdx != null && m[mmIdx] !== undefined ? parseInt(m[mmIdx], 10) : 0;
       let ss = ssIdx != null && m[ssIdx] !== undefined ? parseInt(m[ssIdx], 10) : 0;
       const ap = apIdx != null && m[apIdx] !== undefined ? m[apIdx].toUpperCase() : null;
@@ -236,23 +245,28 @@ function parseOCRTextToISO(rawText: string): string | undefined {
 
       const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
       if (isNaN(new Date(iso).getTime())) return null;
-      return iso;
+
+      // Score: 3 = full date+time+AM/PM, 2 = date+hh:mm, 1 = date only
+      let score = 1;
+      if (hasTime) score = 2;
+      if (hasTime && ap) score = 3;
+      return { iso, score };
     };
 
     // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM), time optional
     const re1 = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
     const m1 = re1.exec(text);
     if (m1) {
-      const iso = buildISO(m1, 1, 2, 3, m1[4] !== undefined ? 4 : null, m1[4] !== undefined ? 5 : null, m1[4] !== undefined ? 6 : null, m1[4] !== undefined ? 7 : null);
-      if (iso) return iso;
+      const r = buildISO(m1, 1, 2, 3, m1[4] !== undefined ? 4 : null, m1[4] !== undefined ? 5 : null, m1[4] !== undefined ? 6 : null, m1[4] !== undefined ? 7 : null);
+      if (r && r.score > bestScore) { bestISO = r.iso; bestScore = r.score; }
     }
 
     // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM), time optional
     const re2 = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
     const m2 = re2.exec(text);
     if (m2) {
-      const iso = buildISO(m2, 3, 1, 2, m2[4] !== undefined ? 4 : null, m2[4] !== undefined ? 5 : null, m2[4] !== undefined ? 6 : null, m2[4] !== undefined ? 7 : null);
-      if (iso) return iso;
+      const r = buildISO(m2, 3, 1, 2, m2[4] !== undefined ? 4 : null, m2[4] !== undefined ? 5 : null, m2[4] !== undefined ? 6 : null, m2[4] !== undefined ? 7 : null);
+      if (r && r.score > bestScore) { bestISO = r.iso; bestScore = r.score; }
     }
 
     // Pattern 3: MON DD YYYY with optional HH:MM(:SS) (AM/PM)
@@ -267,7 +281,8 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       const monthNum = monthMap[monthStr];
       if (monthNum) {
         const d = parseInt(m3[2], 10), y = parseInt(m3[3], 10);
-        let hh = m3[4] !== undefined ? parseInt(m3[4], 10) : 12;
+        const hasTime = m3[4] !== undefined;
+        let hh = hasTime ? parseInt(m3[4], 10) : 12;
         let mm = m3[5] !== undefined ? parseInt(m3[5], 10) : 0;
         let ss = m3[6] !== undefined ? parseInt(m3[6], 10) : 0;
         const ap = m3[7]?.toUpperCase();
@@ -275,7 +290,12 @@ function parseOCRTextToISO(rawText: string): string | undefined {
         if (ap === 'AM' && hh === 12) hh = 0;
         if (d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
           const iso = `${y}-${monthNum}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-          if (!isNaN(new Date(iso).getTime())) return iso;
+          if (!isNaN(new Date(iso).getTime())) {
+            let score = 1;
+            if (hasTime) score = 2;
+            if (hasTime && ap) score = 3;
+            if (score > bestScore) { bestISO = iso; bestScore = score; }
+          }
         }
       }
     }
@@ -290,7 +310,7 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       let hh = parseInt(mCompact1[4], 10), mm = parseInt(mCompact1[5], 10), ss = mCompact1[6] ? parseInt(mCompact1[6], 10) : 0;
       if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
         const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-        if (!isNaN(new Date(iso).getTime())) return iso;
+        if (!isNaN(new Date(iso).getTime()) && 2 > bestScore) { bestISO = iso; bestScore = 2; }
       }
     }
 
@@ -301,12 +321,12 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       let y = parseInt(mCompact2[1], 10), mo = parseInt(mCompact2[2], 10), d = parseInt(mCompact2[3], 10);
       if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
         const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T12:00:00`;
-        if (!isNaN(new Date(iso).getTime())) return iso;
+        if (!isNaN(new Date(iso).getTime()) && 1 > bestScore) { bestISO = iso; bestScore = 1; }
       }
     }
   }
 
-  return undefined;
+  return bestISO;
 }
 
 function isDateReasonable(isoDate: string): boolean {
