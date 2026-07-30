@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search } from 'lucide-react';
 import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -21,6 +21,7 @@ import {
   computeAnalytics,
   matchWeatherForPhoto,
 } from '../services/trailCameraService';
+import { searchLocations } from '../services/weatherService';
 
 interface TrailCameraViewProps {
   theme: ThemeMode;
@@ -56,8 +57,51 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [newLocLon, setNewLocLon] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
+  // Location Search State
+  const [locSearchQuery, setLocSearchQuery] = useState('');
+  const [locSearchResults, setLocSearchResults] = useState<Location[]>([]);
+  const [locSearchLoading, setLocSearchLoading] = useState(false);
+  const [showLocDropdown, setShowLocDropdown] = useState(false);
+  const locSearchRef = useRef<HTMLDivElement>(null);
+
+  // Debounced location search
+  useEffect(() => {
+    if (!locSearchQuery || locSearchQuery.trim().length < 2) {
+      setLocSearchResults([]);
+      setLocSearchLoading(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setLocSearchLoading(true);
+      const results = await searchLocations(locSearchQuery);
+      setLocSearchResults(results);
+      setLocSearchLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [locSearchQuery]);
+
+  // Click outside handler for location search dropdown
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (locSearchRef.current && !locSearchRef.current.contains(e.target as Node)) {
+        setShowLocDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   // Target Manager State
   const [isTargetManagerOpen, setIsTargetManagerOpen] = useState(false);
+
+  // Reset location search state when modal opens
+  useEffect(() => {
+    if (!isLocationModalOpen) {
+      setLocSearchQuery('');
+      setLocSearchResults([]);
+      setShowLocDropdown(false);
+    }
+  }, [isLocationModalOpen]);
 
   // Load photos & locations on mount
   useEffect(() => {
@@ -301,6 +345,16 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const handleSelectLocation = (loc: Location) => {
+    setNewLocName(loc.name);
+    setNewLocLat(loc.latitude);
+    setNewLocLon(loc.longitude);
+    setLocSearchQuery('');
+    setLocSearchResults([]);
+    setShowLocDropdown(false);
+    showToast(`Selected: ${loc.name}`);
   };
 
   // Filtered Photos
@@ -584,7 +638,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </div>
 
             <p className="text-xs opacity-70">
-              Create a camera location name (e.g. "North Ridge Scrape", "Pond Stand Cam") to link imported photos for precise weather matching.
+              Name your spot, then use the location search or GPS below to set coordinates for precise weather matching.
             </p>
 
             <input
@@ -594,6 +648,52 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               onChange={(e) => setNewLocName(e.target.value)}
               className={`w-full p-2.5 text-sm rounded-xl border outline-none ${modalInputBg}`}
             />
+
+            {/* Location Search */}
+            <div className="relative" ref={locSearchRef}>
+              <div className={`flex items-center border rounded-xl px-2.5 py-2 transition-all ${
+                isDark
+                  ? 'bg-slate-950 border-slate-700 focus-within:border-emerald-500'
+                  : 'bg-slate-50 border-slate-300 focus-within:border-emerald-600'
+              }`}>
+                <Search className={`w-3.5 h-3.5 mr-2 flex-shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                <input
+                  type="text"
+                  placeholder="Search for a town or city..."
+                  value={locSearchQuery}
+                  onChange={(e) => { setLocSearchQuery(e.target.value); setShowLocDropdown(true); }}
+                  onFocus={() => { if (locSearchResults.length > 0) setShowLocDropdown(true); }}
+                  className={`w-full bg-transparent text-xs font-semibold outline-none ${isDark ? 'text-white placeholder-slate-500' : 'text-slate-900 placeholder-slate-400'}`}
+                />
+                {locSearchLoading && (
+                  <Navigation className="w-3.5 h-3.5 ml-2 animate-spin text-emerald-400 flex-shrink-0" />
+                )}
+              </div>
+
+              {/* Search Results Dropdown */}
+              {showLocDropdown && locSearchResults.length > 0 && (
+                <div className={`absolute z-50 left-0 right-0 mt-1 rounded-xl border shadow-2xl overflow-hidden ${
+                  isDark ? 'bg-slate-950 border-slate-700' : 'bg-white border-slate-200'
+                }`}>
+                  {locSearchResults.map((loc, idx) => (
+                    <button
+                      key={`${loc.latitude}_${loc.longitude}_${idx}`}
+                      type="button"
+                      onClick={() => handleSelectLocation(loc)}
+                      className={`w-full flex items-start gap-2 px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                        isDark ? 'hover:bg-slate-800 text-slate-200' : 'hover:bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      <MapPin className={`w-3.5 h-3.5 mt-0.5 flex-shrink-0 ${isDark ? 'text-sky-400' : 'text-sky-600'}`} />
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold truncate">{loc.name}</div>
+                        <div className="text-[10px] opacity-60 truncate">{[loc.admin1, loc.country].filter(Boolean).join(', ')}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* GPS Section */}
             <div className="space-y-2">
