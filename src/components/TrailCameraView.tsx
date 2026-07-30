@@ -467,6 +467,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             photos={filteredPhotos}
             onSelectPhoto={(photo) => setSelectedPhoto(photo)}
             onToggleFavorite={handleToggleFavorite}
+            onToggleTag={(photo, targetId) => {
+              const current = photo.tags || [];
+              const updated = current.includes(targetId)
+                ? current.filter((t) => t !== targetId)
+                : [...current, targetId];
+              handleUpdatePhoto(photo.id, { tags: updated });
+            }}
             onDeletePhotos={handleDeletePhotos}
             onAssignLocation={handleAssignLocation}
             onAssignTags={handleAssignTags}

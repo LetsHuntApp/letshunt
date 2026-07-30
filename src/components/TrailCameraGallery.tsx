@@ -8,6 +8,7 @@ interface TrailCameraGalleryProps {
   photos: TrailCameraPhoto[];
   onSelectPhoto: (photo: TrailCameraPhoto) => void;
   onToggleFavorite: (photo: TrailCameraPhoto) => void;
+  onToggleTag: (photo: TrailCameraPhoto, targetId: string) => void;
   onDeletePhotos: (ids: string[]) => void;
   onAssignLocation: (ids: string[], locationId: string) => void;
   onAssignTags: (ids: string[], targetId: string) => void;
@@ -87,6 +88,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   photos,
   onSelectPhoto,
   onToggleFavorite,
+  onToggleTag,
   onDeletePhotos,
   onAssignLocation,
   onAssignTags,
@@ -101,10 +103,19 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   const [targetLocationId, setTargetLocationId] = useState('');
   const [assignTargetModalOpen, setAssignTargetModalOpen] = useState(false);
   const [targetAssignId, setTargetAssignId] = useState('');
+  const [activeTagPhotoId, setActiveTagPhotoId] = useState<string | null>(null);
 
   const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
   const paginatedPhotos = photos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const tc = getThemeClasses(theme);
+
+  // Close tag popup on click outside
+  useEffect(() => {
+    if (!activeTagPhotoId) return;
+    const handler = () => setActiveTagPhotoId(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [activeTagPhotoId]);
 
   // Load thumbnails for current page
   useEffect(() => {
@@ -265,33 +276,80 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
                 {/* Top Card Bar */}
-                <div className="relative p-2 flex items-center justify-between z-10">
-                  {isSelectMode ? (
-                    <button
-                      onClick={(e) => handleToggleSelect(photo.id, e)}
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                        isSelected
-                          ? 'bg-emerald-500 text-slate-950 shadow-md'
-                          : 'bg-black/50 text-white/80 hover:bg-black/80'
-                      }`}
-                    >
-                      {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite(photo);
-                      }}
-                      className={`p-1.5 rounded-xl transition-all backdrop-blur-md ${
-                        photo.isFavorite
-                          ? 'bg-amber-500 text-slate-950 shadow-md'
-                          : 'bg-black/40 text-white/70 hover:text-amber-400 hover:bg-black/60'
-                      }`}
-                    >
-                      <Star className={`w-3.5 h-3.5 ${photo.isFavorite ? 'fill-slate-950' : ''}`} />
-                    </button>
-                  )}
+                <div className="relative p-2 flex items-start justify-between z-10">
+                  <div className="flex items-center gap-1">
+                    {isSelectMode ? (
+                      <button
+                        onClick={(e) => handleToggleSelect(photo.id, e)}
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-black/50 text-white/80 hover:bg-black/80'
+                        }`}
+                      >
+                        {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(photo);
+                          }}
+                          className={`p-1.5 rounded-xl transition-all backdrop-blur-md ${
+                            photo.isFavorite
+                              ? 'bg-amber-500 text-slate-950 shadow-md'
+                              : 'bg-black/40 text-white/70 hover:text-amber-400 hover:bg-black/60'
+                          }`}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${photo.isFavorite ? 'fill-slate-950' : ''}`} />
+                        </button>
+                        {targets.length > 0 && (
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveTagPhotoId(activeTagPhotoId === photo.id ? null : photo.id);
+                              }}
+                              className={`p-1.5 rounded-xl transition-all backdrop-blur-md ${
+                                (photo.tags || []).length > 0
+                                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                                  : 'bg-black/40 text-white/70 hover:text-emerald-400 hover:bg-black/60'
+                              }`}
+                            >
+                              <Crosshair className="w-3.5 h-3.5" />
+                            </button>
+                            {activeTagPhotoId === photo.id && (
+                              <div
+                                className="absolute left-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-xl p-1.5 shadow-2xl z-50 min-w-[130px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {targets.map((t) => {
+                                  const hasTag = (photo.tags || []).includes(t.id);
+                                  return (
+                                    <button
+                                      key={t.id}
+                                      onClick={() => {
+                                        onToggleTag(photo, t.id);
+                                      }}
+                                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                                        hasTag ? 'text-white' : 'text-slate-300 hover:text-white'
+                                      }`}
+                                      style={{ backgroundColor: hasTag ? t.color : 'transparent' }}
+                                    >
+                                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
+                                      {t.name}
+                                      {hasTag && <span className="ml-auto text-[10px] opacity-70">✓</span>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
 
                   {photo.notes && (
                     <span className="p-1 rounded-lg bg-black/50 text-emerald-400 backdrop-blur-md" title="Has notes">
