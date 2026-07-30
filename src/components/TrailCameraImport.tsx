@@ -79,7 +79,7 @@ export const TrailCameraImport: React.FC<TrailCameraImportProps> = ({
                 Importing Trail Cam Photos...
               </h3>
               <p className="text-xs opacity-70 mt-1">
-                Generating thumbnails and extracting EXIF metadata in background ({progress?.completed || 0} / {progress?.total || 0})
+                Running OCR date extraction and generating thumbnails ({progress?.completed || 0} / {progress?.total || 0})
               </p>
             </div>
 
@@ -120,7 +120,7 @@ export const TrailCameraImport: React.FC<TrailCameraImportProps> = ({
                 Import Trail Cam Photos
               </h3>
               <p className="text-xs opacity-70 mt-1 max-w-sm mx-auto">
-                Drag & drop single or bulk photos (supports 100s to 1,000s of images). Fast background extraction of timestamps, EXIF & weather matching.
+                Drag & drop single or bulk photos (supports 100s to 1,000s of images). OCR extracts timestamps from the photo's info bar — no EXIF needed.
               </p>
             </div>
             <button

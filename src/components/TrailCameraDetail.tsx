@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair, Navigation, Target } from 'lucide-react';
+import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair, Navigation, Target, AlertCircle, Eraser } from 'lucide-react';
 import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getFullImageBlob, getThumbnailUrl, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
 
@@ -42,6 +42,8 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   const [selectedLocId, setSelectedLocId] = useState(photo.cameraLocationId || '');
   const [useGpsCoords, setUseGpsCoords] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [editDate, setEditDate] = useState<string>(''); // 'YYYY-MM-DDTHH:mm' for datetime-local
 
   const currentIndex = photos.findIndex((p) => p.id === photo.id);
   const hasPrev = currentIndex > 0;
@@ -96,6 +98,18 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
       setZoomLevel(1);
       setNotes(photo.notes || '');
       setSelectedLocId(photo.cameraLocationId || '');
+      setIsEditingDate(false);
+      if (photo.dateTime) {
+        const d = new Date(photo.dateTime);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setEditDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+      } else {
+        // Pre-fill with the current local date/time so the user only has
+        // to correct it instead of typing from scratch.
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        setEditDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
+      }
 
       const blob = await getFullImageBlob(photo.id);
       if (blob && active) {
@@ -118,6 +132,58 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   const handleSaveNotes = () => {
     onUpdatePhoto(photo.id, { notes });
     setIsEditingNotes(false);
+  };
+
+  const handleSaveDate = async () => {
+    if (!editDate) {
+      showToast('Pick a date and time first');
+      return;
+    }
+    const d = new Date(editDate);
+    if (isNaN(d.getTime())) {
+      showToast('Invalid date/time chosen');
+      return;
+    }
+    const newDateTime = d.toISOString();
+    // Clear the cached weather so it gets re-fetched for the new date.
+    // Match against the photo's GPS first, fall back to its assigned spot.
+    onUpdatePhoto(photo.id, { dateTime: newDateTime, weather: undefined });
+    setIsEditingDate(false);
+    showToast('Date saved');
+
+    let lat = photo.latitude;
+    let lon = photo.longitude;
+    if ((lat == null || lon == null) && photo.cameraLocationId) {
+      const loc = locations.find((l) => l.id === photo.cameraLocationId);
+      if (loc && loc.latitude != null && loc.longitude != null) {
+        lat = loc.latitude;
+        lon = loc.longitude;
+      }
+    }
+    if (lat != null && lon != null) {
+      const weather = await matchWeatherForPhoto({
+        ...photo,
+        dateTime: newDateTime,
+        latitude: lat,
+        longitude: lon,
+        weather: undefined,
+      });
+      if (weather) {
+        onUpdatePhoto(photo.id, { weather, latitude: lat, longitude: lon });
+        showToast('Date saved, weather re-matched');
+      } else {
+        onUpdatePhoto(photo.id, { latitude: lat, longitude: lon });
+      }
+    }
+  };
+
+  const handleClearDate = () => {
+    // Clear both the date and the cached weather row so stale data isn't
+    // served for an undated photo.
+    onUpdatePhoto(photo.id, { dateTime: undefined, weather: undefined });
+    setEditDate('');
+    setIsEditingDate(false);
+    showToast('Date cleared');
   };
 
   const handlePrev = () => {
@@ -326,18 +392,83 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
             </button>
           </div>
 
-          {/* Time & Camera Model */}
+          {/* Capture Date & Time — read-only or editable with manual picker */}
           <div className={`space-y-2 p-3 rounded-2xl ${cardBg} text-xs`}>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              <span className="font-bold">{dateStr}</span>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-emerald-400" /> Capture Date & Time
+              </label>
+              {!isEditingDate && (
+                <button
+                  onClick={() => setIsEditingDate(true)}
+                  className="text-xs text-emerald-400 hover:underline font-bold"
+                >
+                  {photo.dateTime ? 'Edit Date' : 'Set Date'}
+                </button>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              <span className="font-bold">{timeStr}</span>
-            </div>
+
+            {isEditingDate ? (
+              <div className="space-y-2">
+                <input
+                  type="datetime-local"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className={`w-full p-2 text-xs rounded-xl border outline-none focus:border-emerald-500 ${inputBg}`}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveDate}
+                    className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    <Save className="w-3.5 h-3.5" /> Save Date
+                  </button>
+                  <button
+                    onClick={() => setIsEditingDate(false)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-xl ${buttonSecondaryBg}`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {photo.dateTime && (
+                  <button
+                    onClick={handleClearDate}
+                    className="w-full py-1.5 text-rose-400 hover:text-white hover:bg-rose-600/80 text-[11px] font-bold rounded-xl border border-rose-500/30 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <Eraser className="w-3.5 h-3.5" /> Clear Date (re-OCR or re-enter)
+                  </button>
+                )}
+              </div>
+            ) : !photo.dateTime ? (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="font-extrabold mb-1">No date on this photo</div>
+                  <div className="opacity-90 leading-snug">
+                    OCR couldn't read the timestamp bar. Tap <span className="font-extrabold">"Set Date"</span> above to enter it manually so this photo counts in analytics.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-400" />
+                  <span className="font-bold">{dateStr}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <span className="font-bold">{timeStr}</span>
+                </div>
+                {photo.dateTime && (
+                  <div className="text-[10px] opacity-50 font-mono pt-0.5">
+                    Stored as: {photo.dateTime}
+                  </div>
+                )}
+              </>
+            )}
+
             {photo.cameraModel && (
-              <div className="flex items-center gap-2 opacity-80">
+              <div className="flex items-center gap-2 opacity-80 pt-1">
                 <Camera className="w-4 h-4 text-slate-400" />
                 <span>Model: {photo.cameraModel}</span>
               </div>

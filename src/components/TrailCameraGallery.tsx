@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair } from 'lucide-react';
+import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine } from 'lucide-react';
 import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
-import { getThumbnailUrl } from '../services/trailCameraService';
+import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
 
 interface TrailCameraGalleryProps {
   theme: ThemeMode;
@@ -9,15 +9,18 @@ interface TrailCameraGalleryProps {
   onSelectPhoto: (photo: TrailCameraPhoto) => void;
   onToggleFavorite: (photo: TrailCameraPhoto) => void;
   onToggleTag: (photo: TrailCameraPhoto, targetId: string) => void;
+  onUpdatePhoto: (id: string, updates: Partial<TrailCameraPhoto>) => void;
   onDeletePhotos: (ids: string[]) => void;
   onAssignLocation: (ids: string[], locationId: string) => void;
   onAssignTags: (ids: string[], targetId: string) => void;
   locations: TrailCameraLocation[];
   targets: TrailCameraTarget[];
+  showToast: (msg: string) => void;
   units?: string;
 }
 
 const ITEMS_PER_PAGE = 36;
+const NO_DATE_BADGE = '— No Date — OCR Failed —';
 
 const getThemeClasses = (theme: ThemeMode) => {
   const isDark = theme === 'dark';
@@ -90,11 +93,13 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   onSelectPhoto,
   onToggleFavorite,
   onToggleTag,
+  onUpdatePhoto,
   onDeletePhotos,
   onAssignLocation,
   onAssignTags,
   locations,
   targets,
+  showToast,
   units = 'imperial',
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -106,6 +111,12 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   const [assignTargetModalOpen, setAssignTargetModalOpen] = useState(false);
   const [targetAssignId, setTargetAssignId] = useState('');
   const [activeTagPhotoId, setActiveTagPhotoId] = useState<string | null>(null);
+
+  // In-place date setter — opens when user taps the "OCR Failed" badge on a card.
+  const [dateModalPhotoId, setDateModalPhotoId] = useState<string | null>(null);
+  const [editDateValue, setEditDateValue] = useState<string>('');
+  const [bulkReOcrInProgress, setBulkReOcrInProgress] = useState(false);
+  const [savingDate, setSavingDate] = useState(false);
 
   const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
   const paginatedPhotos = photos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -175,6 +186,115 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
     setAssignTargetModalOpen(false);
   };
 
+  const openDateModal = (photoId: string) => {
+    // Pre-fill with current local date/time so the user only has to correct it.
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditDateValue(
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+    );
+    setDateModalPhotoId(photoId);
+  };
+
+  const closeDateModal = () => {
+    // Don't allow backdrop close while async save is in flight — prevents
+    // tearing down state mid-update if the user clicks outside during the
+    // weather fetch.
+    if (savingDate) return;
+    setDateModalPhotoId(null);
+  };
+
+  const handleSaveDateFromGallery = async () => {
+    if (!dateModalPhotoId || savingDate) return;
+    setSavingDate(true);
+    try {
+      const d = new Date(editDateValue);
+      if (isNaN(d.getTime())) {
+        showToast('Invalid date / time chosen');
+        return;
+      }
+      const photo = photos.find((p) => p.id === dateModalPhotoId);
+      if (!photo) { setDateModalPhotoId(null); return; }
+
+      const newDateTime = d.toISOString();
+
+      // Resolve GPS from the photo first, fall back to its assigned spot.
+      let lat = photo.latitude ?? undefined;
+      let lon = photo.longitude ?? undefined;
+      if ((lat == null || lon == null) && photo.cameraLocationId) {
+        const loc = locations.find((l) => l.id === photo.cameraLocationId);
+        if (loc && loc.latitude != null && loc.longitude != null) {
+          lat = loc.latitude;
+          lon = loc.longitude;
+        }
+      }
+
+      // Fetch weather up front so we can write one atomic update —
+      // no UI flash of weather: undefined, no double analytics re-compute.
+      const weather = (lat != null && lon != null)
+        ? ((await matchWeatherForPhoto({
+            ...photo,
+            dateTime: newDateTime,
+            latitude: lat,
+            longitude: lon,
+            weather: undefined,
+          })) ?? undefined)
+        : undefined;
+
+      onUpdatePhoto(photo.id, {
+        dateTime: newDateTime,
+        weather,
+        latitude: lat,
+        longitude: lon,
+      });
+      setDateModalPhotoId(null);
+      showToast(
+        weather
+          ? 'Date and weather saved.'
+          : 'Date saved. Assign a camera spot for weather data.'
+      );
+    } catch (e) {
+      console.error('[save date]', e);
+      showToast('Saving the date failed — check the console for details.');
+    } finally {
+      setSavingDate(false);
+    }
+  };
+
+  const handleBulkReOcr = async () => {
+    if (selectedIds.length === 0 || bulkReOcrInProgress) return;
+
+    // SAFETY: only re-OCR photos that already failed (no dateTime). This
+    // protects user-edited dates from being overwritten by an OCR pass.
+    const failedIds = photos
+      .filter((p) => selectedIds.includes(p.id) && !p.dateTime)
+      .map((p) => p.id);
+
+    if (failedIds.length === 0) {
+      showToast('None of the selected photos are missing a date — nothing to re-OCR.');
+      return;
+    }
+
+    setBulkReOcrInProgress(true);
+    const skipped = selectedIds.length - failedIds.length;
+    showToast(
+      skipped > 0
+        ? `Re-running OCR on ${failedIds.length} of ${selectedIds.length} selected (skipping ${skipped} with dates so manual edits aren't overwritten) — this can take a minute…`
+        : `Re-running OCR on ${failedIds.length} photo(s) — this can take a minute…`
+    );
+    try {
+      const result = await reRunOcrOnPhotos(failedIds);
+      showToast(
+        `Re-OCR complete: ${result.updated} recovered, ${result.stillFailed} still couldn't be read.`
+      );
+    } catch (e) {
+      console.error('[re-OCR]', e);
+      showToast('Re-OCR failed; check the console for details.');
+    } finally {
+      setBulkReOcrInProgress(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Gallery Action Bar */}
@@ -224,6 +344,15 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             </button>
 
             <button
+              onClick={handleBulkReOcr}
+              disabled={bulkReOcrInProgress}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
+            >
+              <ScanLine className="w-3.5 h-3.5" />
+              {bulkReOcrInProgress ? 'Re-OCR running…' : `Re-run OCR (${selectedIds.length})`}
+            </button>
+
+            <button
               onClick={handleDeleteSelected}
               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
             >
@@ -243,8 +372,9 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
           {paginatedPhotos.map((photo) => {
             const isSelected = selectedIds.includes(photo.id);
             const thumbUrl = thumbnails[photo.id];
-            const dateStr = photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : '';
-            const timeStr = photo.dateTime ? new Date(photo.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            const ocrSucceeded = !!photo.dateTime;
+            const dateStr = photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'No Date';
+            const timeStr = photo.dateTime ? new Date(photo.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'OCR failed';
 
             return (
               <div
@@ -382,7 +512,25 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                       })}
                     </div>
                   )}
-                  <div className="font-extrabold truncate drop-shadow">{dateStr} {timeStr}</div>
+                  {!ocrSucceeded ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDateModal(photo.id);
+                      }}
+                      className="font-extrabold text-amber-300 drop-shadow underline decoration-dotted underline-offset-2 hover:text-amber-200 text-left w-full truncate"
+                      title="OCR could not read the timestamp bar. Click to set the date manually."
+                    >
+                      {NO_DATE_BADGE}
+                    </button>
+                  ) : (
+                    <div
+                      className="font-extrabold truncate drop-shadow"
+                      title={`OCR-extracted: ${new Date(photo.dateTime!).toISOString()}`}
+                    >
+                      {dateStr} {timeStr}
+                    </div>
+                  )}
                   {photo.cameraLocationName && (
                     <div className="text-[10px] text-sky-300 font-bold truncate flex items-center gap-0.5">
                       <MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {photo.cameraLocationName}
@@ -467,6 +615,49 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                 className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50"
               >
                 Tag Photos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-place Date Setter Modal — opens when user taps an OCR Failed badge */}
+      {dateModalPhotoId && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={closeDateModal}
+        >
+          <div
+            className={`${tc.modalBg} rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-extrabold flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-emerald-400" /> Set Capture Date
+            </h3>
+            <p className="text-xs opacity-70 leading-snug">
+              OCR couldn't read the timestamp on{' '}
+              <span className="font-bold">{photos.find((p) => p.id === dateModalPhotoId)?.fileName}</span>.
+              Enter the date/time the burned-in bar shows.
+            </p>
+            <input
+              type="datetime-local"
+              value={editDateValue}
+              onChange={(e) => setEditDateValue(e.target.value)}
+              className={`w-full p-2 text-xs rounded-xl border ${tc.selectBg}`}
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={closeDateModal}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl ${tc.cancelBtn}`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDateFromGallery}
+                disabled={savingDate}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-60 disabled:cursor-wait flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" /> {savingDate ? 'Saving…' : 'Save Date'}
               </button>
             </div>
           </div>

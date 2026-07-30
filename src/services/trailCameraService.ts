@@ -116,182 +116,6 @@ export function getMoonPhase(date: Date): { phase: number; illumination: number;
   return { phase, illumination: Math.round(illumination * 100), name: MOON_PHASE_NAMES[index] };
 }
 
-// ---- EXIF Parsing (robust) ----
-function parseEXIFMetadata(buffer: ArrayBuffer): { cameraModel?: string; latitude?: number; longitude?: number } | undefined {
-  try {
-    const dv = new DataView(buffer);
-    if (dv.byteLength < 4) return;
-
-    let tiffStart = -1;
-
-    if (dv.getUint16(0) === 0xFFD8) {
-      // JPEG format: scan APP segments for EXIF marker
-      let pos = 2;
-      while (pos + 4 < dv.byteLength) {
-        const marker = dv.getUint16(pos);
-        if (marker === 0xFFDA || marker === 0xFFD9) break;
-        if (marker === 0xFFE1) {
-          const segLen = dv.getUint16(pos + 2);
-          if (segLen >= 8 && pos + 10 <= dv.byteLength) {
-            if (dv.getUint8(pos + 4) === 0x45 && dv.getUint8(pos + 5) === 0x78 &&
-                dv.getUint8(pos + 6) === 0x69 && dv.getUint8(pos + 7) === 0x66 &&
-                dv.getUint8(pos + 8) === 0x00 && dv.getUint8(pos + 9) === 0x00) {
-              tiffStart = pos + 10;
-              break;
-            }
-          }
-          pos += 2 + segLen;
-        } else if ((marker & 0xFF00) === 0xFF00 && marker !== 0xFFFF) {
-          if (marker >= 0xFFD0 && marker <= 0xFFD8) {
-            pos += 2;
-          } else {
-            const markerLen = (dv.getUint16(pos + 2) || 0) + 2;
-            pos += markerLen > 2 ? markerLen : 2;
-          }
-        } else {
-          break;
-        }
-      }
-    } else if (dv.getUint32(0) === 0x89504E47) {
-      // PNG format: scan for eXIf chunk
-      let pos = 8;
-      while (pos + 8 < dv.byteLength) {
-        const chunkLen = dv.getUint32(pos);
-        const chunkType = String.fromCharCode(
-          dv.getUint8(pos + 4), dv.getUint8(pos + 5), dv.getUint8(pos + 6), dv.getUint8(pos + 7)
-        );
-        if (chunkType === 'eXIf' && pos + 8 + chunkLen <= dv.byteLength) {
-          tiffStart = pos + 8;
-          break;
-        }
-        pos += 12 + chunkLen;
-      }
-    } else if (dv.getUint32(0) === 0x52494646 && dv.getUint32(8) === 0x57454250) {
-      // WebP format
-      let pos = 12;
-      while (pos + 8 < dv.byteLength) {
-        const fourcc = String.fromCharCode(
-          dv.getUint8(pos), dv.getUint8(pos + 1), dv.getUint8(pos + 2), dv.getUint8(pos + 3)
-        );
-        const chunkLen = dv.getUint32(pos + 4, true);
-        if (fourcc === 'EXIF' && pos + 8 + chunkLen <= dv.byteLength) {
-          if (dv.getUint8(pos + 8) === 0x45 && dv.getUint8(pos + 9) === 0x78 &&
-              dv.getUint8(pos + 10) === 0x69 && dv.getUint8(pos + 11) === 0x66) {
-            tiffStart = pos + 14;
-          } else {
-            tiffStart = pos + 8;
-          }
-          break;
-        }
-        pos += 8 + chunkLen + (chunkLen % 2);
-      }
-    } else {
-      if (dv.getUint16(0) === 0x4949 || dv.getUint16(0) === 0x4D4D) {
-        tiffStart = 0;
-      }
-    }
-
-    if (tiffStart < 0 || tiffStart + 8 > dv.byteLength) return;
-
-    const endianMarker = dv.getUint16(tiffStart + 2);
-    const le = endianMarker === 0x4949;
-
-    const read16 = (off: number) => le ? dv.getUint16(off, true) : dv.getUint16(off, false);
-    const read32 = (off: number) => le ? dv.getUint32(off, true) : dv.getUint32(off, false);
-    const readSrat = (off: number) => {
-      const num = read32(off);
-      const den = read32(off + 4);
-      return den ? num / den : 0;
-    };
-
-    const ifdOffset = read32(tiffStart + 4);
-    if (ifdOffset < 0 || ifdOffset + 2 > dv.byteLength - tiffStart) return;
-    let offset = tiffStart + ifdOffset;
-    const entries = read16(offset);
-    if (entries < 1 || entries > 300) return;
-
-    let cameraModel: string | undefined;
-    let gpsLat: number | undefined;
-    let gpsLon: number | undefined;
-    let gpsLatRef = 'N';
-    let gpsLonRef = 'E';
-    let gpsLatData: number[] = [];
-    let gpsLonData: number[] = [];
-    let gpsIfdOffset: number | undefined;
-
-    for (let i = 0; i < entries; i++) {
-      const entryOffset = offset + 2 + i * 12;
-      if (entryOffset + 12 > dv.byteLength) break;
-      const tag = read16(entryOffset);
-      const type = read16(entryOffset + 2);
-      const count = read32(entryOffset + 4);
-      const valueOffset = entryOffset + 8;
-
-      if (tag === 0x0110 && type === 2) {
-        const strOff = count <= 4 ? valueOffset : tiffStart + read32(valueOffset);
-        if (strOff + count <= dv.byteLength) {
-          cameraModel = readString(dv, strOff, count);
-        }
-      } else if (tag === 0x8825) {
-        gpsIfdOffset = read32(valueOffset);
-      }
-    }
-
-    if (gpsIfdOffset != null && tiffStart + gpsIfdOffset + 2 <= dv.byteLength) {
-      const gpsEntries = read16(tiffStart + gpsIfdOffset);
-      if (gpsEntries > 0 && gpsEntries <= 50) {
-        for (let i = 0; i < gpsEntries; i++) {
-          const gpsOff = tiffStart + gpsIfdOffset + 2 + i * 12;
-          if (gpsOff + 12 > dv.byteLength) break;
-          const gpsTag = read16(gpsOff);
-          const gpsType = read16(gpsOff + 2);
-          const gpsCount = read32(gpsOff + 4);
-          const gpsValOff = gpsOff + 8;
-
-          if (gpsTag === 0x0001) {
-            gpsLatRef = gpsCount <= 4 ? String.fromCharCode(dv.getUint8(gpsValOff)) : String.fromCharCode(dv.getUint8(tiffStart + read32(gpsValOff)));
-          } else if (gpsTag === 0x0002 && gpsType === 5) {
-            const ptr = gpsCount <= 4 ? gpsValOff : tiffStart + read32(gpsValOff);
-            if (ptr + 24 <= dv.byteLength) {
-              for (let k = 0; k < 3; k++) gpsLatData.push(readSrat(ptr + k * 8));
-            }
-          } else if (gpsTag === 0x0003) {
-            gpsLonRef = gpsCount <= 4 ? String.fromCharCode(dv.getUint8(gpsValOff)) : String.fromCharCode(dv.getUint8(tiffStart + read32(gpsValOff)));
-          } else if (gpsTag === 0x0004 && gpsType === 5) {
-            const ptr = gpsCount <= 4 ? gpsValOff : tiffStart + read32(gpsValOff);
-            if (ptr + 24 <= dv.byteLength) {
-              for (let k = 0; k < 3; k++) gpsLonData.push(readSrat(ptr + k * 8));
-            }
-          }
-        }
-      }
-    }
-
-    if (gpsLatData.length >= 3) {
-      gpsLat = gpsLatData[0] + gpsLatData[1] / 60 + gpsLatData[2] / 3600;
-      if (gpsLatRef === 'S') gpsLat = -gpsLat;
-    }
-    if (gpsLonData.length >= 3) {
-      gpsLon = gpsLonData[0] + gpsLonData[1] / 60 + gpsLonData[2] / 3600;
-      if (gpsLonRef === 'W') gpsLon = -gpsLon;
-    }
-
-    return { cameraModel, latitude: gpsLat, longitude: gpsLon };
-  } catch {
-    return;
-  }
-}
-
-function readString(dv: DataView, offset: number, length: number) {
-  const chars: string[] = [];
-  for (let i = 0; i < length; i++) {
-    const c = dv.getUint8(offset + i);
-    if (c === 0) break;
-    chars.push(String.fromCharCode(c));
-  }
-  return chars.join('');
-}
-
 // ---- Thumbnail Generation ----
 function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
   return new Promise((resolve) => {
@@ -343,12 +167,12 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       .replace(/[lI!|]([0-9])/g, '1$1')
       .replace(/([0-9])[Zz]/g, '$12')
       .replace(/[Zz]([0-9])/g, '2$1')
-      .replace(/([0-9])[Ss]/g, '$15')
+      .replace(/([0-9])[Ss](?!\s*[Ee][Pp])/g, '$15')
       .replace(/[Ss]([0-9])/g, '5$1')
       .replace(/([0-9])[Bb]/g, '$18')
       .replace(/[Bb]([0-9])/g, '8$1')
       .replace(/[Aa]([0-9])/g, '4$1')
-      .replace(/([0-9])[Aa]/g, '$14');
+      .replace(/([0-9])[Aa](?![Mm])/g, '$14');
   };
 
   const candidateTexts = [
@@ -412,18 +236,18 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     };
 
     // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM), time optional
-    re = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
-    m = text.match(re);
-    if (m) {
-      const iso = buildISO(m, 1, 2, 3, m[4] !== undefined ? 4 : null, m[4] !== undefined ? 5 : null, m[4] !== undefined ? 6 : null, m[4] !== undefined ? 7 : null);
+    const re1 = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    const m1 = re1.exec(text);
+    if (m1) {
+      const iso = buildISO(m1, 1, 2, 3, m1[4] !== undefined ? 4 : null, m1[4] !== undefined ? 5 : null, m1[4] !== undefined ? 6 : null, m1[4] !== undefined ? 7 : null);
       if (iso) return iso;
     }
 
     // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM), time optional
-    re = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
-    m = text.match(re);
-    if (m) {
-      const iso = buildISO(m, 3, 1, 2, m[4] !== undefined ? 4 : null, m[4] !== undefined ? 5 : null, m[4] !== undefined ? 6 : null, m[4] !== undefined ? 7 : null);
+    const re2 = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    const m2 = re2.exec(text);
+    if (m2) {
+      const iso = buildISO(m2, 3, 1, 2, m2[4] !== undefined ? 4 : null, m2[4] !== undefined ? 5 : null, m2[4] !== undefined ? 6 : null, m2[4] !== undefined ? 7 : null);
       if (iso) return iso;
     }
 
@@ -433,16 +257,16 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
     };
     const monRe = /\b([A-Za-z]{3,9})\s*[-/.\s]?\s*(\d{1,2})\s*[-/.\s]?\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
-    m = text.match(monRe);
-    if (m) {
-      const monthStr = m[1].toUpperCase().slice(0, 3);
+    const m3 = monRe.exec(text);
+    if (m3) {
+      const monthStr = m3[1].toUpperCase().slice(0, 3);
       const monthNum = monthMap[monthStr];
       if (monthNum) {
-        const d = parseInt(m[2], 10), y = parseInt(m[3], 10);
-        let hh = m[4] !== undefined ? parseInt(m[4], 10) : 12;
-        let mm = m[5] !== undefined ? parseInt(m[5], 10) : 0;
-        let ss = m[6] !== undefined ? parseInt(m[6], 10) : 0;
-        const ap = m[7]?.toUpperCase();
+        const d = parseInt(m3[2], 10), y = parseInt(m3[3], 10);
+        let hh = m3[4] !== undefined ? parseInt(m3[4], 10) : 12;
+        let mm = m3[5] !== undefined ? parseInt(m3[5], 10) : 0;
+        let ss = m3[6] !== undefined ? parseInt(m3[6], 10) : 0;
+        const ap = m3[7]?.toUpperCase();
         if (ap === 'PM' && hh < 12) hh += 12;
         if (ap === 'AM' && hh === 12) hh = 0;
         if (d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
@@ -453,15 +277,13 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     }
 
     // Pattern 4: YYYYMMDD_HHMMSS or YYYYMMDD (compact, no separators)
-    let compactRe: RegExp;
-    let mCompact: RegExpExecArray | null;
 
     // Try with time first
-    compactRe = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[:.]?(\d{2})(?:[:.]?(\d{2}))?\b/;
-    mCompact = text.match(compactRe);
-    if (mCompact) {
-      let y = parseInt(mCompact[1], 10), mo = parseInt(mCompact[2], 10), d = parseInt(mCompact[3], 10);
-      let hh = parseInt(mCompact[4], 10), mm = parseInt(mCompact[5], 10), ss = mCompact[6] ? parseInt(mCompact[6], 10) : 0;
+    const compactRe1 = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[:.]?(\d{2})(?:[:.]?(\d{2}))?\b/;
+    const mCompact1 = compactRe1.exec(text);
+    if (mCompact1) {
+      let y = parseInt(mCompact1[1], 10), mo = parseInt(mCompact1[2], 10), d = parseInt(mCompact1[3], 10);
+      let hh = parseInt(mCompact1[4], 10), mm = parseInt(mCompact1[5], 10), ss = mCompact1[6] ? parseInt(mCompact1[6], 10) : 0;
       if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31 && hh <= 23 && mm <= 59) {
         const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
         if (!isNaN(new Date(iso).getTime())) return iso;
@@ -469,10 +291,10 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     }
 
     // Date-only compact (YYYYMMDD)
-    compactRe = /\b(20\d{2})(\d{2})(\d{2})\b(?!\s*\d)/;
-    mCompact = text.match(compactRe);
-    if (mCompact) {
-      let y = parseInt(mCompact[1], 10), mo = parseInt(mCompact[2], 10), d = parseInt(mCompact[3], 10);
+    const compactRe2 = /\b(20\d{2})(\d{2})(\d{2})\b(?!\s*\d)/;
+    const mCompact2 = compactRe2.exec(text);
+    if (mCompact2) {
+      let y = parseInt(mCompact2[1], 10), mo = parseInt(mCompact2[2], 10), d = parseInt(mCompact2[3], 10);
       if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
         const iso = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}T12:00:00`;
         if (!isNaN(new Date(iso).getTime())) return iso;
@@ -483,15 +305,16 @@ function parseOCRTextToISO(rawText: string): string | undefined {
   return undefined;
 }
 
-function isDateReasonable(isoDate: string, fileLastModified: number): boolean {
+function isDateReasonable(isoDate: string): boolean {
   const dt = new Date(isoDate);
   if (isNaN(dt.getTime())) return false;
-  if (dt.getFullYear() < 2000) return false;
-  if (dt.getTime() > Date.now()) return false;
-  const fMod = new Date(fileLastModified);
-  if (isNaN(fMod.getTime())) return true; // can't check, so accept
-  const diffYears = Math.abs(dt.getFullYear() - fMod.getFullYear());
-  return diffYears <= 3;
+  if (dt.getTime() > Date.now() + 24 * 60 * 60 * 1000) return false;
+  return true;
+}
+
+function validateFilenameDate(isoDate: string | undefined): string | undefined {
+  if (!isoDate) return undefined;
+  return isDateReasonable(isoDate) ? isoDate : undefined;
 }
 
 function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
@@ -525,6 +348,10 @@ function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, thr
   return ctx.canvas.toDataURL('image/png');
 }
 
+// ---- Adaptive (Otsu) binarization — finds the threshold that maximizes
+// between-class variance. Picks the right cutoff no matter how dark or
+// bright the timestamp bar is, which is the big blind spot of the
+// mean-based threshold we used before.----
 function computeMeanGray(ctx: CanvasRenderingContext2D, w: number, h: number): number {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
@@ -537,126 +364,194 @@ function computeMeanGray(ctx: CanvasRenderingContext2D, w: number, h: number): n
 
 // ---- Focused OCR Date Extraction (timestamp bar only) ----
 // Accept optional pre-created worker to avoid re-loading Tesseract per photo.
+//
+// THE KEY INSIGHT: trail-cam timestamps are WHITE TEXT on a DARK bar at the
+// VERY BOTTOM of the image (last 3-12 %). Previous pipelines made two
+// mistakes: (1) they cropped 30 % of the image and then tried to binarize
+// the whole thing — the grass/sky behind the bar dominates the histogram so
+// Otsu picks the wrong threshold, and (2) they scaled too conservatively.
+//
+// This rewrite: slice the thinnest possible strip from the bottom edge,
+// up-scale it aggressively (480 px), INVERT it (white-on-black →
+// black-on-white which Tesseract handles natively), then feed it through
+// PSM 7 (single line) followed by PSM 3 (auto).
+//
+// Every OCR result is logged via console.debug so you can open DevTools and
+// see exactly what Tesseract returns at each stage.
 async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<string | undefined> {
   const img = await loadImageForOCR(file);
   if (!img) return undefined;
+  console.debug(`[OCR] Image: ${img.width}x${img.height}`);
 
-  // Scan the bottom 10-30% in overlapping bands to catch any camera's info bar position
-  const cropRegions: { yRatio: number; hRatio: number }[] = [];
-  for (let y = 0.70; y <= 0.90; y += 0.04) {
-    cropRegions.push({ yRatio: y, hRatio: 0.08 });
-  }
+  // Inline helper: invert every pixel of a canvas in-place (white↔black swap)
+  const invertCanvas = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      d[i] = 255 - d[i];
+      d[i + 1] = 255 - d[i + 1];
+      d[i + 2] = 255 - d[i + 2];
+    }
+    ctx.putImageData(imgData, 0, 0);
+  };
 
-  // Fixed threshold pairs: (normal threshold, inverted threshold)
-  // Inverted handles white-on-dark text; normal handles dark-on-light
-  const thresholdPairs: { normal: number; invert: number }[] = [
-    { normal: 140, invert: 100 },
-    { normal: 100, invert: 60 },
-  ];
-
-  // Reusable check for a parsed ISO result
   const checkResult = (iso: string | undefined): string | undefined => {
     if (!iso) return undefined;
     const dt = new Date(iso);
     if (isNaN(dt.getTime())) return undefined;
-    if (dt.getFullYear() < 1990) return undefined;
+    if (dt.getFullYear() < 1990 || dt.getFullYear() > 2100) return undefined;
     return iso;
   };
 
-  const tryWorker = async (worker: any): Promise<string | undefined> => {
-    await worker.setParameters({ tessedit_pageseg_mode: '6' });
-    // Draw full image once for reuse in cropping
-    const fullCanvas = document.createElement('canvas');
-    fullCanvas.width = img.width;
-    fullCanvas.height = img.height;
-    const fullCtx = fullCanvas.getContext('2d');
-    if (!fullCtx) return undefined;
-    fullCtx.drawImage(img, 0, 0);
+  // Try increasingly generous strips from the very bottom of the image.
+  // Normally the bar fits in the last ~3 %, but some cameras use a taller
+  // band. Tried shortest-first so the first OCR call has the highest
+  // text-to-noise ratio.
+  const strips: { hRatio: number; targetH: number; label: string }[] = [
+    { hRatio: 0.03, targetH: 480, label: '3%-480' },
+    { hRatio: 0.06, targetH: 360, label: '6%-360' },
+    { hRatio: 0.12, targetH: 280, label: '12%-280' },
+    // If those all miss, widen further but keep the up-scale high
+    { hRatio: 0.18, targetH: 240, label: '18%-240' },
+  ];
 
-    for (const region of cropRegions) {
-      const cropH = Math.round(img.height * region.hRatio);
-      const cropY = Math.round(img.height * region.yRatio);
-      if (cropY + cropH > img.height) continue;
+  // Try a single strip + strategy and return the ISO string if found
+  const tryStrip = async (
+    worker: any,
+    hRatio: number,
+    targetH: number,
+    label: string,
+  ): Promise<string | undefined> => {
+    const cropH = Math.round(img.height * hRatio);
+    const cropY = img.height - cropH;
 
-      // Upscale cropped area to a readable height
-      const targetHeight = 240;
-      const cw = Math.round(img.width * (targetHeight / cropH));
-      const ch = targetHeight;
+    // 1. Draw the strip scaled-up onto a temp canvas
+    const tmp = document.createElement('canvas');
+    tmp.width = Math.round(img.width * (targetH / cropH));
+    tmp.height = targetH;
+    const ctx = tmp.getContext('2d');
+    if (!ctx) return undefined;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = cw;
-      canvas.height = ch;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) continue;
+    // Draw the bottom strip of the ORIGINAL image at the up-scaled size
+    ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, tmp.width, tmp.height);
 
-      ctx.drawImage(fullCanvas, 0, cropY, img.width, cropH, 0, 0, cw, ch);
+    // ─ Strategy A: raw (colour) image — works when contrast is high ─
+    const rawText = (await worker.recognize(tmp.toDataURL('image/png'))).data.text;
+    console.debug(`[OCR] ${label} raw: "${rawText.slice(0, 120)}"`);
+    let r = checkResult(parseOCRTextToISO(rawText));
+    if (r) { console.debug(`[OCR] ✓ raw ${label}: ${r}`); return r; }
 
-      // Compute mean gray to decide if text is light-on-dark or dark-on-light
-      const meanGray = computeMeanGray(ctx, cw, ch);
+    // ─ Strategy B: invert (white-on-dark → black-on-white) ─
+    // Trail-cam bars are ALWAYS white text on black. Inverting gives
+    // black text on white, which matches Tesseract's training data best.
+    invertCanvas(tmp, ctx);
+    const invText = (await worker.recognize(tmp.toDataURL('image/png'))).data.text;
+    console.debug(`[OCR] ${label} inverted: "${invText.slice(0, 120)}"`);
+    r = checkResult(parseOCRTextToISO(invText));
+    if (r) { console.debug(`[OCR] ✓ inverted ${label}: ${r}`); return r; }
 
-      // Try grayscale (no binarization) — always; useful for clean high-contrast bars
-      const grayData = canvas.toDataURL('image/png');
-      const { data: { text: grayText } } = await worker.recognize(grayData);
-       let r = checkResult(parseOCRTextToISO(grayText));
-       if (r) return r;
-       r = checkResult(parseOCRTextToISO(stripNonDateText(grayText)));
-       if (r) return r;
-
-      // Try binarized with threshold pairs
-      for (const pair of thresholdPairs) {
-        // Order attempts by region brightness
-        const attempts = meanGray < 100
-          ? [{ thresh: pair.invert, invert: true }, { thresh: pair.normal, invert: false }]
-          : [{ thresh: pair.normal, invert: false }, { thresh: pair.invert, invert: true }];
-
-        for (const attempt of attempts) {
-          ctx.drawImage(fullCanvas, 0, cropY, img.width, cropH, 0, 0, cw, ch);
-          const processed = binarizeForOCR(ctx, cw, ch, attempt.thresh, attempt.invert);
-          if (!processed) continue;
-          const { data: { text } } = await worker.recognize(processed);
-           r = checkResult(parseOCRTextToISO(text));
-           if (r) return r;
-           r = checkResult(parseOCRTextToISO(stripNonDateText(text)));
-           if (r) return r;
-        }
-      }
+    // ─ Strategy C: binarize the inverted image ─
+    // Removes colour noise from the inverted image so Tesseract sees only
+    // pure black pixels on pure white.
+    const meanGray = computeMeanGray(ctx, tmp.width, tmp.height);
+    const thresh = Math.min(180, Math.max(100, meanGray * 0.5));
+    const bwUrl = binarizeForOCR(ctx, tmp.width, tmp.height, thresh, false);
+    if (bwUrl) {
+      const bwText = (await worker.recognize(bwUrl)).data.text;
+      console.debug(`[OCR] ${label} binarized: "${bwText.slice(0, 120)}"`);
+      r = checkResult(parseOCRTextToISO(bwText));
+      if (r) { console.debug(`[OCR] ✓ binarized ${label}: ${r}`); return r; }
     }
+
     return undefined;
   };
 
+  // Setup the worker (reuse or create) then iterate PSMs × strips
   try {
-    const { createWorker } = await import('tesseract.js');
-    const worker = await createWorker('eng');
-    const result = await tryWorker(worker);
-    await worker.terminate();
-    return result;
+    const worker = existingWorker
+      ? existingWorker
+      : (await (await import('tesseract.js')).createWorker('eng'));
+
+    const shouldTerminate = !existingWorker;
+
+    try {
+      // PSM 7 = single uniform line of text (best for timestamp bar)
+      // PSM 3 = fully automatic page segmentation (fallback)
+      for (const psm of ['7', '3']) {
+        console.debug(`[OCR] Setting PSM=${psm}`);
+        await worker.setParameters({ tessedit_pageseg_mode: psm });
+
+        for (let si = 0; si < strips.length; si++) {
+          const { hRatio, targetH, label } = strips[si];
+          const result = await tryStrip(worker, hRatio, targetH, `PSM${psm} ${label}`);
+          if (result) return result;
+          // Yield to keep the UI responsive
+          await new Promise((r) => setTimeout(r, 0));
+        }
+      }
+    } finally {
+      if (shouldTerminate) await worker.terminate();
+    }
   } catch (e) {
     console.debug('[OCR] Failed to extract date:', e);
   }
+
   return undefined;
 }
 
-// ---- Remove known non-date text from OCR output ----
-function stripNonDateText(text: string): string {
-  // Remove lines that are mostly letters without numbers (camera names, model numbers, etc.)
-  const lines = text.split(/[\r\n]+/);
-  const cleaned = lines.filter((line) => {
-    const s = line.trim();
-    if (!s) return false;
-    // Keep lines that contain at least 2 digits
-    const digitCount = (s.match(/\d/g) || []).length;
-    if (digitCount < 2) return false;
-    // Skip lines that are all letters (camera names, descriptions)
-    const letterCount = (s.match(/[A-Za-z]/g) || []).length;
-    if (letterCount > 0 && digitCount === 0) return false;
-    // Skip battery and temperature indicators
-    if (/batt|temp|°[CF]|%|ir\s*on/i.test(s)) return false;
-    return true;
-  });
-  return cleaned.join(' ');
+// ---- Bulk re-OCR for previously failed photos ----
+// Re-runs the improved OCR engine on photos that already failed (or have
+// no dateTime). Updates IndexedDB in place; never touches file.lastModified.
+export async function reRunOcrOnPhotos(
+  photoIds: string[],
+  onProgress?: (completed: number, total: number) => void
+): Promise<{ updated: number; stillFailed: number }> {
+  let updated = 0;
+  let stillFailed = 0;
+
+  let ocrWorker: any = undefined;
+  try {
+    const { createWorker } = await import('tesseract.js');
+    ocrWorker = await createWorker('eng');
+  } catch (ocrInitErr) {
+    console.warn('[OCR] reRunOcrOnPhotos: failed to init worker. Underlying error:', ocrInitErr);
+    throw new Error(
+      'Re-OCR unavailable: the OCR engine failed to initialize. Check Network for blocked CDN requests and try again.'
+    );
+  }
+
+  for (let i = 0; i < photoIds.length; i++) {
+    const id = photoIds[i];
+    try {
+      const blob = await getFullImageBlob(id);
+      if (!blob) {
+        stillFailed++;
+        onProgress?.(i + 1, photoIds.length);
+        continue;
+      }
+      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+      const file = new File([blob], `reocr_${id}.${ext}`, { type: blob.type });
+      const dateTime = await extractDateFromImageOCR(file, ocrWorker);
+      if (dateTime) {
+        await updatePhoto(id, { dateTime });
+        updated++;
+      } else {
+        stillFailed++;
+      }
+    } catch (e) {
+      console.warn(`[OCR] reRunOcrOnPhotos: failed for "${id}":`, e);
+      stillFailed++;
+    }
+    onProgress?.(i + 1, photoIds.length);
+    // Yield to the event loop so the gallery stays responsive on long batches
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  try { await ocrWorker.terminate(); } catch { /* ignore */ }
+  return { updated, stillFailed };
 }
 
-// ---- Filename Date Parsing (fallback when EXIF stripped on mobile) ----
+// ---- Filename Date Parsing (fallback when OCR fails) ----
 function parseDateFromFilename(fileName: string): string | undefined {
   const patterns: { re: RegExp; fmt: (m: RegExpExecArray) => string }[] = [
     // 20260729_120000 or IMG_20260729_120000 or 20260729-120000
@@ -814,8 +709,12 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   try {
     const { createWorker } = await import('tesseract.js');
     ocrWorker = await createWorker('eng');
-  } catch {
-    // OCR worker failed to init — proceed without it
+  } catch (ocrInitErr) {
+    // Tesseract WASM or language data failed to load (CDN blocked, offline, etc.)
+    console.warn(
+      '[OCR] Failed to initialize Tesseract worker. All photos will import with no date. Underlying error:',
+      ocrInitErr
+    );
   }
 
   for (let i = 0; i < fileArray.length; i++) {
@@ -823,31 +722,21 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     const id = `cam_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
 
     try {
-      const buffer = await file.arrayBuffer();
-      const exif = parseEXIFMetadata(buffer);
-
       const thumbnailBlob = await generateThumbnail(file, 300);
       const thumbnailDataUrl = thumbnailBlob ? await blobToDataURL(thumbnailBlob) : undefined;
 
       const fileBlob = new Blob([file], { type: file.type });
 
-      // Date: filename > OCR > file.lastModified
-      let dateTime = parseDateFromFilename(file.name);
+      // Date extraction: ONLY OCR reads the timestamp bar (or filename pattern).
+      // We NEVER use file.lastModified as a fallback — it represents the file's
+      // copy/download time, not the capture time.
+      let dateTime: string | undefined = validateFilenameDate(parseDateFromFilename(file.name));
       if (!dateTime && ocrWorker) {
+        console.debug(`[OCR] Attempting OCR for "${file.name}"...`);
         dateTime = await extractDateFromImageOCR(file, ocrWorker);
-      }
-      if (dateTime && isDateReasonable(dateTime, file.lastModified)) {
-        // If the extracted time is the default 12:00:00, merge in file.lastModified's hour
-        if (dateTime.endsWith('T12:00:00') || dateTime.slice(11, 13) === '12' && dateTime.slice(14, 19) === '00:00') {
-          const lm = new Date(file.lastModified);
-          if (!isNaN(lm.getTime())) {
-            const lmHour = String(lm.getHours()).padStart(2, '0');
-            dateTime = dateTime.slice(0, 11) + lmHour + dateTime.slice(13);
-          }
-        }
-      } else {
-        const fallback = new Date(file.lastModified);
-        dateTime = !isNaN(fallback.getTime()) ? fallback.toISOString() : new Date().toISOString();
+        console.debug(`[OCR] Result for "${file.name}": ${dateTime || 'FAILED — no date set'}`);
+      } else if (!ocrWorker) {
+        console.warn(`[OCR] No worker available for "${file.name}" — skipping OCR`);
       }
 
       const photo: TrailCameraPhoto = {
@@ -856,15 +745,10 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
         fileSize: file.size,
         importedAt: Date.now(),
         dateTime,
-        cameraModel: exif?.cameraModel,
-        latitude: exif?.latitude,
-        longitude: exif?.longitude,
         isFavorite: false,
       };
 
-      if (!exif) {
-        console.debug(`[cam] No EXIF for "${file.name}", using dateTime=${dateTime} (filename=${!!parseDateFromFilename(file.name)}, lastModified=${!!file.lastModified})`);
-      }
+      console.debug(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
 
       await putInStore(PHOTOS_STORE, photo);
       await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl || '' });

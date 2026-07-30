@@ -4,7 +4,7 @@ import App from './App.tsx';
 import './index.css';
 
 // APP_VERSION: increment on each deploy to force PWA cache refresh
-const APP_VERSION = '15';
+const APP_VERSION = '19';
 
 if (typeof window !== 'undefined') {
   const stored = localStorage.getItem('letsHuntVersion');
