@@ -218,8 +218,11 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       let ss = ssIdx != null && m[ssIdx] !== undefined ? parseInt(m[ssIdx], 10) : 0;
       const ap = apIdx != null && m[apIdx] !== undefined ? m[apIdx].toUpperCase() : null;
 
-      // DD/MM vs MM/DD disambiguation for non-YYYY-first patterns
-      if (yIdx > moIdx && d > 12 && d <= 31 && mo >= 1 && mo <= 12) {
+      // DD/MM vs MM/DD disambiguation for non-YYYY-first patterns.
+      // Only swap when the month field is clearly invalid (>12) AND
+      // the day field could be a valid month (<=12). Don't swap valid
+      // MM/DD pairs like 12/21 just because day > 12.
+      if (yIdx > moIdx && mo > 12 && d <= 12) {
         const tmp = d; d = mo; mo = tmp;
       }
 
