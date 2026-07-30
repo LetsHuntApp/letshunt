@@ -112,109 +112,157 @@ export function getMoonPhase(date: Date): { phase: number; illumination: number;
   return { phase, illumination: Math.round(illumination * 100), name: MOON_PHASE_NAMES[index] };
 }
 
-// ---- EXIF Parsing (lightweight) ----
-function parseEXIFDate(buffer: ArrayBuffer): string | undefined {
-  const dv = new DataView(buffer);
-  const littleEndian = dv.getUint16(0) === 0x4949;
-  const tiffStart = dv.getUint16(0) === 0xFFD8 ? 12 : 0;
+// ---- EXIF Parsing (robust) ----
+function parseEXIFDate(buffer: ArrayBuffer): { dateTime?: string; cameraModel?: string; latitude?: number; longitude?: number } | undefined {
+  try {
+    const dv = new DataView(buffer);
+    if (dv.byteLength < 4) return;
 
-  const readUint16 = (offset: number) => dv.getUint16(offset, littleEndian);
-  const readUint32 = (offset: number) => dv.getUint32(offset, littleEndian);
-  const readString = (offset: number, length: number) => {
-    const chars: string[] = [];
-    for (let i = 0; i < length; i++) {
-      const c = dv.getUint8(offset + i);
-      if (c === 0) break;
-      chars.push(String.fromCharCode(c));
-    }
-    return chars.join('');
-  };
-
-  const endianMarker = dv.getUint16(tiffStart + 2);
-  const le = endianMarker === 0x4949;
-
-  const read16 = (off: number) => le ? dv.getUint16(off, true) : dv.getUint16(off, false);
-  const read32 = (off: number) => le ? dv.getUint32(off, true) : dv.getUint32(off, false);
-
-  const ifdOffset = read32(tiffStart + 4);
-  let offset = tiffStart + ifdOffset;
-  const entries = read16(offset);
-
-  let dateTimeOriginal: string | undefined;
-  let cameraModel: string | undefined;
-  let gpsLat: number | undefined;
-  let gpsLon: number | undefined;
-  let gpsIfdOffset: number | undefined;
-
-  for (let i = 0; i < entries; i++) {
-    const entryOffset = offset + 2 + i * 12;
-    const tag = read16(entryOffset);
-    const type = read16(entryOffset + 2);
-    const count = read32(entryOffset + 4);
-    const valueOffset = entryOffset + 8;
-
-    if (tag === 0x0132 && type === 2) {
-      const strOffset = count <= 4 ? valueOffset : read32(valueOffset);
-      dateTimeOriginal = readString(tiffStart + strOffset, count);
-    } else if (tag === 0x0110 && type === 2) {
-      const strOffset = count <= 4 ? valueOffset : read32(valueOffset);
-      cameraModel = readString(tiffStart + strOffset, count);
-    } else if (tag === 0x8825) {
-      gpsIfdOffset = read32(valueOffset);
-    } else if (tag === 0x8769) {
-      const exifOffset = read32(valueOffset);
-      if (exifOffset) {
-        const exifEntries = read16(tiffStart + exifOffset);
-        for (let j = 0; j < exifEntries; j++) {
-          const exifEntryOff = tiffStart + exifOffset + 2 + j * 12;
-          const exifTag = read16(exifEntryOff);
-          const exifType = read16(exifEntryOff + 2);
-          const exifCount = read32(exifEntryOff + 4);
-          const exifValOff = exifEntryOff + 8;
-
-          if (exifTag === 0x9003 && exifType === 2) {
-            const strOff = exifCount <= 4 ? exifValOff : tiffStart + read32(exifValOff);
-            dateTimeOriginal = readString(strOff, exifCount);
-          } else if (exifTag === 0x9004 && exifType === 2) {
-            const strOff = exifCount <= 4 ? exifValOff : tiffStart + read32(exifValOff);
-            if (!dateTimeOriginal) dateTimeOriginal = readString(strOff, exifCount);
+    // Scan for "Exif\0\0" marker inside JPEG APP1 segments
+    let tiffStart = -1;
+    if (dv.getUint16(0) === 0xFFD8) {
+      // JPEG: walk APP markers to find EXIF APP1
+      let pos = 2;
+      while (pos + 4 < dv.byteLength) {
+        if (dv.getUint16(pos) === 0xFFE1) {
+          const segLen = dv.getUint16(pos + 2);
+          if (segLen >= 8 && pos + 8 <= dv.byteLength) {
+            // Check for "Exif\0\0"
+            if (dv.getUint8(pos + 4) === 0x45 && dv.getUint8(pos + 5) === 0x78 &&
+                dv.getUint8(pos + 6) === 0x69 && dv.getUint8(pos + 7) === 0x66 &&
+                dv.getUint8(pos + 8) === 0x00 && dv.getUint8(pos + 9) === 0x00) {
+              tiffStart = pos + 10;
+              break;
+            }
           }
+          pos += 2 + segLen;
+        } else if ((dv.getUint16(pos) & 0xFF00) === 0xFF00 && dv.getUint16(pos) !== 0xFFFF) {
+          // Another APP / DQT / SOF etc marker
+          const markerLen = (dv.getUint16(pos + 2) || 0) + 2;
+          pos += markerLen > 2 ? markerLen : 2;
+        } else {
+          break;
         }
       }
+    } else {
+      // Possibly a TIFF file or raw EXIF
+      if (dv.getUint16(0) === 0x4949 || dv.getUint16(0) === 0x4D4D) {
+        tiffStart = 0;
+      }
     }
-  }
 
-  if (gpsIfdOffset) {
-    const gpsEntries = read16(tiffStart + gpsIfdOffset);
+    if (tiffStart < 0 || tiffStart + 8 > dv.byteLength) return;
+
+    const endianMarker = dv.getUint16(tiffStart + 2);
+    const le = endianMarker === 0x4949;
+
+    const read16 = (off: number) => le ? dv.getUint16(off, true) : dv.getUint16(off, false);
+    const read32 = (off: number) => le ? dv.getUint32(off, true) : dv.getUint32(off, false);
+    const readSrat = (off: number) => {
+      const num = read32(off);
+      const den = read32(off + 4);
+      return den ? num / den : 0;
+    };
+
+    // Sanity-check IFD offset
+    const ifdOffset = read32(tiffStart + 4);
+    if (ifdOffset < 0 || ifdOffset + 2 > dv.byteLength - tiffStart) return;
+    let offset = tiffStart + ifdOffset;
+    const entries = read16(offset);
+    if (entries < 1 || entries > 200) return; // sanity
+
+    let dateTimeOriginal: string | undefined;
+    let cameraModel: string | undefined;
+    let gpsLat: number | undefined;
+    let gpsLon: number | undefined;
     let gpsLatRef = 'N';
     let gpsLonRef = 'E';
     let gpsLatData: number[] = [];
     let gpsLonData: number[] = [];
+    let gpsIfdOffset: number | undefined;
 
-    for (let i = 0; i < gpsEntries; i++) {
-      const gpsOff = tiffStart + gpsIfdOffset + 2 + i * 12;
-      const gpsTag = read16(gpsOff);
-      const gpsType = read16(gpsOff + 2);
-      const gpsCount = read32(gpsOff + 4);
-      const gpsValOff = gpsOff + 8;
+    for (let i = 0; i < entries; i++) {
+      const entryOffset = offset + 2 + i * 12;
+      if (entryOffset + 12 > dv.byteLength) break;
+      const tag = read16(entryOffset);
+      const type = read16(entryOffset + 2);
+      const count = read32(entryOffset + 4);
+      const valueOffset = entryOffset + 8;
 
-      if (gpsTag === 0x0001) {
-        gpsLatRef = gpsCount <= 4 ? String.fromCharCode(dv.getUint8(gpsValOff)) : String.fromCharCode(dv.getUint8(tiffStart + read32(gpsValOff)));
-      } else if (gpsTag === 0x0002 && gpsType === 5) {
-        const ptr = gpsCount <= 4 ? gpsValOff : tiffStart + read32(gpsValOff);
-        for (let k = 0; k < 3; k++) {
-          const num = read32(ptr + k * 8);
-          const den = read32(ptr + k * 8 + 4);
-          gpsLatData.push(den ? num / den : 0);
+      if (tag === 0x0132 && type === 2) {
+        const strOff = count <= 4 ? valueOffset : tiffStart + read32(valueOffset);
+        if (strOff + count <= dv.byteLength) {
+          dateTimeOriginal = readString(dv, strOff, count);
         }
-      } else if (gpsTag === 0x0003) {
-        gpsLonRef = gpsCount <= 4 ? String.fromCharCode(dv.getUint8(gpsValOff)) : String.fromCharCode(dv.getUint8(tiffStart + read32(gpsValOff)));
-      } else if (gpsTag === 0x0004 && gpsType === 5) {
-        const ptr = gpsCount <= 4 ? gpsValOff : tiffStart + read32(gpsValOff);
-        for (let k = 0; k < 3; k++) {
-          const num = read32(ptr + k * 8);
-          const den = read32(ptr + k * 8 + 4);
-          gpsLonData.push(den ? num / den : 0);
+      } else if (tag === 0x0110 && type === 2) {
+        const strOff = count <= 4 ? valueOffset : tiffStart + read32(valueOffset);
+        if (strOff + count <= dv.byteLength) {
+          cameraModel = readString(dv, strOff, count);
+        }
+      } else if (tag === 0x8825) {
+        gpsIfdOffset = read32(valueOffset);
+      } else if (tag === 0x8769) {
+        const exifOffsetVal = read32(valueOffset);
+        if (exifOffsetVal > 0 && tiffStart + exifOffsetVal + 2 <= dv.byteLength) {
+          const exifEntries = read16(tiffStart + exifOffsetVal);
+          if (exifEntries > 0 && exifEntries <= 200) {
+            for (let j = 0; j < exifEntries; j++) {
+              const exifEntryOff = tiffStart + exifOffsetVal + 2 + j * 12;
+              if (exifEntryOff + 12 > dv.byteLength) break;
+              const exifTag = read16(exifEntryOff);
+              const exifType = read16(exifEntryOff + 2);
+              const exifCount = read32(exifEntryOff + 4);
+              const exifValOff = exifEntryOff + 8;
+
+              if (exifTag === 0x9003 && exifType === 2) {
+                const strOff = exifCount <= 4 ? exifValOff : tiffStart + read32(exifValOff);
+                if (strOff + exifCount <= dv.byteLength) {
+                  dateTimeOriginal = readString(dv, strOff, exifCount);
+                }
+              } else if (exifTag === 0x9004 && exifType === 2) {
+                const strOff = exifCount <= 4 ? exifValOff : tiffStart + read32(exifValOff);
+                if (strOff + exifCount <= dv.byteLength && !dateTimeOriginal) {
+                  dateTimeOriginal = readString(dv, strOff, exifCount);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (gpsIfdOffset != null) {
+      if (tiffStart + gpsIfdOffset + 2 <= dv.byteLength) {
+        const gpsEntries = read16(tiffStart + gpsIfdOffset);
+        if (gpsEntries > 0 && gpsEntries <= 50) {
+          for (let i = 0; i < gpsEntries; i++) {
+            const gpsOff = tiffStart + gpsIfdOffset + 2 + i * 12;
+            if (gpsOff + 12 > dv.byteLength) break;
+            const gpsTag = read16(gpsOff);
+            const gpsType = read16(gpsOff + 2);
+            const gpsCount = read32(gpsOff + 4);
+            const gpsValOff = gpsOff + 8;
+
+            if (gpsTag === 0x0001) {
+              gpsLatRef = gpsCount <= 4 ? String.fromCharCode(dv.getUint8(gpsValOff)) : String.fromCharCode(dv.getUint8(tiffStart + read32(gpsValOff)));
+            } else if (gpsTag === 0x0002 && gpsType === 5) {
+              const ptr = gpsCount <= 4 ? gpsValOff : tiffStart + read32(gpsValOff);
+              if (ptr + 24 <= dv.byteLength) {
+                for (let k = 0; k < 3; k++) {
+                  gpsLatData.push(readSrat(ptr + k * 8));
+                }
+              }
+            } else if (gpsTag === 0x0003) {
+              gpsLonRef = gpsCount <= 4 ? String.fromCharCode(dv.getUint8(gpsValOff)) : String.fromCharCode(dv.getUint8(tiffStart + read32(gpsValOff)));
+            } else if (gpsTag === 0x0004 && gpsType === 5) {
+              const ptr = gpsCount <= 4 ? gpsValOff : tiffStart + read32(gpsValOff);
+              if (ptr + 24 <= dv.byteLength) {
+                for (let k = 0; k < 3; k++) {
+                  gpsLonData.push(readSrat(ptr + k * 8));
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -227,41 +275,69 @@ function parseEXIFDate(buffer: ArrayBuffer): string | undefined {
       gpsLon = gpsLonData[0] + gpsLonData[1] / 60 + gpsLonData[2] / 3600;
       if (gpsLonRef === 'W') gpsLon = -gpsLon;
     }
-  }
 
-  let dateTimeISO: string | undefined;
-  if (dateTimeOriginal) {
-    const parts = dateTimeOriginal.split(' ');
-    if (parts.length === 2) {
-      const dateParts = parts[0].split(':');
-      if (dateParts.length === 3) {
-        dateTimeISO = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}T${parts[1]}:00`;
+    let dateTimeISO: string | undefined;
+    if (dateTimeOriginal) {
+      const parts = dateTimeOriginal.split(' ');
+      if (parts.length === 2) {
+        const dateParts = parts[0].split(':');
+        if (dateParts.length === 3) {
+          dateTimeISO = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}T${parts[1]}:00`;
+        }
       }
     }
-  }
 
-  return { dateTime: dateTimeISO, cameraModel, latitude: gpsLat, longitude: gpsLon } as any;
+    return { dateTime: dateTimeISO, cameraModel, latitude: gpsLat, longitude: gpsLon };
+  } catch {
+    return;
+  }
+}
+
+function readString(dv: DataView, offset: number, length: number) {
+  const chars: string[] = [];
+  for (let i = 0; i < length; i++) {
+    const c = dv.getUint8(offset + i);
+    if (c === 0) break;
+    chars.push(String.fromCharCode(c));
+  }
+  return chars.join('');
 }
 
 // ---- Thumbnail Generation ----
-function generateThumbnail(file: File, maxWidth = 300): Promise<Blob> {
-  return new Promise((resolve, reject) => {
+function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
+  return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const scale = maxWidth / Math.max(img.width, img.height);
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext('2d')!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((blob) => {
-        URL.revokeObjectURL(url);
-        if (blob) resolve(blob);
-        else reject(new Error('Failed to generate thumbnail'));
-      }, 'image/jpeg', 0.7);
+      URL.revokeObjectURL(url);
+      try {
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        // Downscale in steps for very large images to avoid browser canvas limits
+        const MAX_DIM = 4096;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          const scale = MAX_DIM / Math.max(w, h);
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+        }
+        const scale = maxWidth / Math.max(w, h);
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(null); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          resolve(blob || null);
+        }, 'image/jpeg', 0.7);
+      } catch {
+        resolve(null);
+      }
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Failed to load image')); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
     img.src = url;
   });
 }
@@ -386,35 +462,41 @@ export async function matchWeatherForPhoto(photo: TrailCameraPhoto): Promise<His
 export async function importPhotos(files: FileList | File[], onProgress?: (completed: number, total: number) => void): Promise<TrailCameraPhoto[]> {
   const fileArray = Array.from(files);
   const imported: TrailCameraPhoto[] = [];
+  let successCount = 0;
 
   for (let i = 0; i < fileArray.length; i++) {
     const file = fileArray[i];
     const id = `cam_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const buffer = await file.arrayBuffer();
-    const exif = parseEXIFDate(buffer) as any;
+    try {
+      const buffer = await file.arrayBuffer();
+      const exif = parseEXIFDate(buffer);
 
-    const thumbnailBlob = await generateThumbnail(file, 300);
-    const thumbnailDataUrl = await blobToDataURL(thumbnailBlob);
+      const thumbnailBlob = await generateThumbnail(file, 300);
+      const thumbnailDataUrl = thumbnailBlob ? await blobToDataURL(thumbnailBlob) : undefined;
 
-    // Convert File to Blob for reliable IndexedDB storage
-    const fileBlob = new Blob([file], { type: file.type });
+      const fileBlob = new Blob([file], { type: file.type });
 
-    const photo: TrailCameraPhoto = {
-      id,
-      fileName: file.name,
-      fileSize: file.size,
-      importedAt: Date.now(),
-      dateTime: exif?.dateTime || new Date(file.lastModified).toISOString(),
-      cameraModel: exif?.cameraModel,
-      latitude: exif?.latitude,
-      longitude: exif?.longitude,
-      isFavorite: false,
-    };
+      const photo: TrailCameraPhoto = {
+        id,
+        fileName: file.name,
+        fileSize: file.size,
+        importedAt: Date.now(),
+        dateTime: exif?.dateTime || new Date(file.lastModified).toISOString(),
+        cameraModel: exif?.cameraModel,
+        latitude: exif?.latitude,
+        longitude: exif?.longitude,
+        isFavorite: false,
+      };
 
-    await putInStore(PHOTOS_STORE, photo);
-    await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl });
-    imported.push(photo);
+      await putInStore(PHOTOS_STORE, photo);
+      await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl || '' });
+      imported.push(photo);
+      successCount++;
+    } catch (err) {
+      console.warn(`Skipping file "${file.name}":`, err);
+    }
+
     onProgress?.(i + 1, fileArray.length);
   }
 

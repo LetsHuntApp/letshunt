@@ -132,7 +132,11 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
         setImportProgress({ completed, total });
       });
 
-      showToast(`Imported ${imported.length} trail camera photo(s)!`);
+      if (imported.length === 0) {
+        showToast('No photos could be imported. Check console for details.');
+      } else {
+        showToast(`Imported ${imported.length} trail camera photo(s)!`);
+      }
 
       // Auto assign to default location if unassigned
       const defaultLoc = locations[0];
