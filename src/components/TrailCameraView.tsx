@@ -23,8 +23,6 @@ import {
   computeAnalytics,
   generateInsights,
   matchWeatherForPhoto,
-  getCachedAnalytics,
-  setCachedAnalytics,
 } from '../services/trailCameraService';
 
 interface TrailCameraViewProps {
@@ -259,12 +257,8 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   // Analytics & Insights
   const { analytics, insights } = useMemo(() => {
-    const cached = getCachedAnalytics();
-    if (cached) return { analytics: cached.data, insights: cached.insights };
-
     const data = computeAnalytics(photos);
     const ins = generateInsights(photos, data);
-    setCachedAnalytics(data, ins);
     return { analytics: data, insights: ins };
   }, [photos]);
 

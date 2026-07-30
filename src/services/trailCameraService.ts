@@ -346,6 +346,73 @@ function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
   });
 }
 
+// ---- OCR Date Extraction (fallback for trail cam photos) ----
+async function extractDateFromImageOCR(file: File): Promise<string | undefined> {
+  try {
+    // Dynamic import Tesseract.js only when needed
+    const { createWorker } = await import('tesseract.js');
+    const worker = await createWorker('eng');
+    
+    // Convert file to data URL for Tesseract
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+    const { data: { text } } = await worker.recognize(dataUrl);
+    await worker.terminate();
+
+    // Look for date patterns in OCR text (trail cam formats)
+    const patterns = [
+      // YYYY-MM-DD or YYYY/MM/DD
+      /\b(20\d{2})[-\/](\d{2})[-\/](\d{2})\b/,
+      // MM/DD/YYYY
+      /\b(\d{2})[-\/](\d{2})[-\/](20\d{2})\b/,
+      // DD.MM.YYYY
+      /\b(\d{2})\.(\d{2})\.(20\d{2})\b/,
+      // YYYY.MM.DD HH:MM:SS (some trail cams)
+      /\b(20\d{2})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\b/,
+      // DD/MM/YYYY HH:MM
+      /\b(\d{2})\/(\d{2})\/(20\d{2})\s+(\d{2}):(\d{2})\b/,
+      // YYYY-MM-DD HH:MM:SS
+      /\b(20\d{2})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})\b/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        let year, month, day, hour = 12, minute = 0, second = 0;
+        
+        if (match[1] && match[2] && match[3] && match[4] && match[5] && match[6]) {
+          // YYYY-MM-DD HH:MM:SS
+          year = match[1]; month = match[2]; day = match[3];
+          hour = match[4]; minute = match[5]; second = match[6];
+        } else if (match[1] && match[2] && match[3] && match[4] && match[5]) {
+          // DD/MM/YYYY HH:MM
+          day = match[1]; month = match[2]; year = match[3];
+          hour = match[4]; minute = match[5];
+        } else if (match[1] && match[2] && match[3]) {
+          // YYYY-MM-DD or MM/DD/YYYY or DD/MM/YYYY
+          if (match[1].length === 4) { // YYYY first
+            year = match[1]; month = match[2]; day = match[3];
+          } else { // DD/MM/YYYY or MM/DD/YYYY - assume US format
+            month = match[1]; day = match[2]; year = match[3];
+          }
+        }
+
+        const iso = `${year}-${month}-${day}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
+        const d = new Date(iso);
+        if (!isNaN(d.getTime())) return iso;
+      }
+    }
+  } catch (e) {
+    console.debug('[OCR] Failed to extract date:', e);
+  }
+  return undefined;
+}
+
 // ---- Historical Weather ----
 async function fetchHistoricalWeather(lat: number, lon: number, dateTimeStr: string): Promise<HistoricalWeatherData | null> {
   try {
@@ -502,10 +569,14 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
 
       const fileBlob = new Blob([file], { type: file.type });
 
-      // Best date: EXIF > filename > file.lastModified
+      // Best date: EXIF > filename > OCR > file.lastModified
       let dateTime = exif?.dateTime;
       if (!dateTime) {
         dateTime = parseDateFromFilename(file.name);
+      }
+      if (!dateTime) {
+        // Try OCR on trail cam photo for datestamps
+        dateTime = await extractDateFromImageOCR(file);
       }
       if (!dateTime) {
         const fallback = new Date(file.lastModified);
@@ -883,16 +954,15 @@ export function generateInsights(photos: TrailCameraPhoto[], analytics: Analytic
 }
 
 // ---- Analytics Cache ----
-let analyticsCache: { data: AnalyticsData; insights: PatternInsight[] } | null = null;
-
 export function clearAnalyticsCache() {
-  analyticsCache = null;
+  // No-op - handled by React useMemo in TrailCameraView
 }
 
 export function getCachedAnalytics(): { data: AnalyticsData; insights: PatternInsight[] } | null {
-  return analyticsCache;
+  // No-op - handled by React useMemo in TrailCameraView
+  return null;
 }
 
-export function setCachedAnalytics(data: AnalyticsData, insights: PatternInsight[]) {
-  analyticsCache = { data, insights };
+export function setCachedAnalytics(_data: AnalyticsData, _insights: PatternInsight[]) {
+  // No-op - handled by React useMemo in TrailCameraView
 }
