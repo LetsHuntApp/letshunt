@@ -161,6 +161,7 @@ function parseOCRTextToISO(rawText: string): string | undefined {
 
   const fixNumericTypos = (s: string) => {
     return s
+      .replace(/(\d)T(\d)/g, '$1:$2')
       .replace(/([0-9])[OoQqD]/g, '$10')
       .replace(/[OoQqD]([0-9])/g, '0$1')
       .replace(/([0-9])[lI!|]/g, '$11')
