@@ -411,16 +411,16 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       return iso;
     };
 
-    // Pattern 1: YYYY/MM/DD with optional HH:MM(:SS) (AM/PM)
-    let re = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
-    let m = text.match(re);
+    // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM), time optional
+    re = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    m = text.match(re);
     if (m) {
       const iso = buildISO(m, 1, 2, 3, m[4] !== undefined ? 4 : null, m[4] !== undefined ? 5 : null, m[4] !== undefined ? 6 : null, m[4] !== undefined ? 7 : null);
       if (iso) return iso;
     }
 
-    // Pattern 2: MM/DD/YYYY with optional HH:MM(:SS) (AM/PM)
-    re = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
+    // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM), time optional
+    re = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
     m = text.match(re);
     if (m) {
       const iso = buildISO(m, 3, 1, 2, m[4] !== undefined ? 4 : null, m[4] !== undefined ? 5 : null, m[4] !== undefined ? 6 : null, m[4] !== undefined ? 7 : null);
@@ -543,7 +543,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
   // Scan the bottom 10-30% in overlapping bands to catch any camera's info bar position
   const cropRegions: { yRatio: number; hRatio: number }[] = [];
-  for (let y = 0.70; y <= 0.94; y += 0.04) {
+  for (let y = 0.70; y <= 0.90; y += 0.04) {
     cropRegions.push({ yRatio: y, hRatio: 0.08 });
   }
 
@@ -555,17 +555,16 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
   ];
 
   // Reusable check for a parsed ISO result
-  const checkResult = (iso: string | undefined, fMod: number): string | undefined => {
+  const checkResult = (iso: string | undefined): string | undefined => {
     if (!iso) return undefined;
     const dt = new Date(iso);
     if (isNaN(dt.getTime())) return undefined;
-    if (dt.getFullYear() < 2000 || dt.getTime() > Date.now()) return undefined;
-    const dF = new Date(fMod);
-    if (!isNaN(dF.getTime()) && Math.abs(dt.getFullYear() - dF.getFullYear()) > 3) return undefined;
+    if (dt.getFullYear() < 1990) return undefined;
     return iso;
   };
 
   const tryWorker = async (worker: any): Promise<string | undefined> => {
+    await worker.setParameters({ tessedit_pageseg_mode: '6' });
     // Draw full image once for reuse in cropping
     const fullCanvas = document.createElement('canvas');
     fullCanvas.width = img.width;
@@ -598,10 +597,10 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       // Try grayscale (no binarization) — always; useful for clean high-contrast bars
       const grayData = canvas.toDataURL('image/png');
       const { data: { text: grayText } } = await worker.recognize(grayData);
-      let r = checkResult(parseOCRTextToISO(grayText), file.lastModified);
-      if (r) return r;
-      r = checkResult(parseOCRTextToISO(stripNonDateText(grayText)), file.lastModified);
-      if (r) return r;
+       let r = checkResult(parseOCRTextToISO(grayText));
+       if (r) return r;
+       r = checkResult(parseOCRTextToISO(stripNonDateText(grayText)));
+       if (r) return r;
 
       // Try binarized with threshold pairs
       for (const pair of thresholdPairs) {
@@ -615,10 +614,10 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
           const processed = binarizeForOCR(ctx, cw, ch, attempt.thresh, attempt.invert);
           if (!processed) continue;
           const { data: { text } } = await worker.recognize(processed);
-          r = checkResult(parseOCRTextToISO(text), file.lastModified);
-          if (r) return r;
-          r = checkResult(parseOCRTextToISO(stripNonDateText(text)), file.lastModified);
-          if (r) return r;
+           r = checkResult(parseOCRTextToISO(text));
+           if (r) return r;
+           r = checkResult(parseOCRTextToISO(stripNonDateText(text)));
+           if (r) return r;
         }
       }
     }
@@ -626,12 +625,8 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
   };
 
   try {
-    if (existingWorker) {
-      return await tryWorker(existingWorker);
-    }
     const { createWorker } = await import('tesseract.js');
     const worker = await createWorker('eng');
-    await worker.setParameters({ tessedit_pageseg_mode: '6' });
     const result = await tryWorker(worker);
     await worker.terminate();
     return result;
@@ -819,7 +814,6 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   try {
     const { createWorker } = await import('tesseract.js');
     ocrWorker = await createWorker('eng');
-    await ocrWorker.setParameters({ tessedit_pageseg_mode: '7' });
   } catch {
     // OCR worker failed to init — proceed without it
   }
