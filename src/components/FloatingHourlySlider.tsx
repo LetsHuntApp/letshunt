@@ -6,6 +6,7 @@ import { ThemeMode, HourlyForecast } from '../types';
 interface FloatingHourlySliderProps {
   selectedHour: number;
   onSelectHour: (hour: number) => void;
+  onResetToToday?: () => void;
   hourly?: HourlyForecast[];
   theme?: ThemeMode;
   hasCustomBackground?: boolean;
@@ -14,6 +15,7 @@ interface FloatingHourlySliderProps {
 export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   selectedHour,
   onSelectHour,
+  onResetToToday,
   hourly,
   theme = 'dark',
   hasCustomBackground = false,
@@ -111,7 +113,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
 
           {!isNow && (
             <button
-              onClick={() => handleHourChange(currentLocalHour)}
+              onClick={() => { handleHourChange(currentLocalHour); onResetToToday?.(); }}
               className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black transition-all bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 border border-amber-500/40 flex-shrink-0"
             >
               <RotateCcw className="w-2.5 h-2.5" /> Reset to Live

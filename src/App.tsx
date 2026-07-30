@@ -475,6 +475,11 @@ export default function App() {
           <FloatingHourlySlider
             selectedHour={selectedHour}
             onSelectHour={setSelectedHour}
+            onResetToToday={() => {
+              if (dailyForecast[0]) {
+                setSelectedDate(dailyForecast[0].date);
+              }
+            }}
             hourly={activeDay.hourly}
             theme={theme}
             hasCustomBackground={!!customBackground}
