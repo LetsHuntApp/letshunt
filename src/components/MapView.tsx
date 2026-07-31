@@ -1734,8 +1734,9 @@ export const MapView: React.FC<MapViewProps> = ({
     const w = Math.max(dimensions.width, 320);
     const h = Math.max(dimensions.height, 320);
     const margin = 220;
+    const mph = windMph || 5;
     const travel = Math.hypot(w, h) + margin * 2;
-    const speed = Math.max(45, (windMph || 5) * 34); // px per second
+    const speed = Math.max(45, mph * 34); // px per second
     const dur = travel / speed;
     const count = Math.max(55, Math.min(160, Math.round((w * h) / 4000)));
     // deterministic hash so streak positions stay put across slider scrubs
@@ -1748,8 +1749,8 @@ export const MapView: React.FC<MapViewProps> = ({
       streaks.push({
         x: hash(i * 3 + 1) * (w + margin * 2) - margin,
         y: hash(i * 3 + 2) * (h + margin * 2) - margin,
-        len: 45 + hash(i * 3 + 3) * 120,
-        width: 1.8 + hash(i * 3 + 4) * 3.2,
+        len: Math.max(20, mph * 5) + hash(i * 3 + 3) * mph * 5,
+        width: 1.0 + mph * 0.12 + hash(i * 3 + 4) * (1.5 + mph * 0.08),
         opacity: 0.30 + hash(i * 3 + 5) * 0.35,
         delay: -hash(i * 3 + 6) * dur,
         dur,
