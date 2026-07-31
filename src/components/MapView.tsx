@@ -1727,6 +1727,38 @@ export const MapView: React.FC<MapViewProps> = ({
       });
   }, [pins, showPreferredWind, selectedPinId, latLngToPixel]);
 
+  // Wind flow animation streaks: deterministic positions so streaks don't jump on hour change;
+  // rotation + speed derive from the currently selected hour's wind (downwindDeg / windMph).
+  const windStreaks = useMemo(() => {
+    if (!showWindSlider) return [];
+    const w = Math.max(dimensions.width, 320);
+    const h = Math.max(dimensions.height, 320);
+    const margin = 220;
+    const travel = Math.hypot(w, h) + margin * 2;
+    const speed = Math.max(45, (windMph || 5) * 34); // px per second
+    const dur = travel / speed;
+    const count = Math.max(26, Math.min(70, Math.round((w * h) / 9000)));
+    // deterministic hash so streak positions stay put across slider scrubs
+    const hash = (n: number) => {
+      const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const streaks: { x: number; y: number; len: number; width: number; opacity: number; begin: number; dur: number; travel: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      streaks.push({
+        x: hash(i * 3 + 1) * (w + margin * 2) - margin,
+        y: hash(i * 3 + 2) * (h + margin * 2) - margin,
+        len: 45 + hash(i * 3 + 3) * 120,
+        width: 1.4 + hash(i * 3 + 4) * 2.6,
+        opacity: 0.16 + hash(i * 3 + 5) * 0.32,
+        begin: -hash(i * 3 + 6) * dur,
+        dur,
+        travel,
+      });
+    }
+    return streaks;
+  }, [showWindSlider, windMph, dimensions.width, dimensions.height]);
+
   return (
     <>
       {/* Map ALWAYS Full-Screen Container */}
@@ -2014,6 +2046,39 @@ export const MapView: React.FC<MapViewProps> = ({
               />
             ))}
 
+            {/* Animated Wind Flow Streaks — visible only while the Check Wind slider is open */}
+            {showWindSlider && windStreaks.length > 0 && (
+              <g>
+                {windStreaks.map((s, i) => (
+                  <g
+                    key={`wind-streak-${i}`}
+                    transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
+                  >
+                    <g opacity={s.opacity}>
+                      <line
+                        x1={0}
+                        y1={0}
+                        x2={s.len}
+                        y2={0}
+                        stroke="url(#windStreakGradient)"
+                        strokeWidth={s.width}
+                        strokeLinecap="round"
+                      />
+                      <animateTransform
+                        attributeName="transform"
+                        type="translate"
+                        from={`${-s.travel / 2} 0`}
+                        to={`${s.travel / 2} 0`}
+                        dur={`${s.dur}s`}
+                        begin={`${s.begin}s`}
+                        repeatCount="indefinite"
+                      />
+                    </g>
+                  </g>
+                ))}
+              </g>
+            )}
+
 
             <defs>
               <radialGradient id="scentPlumeGradient" cx="0%" cy="0%" r="100%">
@@ -2021,6 +2086,11 @@ export const MapView: React.FC<MapViewProps> = ({
                 <stop offset="60%" stopColor="#f97316" stopOpacity="0.4" />
                 <stop offset="100%" stopColor="#fef08a" stopOpacity="0.05" />
               </radialGradient>
+              <linearGradient id="windStreakGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
+                <stop offset="55%" stopColor="#7dd3fc" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.25" />
+              </linearGradient>
             </defs>
           </svg>
 
@@ -2860,6 +2930,24 @@ export const MapView: React.FC<MapViewProps> = ({
               >
                 <X className="w-4 h-4" />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* WIND FLOW DIRECTION CHIP — top center, only while the Check Wind slider is open */}
+        {showWindSlider && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 hidden sm:flex items-center gap-1.5 pointer-events-none animate-fadeIn max-w-[calc(100%-170px)]">
+            <div
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 backdrop-blur-md shadow-2xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
+                isDark ? 'bg-slate-950/90 border-sky-500/40 text-sky-200' : 'bg-white/95 border-sky-500/40 text-sky-800'
+              }`}
+              title="Wind flows toward this direction at the selected hour"
+            >
+              <Navigation
+                className={`w-3.5 h-3.5 transition-transform duration-700 ease-out ${isDark ? 'text-sky-400' : 'text-sky-600'}`}
+                style={{ transform: `rotate(${downwindDeg}deg)` }}
+              />
+              <span>Wind → {downwindDirText}</span>
             </div>
           </div>
         )}
