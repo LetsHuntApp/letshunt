@@ -294,6 +294,30 @@ function closestPointOnPolygonBoundaryPx(
   return closestPt;
 }
 
+// Find the closest snap candidate (path vertex / pin / draft point) within a pixel radius
+function findSnapPoint(
+  lat: number,
+  lng: number,
+  zoom: number,
+  candidates: PolygonPoint[],
+  pixelRadius = 18
+): PolygonPoint | null {
+  if (!candidates || candidates.length === 0) return null;
+  const tileSize = 256;
+  const pixelsPerDegree = (tileSize * Math.pow(2, zoom)) / 360;
+  const radiusDeg = pixelRadius / pixelsPerDegree;
+  let best: PolygonPoint | null = null;
+  let bestDist = radiusDeg;
+  for (const c of candidates) {
+    const dist = Math.hypot(c.lat - lat, c.lng - lng);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = c;
+    }
+  }
+  return best;
+}
+
 // Polygon Area & Perimeter Calculator
 function getPolygonAreaAndPerimeter(points: PolygonPoint[], unitSystem: UnitSystem) {
   if (!points || points.length < 3) return { areaStr: '0 sq ft', acresStr: '0.00 Acres', perimeterStr: '0 ft' };
@@ -601,6 +625,9 @@ export const MapView: React.FC<MapViewProps> = ({
   const [pathEditType, setPathEditType] = useState<PathType>('travel_route');
   const [pathEditNotes, setPathEditNotes] = useState('');
 
+  // Snap target preview while drawing a path (highlights the vertex the next click will stick to)
+  const [pathSnapPreview, setPathSnapPreview] = useState<PolygonPoint | null>(null);
+
   // Map view parameters
   const [zoom, setZoom] = useState(16);
   const [mapStyle, setMapStyle] = useState<'satellite' | 'topo' | 'street'>(() => {
@@ -655,6 +682,7 @@ export const MapView: React.FC<MapViewProps> = ({
         } else if (isDrawingPath) {
           setIsDrawingPath(false);
           setCurrentPathPoints([]);
+          setPathSnapPreview(null);
         } else if (isPlacingMarkerMode) {
           setIsPlacingMarkerMode(false);
         } else {
@@ -865,6 +893,17 @@ export const MapView: React.FC<MapViewProps> = ({
     return { lengthStr: getPathLength(selectedPath.points, units) };
   }, [selectedPath, units]);
 
+  // Snap candidates while drawing: vertices of all visible paths, draft points, and pin locations
+  const pathSnapCandidates = useMemo(() => {
+    const cands: PolygonPoint[] = [];
+    for (const path of visiblePaths) {
+      for (const pt of path.points) cands.push(pt);
+    }
+    for (const pt of currentPathPoints) cands.push(pt);
+    for (const pin of visiblePins) cands.push({ lat: pin.lat, lng: pin.lng });
+    return cands;
+  }, [visiblePaths, currentPathPoints, visiblePins]);
+
   // Handle center location reset
   const handleResetLocation = () => {
     setCenterLat(defaultLat);
@@ -982,6 +1021,7 @@ export const MapView: React.FC<MapViewProps> = ({
     setIsDrawingPolygon(false);
     setIsPlacingMarkerMode(false);
     setCurrentPathPoints([]);
+    setPathSnapPreview(null);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
     setSelectedPathId(null);
@@ -997,6 +1037,7 @@ export const MapView: React.FC<MapViewProps> = ({
       alert('A path requires at least 2 points.');
       return;
     }
+    setPathSnapPreview(null);
     setPathEditName(`Path #${paths.length + 1}`);
     setPathEditType('travel_route');
     setPathEditNotes('');
@@ -1019,6 +1060,7 @@ export const MapView: React.FC<MapViewProps> = ({
     setIsSavingNewPathModal(false);
     setIsDrawingPath(false);
     setCurrentPathPoints([]);
+    setPathSnapPreview(null);
     setSelectedPathId(newId);
   };
 
@@ -1186,7 +1228,9 @@ export const MapView: React.FC<MapViewProps> = ({
     }
 
     if (isDrawingPath) {
-      setCurrentPathPoints((prev) => [...prev, { lat, lng }]);
+      const snapped = findSnapPoint(lat, lng, zoom, pathSnapCandidates);
+      // Clone the snapped vertex so the draft never aliases another saved path's point object
+      setCurrentPathPoints((prev) => [...prev, snapped ? { lat: snapped.lat, lng: snapped.lng } : { lat, lng }]);
       return;
     }
 
@@ -1227,42 +1271,10 @@ export const MapView: React.FC<MapViewProps> = ({
       return;
     }
 
-    // 1. Check if clicked inside existing field/zone polygon first (excluding property_boundary)
-    const clickedFieldPoly = visiblePolygons.find(
-      (poly) => poly.type !== 'property_boundary' && isPointInPolygon(lat, lng, poly.points)
-    );
-    if (clickedFieldPoly) {
-      selectPolygon(clickedFieldPoly);
-      return;
-    }
-
-    // 2. Check if clicked inside property boundary polygon next
-    const clickedPropPoly = visiblePolygons.find((poly) => poly.type === 'property_boundary' && isPointInPolygon(lat, lng, poly.points));
-    if (clickedPropPoly) {
-      selectPolygon(clickedPropPoly);
-      return;
-    }
-
-    // 3. Check if clicked near any polygon border line segment (~25 screen pixels)
+    // 1. Check if clicked near any path polyline FIRST (~20 screen pixels) so paths
+    //    drawn inside property boundaries / zones remain clickable (fills would swallow them)
     const tileSize = 256;
     const pixelsPerDegree = (tileSize * Math.pow(2, zoom)) / 360;
-    const clickedBorderPoly = visiblePolygons.find((poly) => {
-      const pts = poly.points;
-      for (let i = 0; i < pts.length; i++) {
-        const p1 = pts[i];
-        const p2 = pts[(i + 1) % pts.length];
-        const distDeg = distanceToSegmentDeg(lat, lng, p1.lat, p1.lng, p2.lat, p2.lng);
-        const distPx = distDeg * pixelsPerDegree;
-        if (distPx < 25) return true;
-      }
-      return false;
-    });
-    if (clickedBorderPoly) {
-      selectPolygon(clickedBorderPoly);
-      return;
-    }
-
-    // 4. Check if clicked near any path polyline (~20 screen pixels)
     const clickedPath = visiblePaths.find((path) => {
       const pts = path.points;
       if (pts.length < 2) return false;
@@ -1277,6 +1289,39 @@ export const MapView: React.FC<MapViewProps> = ({
     });
     if (clickedPath) {
       selectPath(clickedPath);
+      return;
+    }
+
+    // 2. Check if clicked inside existing field/zone polygon (excluding property_boundary)
+    const clickedFieldPoly = visiblePolygons.find(
+      (poly) => poly.type !== 'property_boundary' && isPointInPolygon(lat, lng, poly.points)
+    );
+    if (clickedFieldPoly) {
+      selectPolygon(clickedFieldPoly);
+      return;
+    }
+
+    // 3. Check if clicked inside property boundary polygon next
+    const clickedPropPoly = visiblePolygons.find((poly) => poly.type === 'property_boundary' && isPointInPolygon(lat, lng, poly.points));
+    if (clickedPropPoly) {
+      selectPolygon(clickedPropPoly);
+      return;
+    }
+
+    // 4. Check if clicked near any polygon border line segment (~25 screen pixels)
+    const clickedBorderPoly = visiblePolygons.find((poly) => {
+      const pts = poly.points;
+      for (let i = 0; i < pts.length; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % pts.length];
+        const distDeg = distanceToSegmentDeg(lat, lng, p1.lat, p1.lng, p2.lat, p2.lng);
+        const distPx = distDeg * pixelsPerDegree;
+        if (distPx < 25) return true;
+      }
+      return false;
+    });
+    if (clickedBorderPoly) {
+      selectPolygon(clickedBorderPoly);
       return;
     }
 
@@ -1300,8 +1345,41 @@ export const MapView: React.FC<MapViewProps> = ({
     dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
+  // Convert client/viewport coordinates to map lat/lng (shared by click + snap-preview math)
+  const clientToLatLng = (clientX: number, clientY: number) => {
+    if (!mapContainerRef.current) return { lat: centerLat, lng: centerLng };
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const clickX = clientX - rect.left;
+    const clickY = clientY - rect.top;
+
+    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
+    const tileSize = 256;
+    const mouseTileX = centerTile.x + (clickX - dimensions.width / 2) / tileSize;
+    const mouseTileY = centerTile.y + (clickY - dimensions.height / 2) / tileSize;
+
+    return {
+      lat: tileYToLat(mouseTileY, zoom),
+      lng: tileXToLng(mouseTileX, zoom),
+    };
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging) {
+      // While drawing a path, preview which snap target the next click will stick to.
+      // Bail out when the target is unchanged so the map doesn't re-render on every pixel.
+      if (isDrawingPath) {
+        const { lat: mouseLat, lng: mouseLng } = clientToLatLng(e.clientX, e.clientY);
+        setPathSnapPreview((prev) => {
+          const next = findSnapPoint(mouseLat, mouseLng, zoom, pathSnapCandidates);
+          if (next === null && prev === null) return prev;
+          if (next && prev && next.lat === prev.lat && next.lng === prev.lng) return prev;
+          return next;
+        });
+      } else if (pathSnapPreview) {
+        setPathSnapPreview(null);
+      }
+      return;
+    }
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
 
@@ -1325,18 +1403,7 @@ export const MapView: React.FC<MapViewProps> = ({
     setIsDragging(false);
 
     if (!hasMovedRef.current && mapContainerRef.current) {
-      const rect = mapContainerRef.current.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-
-      const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-      const tileSize = 256;
-      const mouseTileX = centerTile.x + (clickX - dimensions.width / 2) / tileSize;
-      const mouseTileY = centerTile.y + (clickY - dimensions.height / 2) / tileSize;
-
-      const clickedLat = tileYToLat(mouseTileY, zoom);
-      const clickedLng = tileXToLng(mouseTileX, zoom);
-
+      const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY);
       handleMapClick(clickedLat, clickedLng);
     }
   };
@@ -1477,18 +1544,7 @@ export const MapView: React.FC<MapViewProps> = ({
     setIsDragging(false);
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
-      const rect = mapContainerRef.current.getBoundingClientRect();
-      const clickX = e.changedTouches[0].clientX - rect.left;
-      const clickY = e.changedTouches[0].clientY - rect.top;
-
-      const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-      const tileSize = 256;
-      const mouseTileX = centerTile.x + (clickX - dimensions.width / 2) / tileSize;
-      const mouseTileY = centerTile.y + (clickY - dimensions.height / 2) / tileSize;
-
-      const clickedLat = tileYToLat(mouseTileY, zoom);
-      const clickedLng = tileXToLng(mouseTileX, zoom);
-
+      const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
       handleMapClick(clickedLat, clickedLng);
     }
   };
@@ -1900,6 +1956,27 @@ export const MapView: React.FC<MapViewProps> = ({
                 })}
               </g>
             )}
+
+            {/* Path Snap Target Preview Ring */}
+            {isDrawingPath && pathSnapPreview && (() => {
+              const px = latLngToPixel(pathSnapPreview.lat, pathSnapPreview.lng);
+              return (
+                <g className="pointer-events-none">
+                  <circle
+                    cx={px.x}
+                    cy={px.y}
+                    r={13}
+                    fill="#0ea5e9"
+                    fillOpacity={0.2}
+                    stroke="#0ea5e9"
+                    strokeWidth={2.5}
+                    strokeDasharray="4 3"
+                    className="animate-pulse"
+                  />
+                  <circle cx={px.x} cy={px.y} r={4} fill="#0ea5e9" stroke="#ffffff" strokeWidth={2} />
+                </g>
+              );
+            })()}
 
             {/* Scent Plume Cone Path */}
             {scentConePath && (
@@ -2660,6 +2737,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     onClick={() => {
                       setIsDrawingPath(false);
                       setCurrentPathPoints([]);
+                      setPathSnapPreview(null);
                     }}
                     className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[10px] font-bold rounded-lg cursor-pointer"
                   >
