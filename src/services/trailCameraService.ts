@@ -171,6 +171,7 @@ function parseOCRTextToISO(rawText: string): { iso: string; timeDefaulted: boole
       .replace(/[OoQqD]([0-9])/g, '0$1')
       .replace(/([0-9])[lI!|]/g, '$11')
       .replace(/[lI!|]([0-9])/g, '1$1')
+      .replace(/[lI!|]{2,}/g, (m) => '1'.repeat(m.length))
       .replace(/([0-9])[Zz]/g, '$12')
       .replace(/[Zz]([0-9])/g, '2$1')
       .replace(/([0-9])[Ss](?!\s*[Ee][Pp])/g, '$15')
@@ -434,6 +435,54 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     return { dateTime: result.iso, timeDefaulted: result.timeDefaulted };
   };
 
+  // Majority consensus: given all valid OCR results across strips/strategies,
+  // pick the date that appears most often, then the best time for that date.
+  const resolveConsensus = (results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }>): { dateTime: string; timeDefaulted: boolean } | undefined => {
+    if (results.length === 0) return undefined;
+    if (results.length === 1) return { dateTime: results[0].dateTime, timeDefaulted: results[0].timeDefaulted };
+
+    // Group by date (YYYY-MM-DD)
+    const byDate = new Map<string, typeof results>();
+    for (const r of results) {
+      const dateKey = r.dateTime.slice(0, 10);
+      if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+      byDate.get(dateKey)!.push(r);
+    }
+
+    // Find the most common date. On ties, prefer the date with more
+    // time-complete entries (not timeDefaulted).
+    let bestDate = '';
+    let bestCount = 0;
+    let bestTimedCount = 0;
+    for (const [date, entries] of byDate) {
+      const timedCount = entries.filter(e => !e.timeDefaulted).length;
+      if (entries.length > bestCount ||
+          (entries.length === bestCount && timedCount > bestTimedCount) ||
+          (entries.length === bestCount && timedCount === bestTimedCount && !bestDate)) {
+        bestCount = entries.length;
+        bestTimedCount = timedCount;
+        bestDate = date;
+      }
+    }
+
+    const bestEntries = byDate.get(bestDate)!;
+    // Prefer: time not defaulted, then most specific time (not 12:00:00)
+    bestEntries.sort((a, b) => {
+      if (a.timeDefaulted !== b.timeDefaulted) return a.timeDefaulted ? 1 : -1;
+      const aTime = a.dateTime.slice(11, 19);
+      const bTime = b.dateTime.slice(11, 19);
+      if (aTime !== '12:00:00' && bTime === '12:00:00') return -1;
+      if (aTime === '12:00:00' && bTime !== '12:00:00') return 1;
+      return 0;
+    });
+
+    const winner = bestEntries[0];
+    const agreeCount = bestEntries.length;
+    const totalCount = results.length;
+    console.warn(`[OCR] Consensus: ${bestDate} wins (${agreeCount}/${totalCount} agree) — ${agreeCount === totalCount ? 'UNANIMOUS' : agreeCount >= totalCount * 0.5 ? 'MAJORITY' : 'PLURALITY'} — timeDefaulted=${winner.timeDefaulted}`);
+    return { dateTime: winner.dateTime, timeDefaulted: winner.timeDefaulted };
+  };
+
   // Try increasingly generous strips from the very bottom of the image.
   // Normally the bar fits in the last ~3 %, but some cameras use a taller
   // band. Tried shortest-first so the first OCR call has the highest
@@ -446,13 +495,16 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     { hRatio: 0.18, targetH: 240, label: '18%-240' },
   ];
 
-  // Try a single strip + strategy and return the dateTime + timeDefaulted if found
+  // Collect ALL valid results from all 3 strategies for a single strip.
+  // Previously short-circuited on first success — now all strategies run
+  // so majority consensus can override a noisy read like "01" for "11".
   const tryStrip = async (
     worker: any,
     hRatio: number,
     targetH: number,
     label: string,
-  ): Promise<{ dateTime: string; timeDefaulted: boolean } | undefined> => {
+    results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }>,
+  ): Promise<void> => {
     const cropH = Math.round(img.height * hRatio);
     const cropY = img.height - cropH;
 
@@ -475,7 +527,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     tmp.width = canvasW;
     tmp.height = targetH;
     const ctx = tmp.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return undefined;
+    if (!ctx) return;
 
     // Draw the bottom strip of the ORIGINAL image at the up-scaled size
     ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, canvasW, targetH);
@@ -485,7 +537,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
-    if (r) { console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); return r; }
+    if (r) { console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); results.push({ ...r, label: `${label} raw` }); }
 
     // ─ Strategy B: invert (white-on-dark → black-on-white) ─
     invertCanvas(tmp, ctx);
@@ -493,7 +545,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
-    if (r) { console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); return r; }
+    if (r) { console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); results.push({ ...r, label: `${label} inv` }); }
 
     // ─ Strategy C: binarize the inverted image ─
     const meanGray = computeMeanGray(ctx, canvasW, targetH);
@@ -504,10 +556,8 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
       console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
-      if (r) { console.warn(`[OCR] ✓ binarized ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); return r; }
+      if (r) { console.warn(`[OCR] ✓ binarized ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); results.push({ ...r, label: `${label} bw` }); }
     }
-
-    return undefined;
   };
 
   // Setup the worker (reuse or create) then iterate PSMs × strips
@@ -519,18 +569,41 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     const shouldTerminate = !existingWorker;
 
     try {
-      // PSM 7 = single uniform line of text (best for timestamp bar)
-      // PSM 3 = fully automatic page segmentation (fallback)
-      for (const psm of ['7', '3']) {
-        console.warn(`[OCR] Setting PSM=${psm}`);
-        await worker.setParameters({ tessedit_pageseg_mode: psm });
+      // ── Phase 1: PSM 7 (single uniform line — best for timestamp bars) ──
+      // Run ALL strips, collect ALL results, apply majority consensus.
+      // No more short-circuiting on the first successful read — that let
+      // a single noisy strip (e.g. "01" misread for "11") override the
+      // other strips that all agree on the correct date.
+      console.warn('[OCR] Setting PSM=7');
+      await worker.setParameters({ tessedit_pageseg_mode: '7' });
+      const psm7Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
+      for (let si = 0; si < strips.length; si++) {
+        const { hRatio, targetH, label } = strips[si];
+        await tryStrip(worker, hRatio, targetH, `PSM7 ${label}`, psm7Results);
+        await new Promise((r) => setTimeout(r, 0));
+      }
 
-        for (let si = 0; si < strips.length; si++) {
-          const { hRatio, targetH, label } = strips[si];
-          const result = await tryStrip(worker, hRatio, targetH, `PSM${psm} ${label}`);
-          if (result) return { dateTime: result.dateTime, timeDefaulted: result.timeDefaulted, rawTexts };
-          await new Promise((r) => setTimeout(r, 0));
-        }
+      const consensus = resolveConsensus(psm7Results);
+      if (consensus) {
+        console.warn(`[OCR] PSM7 consensus: ${consensus.dateTime}${consensus.timeDefaulted ? ' (time defaulted)' : ''}`);
+        return { dateTime: consensus.dateTime, timeDefaulted: consensus.timeDefaulted, rawTexts };
+      }
+
+      // ── Phase 2: PSM 3 (auto page segmentation — fallback for wider timestamp bars) ──
+      // Only run if PSM7 produced NO results at all.
+      console.warn('[OCR] No PSM7 results — falling back to PSM=3');
+      await worker.setParameters({ tessedit_pageseg_mode: '3' });
+      const psm3Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
+      for (let si = 0; si < strips.length; si++) {
+        const { hRatio, targetH, label } = strips[si];
+        await tryStrip(worker, hRatio, targetH, `PSM3 ${label}`, psm3Results);
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
+      const consensus3 = resolveConsensus(psm3Results);
+      if (consensus3) {
+        console.warn(`[OCR] PSM3 consensus: ${consensus3.dateTime}${consensus3.timeDefaulted ? ' (time defaulted)' : ''}`);
+        return { dateTime: consensus3.dateTime, timeDefaulted: consensus3.timeDefaulted, rawTexts };
       }
     } finally {
       if (shouldTerminate) await worker.terminate();
