@@ -39,6 +39,7 @@ import {
   ShieldCheck,
   Moon,
   Star,
+  Maximize2,
 } from 'lucide-react';
 
 interface ForecastCardsProps {
@@ -455,6 +456,28 @@ const getScoreBadgeColor = (score: number) => {
                     )}
                   </div>
 
+                  {/* Detailed Prediction Button — top of expanded view for quick access */}
+                  {onOpenDetails && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDetails(day.date);
+                      }}
+                      className={`w-full mt-2 py-2.5 font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] ring-2 ${
+                        theme === 'hunting'
+                          ? 'bg-[#c85a17] hover:bg-[#b34e12] text-white ring-[#c85a17]/10'
+                          : theme === 'olive'
+                          ? 'bg-[#556b2f] hover:bg-[#4a5e27] text-white ring-[#556b2f]/10'
+                          : isDark
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 ring-emerald-500/10'
+                          : 'bg-emerald-500 hover:bg-emerald-600 text-white ring-emerald-500/10'
+                      }`}
+                    >
+                      <Maximize2 className="w-4 h-4 shrink-0" />
+                      <span>View Detailed Prediction</span>
+                    </button>
+                  )}
+
                   {/* Weather & Temp */}
                   <div className="flex items-center gap-3.5 my-3">
                     <div
@@ -569,21 +592,6 @@ const getScoreBadgeColor = (score: number) => {
                     </div>
                   </div>
 
-                  {/* Detailed Prediction Button */}
-                  {onOpenDetails && (
-                    <div className="mt-4 pt-3.5 border-t border-slate-500/15">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenDetails(day.date);
-                        }}
-                        className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-slate-950 font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ring-2 ring-emerald-500/10 hover:scale-[1.01]"
-                      >
-                        <Target className="w-4 h-4 shrink-0 fill-current" />
-                        <span>View Detailed Prediction</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </motion.div>
             </div>
