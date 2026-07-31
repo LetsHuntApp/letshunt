@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Wind flow animation — used by the map wind streak overlay.
+   Travel distance is set per element via the CSS custom property --travel */
+@keyframes windFlow {
+  from { transform: translateX(0px); }
+  to   { transform: translateX(var(--travel)); }
+}
+
 /* Fallback card background colors using rgb slash notation to ensure opacity setting works flawlessly in all browsers */
 .bg-slate-900\/\[var\(--card-opacity\)\],
 [class*="bg-slate-900/[var(--card-opacity)]"] {

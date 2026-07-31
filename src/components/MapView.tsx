@@ -1743,15 +1743,15 @@ export const MapView: React.FC<MapViewProps> = ({
       const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
       return x - Math.floor(x);
     };
-    const streaks: { x: number; y: number; len: number; width: number; opacity: number; begin: number; dur: number; travel: number }[] = [];
+    const streaks: { x: number; y: number; len: number; width: number; opacity: number; delay: number; dur: number; travel: number }[] = [];
     for (let i = 0; i < count; i++) {
       streaks.push({
         x: hash(i * 3 + 1) * (w + margin * 2) - margin,
         y: hash(i * 3 + 2) * (h + margin * 2) - margin,
         len: 45 + hash(i * 3 + 3) * 120,
-        width: 1.4 + hash(i * 3 + 4) * 2.6,
-        opacity: 0.16 + hash(i * 3 + 5) * 0.32,
-        begin: -hash(i * 3 + 6) * dur,
+        width: 1.8 + hash(i * 3 + 4) * 3.2,
+        opacity: 0.30 + hash(i * 3 + 5) * 0.35,
+        delay: -hash(i * 3 + 6) * dur,
         dur,
         travel,
       });
@@ -1783,6 +1783,14 @@ export const MapView: React.FC<MapViewProps> = ({
 
           {/* SVG Overlay: Polygons, Scent Cones & Routes */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible">
+            <defs>
+              <radialGradient id="scentPlumeGradient" cx="0%" cy="0%" r="100%">
+                <stop offset="0%" stopColor="#ea580c" stopOpacity="0.8" />
+                <stop offset="60%" stopColor="#f97316" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#fef08a" stopOpacity="0.05" />
+              </radialGradient>
+            </defs>
+
             {/* Polygon Zones */}
             {visiblePolygons.map((poly) => {
               if (poly.points.length < 3) return null;
@@ -2054,24 +2062,16 @@ export const MapView: React.FC<MapViewProps> = ({
                     key={`wind-streak-${i}`}
                     transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
                   >
-                    <g opacity={s.opacity}>
+                    <g opacity={s.opacity} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
                       <line
                         x1={0}
                         y1={0}
                         x2={s.len}
                         y2={0}
-                        stroke="url(#windStreakGradient)"
+                        stroke="#7dd3fc"
+                        strokeOpacity={0.75}
                         strokeWidth={s.width}
                         strokeLinecap="round"
-                      />
-                      <animateTransform
-                        attributeName="transform"
-                        type="translate"
-                        from={`${-s.travel / 2} 0`}
-                        to={`${s.travel / 2} 0`}
-                        dur={`${s.dur}s`}
-                        begin={`${s.begin}s`}
-                        repeatCount="indefinite"
                       />
                     </g>
                   </g>
@@ -2080,18 +2080,7 @@ export const MapView: React.FC<MapViewProps> = ({
             )}
 
 
-            <defs>
-              <radialGradient id="scentPlumeGradient" cx="0%" cy="0%" r="100%">
-                <stop offset="0%" stopColor="#ea580c" stopOpacity="0.8" />
-                <stop offset="60%" stopColor="#f97316" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#fef08a" stopOpacity="0.05" />
-              </radialGradient>
-              <linearGradient id="windStreakGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
-                <stop offset="55%" stopColor="#7dd3fc" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.25" />
-              </linearGradient>
-            </defs>
+            {/* Gradients now defined at top of SVG */}
           </svg>
 
           {/* Marker Pins Overlay */}
