@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search } from 'lucide-react';
+import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle } from 'lucide-react';
 import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -54,6 +54,11 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // Import State
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<{ completed: number; total: number } | null>(null);
+
+  // Post-import time correction modal
+  const [timeCorrectionPhotos, setTimeCorrectionPhotos] = useState<TrailCameraPhoto[]>([]);
+  const [timeCorrectionValues, setTimeCorrectionValues] = useState<Record<string, string>>({});
+  const [savingCorrections, setSavingCorrections] = useState(false);
 
   // New Location Modal State
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -244,6 +249,20 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       const freshPhotos = await getAllPhotos();
       setPhotos(freshPhotos);
       matchWeatherBackground(freshPhotos, locations);
+
+      // Show time correction modal if any imported photos have defaulted time
+      const timeDefaulted = imported.filter(p => p.timeDefaulted);
+      if (timeDefaulted.length > 0) {
+        const initialValues: Record<string, string> = {};
+        for (const p of timeDefaulted) {
+          // Pre-fill with just the date part, leaving time blank for user to set
+          const d = new Date(p.dateTime!);
+          const pad = (n: number) => String(n).padStart(2, '0');
+          initialValues[p.id] = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T12:00`;
+        }
+        setTimeCorrectionValues(initialValues);
+        setTimeCorrectionPhotos(timeDefaulted);
+      }
     } catch (err) {
       console.error('Error importing photos:', err);
       showToast('Failed to import photos.');
@@ -403,6 +422,44 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     setNewLocLat(pin.lat);
     setNewLocLon(pin.lng);
     showToast(`Selected map pin: ${pin.name}`);
+  };
+
+  // Save Time Corrections
+  const handleSaveTimeCorrections = async () => {
+    if (savingCorrections) return;
+    setSavingCorrections(true);
+    try {
+      let saved = 0;
+      for (const photo of timeCorrectionPhotos) {
+        const newValue = timeCorrectionValues[photo.id];
+        if (!newValue || !photo.dateTime) continue;
+        const newDate = new Date(newValue);
+        if (isNaN(newDate.getTime())) continue;
+        const newISO = newDate.toISOString();
+        // Only update if time actually changed
+        if (newISO === photo.dateTime) continue;
+        await updatePhoto(photo.id, { dateTime: newISO, timeDefaulted: false });
+        saved++;
+      }
+      if (saved > 0) {
+        const fresh = await getAllPhotos();
+        setPhotos(fresh);
+        showToast(`Updated time for ${saved} photo(s)`);
+      }
+    } catch (e) {
+      console.error('Failed to save time corrections:', e);
+      showToast('Failed to save some corrections');
+    } finally {
+      setSavingCorrections(false);
+      setTimeCorrectionPhotos([]);
+      setTimeCorrectionValues({});
+    }
+  };
+
+  const handleSkipTimeCorrections = () => {
+    setTimeCorrectionPhotos([]);
+    setTimeCorrectionValues({});
+    showToast('You can correct times later using the "Time Missing" filter in the gallery');
   };
 
   // Filtered Photos
@@ -710,6 +767,70 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           }}
           onClose={() => setIsTargetManagerOpen(false)}
         />
+      )}
+
+      {/* Post-Import Time Correction Modal */}
+      {timeCorrectionPhotos.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className={`${modalBg} rounded-2xl p-6 max-w-lg w-full max-h-[90vh] flex flex-col space-y-4 shadow-2xl`}>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              <div>
+                <h3 className="text-base font-extrabold">Time Not Recognized</h3>
+                <p className="text-xs opacity-70">
+                  {timeCorrectionPhotos.length} photo(s) had their dates read but times couldn't be extracted and defaulted to 12:00 PM.
+                  Correct them now or skip — you can fix them later from the gallery.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {timeCorrectionPhotos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className={`flex items-center gap-3 p-3 rounded-xl border ${
+                    isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold truncate">{photo.fileName}</div>
+                    <div className="text-[10px] opacity-60">
+                      Date: {photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'Unknown'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <input
+                      type="datetime-local"
+                      value={timeCorrectionValues[photo.id] || ''}
+                      onChange={(e) => setTimeCorrectionValues(prev => ({ ...prev, [photo.id]: e.target.value }))}
+                      className={`px-2 py-1.5 rounded-lg text-xs font-bold border ${
+                        isDark ? 'bg-slate-950 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/30">
+              <button
+                onClick={handleSkipTimeCorrections}
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl ${buttonSecondaryBg}`}
+              >
+                Skip for Now
+              </button>
+              <button
+                onClick={handleSaveTimeCorrections}
+                disabled={savingCorrections}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-60 flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                {savingCorrections ? 'Saving…' : `Save ${timeCorrectionPhotos.length} Time(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Add New Camera Location Modal */}

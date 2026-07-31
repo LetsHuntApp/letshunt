@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine } from 'lucide-react';
+import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine, AlertTriangle } from 'lucide-react';
 import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
 
@@ -104,6 +104,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
+  const [showTimeDefaultedOnly, setShowTimeDefaultedOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [assignLocationModalOpen, setAssignLocationModalOpen] = useState(false);
@@ -130,7 +131,8 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   }, []);
 
   const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
-  const paginatedPhotos = photos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const displayPhotos = showTimeDefaultedOnly ? photos.filter(p => p.timeDefaulted) : photos;
+  const paginatedPhotos = displayPhotos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const tc = getThemeClasses(theme);
 
   // Close tag popup on click outside
@@ -254,6 +256,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
       onUpdatePhoto(photo.id, {
         dateTime: newDateTime,
+        timeDefaulted: false,
         weather,
         latitude: lat,
         longitude: lon,
@@ -321,6 +324,22 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             {isSelectMode ? 'Cancel Selection' : 'Select Multiple'}
           </button>
 
+          <button
+            onClick={() => {
+              setShowTimeDefaultedOnly(!showTimeDefaultedOnly);
+              setCurrentPage(1);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
+              showTimeDefaultedOnly
+                ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold'
+                : tc.selectModeBtn(false)
+            }`}
+            title="Show only photos where OCR could read the date but not the time"
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {showTimeDefaultedOnly ? 'Showing: Time Missing' : 'Time Missing'}
+          </button>
+
           {isSelectMode && (
             <>
               <button
@@ -384,8 +403,10 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             const isSelected = selectedIds.includes(photo.id);
             const thumbUrl = thumbnails[photo.id];
             const ocrSucceeded = !!photo.dateTime;
+            const timeWasDefaulted = photo.timeDefaulted === true;
             const dateStr = photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'No Date';
             const timeStr = photo.dateTime ? new Date(photo.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'OCR failed';
+            const timeWarning = timeWasDefaulted ? '⚠ Time not read — defaults to 12:00 PM' : '';
 
             return (
               <div
@@ -600,6 +621,23 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                         </div>
                       )}
                     </div>
+                  ) : timeWasDefaulted ? (
+                    <div className="space-y-0.5">
+                      <div
+                        className="font-extrabold truncate drop-shadow flex items-center gap-1"
+                        title={timeWarning}
+                      >
+                        <span className="text-amber-300">⚠</span>
+                        <span>{dateStr}</span>
+                        <span className="text-amber-300 text-[10px] font-bold">12:00 PM</span>
+                      </div>
+                      <div
+                        className="text-[9px] text-amber-400/70 truncate leading-tight"
+                        title={timeWarning}
+                      >
+                        Time not recognized
+                      </div>
+                    </div>
                   ) : (
                     <div
                       className="font-extrabold truncate drop-shadow"
@@ -643,7 +681,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
           </button>
 
           <span>
-            Page {currentPage} of {totalPages} ({photos.length} photos)
+            Page {currentPage} of {totalPages} ({displayPhotos.length} photos)
           </span>
 
           <button

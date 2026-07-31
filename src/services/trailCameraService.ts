@@ -155,13 +155,18 @@ function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
   });
 }
 
-// Helper to parse OCR text into an ISO date string
-function parseOCRTextToISO(rawText: string): string | undefined {
+// Helper to parse OCR text into an ISO date string.
+// Returns { iso, timeDefaulted } where timeDefaulted=true means no time
+// was found in the text and 12:00 PM was used as a placeholder.
+function parseOCRTextToISO(rawText: string): { iso: string; timeDefaulted: boolean } | undefined {
   if (!rawText) return undefined;
 
   const fixNumericTypos = (s: string) => {
     return s
       .replace(/(\d)T(\d)/g, '$1:$2')
+      .replace(/(\d);(\d)/g, '$1:$2')
+      .replace(/\bP\.?\s*M\.?\b/gi, 'PM')
+      .replace(/\bA\.?\s*M\.?\b/gi, 'AM')
       .replace(/([0-9])[OoQqD]/g, '$10')
       .replace(/[OoQqD]([0-9])/g, '0$1')
       .replace(/([0-9])[lI!|]/g, '$11')
@@ -254,7 +259,7 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     };
 
     // Pattern 1: YYYY/MM/DD HH:MM(:SS) (AM/PM), time optional
-    const re1 = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    const re1 = /\b(20\d{2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(\d{1,2})(?:\s+(\d{1,2})\s*[\s:.;]\s*(\d{1,2})(?:\s*[\s:.;]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
     const m1 = re1.exec(text);
     if (m1) {
       const r = buildISO(m1, 1, 2, 3, m1[4] !== undefined ? 4 : null, m1[4] !== undefined ? 5 : null, m1[4] !== undefined ? 6 : null, m1[4] !== undefined ? 7 : null);
@@ -262,7 +267,7 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     }
 
     // Pattern 2: MM/DD/YYYY HH:MM(:SS) (AM/PM), time optional
-    const re2 = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{1,2})(?:\s*[:.]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
+    const re2 = /\b(\d{1,2})\s*[-/.:]\s*(\d{1,2})\s*[-/.:]\s*(20\d{2})(?:\s+(\d{1,2})\s*[\s:.;]\s*(\d{1,2})(?:\s*[\s:.;]\s*(\d{1,2}))?\s*(AM|PM)?)?\b/i;
     const m2 = re2.exec(text);
     if (m2) {
       const r = buildISO(m2, 3, 1, 2, m2[4] !== undefined ? 4 : null, m2[4] !== undefined ? 5 : null, m2[4] !== undefined ? 6 : null, m2[4] !== undefined ? 7 : null);
@@ -274,7 +279,7 @@ function parseOCRTextToISO(rawText: string): string | undefined {
       JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
       JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
     };
-    const monRe = /\b([A-Za-z]{3,9})\s*[-/.\s]?\s*(\d{1,2})\s*[-/.\s]?\s*(20\d{2})(?:\s+(\d{1,2})\s*[:.]\s*(\d{2})(?:\s*[:.]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
+    const monRe = /\b([A-Za-z]{3,9})\s*[-/.\s]?\s*(\d{1,2})\s*[-/.\s]?\s*(20\d{2})(?:\s+(\d{1,2})\s*[\s:.;]\s*(\d{2})(?:\s*[\s:.;]\s*(\d{2}))?\s*(AM|PM)?)?\b/i;
     const m3 = monRe.exec(text);
     if (m3) {
       const monthStr = m3[1].toUpperCase().slice(0, 3);
@@ -303,7 +308,7 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     // Pattern 4: YYYYMMDD_HHMMSS or YYYYMMDD (compact, no separators)
 
     // Try with time first
-    const compactRe1 = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[:.]?(\d{2})(?:[:.]?(\d{2}))?\b/;
+    const compactRe1 = /\b(20\d{2})(\d{2})(\d{2})[_\s]?(\d{2})[\s:.;]?(\d{2})(?:[\s:.;]?(\d{2}))?\b/;
     const mCompact1 = compactRe1.exec(text);
     if (mCompact1) {
       let y = parseInt(mCompact1[1], 10), mo = parseInt(mCompact1[2], 10), d = parseInt(mCompact1[3], 10);
@@ -326,7 +331,8 @@ function parseOCRTextToISO(rawText: string): string | undefined {
     }
   }
 
-  return bestISO;
+  if (!bestISO) return undefined;
+  return { iso: bestISO, timeDefaulted: bestScore < 2 };
 }
 
 function isDateReasonable(isoDate: string): boolean {
@@ -402,7 +408,7 @@ function computeMeanGray(ctx: CanvasRenderingContext2D, w: number, h: number): n
 //
 // Every OCR result is logged via console.debug so you can open DevTools and
 // see exactly what Tesseract returns at each stage.
-async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<{dateTime?: string, rawTexts: string[]}> {
+async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<{dateTime?: string, timeDefaulted?: boolean, rawTexts: string[]}> {
   const rawTexts: string[] = [];
   const img = await loadImageForOCR(file);
   if (!img) return { rawTexts };
@@ -420,12 +426,12 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     ctx.putImageData(imgData, 0, 0);
   };
 
-  const checkResult = (iso: string | undefined): string | undefined => {
-    if (!iso) return undefined;
-    const dt = new Date(iso);
+  const checkResult = (result: { iso: string; timeDefaulted: boolean } | undefined): { dateTime: string; timeDefaulted: boolean } | undefined => {
+    if (!result) return undefined;
+    const dt = new Date(result.iso);
     if (isNaN(dt.getTime())) return undefined;
     if (dt.getFullYear() < 1990 || dt.getFullYear() > 2100) return undefined;
-    return iso;
+    return { dateTime: result.iso, timeDefaulted: result.timeDefaulted };
   };
 
   // Try increasingly generous strips from the very bottom of the image.
@@ -440,13 +446,13 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     { hRatio: 0.18, targetH: 240, label: '18%-240' },
   ];
 
-  // Try a single strip + strategy and return the ISO string if found
+  // Try a single strip + strategy and return the dateTime + timeDefaulted if found
   const tryStrip = async (
     worker: any,
     hRatio: number,
     targetH: number,
     label: string,
-  ): Promise<string | undefined> => {
+  ): Promise<{ dateTime: string; timeDefaulted: boolean } | undefined> => {
     const cropH = Math.round(img.height * hRatio);
     const cropY = img.height - cropH;
 
@@ -479,7 +485,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
-    if (r) { console.warn(`[OCR] ✓ raw ${label}: ${r}`); return r; }
+    if (r) { console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); return r; }
 
     // ─ Strategy B: invert (white-on-dark → black-on-white) ─
     invertCanvas(tmp, ctx);
@@ -487,7 +493,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
-    if (r) { console.warn(`[OCR] ✓ inverted ${label}: ${r}`); return r; }
+    if (r) { console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); return r; }
 
     // ─ Strategy C: binarize the inverted image ─
     const meanGray = computeMeanGray(ctx, canvasW, targetH);
@@ -498,7 +504,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
       console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
-      if (r) { console.warn(`[OCR] ✓ binarized ${label}: ${r}`); return r; }
+      if (r) { console.warn(`[OCR] ✓ binarized ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); return r; }
     }
 
     return undefined;
@@ -522,7 +528,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
         for (let si = 0; si < strips.length; si++) {
           const { hRatio, targetH, label } = strips[si];
           const result = await tryStrip(worker, hRatio, targetH, `PSM${psm} ${label}`);
-          if (result) return { dateTime: result, rawTexts };
+          if (result) return { dateTime: result.dateTime, timeDefaulted: result.timeDefaulted, rawTexts };
           await new Promise((r) => setTimeout(r, 0));
         }
       }
@@ -570,7 +576,7 @@ export async function reRunOcrOnPhotos(
       const file = new File([blob], `reocr_${id}.${ext}`, { type: blob.type });
       const ocrResult = await extractDateFromImageOCR(file, ocrWorker);
       if (ocrResult.dateTime) {
-        await updatePhoto(id, { dateTime: ocrResult.dateTime });
+        await updatePhoto(id, { dateTime: ocrResult.dateTime, timeDefaulted: ocrResult.timeDefaulted });
         updated++;
       } else {
         stillFailed++;
@@ -774,14 +780,16 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
       // copy/download time, not the capture time.
       let dateTime: string | undefined = validateFilenameDate(parseDateFromFilename(file.name));
       let rawOcrText: string | undefined;
+      let timeDefaulted: boolean | undefined;
       if (!dateTime && ocrWorker) {
         console.warn(`[OCR] Attempting OCR for "${file.name}"...`);
         const ocrResult = await extractDateFromImageOCR(file, ocrWorker);
         dateTime = ocrResult.dateTime;
+        timeDefaulted = ocrResult.timeDefaulted;
         // Only store raw OCR text when OCR fails (keep IndexedDB lean).
         // Cap at 8 entries / 1000 chars to avoid storing huge diagnostic strings.
         rawOcrText = dateTime ? undefined : (ocrResult.rawTexts.length > 0 ? ocrResult.rawTexts.slice(0, 8).join(' | ').slice(0, 1000) : undefined);
-        console.warn(`[OCR] Result for "${file.name}": ${dateTime || 'FAILED — no date set'} (${ocrResult.rawTexts.length} attempts)`);
+        console.warn(`[OCR] Result for "${file.name}": ${dateTime || 'FAILED — no date set'}${timeDefaulted ? ' (time defaulted to 12:00 PM)' : ''} (${ocrResult.rawTexts.length} attempts)`);
       } else if (!ocrWorker) {
         console.warn(`[OCR] No worker available for "${file.name}" — skipping OCR`);
       }
@@ -792,11 +800,12 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
         fileSize: file.size,
         importedAt: Date.now(),
         dateTime,
+        timeDefaulted: dateTime ? timeDefaulted : undefined,
         isFavorite: false,
         rawOcrText,
       };
 
-      console.warn(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
+      console.warn(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} timeDefaulted=${timeDefaulted || false} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
 
       await putInStore(PHOTOS_STORE, photo);
       await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl || '' });

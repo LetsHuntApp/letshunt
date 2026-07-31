@@ -165,6 +165,7 @@ export interface TrailCameraPhoto {
   fileSize: number;
   importedAt: number;
   dateTime?: string;
+  timeDefaulted?: boolean;
   cameraModel?: string;
   latitude?: number;
   longitude?: number;
