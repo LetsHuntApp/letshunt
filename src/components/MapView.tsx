@@ -638,6 +638,9 @@ export const MapView: React.FC<MapViewProps> = ({
   const [isScentPanelCollapsed, setIsScentPanelCollapsed] = useState(true);
   const [activeForecasterTab, setActiveForecasterTab] = useState<'hourly' | 'details'>('hourly');
 
+  // Quick Wind Check: thin full-width hourly slider overlay
+  const [showWindSlider, setShowWindSlider] = useState(false);
+
   // Persistent tile cache across zoom levels
   const cachedTilesRef = useRef<Map<string, { z: number; tx: number; ty: number; src: string; style: string }>>(new Map());
   const [, setTileCacheVersion] = useState(0);
@@ -688,6 +691,7 @@ export const MapView: React.FC<MapViewProps> = ({
         } else {
           setShowLayersDropdown(false);
           setShowAddDropdown(false);
+          setShowWindSlider(false);
         }
       }
     };
@@ -1186,12 +1190,14 @@ export const MapView: React.FC<MapViewProps> = ({
     setSelectedPinId(pin.id);
     setSelectedPolygonId(null);
     setSelectedPathId(null);
+    setShowWindSlider(false);
   };
 
   const selectPolygon = (poly: SavedPolygon) => {
     setSelectedPolygonId(poly.id);
     setSelectedPinId(null);
     setSelectedPathId(null);
+    setShowWindSlider(false);
   };
 
   const selectPolygonAndCenter = (poly: SavedPolygon) => {
@@ -1201,12 +1207,14 @@ export const MapView: React.FC<MapViewProps> = ({
     setSelectedPolygonId(poly.id);
     setSelectedPinId(null);
     setSelectedPathId(null);
+    setShowWindSlider(false);
   };
 
   const selectPath = (path: SavedPath) => {
     setSelectedPathId(path.id);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
+    setShowWindSlider(false);
   };
 
   const selectPathAndCenter = (path: SavedPath) => {
@@ -1216,6 +1224,7 @@ export const MapView: React.FC<MapViewProps> = ({
     setSelectedPathId(path.id);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
+    setShowWindSlider(false);
   };
 
   // Handle map canvas clicks
@@ -1251,6 +1260,7 @@ export const MapView: React.FC<MapViewProps> = ({
       setSelectedPinId(newId);
       setSelectedPolygonId(null);
       setSelectedPathId(null);
+      setShowWindSlider(false);
       setEditingPinId(newId);
       setEditName(newPin.name);
       setEditType(newPin.type);
@@ -1267,6 +1277,7 @@ export const MapView: React.FC<MapViewProps> = ({
       setSelectedPinId(clickedPin.id);
       setSelectedPolygonId(null);
       setSelectedPathId(null);
+      setShowWindSlider(false);
       setEditingPinId(null);
       return;
     }
@@ -2026,12 +2037,12 @@ export const MapView: React.FC<MapViewProps> = ({
                   key="user-current-location"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (hasMovedRef.current || isDrawingPolygon || (Date.now() - lastPinchTimeRef.current < 400)) return;
+                    if (hasMovedRef.current || isDrawingPolygon || isDrawingPath || (Date.now() - lastPinchTimeRef.current < 400)) return;
                     setCenterLat(location.latitude);
                     setCenterLng(location.longitude);
                   }}
                   className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 ${
-                    isDrawingPolygon ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
+                    isDrawingPolygon || isDrawingPath ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
                   }`}
                   style={{ left: `${myPx.x}px`, top: `${myPx.y}px` }}
                   title="My Current Location"
@@ -2063,12 +2074,13 @@ export const MapView: React.FC<MapViewProps> = ({
                   key={pin.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (hasMovedRef.current || isDrawingPolygon || (Date.now() - lastPinchTimeRef.current < 400)) return;
+                    if (hasMovedRef.current || isDrawingPolygon || isDrawingPath || (Date.now() - lastPinchTimeRef.current < 400)) return;
                     setSelectedPinId(pin.id);
                     setSelectedPolygonId(null);
+                    setShowWindSlider(false);
                   }}
                   className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 ${
-                    isDrawingPolygon ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
+                    isDrawingPolygon || isDrawingPath ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
                   }`}
                   style={{ left: `${px.x}px`, top: `${px.y}px` }}
                 >
@@ -2795,6 +2807,62 @@ export const MapView: React.FC<MapViewProps> = ({
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
+
+        {/* CHECK WIND FLOATING BUTTON (Bottom Center) */}
+        {!showWindSlider && !selectedPin && !selectedPolygon && !selectedPath && (
+          <div className="absolute bottom-16 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
+            <button
+              onClick={() => {
+                setSelectedHour(new Date().getHours());
+                setShowWindSlider(true);
+              }}
+              className={`px-4 py-2 rounded-full border shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+                isDark
+                  ? 'bg-slate-950/90 border-emerald-500/50 text-emerald-300 shadow-emerald-950/50 hover:bg-slate-800'
+                  : 'bg-white/95 border-emerald-500/60 text-emerald-700 shadow-emerald-500/20 hover:bg-emerald-50'
+              }`}
+              title="Check live wind direction hour by hour"
+            >
+              <Wind className="w-4 h-4 text-emerald-400 animate-pulse" />
+              <span>Check Wind</span>
+            </button>
+          </div>
+        )}
+
+        {/* VERY THIN FULL-WIDTH HOURLY WIND SLIDER */}
+        {showWindSlider && (
+          <div className="absolute bottom-16 sm:bottom-3 left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn">
+            <div
+              className={`rounded-2xl border shadow-2xl backdrop-blur-md px-3 py-2 flex items-center gap-2 sm:gap-3 ${
+                isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
+              }`}
+            >
+              <Wind className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span className="text-xs font-black whitespace-nowrap">
+                {windDirText} <span className="text-emerald-400">@ {displayWindSpeed}</span>
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="23"
+                value={selectedHour}
+                onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
+                className="flex-1 min-w-0 accent-emerald-500 cursor-pointer h-1.5"
+                aria-label="Hourly wind direction slider"
+              />
+              <span className="text-[10px] font-black whitespace-nowrap text-slate-400">
+                {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
+              </span>
+              <button
+                onClick={() => setShowWindSlider(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
+                title="Close wind slider"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* CONDENSED BOTTOM FLOATING SCENT FORECASTER PANEL WITH TABS */}
         {selectedPin && (
