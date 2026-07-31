@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine } from 'lucide-react';
 import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
@@ -117,6 +117,17 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   const [editDateValue, setEditDateValue] = useState<string>('');
   const [bulkReOcrInProgress, setBulkReOcrInProgress] = useState(false);
   const [savingDate, setSavingDate] = useState(false);
+
+  // Long-press refs for gallery multi-select
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+
+  // Cleanup long-press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, []);
 
   const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
   const paginatedPhotos = photos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -380,6 +391,10 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               <div
                 key={photo.id}
                 onClick={() => {
+                  if (longPressTriggeredRef.current) {
+                    longPressTriggeredRef.current = false;
+                    return;
+                  }
                   if (isSelectMode) {
                     setSelectedIds((prev) =>
                       prev.includes(photo.id) ? prev.filter((i) => i !== photo.id) : [...prev, photo.id]
@@ -388,7 +403,56 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                     onSelectPhoto(photo);
                   }
                 }}
-                className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer shadow-lg aspect-square flex flex-col justify-between ${tc.photoCard(isSelected)}`}
+                onTouchStart={() => {
+                  longPressTriggeredRef.current = false;
+                  longPressTimerRef.current = setTimeout(() => {
+                    longPressTriggeredRef.current = true;
+                    if (!isSelectMode) {
+                      setIsSelectMode(true);
+                      setSelectedIds([photo.id]);
+                    } else {
+                      setSelectedIds((prev) => prev.includes(photo.id) ? prev : [...prev, photo.id]);
+                    }
+                    if (navigator.vibrate) navigator.vibrate(15);
+                  }, 500);
+                }}
+                onTouchEnd={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onTouchMove={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onMouseDown={() => {
+                  longPressTriggeredRef.current = false;
+                  longPressTimerRef.current = setTimeout(() => {
+                    longPressTriggeredRef.current = true;
+                    if (!isSelectMode) {
+                      setIsSelectMode(true);
+                      setSelectedIds([photo.id]);
+                    } else {
+                      setSelectedIds((prev) => prev.includes(photo.id) ? prev : [...prev, photo.id]);
+                    }
+                  }, 600);
+                }}
+                onMouseUp={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                }}
+                className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer shadow-lg aspect-square flex flex-col justify-between select-none ${tc.photoCard(isSelected)}`}
               >
                 {/* Image Background */}
                 {thumbUrl ? (

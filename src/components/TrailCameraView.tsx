@@ -14,6 +14,7 @@ import {
   updatePhoto,
   getCameraLocations,
   saveCameraLocation,
+  deleteCameraLocation,
   getTargets,
   saveTarget,
   deleteTarget,
@@ -97,6 +98,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   // Target Manager State
   const [isTargetManagerOpen, setIsTargetManagerOpen] = useState(false);
+
+  // Default camera location for photo uploads
+  const [defaultLocId, setDefaultLocId] = useState<string>(() => {
+    try {
+      return localStorage.getItem('letshunt_trailcam_default_loc') || '';
+    } catch { return ''; }
+  });
 
   // Reset location search state when modal opens
   useEffect(() => {
@@ -219,7 +227,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       }
 
       // Auto assign to default location if unassigned
-      const defaultLoc = locations[0];
+      const defaultLoc = defaultLocId ? locations.find(l => l.id === defaultLocId) : locations[0];
       if (defaultLoc) {
         for (const p of imported) {
           if (!p.cameraLocationId) {
@@ -311,6 +319,34 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     setPhotos(fresh);
     const t = targets.find((x) => x.id === targetId);
     showToast(`Tagged ${ids.length} photo(s) as "${t?.name || 'target'}"`);
+  };
+
+  // Delete Location
+  const handleDeleteLocation = async (locId: string) => {
+    const loc = locations.find(l => l.id === locId);
+    if (!loc) return;
+    if (!confirm(`Delete camera spot "${loc.name}"? Photos assigned to it will keep their location data but the spot will be removed from the list.`)) return;
+    await deleteCameraLocation(locId);
+    setLocations(prev => prev.filter(l => l.id !== locId));
+    if (defaultLocId === locId) {
+      setDefaultLocId('');
+      try { localStorage.removeItem('letshunt_trailcam_default_loc'); } catch {}
+    }
+    showToast(`Deleted spot "${loc.name}"`);
+  };
+
+  // Set Default Location
+  const handleSetDefaultLocation = (locId: string) => {
+    if (defaultLocId === locId) {
+      setDefaultLocId('');
+      try { localStorage.removeItem('letshunt_trailcam_default_loc'); } catch {}
+      showToast('Default spot cleared');
+    } else {
+      setDefaultLocId(locId);
+      try { localStorage.setItem('letshunt_trailcam_default_loc', locId); } catch {}
+      const loc = allSpots.find(l => l.id === locId);
+      showToast(`Default upload spot set to "${loc?.name || 'spot'}"`);
+    }
   };
 
   // Add New Location
@@ -500,7 +536,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
           {/* Location Management Strip */}
           <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-thin">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-thin flex-1 min-w-0">
               <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
                 <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
               </span>
@@ -508,21 +544,44 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 <span className="text-[10px] opacity-50 italic">No spots added yet</span>
               ) : (
                 allSpots.map((spot) => {
+                  const isDefault = spot.id === defaultLocId;
                   return (
                     <span
                       key={spot.id}
-                      className={`px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 flex items-center gap-1 ${
+                      onClick={() => !spot._isMapPin && handleSetDefaultLocation(spot.id)}
+                      title={spot._isMapPin ? 'Map pin — cannot set as default' : isDefault ? 'Click to unset as default' : 'Click to set as default upload spot'}
+                      className={`px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 flex items-center gap-1 transition-all ${
                         spot._isMapPin
                           ? isDark
-                            ? 'text-amber-300 bg-amber-900/40 border-amber-600/40'
-                            : 'text-amber-700 bg-amber-100/80 border-amber-300'
-                          : isDark
-                            ? 'text-sky-300 bg-slate-800/80 border-slate-700'
-                            : 'text-sky-700 bg-sky-100/80 border-sky-200'
+                            ? 'text-amber-300 bg-amber-900/40 border-amber-600/40 cursor-default'
+                            : 'text-amber-700 bg-amber-100/80 border-amber-300 cursor-default'
+                          : isDefault
+                            ? isDark
+                              ? 'text-emerald-300 bg-emerald-900/50 border-emerald-500 shadow-md shadow-emerald-500/20'
+                              : 'text-emerald-700 bg-emerald-100/80 border-emerald-400 shadow-md cursor-pointer'
+                            : isDark
+                              ? 'text-sky-300 bg-slate-800/80 border-slate-700 hover:border-sky-500 cursor-pointer'
+                              : 'text-sky-700 bg-sky-100/80 border-sky-200 hover:border-sky-500 cursor-pointer'
                       }`}
                     >
-                      {spot._isMapPin ? <TreePine className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                      {spot._isMapPin ? <TreePine className="w-3 h-3" /> : isDefault ? (
+                        <svg className="w-3 h-3 fill-current text-emerald-400" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      ) : (
+                        <MapPin className="w-3 h-3" />
+                      )}
                       {spot.name}
+                      {isDefault && !spot._isMapPin && (
+                        <span className="text-[9px] opacity-60 ml-0.5">· default</span>
+                      )}
+                      {!spot._isMapPin && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteLocation(spot.id); }}
+                          title="Delete this spot"
+                          className="ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 transition-colors cursor-pointer"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      )}
                     </span>
                   );
                 })
