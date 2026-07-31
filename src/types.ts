@@ -131,6 +131,17 @@ export interface SavedPolygon {
   createdAt: number;
 }
 
+export type PathType = 'travel_route' | 'deer_trail' | 'fence_line' | 'creek' | 'ridge' | 'custom';
+
+export interface SavedPath {
+  id: string;
+  name: string;
+  type: PathType;
+  points: PolygonPoint[];
+  notes?: string;
+  createdAt: number;
+}
+
 export type TrailCameraTab = 'gallery' | 'analytics' | 'insights';
 
 export interface TrailCameraLocation {

@@ -37,7 +37,9 @@ import {
   HourlyForecast,
   PolygonType,
   PolygonPoint,
-  SavedPolygon
+  SavedPolygon,
+  PathType,
+  SavedPath
 } from '../types';
 import { fetch5DayHuntingForecast, searchLocations } from '../services/weatherService';
 import { getBestStandForWind } from '../utils/huntingEngine';
@@ -429,6 +431,97 @@ export const POLYGON_METADATA: Record<
   },
 };
 
+// Metadata for Path / Polyline Types
+export const PATH_METADATA: Record<
+  PathType,
+  { label: string; emoji: string; color: string; stroke: string; border: string; bg: string; dash: string }
+> = {
+  travel_route: {
+    label: 'Travel Route',
+    emoji: '🛤️',
+    color: '#f59e0b',
+    stroke: '#f59e0b',
+    border: 'border-amber-500/50',
+    bg: 'bg-amber-500/10 text-amber-300',
+    dash: '14 5',
+  },
+  deer_trail: {
+    label: 'Deer Trail',
+    emoji: '🦌',
+    color: '#22c55e',
+    stroke: '#22c55e',
+    border: 'border-emerald-500/50',
+    bg: 'bg-emerald-500/10 text-emerald-300',
+    dash: '3 3',
+  },
+  fence_line: {
+    label: 'Fence Line',
+    emoji: '🚧',
+    color: '#f43f5e',
+    stroke: '#f43f5e',
+    border: 'border-rose-500/50',
+    bg: 'bg-rose-500/10 text-rose-300',
+    dash: '8 3 2 3',
+  },
+  creek: {
+    label: 'Creek / Waterway',
+    emoji: '💧',
+    color: '#06b6d4',
+    stroke: '#06b6d4',
+    border: 'border-cyan-500/50',
+    bg: 'bg-cyan-500/10 text-cyan-300',
+    dash: '10 4',
+  },
+  ridge: {
+    label: 'Ridge Line',
+    emoji: '⛰️',
+    color: '#a855f7',
+    stroke: '#a855f7',
+    border: 'border-purple-500/50',
+    bg: 'bg-purple-500/10 text-purple-300',
+    dash: '6 2 1 2',
+  },
+  custom: {
+    label: 'Custom Path',
+    emoji: '📏',
+    color: '#f97316',
+    stroke: '#f97316',
+    border: 'border-orange-500/50',
+    bg: 'bg-orange-500/10 text-orange-300',
+    dash: '10 4',
+  },
+};
+
+// Path (polyline) length in meters + formatted string
+function getPathLength(points: PolygonPoint[], unitSystem: UnitSystem): string {
+  if (!points || points.length < 2) return '0 ft';
+
+  const centroid = getPolygonCentroid(points);
+  const latRad = (centroid.lat * Math.PI) / 180;
+  const metersPerLat = 111320;
+  const metersPerLng = 111320 * Math.cos(latRad);
+
+  let lengthM = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const dx = (points[i + 1].lng - points[i].lng) * metersPerLng;
+    const dy = (points[i + 1].lat - points[i].lat) * metersPerLat;
+    lengthM += Math.hypot(dx, dy);
+  }
+
+  if (unitSystem === 'metric') {
+    if (lengthM >= 1000) return `${(lengthM / 1000).toFixed(2)} km`;
+    return `${Math.round(lengthM)} m`;
+  }
+  const feet = lengthM * 3.28084;
+  return feet >= 5280 ? `${(feet / 5280).toFixed(2)} mi` : `${Math.round(feet).toLocaleString()} ft`;
+}
+
+// Midpoint along a path (vertex at ~half distance) for label placement
+function getPathMidpoint(points: PolygonPoint[]): PolygonPoint {
+  if (!points || points.length === 0) return { lat: 0, lng: 0 };
+  return points[Math.floor((points.length - 1) / 2)];
+}
+
 export const MapView: React.FC<MapViewProps> = ({
   location,
   units,
@@ -454,10 +547,16 @@ export const MapView: React.FC<MapViewProps> = ({
     return saved ? JSON.parse(saved) : [];
   });
 
+  // State: Saved Paths (polylines / routes) loaded from localStorage
+  const [paths, setPaths] = useState<SavedPath[]>(() => {
+    const saved = localStorage.getItem('letshunt_saved_paths');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   // Floating Dropdown Controls on Map
   const [showLayersDropdown, setShowLayersDropdown] = useState(false);
   const [showAddDropdown, setShowAddDropdown] = useState(false);
-  const [activeLayersTab, setActiveLayersTab] = useState<'pins' | 'polygons'>('pins');
+  const [activeLayersTab, setActiveLayersTab] = useState<'pins' | 'polygons' | 'paths'>('pins');
 
   // Interactive Pin Placement mode
   const [isPlacingMarkerMode, setIsPlacingMarkerMode] = useState(false);
@@ -475,6 +574,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Currently selected pin / polygon
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [selectedPolygonId, setSelectedPolygonId] = useState<string | null>(null);
+  const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
 
   // Form inputs for active editing pin
   const [editingPinId, setEditingPinId] = useState<string | null>(null);
@@ -491,6 +591,15 @@ export const MapView: React.FC<MapViewProps> = ({
   const [polygonEditName, setPolygonEditName] = useState('');
   const [polygonEditType, setPolygonEditType] = useState<PolygonType>('food_plot');
   const [polygonEditNotes, setPolygonEditNotes] = useState('');
+
+  // Path creation & editing
+  const [isDrawingPath, setIsDrawingPath] = useState(false);
+  const [currentPathPoints, setCurrentPathPoints] = useState<PolygonPoint[]>([]);
+  const [isSavingNewPathModal, setIsSavingNewPathModal] = useState(false);
+  const [editingPathId, setEditingPathId] = useState<string | null>(null);
+  const [pathEditName, setPathEditName] = useState('');
+  const [pathEditType, setPathEditType] = useState<PathType>('travel_route');
+  const [pathEditNotes, setPathEditNotes] = useState('');
 
   // Map view parameters
   const [zoom, setZoom] = useState(16);
@@ -543,6 +652,9 @@ export const MapView: React.FC<MapViewProps> = ({
         if (isDrawingPolygon) {
           setIsDrawingPolygon(false);
           setCurrentPolygonPoints([]);
+        } else if (isDrawingPath) {
+          setIsDrawingPath(false);
+          setCurrentPathPoints([]);
         } else if (isPlacingMarkerMode) {
           setIsPlacingMarkerMode(false);
         } else {
@@ -553,7 +665,7 @@ export const MapView: React.FC<MapViewProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isDrawingPolygon, isPlacingMarkerMode]);
+  }, [isDrawingPolygon, isDrawingPath, isPlacingMarkerMode]);
 
   // Scent analysis parameters (forecast day and hour selection)
   const [forecastDays, setForecastDays] = useState<DailyForecast[]>(dailyForecast);
@@ -664,6 +776,12 @@ export const MapView: React.FC<MapViewProps> = ({
     localStorage.setItem('letshunt_saved_polygons', JSON.stringify(updatedPolygons));
   };
 
+  // Save paths to localStorage
+  const savePathsToStorage = (updatedPaths: SavedPath[]) => {
+    setPaths(updatedPaths);
+    localStorage.setItem('letshunt_saved_paths', JSON.stringify(updatedPaths));
+  };
+
   // Layer & Element Visibility Toggles
   const [showPropertyBoundaries, setShowPropertyBoundaries] = useState(() => {
     const saved = localStorage.getItem('letshunt_show_property_boundaries');
@@ -671,6 +789,10 @@ export const MapView: React.FC<MapViewProps> = ({
   });
   const [showZones, setShowZones] = useState(() => {
     const saved = localStorage.getItem('letshunt_show_zones');
+    return saved ? saved === 'true' : true;
+  });
+  const [showPaths, setShowPaths] = useState(() => {
+    const saved = localStorage.getItem('letshunt_show_paths');
     return saved ? saved === 'true' : true;
   });
   const [showPins, setShowPins] = useState(() => {
@@ -688,9 +810,14 @@ export const MapView: React.FC<MapViewProps> = ({
   }, [showZones]);
 
   useEffect(() => {
+    localStorage.setItem('letshunt_show_paths', showPaths.toString());
+  }, [showPaths]);
+
+  useEffect(() => {
     localStorage.setItem('letshunt_show_pins', showPins.toString());
   }, [showPins]);
   const [hiddenPolygonIds, setHiddenPolygonIds] = useState<string[]>([]);
+  const [hiddenPathIds, setHiddenPathIds] = useState<string[]>([]);
 
   const lastPinchTimeRef = useRef<number>(0);
 
@@ -702,6 +829,11 @@ export const MapView: React.FC<MapViewProps> = ({
       return true;
     });
   }, [polygons, showPropertyBoundaries, showZones, hiddenPolygonIds]);
+
+  const visiblePaths = useMemo(() => {
+    if (!showPaths) return [];
+    return paths.filter((p) => !hiddenPathIds.includes(p.id));
+  }, [paths, showPaths, hiddenPathIds]);
 
   const visiblePins = useMemo(() => {
     if (!showPins) return [];
@@ -722,6 +854,16 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!selectedPolygon) return null;
     return getPolygonAreaAndPerimeter(selectedPolygon.points, units);
   }, [selectedPolygon, units]);
+
+  // Currently active path
+  const selectedPath = useMemo(() => {
+    return paths.find((p) => p.id === selectedPathId) || null;
+  }, [paths, selectedPathId]);
+
+  const selectedPathStats = useMemo(() => {
+    if (!selectedPath) return null;
+    return { lengthStr: getPathLength(selectedPath.points, units) };
+  }, [selectedPath, units]);
 
   // Handle center location reset
   const handleResetLocation = () => {
@@ -813,20 +955,96 @@ export const MapView: React.FC<MapViewProps> = ({
   // Polygon drawing handlers
   const handleStartDrawPolygon = () => {
     setIsDrawingPolygon(true);
+    setIsDrawingPath(false);
+    setIsPlacingMarkerMode(false);
     setCurrentPolygonPoints([]);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
+    setSelectedPathId(null);
     setShowAddDropdown(false);
   };
 
   const handleStartDrawPropertyBoundary = () => {
     setIsDrawingPolygon(true);
+    setIsDrawingPath(false);
+    setIsPlacingMarkerMode(false);
     setCurrentPolygonPoints([]);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
+    setSelectedPathId(null);
     setPolygonEditType('property_boundary');
     setPolygonEditName('Property Line Boundary');
     setShowAddDropdown(false);
+  };
+
+  const handleStartDrawPath = () => {
+    setIsDrawingPath(true);
+    setIsDrawingPolygon(false);
+    setIsPlacingMarkerMode(false);
+    setCurrentPathPoints([]);
+    setSelectedPinId(null);
+    setSelectedPolygonId(null);
+    setSelectedPathId(null);
+    setShowAddDropdown(false);
+  };
+
+  const handleUndoPathPoint = () => {
+    setCurrentPathPoints((prev) => prev.slice(0, -1));
+  };
+
+  const handleFinishDrawPath = () => {
+    if (currentPathPoints.length < 2) {
+      alert('A path requires at least 2 points.');
+      return;
+    }
+    setPathEditName(`Path #${paths.length + 1}`);
+    setPathEditType('travel_route');
+    setPathEditNotes('');
+    setIsSavingNewPathModal(true);
+  };
+
+  const handleSaveNewPath = () => {
+    if (currentPathPoints.length < 2) return;
+    const newId = `path-${Date.now()}`;
+    const newPath: SavedPath = {
+      id: newId,
+      name: pathEditName.trim() || `Path #${paths.length + 1}`,
+      type: pathEditType,
+      points: currentPathPoints,
+      notes: pathEditNotes.trim(),
+      createdAt: Date.now(),
+    };
+    const updated = [...paths, newPath];
+    savePathsToStorage(updated);
+    setIsSavingNewPathModal(false);
+    setIsDrawingPath(false);
+    setCurrentPathPoints([]);
+    setSelectedPathId(newId);
+  };
+
+  const handleDeletePath = (pathId: string) => {
+    const updated = paths.filter((p) => p.id !== pathId);
+    savePathsToStorage(updated);
+    if (selectedPathId === pathId) {
+      setSelectedPathId(null);
+    }
+  };
+
+  const handleSavePathEdit = () => {
+    if (!editingPathId) return;
+    const updated = paths.map((p) => {
+      if (p.id === editingPathId) {
+        return {
+          ...p,
+          name: pathEditName.trim() || p.name,
+          type: pathEditType,
+          notes: pathEditNotes.trim(),
+        };
+      }
+      return p;
+    });
+    savePathsToStorage(updated);
+    setEditingPathId(null);
   };
 
   const handleUndoPolygonPoint = () => {
@@ -925,11 +1143,13 @@ export const MapView: React.FC<MapViewProps> = ({
     setCenterLng(pin.lng);
     setSelectedPinId(pin.id);
     setSelectedPolygonId(null);
+    setSelectedPathId(null);
   };
 
   const selectPolygon = (poly: SavedPolygon) => {
     setSelectedPolygonId(poly.id);
     setSelectedPinId(null);
+    setSelectedPathId(null);
   };
 
   const selectPolygonAndCenter = (poly: SavedPolygon) => {
@@ -938,6 +1158,22 @@ export const MapView: React.FC<MapViewProps> = ({
     setCenterLng(centroid.lng);
     setSelectedPolygonId(poly.id);
     setSelectedPinId(null);
+    setSelectedPathId(null);
+  };
+
+  const selectPath = (path: SavedPath) => {
+    setSelectedPathId(path.id);
+    setSelectedPinId(null);
+    setSelectedPolygonId(null);
+  };
+
+  const selectPathAndCenter = (path: SavedPath) => {
+    const mid = getPathMidpoint(path.points);
+    setCenterLat(mid.lat);
+    setCenterLng(mid.lng);
+    setSelectedPathId(path.id);
+    setSelectedPinId(null);
+    setSelectedPolygonId(null);
   };
 
   // Handle map canvas clicks
@@ -946,6 +1182,11 @@ export const MapView: React.FC<MapViewProps> = ({
 
     if (isDrawingPolygon) {
       setCurrentPolygonPoints((prev) => [...prev, { lat, lng }]);
+      return;
+    }
+
+    if (isDrawingPath) {
+      setCurrentPathPoints((prev) => [...prev, { lat, lng }]);
       return;
     }
 
@@ -965,6 +1206,7 @@ export const MapView: React.FC<MapViewProps> = ({
       savePinsToStorage(updated);
       setSelectedPinId(newId);
       setSelectedPolygonId(null);
+      setSelectedPathId(null);
       setEditingPinId(newId);
       setEditName(newPin.name);
       setEditType(newPin.type);
@@ -980,6 +1222,7 @@ export const MapView: React.FC<MapViewProps> = ({
     if (clickedPin) {
       setSelectedPinId(clickedPin.id);
       setSelectedPolygonId(null);
+      setSelectedPathId(null);
       setEditingPinId(null);
       return;
     }
@@ -1019,9 +1262,28 @@ export const MapView: React.FC<MapViewProps> = ({
       return;
     }
 
+    // 4. Check if clicked near any path polyline (~20 screen pixels)
+    const clickedPath = visiblePaths.find((path) => {
+      const pts = path.points;
+      if (pts.length < 2) return false;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const distDeg = distanceToSegmentDeg(lat, lng, p1.lat, p1.lng, p2.lat, p2.lng);
+        const distPx = distDeg * pixelsPerDegree;
+        if (distPx < 20) return true;
+      }
+      return false;
+    });
+    if (clickedPath) {
+      selectPath(clickedPath);
+      return;
+    }
+
     // Deselect if clicking empty terrain
     setSelectedPinId(null);
     setSelectedPolygonId(null);
+    setSelectedPathId(null);
   };
 
   // Helper to check if event target is an interactive UI control (button, slider, input, modal)
@@ -1515,6 +1777,130 @@ export const MapView: React.FC<MapViewProps> = ({
               </g>
             )}
 
+            {/* Saved Paths (Polylines / Routes) */}
+            {visiblePaths.map((path) => {
+              if (path.points.length < 2) return null;
+              const pathMeta = PATH_METADATA[path.type] || PATH_METADATA.custom;
+              const isSelected = selectedPathId === path.id;
+
+              const svgPoints = path.points
+                .map((pt) => {
+                  const px = latLngToPixel(pt.lat, pt.lng);
+                  return `${px.x},${px.y}`;
+                })
+                .join(' ');
+
+              return (
+                <g key={path.id} className="pointer-events-none">
+                  {/* Casing (outer glow) for visibility */}
+                  <polyline
+                    points={svgPoints}
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeOpacity={0.35}
+                    strokeWidth={isSelected ? 9 : 6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-all duration-200 pointer-events-none"
+                  />
+                  {/* Main colored line */}
+                  <polyline
+                    points={svgPoints}
+                    fill="none"
+                    stroke={pathMeta.stroke}
+                    strokeOpacity={isSelected ? 1 : 0.85}
+                    strokeWidth={isSelected ? 5 : 3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray={pathMeta.dash}
+                    className="transition-all duration-200 pointer-events-none"
+                  />
+                  {/* Vertex dots */}
+                  {path.points.map((pt, idx) => {
+                    const px = latLngToPixel(pt.lat, pt.lng);
+                    return (
+                      <circle
+                        key={idx}
+                        cx={px.x}
+                        cy={px.y}
+                        r={isSelected ? 4 : 3}
+                        fill={pathMeta.stroke}
+                        stroke="#ffffff"
+                        strokeWidth={1.5}
+                        className="pointer-events-none"
+                      />
+                    );
+                  })}
+                  {/* Label at Midpoint */}
+                  {(() => {
+                    const mid = getPathMidpoint(path.points);
+                    const midPx = latLngToPixel(mid.lat, mid.lng);
+                    return (
+                      <g transform={`translate(${midPx.x}, ${midPx.y - 14})`} className="pointer-events-none">
+                        <rect
+                          x={-42}
+                          y={-12}
+                          width={84}
+                          height={22}
+                          rx={6}
+                          fill={isDark ? '#020617' : '#ffffff'}
+                          fillOpacity={0.9}
+                          stroke={pathMeta.stroke}
+                          strokeWidth={isSelected ? 2 : 1}
+                        />
+                        <text
+                          x={0}
+                          y={3}
+                          textAnchor="middle"
+                          fill={isDark ? '#f8fafc' : '#0f172a'}
+                          fontSize={10}
+                          fontWeight="bold"
+                        >
+                          {pathMeta.emoji} {path.name.length > 12 ? path.name.substring(0, 12) + '…' : path.name}
+                        </text>
+                      </g>
+                    );
+                  })()}
+                </g>
+              );
+            })}
+
+            {/* Path Drawing Active Draft */}
+            {isDrawingPath && currentPathPoints.length > 0 && (
+              <g>
+                {currentPathPoints.length >= 2 && (
+                  <polyline
+                    points={currentPathPoints
+                      .map((pt) => {
+                        const px = latLngToPixel(pt.lat, pt.lng);
+                        return `${px.x},${px.y}`;
+                      })
+                      .join(' ')}
+                    fill="none"
+                    stroke="#0ea5e9"
+                    strokeWidth={3.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray="6 3"
+                  />
+                )}
+                {currentPathPoints.map((pt, idx) => {
+                  const px = latLngToPixel(pt.lat, pt.lng);
+                  return (
+                    <circle
+                      key={idx}
+                      cx={px.x}
+                      cy={px.y}
+                      r={5}
+                      fill="#0ea5e9"
+                      stroke="#ffffff"
+                      strokeWidth={2}
+                    />
+                  );
+                })}
+              </g>
+            )}
+
             {/* Scent Plume Cone Path */}
             {scentConePath && (
               <path
@@ -1661,6 +2047,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 <button
                   onClick={() => {
                     setIsPlacingMarkerMode(true);
+                    setIsDrawingPolygon(false);
+                    setIsDrawingPath(false);
                     setShowAddDropdown(false);
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-emerald-500/15 hover:text-emerald-400 transition-colors cursor-pointer"
@@ -1691,6 +2079,17 @@ export const MapView: React.FC<MapViewProps> = ({
                   <div>
                     <div>Add Property Boundary</div>
                     <div className="text-[9px] text-slate-400 font-normal">Draw Land Perimeter Line</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={handleStartDrawPath}
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-sky-500/15 hover:text-sky-400 transition-colors cursor-pointer"
+                >
+                  <span className="text-base">🛤️</span>
+                  <div>
+                    <div>Add Path / Route</div>
+                    <div className="text-[9px] text-slate-400 font-normal">Draw Deer Trail / Travel Route Line</div>
                   </div>
                 </button>
               </div>
@@ -1829,7 +2228,7 @@ export const MapView: React.FC<MapViewProps> = ({
             <Layers className="w-4 h-4 text-emerald-400" />
             <span>Layers</span>
             <span className="ml-1 px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-md text-[10px] font-black">
-              {pins.length + polygons.length}
+              {pins.length + polygons.length + paths.length}
             </span>
           </button>
 
@@ -1985,6 +2384,27 @@ export const MapView: React.FC<MapViewProps> = ({
                     {showZones ? 'ON' : 'OFF'}
                   </span>
                 </button>
+
+                {/* Paths / Routes Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowPaths((prev) => !prev)}
+                  className={`w-full flex items-center justify-between p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    showPaths
+                      ? 'bg-sky-500/15 border-sky-500/50 text-sky-400'
+                      : isDark ? 'bg-slate-950/60 border-slate-800 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🛤️</span>
+                    <span>Show Paths & Trails</span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                    showPaths ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {showPaths ? 'ON' : 'OFF'}
+                  </span>
+                </button>
               </div>
 
               {/* Segmented Items Switcher Tabs */}
@@ -2008,6 +2428,16 @@ export const MapView: React.FC<MapViewProps> = ({
                   }`}
                 >
                   <span>Zones ({polygons.length})</span>
+                </button>
+                <button
+                  onClick={() => setActiveLayersTab('paths')}
+                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    activeLayersTab === 'paths'
+                      ? 'border-sky-500 text-sky-400'
+                      : `border-transparent text-slate-400 ${isDark ? 'hover:text-slate-200' : 'hover:text-slate-700'}`
+                  }`}
+                >
+                  <span>Paths ({paths.length})</span>
                 </button>
               </div>
 
@@ -2059,6 +2489,64 @@ export const MapView: React.FC<MapViewProps> = ({
                               onClick={() => handleDeletePin(pin.id)}
                               className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                               title="Delete Pin"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Paths List */}
+              {activeLayersTab === 'paths' && (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {paths.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic text-center py-4">
+                      No paths or trails drawn yet. Use "+ Add" to draw a route!
+                    </p>
+                  ) : (
+                    paths.map((path) => {
+                      const pathMeta = PATH_METADATA[path.type] || PATH_METADATA.custom;
+                      const isSelected = selectedPathId === path.id;
+                      return (
+                        <div
+                          key={path.id}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                            isSelected
+                              ? `bg-sky-500/15 border-sky-500/60 ${isDark ? 'text-white' : 'text-sky-950'}`
+                              : isDark
+                              ? 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-200'
+                              : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800'
+                          }`}
+                          onClick={() => selectPathAndCenter(path)}
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <span className="text-lg flex-shrink-0">{pathMeta.emoji}</span>
+                            <div className="truncate">
+                              <div className="text-xs font-bold truncate">{path.name}</div>
+                              <div className="text-[10px] text-sky-400 font-semibold truncate">{pathMeta.label}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setEditingPathId(path.id);
+                                setPathEditName(path.name);
+                                setPathEditType(path.type);
+                                setPathEditNotes(path.notes || '');
+                              }}
+                              className="p-1 text-slate-400 hover:text-sky-400 transition-colors cursor-pointer"
+                              title="Edit Path"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePath(path.id)}
+                              className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              title="Delete Path"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -2131,8 +2619,8 @@ export const MapView: React.FC<MapViewProps> = ({
           )}
         </div>
 
-        {/* TOP FLOATING CREATION TOOLBAR: Active Polygon Drawing OR Pin Placing Mode */}
-        {(isDrawingPolygon || isPlacingMarkerMode) && (
+        {/* TOP FLOATING CREATION TOOLBAR: Active Polygon / Path Drawing OR Pin Placing Mode */}
+        {(isDrawingPolygon || isDrawingPath || isPlacingMarkerMode) && (
           <div className="absolute top-16 left-3 right-3 sm:left-1/2 sm:right-auto sm:transform sm:-translate-x-1/2 z-[70] bg-slate-950/95 text-white border border-emerald-500/80 px-4 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-center gap-3 animate-fadeIn pointer-events-auto ui-control">
             {isPlacingMarkerMode ? (
               <>
@@ -2146,6 +2634,38 @@ export const MapView: React.FC<MapViewProps> = ({
                 >
                   Cancel
                 </button>
+              </>
+            ) : isDrawingPath ? (
+              <>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
+                  <Shapes className="w-4 h-4 animate-pulse" />
+                  <span>Drawing Path ({currentPathPoints.length} points)</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleUndoPathPoint}
+                    disabled={currentPathPoints.length === 0}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-[10px] font-bold rounded-lg flex items-center gap-1 cursor-pointer"
+                  >
+                    <Undo className="w-3 h-3" /> Undo
+                  </button>
+                  <button
+                    onClick={handleFinishDrawPath}
+                    disabled={currentPathPoints.length < 2}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[10px] font-extrabold uppercase rounded-lg flex items-center gap-1 cursor-pointer shadow-md"
+                  >
+                    <CheckCircle2 className="w-3 h-3" /> Finish
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsDrawingPath(false);
+                      setCurrentPathPoints([]);
+                    }}
+                    className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[10px] font-bold rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -2539,6 +3059,110 @@ export const MapView: React.FC<MapViewProps> = ({
             </div>
           </div>
         )}
+
+        {/* Selected Path Details Panel */}
+        {selectedPath && !selectedPin && !selectedPolygon && selectedPathStats && (
+          <div
+            className={`absolute bottom-16 sm:bottom-3 left-3 right-14 sm:right-20 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden animate-fadeIn ${
+              isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
+            }`}
+          >
+            {/* Header Bar */}
+            <div className={`flex items-center justify-between p-3 border-b ${
+              isDark ? 'border-slate-800/30 bg-slate-950/20' : 'border-slate-200 bg-slate-100/60'
+            }`}>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <span className="text-xl flex-shrink-0">
+                  {PATH_METADATA[selectedPath.type]?.emoji || '🛤️'}
+                </span>
+                <div className="truncate">
+                  <h4 className="text-xs font-black truncate">{selectedPath.name}</h4>
+                  <span
+                    className="text-[10px] font-bold block truncate"
+                    style={{ color: PATH_METADATA[selectedPath.type]?.color || '#0ea5e9' }}
+                  >
+                    {PATH_METADATA[selectedPath.type]?.label || 'Path'} • {selectedPath.points.length} Route Points
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  onClick={() => {
+                    setEditingPathId(selectedPath.id);
+                    setPathEditName(selectedPath.name);
+                    setPathEditType(selectedPath.type);
+                    setPathEditNotes(selectedPath.notes || '');
+                  }}
+                  className="p-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-xs font-bold flex items-center gap-1 px-2.5 cursor-pointer transition-colors border border-sky-500/30"
+                  title="Edit Path Details"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+                <button
+                  onClick={() => setSelectedPathId(null)}
+                  className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
+                  title="Close Panel"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Path Details Body */}
+            <div className="p-3 space-y-2.5 text-xs">
+              {/* Quick Metrics Grid */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <span className="text-[9px] uppercase font-black text-slate-400 block">Total Length</span>
+                  <span className="text-xs font-black text-sky-400">{selectedPathStats.lengthStr}</span>
+                </div>
+
+                <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <span className="text-[9px] uppercase font-black text-slate-400 block">Route Points</span>
+                  <span className="text-xs font-black text-emerald-400">{selectedPath.points.length}</span>
+                </div>
+
+                <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+                  <span className="text-[9px] uppercase font-black text-slate-400 block">Current Wind</span>
+                  <span className="text-xs font-black text-sky-400">{windDirText} @ {displayWindSpeed}</span>
+                </div>
+              </div>
+
+              {/* Scouting Notes */}
+              <div className={`p-2.5 rounded-xl border space-y-1 ${isDark ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Route Strategy Notes</span>
+                {selectedPath.notes ? (
+                  <p className={`text-xs italic ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>"{selectedPath.notes}"</p>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">No notes added to this path yet.</p>
+                )}
+              </div>
+
+              {/* Quick Action Footer */}
+              <div className="flex gap-2 pt-0.5">
+                <button
+                  onClick={() => {
+                    setEditingPathId(selectedPath.id);
+                    setPathEditName(selectedPath.name);
+                    setPathEditType(selectedPath.type);
+                    setPathEditNotes(selectedPath.notes || '');
+                  }}
+                  className="flex-1 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Edit2 className="w-3.5 h-3.5" /> Edit Path
+                </button>
+                <button
+                  onClick={() => handleDeletePath(selectedPath.id)}
+                  className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-600 border border-rose-500/30 text-rose-300 hover:text-white font-extrabold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL: Save New Polygon Zone */}
@@ -2723,6 +3347,200 @@ export const MapView: React.FC<MapViewProps> = ({
                 </button>
                 <button
                   onClick={() => setEditingPolygonId(null)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold uppercase transition-colors cursor-pointer ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Save New Path */}
+      {isSavingNewPathModal && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setIsSavingNewPathModal(false)}
+        >
+          <div
+            className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-4 relative ${
+              isDark
+                ? 'bg-slate-900 border-slate-800 text-white'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2 border-slate-800/20">
+              <h3 className="text-xs font-black uppercase tracking-wider text-sky-500 flex items-center gap-1.5">
+                <Shapes className="w-3.5 h-3.5" />
+                Save Path / Route
+              </h3>
+              <button
+                onClick={() => setIsSavingNewPathModal(false)}
+                className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                  Path Name
+                </label>
+                <input
+                  type="text"
+                  value={pathEditName}
+                  onChange={(e) => setPathEditName(e.target.value)}
+                  placeholder="e.g. Ridge Travel Route"
+                  className={`w-full rounded-xl border px-3 py-2 text-xs focus:outline-none ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-sky-600'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                  Path Classification
+                </label>
+                <select
+                  value={pathEditType}
+                  onChange={(e) => setPathEditType(e.target.value as PathType)}
+                  className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-sky-600'
+                  }`}
+                >
+                  {Object.entries(PATH_METADATA).map(([typeKey, meta]) => (
+                    <option key={typeKey} value={typeKey}>
+                      {meta.emoji} {meta.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                  Scouting Notes
+                </label>
+                <textarea
+                  value={pathEditNotes}
+                  onChange={(e) => setPathEditNotes(e.target.value)}
+                  placeholder="e.g. Deer travel between bedding and food plot..."
+                  rows={3}
+                  className={`w-full rounded-xl border px-3 py-2 text-xs focus:outline-none resize-none ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-sky-600'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSaveNewPath}
+                  className="flex-1 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Path
+                </button>
+                <button
+                  onClick={() => setIsSavingNewPathModal(false)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold uppercase transition-colors cursor-pointer ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edit Existing Path Details */}
+      {editingPathId && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setEditingPathId(null)}
+        >
+          <div
+            className={`w-full max-w-sm rounded-2xl p-5 border shadow-2xl space-y-4 relative ${
+              isDark
+                ? 'bg-slate-900 border-slate-800 text-white'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-2 border-slate-800/20">
+              <h3 className="text-xs font-black uppercase tracking-wider text-sky-500 flex items-center gap-1.5">
+                <Edit2 className="w-3.5 h-3.5" />
+                Edit Path Details
+              </h3>
+              <button
+                onClick={() => setEditingPathId(null)}
+                className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                  Path Name
+                </label>
+                <input
+                  type="text"
+                  value={pathEditName}
+                  onChange={(e) => setPathEditName(e.target.value)}
+                  className={`w-full rounded-xl border px-3 py-2 text-xs focus:outline-none ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-sky-600'
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                  Path Classification
+                </label>
+                <select
+                  value={pathEditType}
+                  onChange={(e) => setPathEditType(e.target.value as PathType)}
+                  className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-sky-600'
+                  }`}
+                >
+                  {Object.entries(PATH_METADATA).map(([typeKey, meta]) => (
+                    <option key={typeKey} value={typeKey}>
+                      {meta.emoji} {meta.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                  Scouting Notes
+                </label>
+                <textarea
+                  value={pathEditNotes}
+                  onChange={(e) => setPathEditNotes(e.target.value)}
+                  rows={3}
+                  className={`w-full rounded-xl border px-3 py-2 text-xs focus:outline-none resize-none ${
+                    isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-sky-600'
+                  }`}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSavePathEdit}
+                  className="flex-1 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Changes
+                </button>
+                <button
+                  onClick={() => setEditingPathId(null)}
                   className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold uppercase transition-colors cursor-pointer ${
                     isDark ? 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
                   }`}
