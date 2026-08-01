@@ -1,11 +1,13 @@
-const CACHE_NAME = 'letshunt-v2';
+const CACHE_NAME = 'letshunt-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './push-icon-192.png',
+  './push-badge-96.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -55,8 +57,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: './icon-192.png',
-      badge: './icon-192.png',
+      icon: './push-icon-192.png',
+      badge: './push-badge-96.png',
       tag,
       data: { url },
     })

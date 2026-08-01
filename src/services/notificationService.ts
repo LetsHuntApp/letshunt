@@ -111,10 +111,13 @@ export function showSystemNotification(title: string, body: string, tag = 'letsh
 
   // Relative paths resolve correctly from both the page (dev: /, Pages: /LetsHunt/)
   // and the service worker scope.
+  // Android only accepts raster (PNG) notification icons — the `badge` is the
+  // monochrome silhouette Android tints for the status bar; `icon` is the large
+  // image shown on the notification itself.
   const options: NotificationOptions = {
     body,
-    icon: './icon-192.png',
-    badge: './icon-192.png',
+    icon: './push-icon-192.png',
+    badge: './push-badge-96.png',
     tag,
   };
 

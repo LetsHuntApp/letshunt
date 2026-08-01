@@ -40,6 +40,18 @@
       "type": "image/png",
       "sizes": "180x180",
       "purpose": "any"
+    },
+    {
+      "src": "./push-badge-96.png",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "monochrome"
+    },
+    {
+      "src": "./push-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
     }
   ]
 }
