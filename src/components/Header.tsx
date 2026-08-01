@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 90 45"
-                className="h-6 sm:h-8 w-auto"
+                className="h-9 sm:h-11 w-auto -my-1.5"
                 aria-label="LetsHunt"
               >
                 {/* Deer icon — theme accent color */}
