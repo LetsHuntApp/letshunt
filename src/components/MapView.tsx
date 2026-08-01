@@ -376,6 +376,7 @@ export const PIN_METADATA: Record<
   bedding: { label: 'Bedding Sanctuary', emoji: '🦌', color: 'bg-purple-600 text-white', bg: 'bg-purple-900/90 text-purple-200', border: 'border-purple-500' },
   food_plot: { label: 'Primary Food Plot', emoji: '🌾', color: 'bg-lime-600 text-white', bg: 'bg-lime-900/90 text-lime-200', border: 'border-lime-500' },
   scrape: { label: 'Scrape / Rub', emoji: '🪵', color: 'bg-amber-700 text-white', bg: 'bg-amber-900/90 text-amber-200', border: 'border-amber-600' },
+  home: { label: 'Home / Cabin', emoji: '🏠', color: 'bg-orange-600 text-white', bg: 'bg-orange-900/90 text-orange-200', border: 'border-orange-500' },
   other: { label: 'Other Landmark', emoji: '📍', color: 'bg-slate-500 text-white', bg: 'bg-slate-950/90 text-slate-300', border: 'border-slate-400' },
 };
 
@@ -1056,6 +1057,124 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!selectedPin || visiblePaths.length === 0) return new Set<string>();
     const marker = selectedPin;
     const beddingPolys = visiblePolygons.filter((p) => p.type === 'bedding_zone');
+    const homeMarker = pins.find((p) => p.type === 'home');
+
+    // Precompute scent penalty for every path (used in both routing modes)
+    const pathPenalties = new Map<string, number>();
+    for (const path of visiblePaths) {
+      if (path.points.length < 2) continue;
+      let penalty = 0;
+      for (const pt of path.points) {
+        const bearingToMarker = computeBearing(pt.lat, pt.lng, marker.lat, marker.lng);
+        const diffToMarker = angleDiff(downwindDeg, bearingToMarker);
+        if (diffToMarker < 30) penalty += 40;
+        else if (diffToMarker < 60) penalty += 18;
+        else if (diffToMarker < 90) penalty += 5;
+        for (const bed of beddingPolys) {
+          const bc = polygonCentroid(bed.points);
+          const bearingToBed = computeBearing(pt.lat, pt.lng, bc.lat, bc.lng);
+          if (angleDiff(downwindDeg, bearingToBed) < 50) penalty += 30;
+        }
+      }
+      for (const bed of beddingPolys) {
+        for (const pt of path.points) {
+          if (pointInPolygon(pt, bed.points)) {
+            penalty += 60;
+            break;
+          }
+        }
+      }
+      pathPenalties.set(path.id, penalty);
+    }
+
+    // If a home marker exists, use Dijkstra to find the lowest-penalty route from home → stand
+    if (homeMarker) {
+      // Build adjacency: two paths are connected if any endpoint pair is within 30m
+      const adj = new Map<string, string[]>();
+      visiblePaths.forEach((p) => adj.set(p.id, []));
+      for (let i = 0; i < visiblePaths.length; i++) {
+        for (let j = i + 1; j < visiblePaths.length; j++) {
+          const p1 = visiblePaths[i];
+          const p2 = visiblePaths[j];
+          if (p1.points.length < 2 || p2.points.length < 2) continue;
+          const p1f = p1.points[0], p1l = p1.points[p1.points.length - 1];
+          const p2f = p2.points[0], p2l = p2.points[p2.points.length - 1];
+          if (
+            approxDistance(p1f.lat, p1f.lng, p2f.lat, p2f.lng) < 30 ||
+            approxDistance(p1f.lat, p1f.lng, p2l.lat, p2l.lng) < 30 ||
+            approxDistance(p1l.lat, p1l.lng, p2f.lat, p2f.lng) < 30 ||
+            approxDistance(p1l.lat, p1l.lng, p2l.lat, p2l.lng) < 30
+          ) {
+            adj.get(p1.id)!.push(p2.id);
+            adj.get(p2.id)!.push(p1.id);
+          }
+        }
+      }
+
+      const startNodes: string[] = [];
+      const endNodes = new Set<string>();
+      for (const path of visiblePaths) {
+        if (path.points.length < 2) continue;
+        const fp = path.points[0], lp = path.points[path.points.length - 1];
+        const distToHome = Math.min(
+          approxDistance(fp.lat, fp.lng, homeMarker.lat, homeMarker.lng),
+          approxDistance(lp.lat, lp.lng, homeMarker.lat, homeMarker.lng)
+        );
+        if (distToHome < 60) startNodes.push(path.id);
+        const distToStand = Math.min(
+          approxDistance(fp.lat, fp.lng, marker.lat, marker.lng),
+          approxDistance(lp.lat, lp.lng, marker.lat, marker.lng)
+        );
+        if (distToStand < 60) endNodes.add(path.id);
+      }
+
+      if (startNodes.length > 0 && endNodes.size > 0) {
+        const dist = new Map<string, number>();
+        const prev = new Map<string, string>();
+        const pq: { id: string; cost: number }[] = [];
+
+        for (const id of startNodes) {
+          const cost = pathPenalties.get(id) || 0;
+          dist.set(id, cost);
+          pq.push({ id, cost });
+        }
+        pq.sort((a, b) => a.cost - b.cost);
+
+        let bestEndNode: string | null = null;
+        let minTotalCost = Infinity;
+
+        while (pq.length > 0) {
+          const curr = pq.shift()!;
+          if ((dist.get(curr.id) ?? Infinity) < curr.cost) continue;
+          if (endNodes.has(curr.id) && curr.cost < minTotalCost) {
+            minTotalCost = curr.cost;
+            bestEndNode = curr.id;
+          }
+          for (const nxt of adj.get(curr.id) || []) {
+            const edgeCost = pathPenalties.get(nxt) || 0;
+            const newDist = curr.cost + edgeCost;
+            if (newDist < (dist.get(nxt) ?? Infinity)) {
+              dist.set(nxt, newDist);
+              prev.set(nxt, curr.id);
+              pq.push({ id: nxt, cost: newDist });
+              pq.sort((a, b) => a.cost - b.cost);
+            }
+          }
+        }
+
+        if (bestEndNode) {
+          const route = new Set<string>();
+          let curr: string | undefined = bestEndNode;
+          while (curr) {
+            route.add(curr);
+            curr = prev.get(curr);
+          }
+          return route;
+        }
+      }
+    }
+
+    // Fallback: original proximity-based scoring (no home marker or no reachable route)
     const scored: { id: string; score: number }[] = [];
     for (const path of visiblePaths) {
       if (path.points.length < 2) continue;
@@ -1069,30 +1188,10 @@ export const MapView: React.FC<MapViewProps> = ({
       if (minDist < 60) score += 50;
       else if (minDist < 200) score += 30;
       else score += 10;
-      for (const pt of path.points) {
-        const bearingToMarker = computeBearing(pt.lat, pt.lng, marker.lat, marker.lng);
-        const diffToMarker = angleDiff(downwindDeg, bearingToMarker);
-        if (diffToMarker < 30) score -= 40;
-        else if (diffToMarker < 60) score -= 18;
-        else if (diffToMarker < 90) score -= 5;
-        for (const bed of beddingPolys) {
-          const bc = polygonCentroid(bed.points);
-          const bearingToBed = computeBearing(pt.lat, pt.lng, bc.lat, bc.lng);
-          if (angleDiff(downwindDeg, bearingToBed) < 50) score -= 30;
-        }
-      }
-      for (const bed of beddingPolys) {
-        for (const pt of path.points) {
-          if (pointInPolygon(pt, bed.points)) {
-            score -= 60;
-            break;
-          }
-        }
-      }
+      score -= (pathPenalties.get(path.id) || 0);
       if (score > 30) scored.push({ id: path.id, score });
     }
     scored.sort((a, b) => b.score - a.score);
-    // Get top-scoring path(s) and any paths that connect to them
     const bestSet = new Set<string>();
     const topIds = new Set(scored.slice(0, 3).map((s) => s.id));
     for (const path of visiblePaths) {
@@ -1100,7 +1199,6 @@ export const MapView: React.FC<MapViewProps> = ({
         bestSet.add(path.id);
         continue;
       }
-      // Also include paths that share an endpoint with a top path (connected route)
       const fp = path.points[0];
       const lp = path.points[path.points.length - 1];
       for (const tid of topIds) {
@@ -1120,7 +1218,7 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     }
     return bestSet;
-  }, [selectedPin, visiblePaths, visiblePolygons, downwindDeg]);
+  }, [selectedPin, visiblePaths, visiblePolygons, downwindDeg, pins]);
 
   // Polygon drawing handlers
   const handleStartDrawPolygon = () => {
@@ -3976,6 +4074,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <option value="bedding">🦌 Bedding Sanctuary</option>
                   <option value="food_plot">🌾 Primary Food Plot</option>
                   <option value="scrape">🪵 Scrapeline / Rubbing Tree</option>
+                  <option value="home">🏠 Home / Cabin</option>
                   <option value="other">📍 Other Marker</option>
                 </select>
               </div>

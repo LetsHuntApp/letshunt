@@ -101,7 +101,7 @@ export interface HuntingForecastResponse {
   daily: DailyForecast[];
 }
 
-export type PinType = 'stand' | 'trail_cam' | 'bedding' | 'food_plot' | 'scrape' | 'other';
+export type PinType = 'stand' | 'trail_cam' | 'bedding' | 'food_plot' | 'scrape' | 'home' | 'other';
 
 export interface SavedPin {
   id: string;
