@@ -10,9 +10,18 @@
  * Requires the companion push server (server/push-server.js) to be running.
  */
 
-// The push server URL — change this to your deployed server URL.
-// For local development: http://localhost:3001
-// For production: set this to your Render/Railway/etc. deployment URL.
+// The push server URL — set this to your deployed server.
+//
+// FREE deployment options (just run `node server/push-server.js`):
+//   Local dev:    http://localhost:3001
+//   Your PC:      http://localhost:3001 (works while your computer is on)
+//
+// FREE always-on options (deploy server/push-server.js):
+//   Render:       https://letshunt-push.onrender.com
+//   Fly.io:       https://letshunt-push.fly.dev
+//
+// Override at runtime via the browser console:
+//   localStorage.setItem('letshunt_push_server_url', 'https://your-url.com')
 const PUSH_SERVER_URL = (typeof window !== 'undefined' &&
   localStorage.getItem('letshunt_push_server_url')) ||
   'http://localhost:3001';
