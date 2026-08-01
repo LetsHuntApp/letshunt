@@ -595,6 +595,92 @@ function polygonCentroid(points: PolygonPoint[]): PolygonPoint {
   return { lat: cx / points.length, lng: cy / points.length };
 }
 
+interface SegmentProjection {
+  point: PolygonPoint;
+  t: number;
+  distance: number;
+}
+
+interface SegmentClosestPoints {
+  first: PolygonPoint;
+  second: PolygonPoint;
+  distance: number;
+  firstT: number;
+  secondT: number;
+}
+
+function projectPointOntoSegment(point: PolygonPoint, start: PolygonPoint, end: PolygonPoint): SegmentProjection {
+  const dx = end.lat - start.lat;
+  const dy = end.lng - start.lng;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq === 0
+    ? 0
+    : Math.max(0, Math.min(1, ((point.lat - start.lat) * dx + (point.lng - start.lng) * dy) / lengthSq));
+  const projected = { lat: start.lat + dx * t, lng: start.lng + dy * t };
+  return { point: projected, t, distance: approxDistance(point.lat, point.lng, projected.lat, projected.lng) };
+}
+
+function getSegmentIntersection(
+  a: PolygonPoint,
+  b: PolygonPoint,
+  c: PolygonPoint,
+  d: PolygonPoint
+): { point: PolygonPoint; firstT: number; secondT: number } | null {
+  const rLat = b.lat - a.lat;
+  const rLng = b.lng - a.lng;
+  const sLat = d.lat - c.lat;
+  const sLng = d.lng - c.lng;
+  const denominator = rLat * sLng - rLng * sLat;
+  if (Math.abs(denominator) < 1e-12) return null;
+
+  const cMinusALat = c.lat - a.lat;
+  const cMinusALng = c.lng - a.lng;
+  const firstT = (cMinusALat * sLng - cMinusALng * sLat) / denominator;
+  const secondT = (cMinusALat * rLng - cMinusALng * rLat) / denominator;
+  if (firstT < -1e-8 || firstT > 1 + 1e-8 || secondT < -1e-8 || secondT > 1 + 1e-8) return null;
+
+  return {
+    point: { lat: a.lat + firstT * rLat, lng: a.lng + firstT * rLng },
+    firstT: Math.max(0, Math.min(1, firstT)),
+    secondT: Math.max(0, Math.min(1, secondT)),
+  };
+}
+
+// Returns the closest points on two path segments. This lets the route join paths
+// where they cross or pass close to each other, even when neither connection is a vertex.
+function closestPointsOnSegments(
+  a: PolygonPoint,
+  b: PolygonPoint,
+  c: PolygonPoint,
+  d: PolygonPoint
+): SegmentClosestPoints {
+  const intersection = getSegmentIntersection(a, b, c, d);
+  if (intersection) {
+    return {
+      first: intersection.point,
+      second: intersection.point,
+      distance: 0,
+      firstT: intersection.firstT,
+      secondT: intersection.secondT,
+    };
+  }
+
+  const candidates: SegmentClosestPoints[] = [];
+  const fromA = projectPointOntoSegment(a, c, d);
+  candidates.push({ first: a, second: fromA.point, distance: fromA.distance, firstT: 0, secondT: fromA.t });
+  const fromB = projectPointOntoSegment(b, c, d);
+  candidates.push({ first: b, second: fromB.point, distance: fromB.distance, firstT: 1, secondT: fromB.t });
+  const fromC = projectPointOntoSegment(c, a, b);
+  candidates.push({ first: fromC.point, second: c, distance: fromC.distance, firstT: fromC.t, secondT: 0 });
+  const fromD = projectPointOntoSegment(d, a, b);
+  candidates.push({ first: fromD.point, second: d, distance: fromD.distance, firstT: fromD.t, secondT: 1 });
+  return candidates.reduce((best, candidate) => candidate.distance < best.distance ? candidate : best);
+}
+
+function pointsAreSame(a: PolygonPoint, b: PolygonPoint, toleranceMeters = 0.5): boolean {
+  return approxDistance(a.lat, a.lng, b.lat, b.lng) <= toleranceMeters;
+}
+
 export const MapView: React.FC<MapViewProps> = ({
   location,
   units,
@@ -648,7 +734,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [selectedPolygonId, setSelectedPolygonId] = useState<string | null>(null);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
-  const [bestPathIds, setBestPathIds] = useState<Set<string>>(new Set());
+  const [bestRouteGeometry, setBestRouteGeometry] = useState<PolygonPoint[] | null>(null);
 
   // Form inputs for active editing pin
   const [editingPinId, setEditingPinId] = useState<string | null>(null);
@@ -1045,179 +1131,169 @@ export const MapView: React.FC<MapViewProps> = ({
   const downwindDeg = (windDeg + 180) % 360;
   const downwindDirText = getWindDirectionText(downwindDeg);
 
-  // Compute best paths to reach the selected marker, avoiding scent toward marker/bedding
-  // Clear best-path highlights when the stand marker is deselected
+  // Compute one ordered route geometry instead of merely coloring whole paths.
+  // The graph is split at pin projections and at path crossings/near-connections, so
+  // a route can use only part of a path and always ends exactly on both pins.
   useEffect(() => {
-    if (!selectedPin) {
-      setBestPathIds(new Set());
-    }
-  }, [selectedPin]);
+    // A route belongs to one selected stand and one wind snapshot. Never leave
+    // the previous stand's route painted after either input changes.
+    setBestRouteGeometry(null);
+  }, [selectedPinId, visiblePaths, visiblePolygons, downwindDeg, pins]);
 
-  const computeBestPathsToStand = useCallback(() => {
-    if (!selectedPin || visiblePaths.length === 0) return new Set<string>();
-    const marker = selectedPin;
-    const beddingPolys = visiblePolygons.filter((p) => p.type === 'bedding_zone');
-    const homeMarker = pins.find((p) => p.type === 'home');
+  const computeBestPathsToStand = useCallback((): PolygonPoint[] | null => {
+    if (!selectedPin || visiblePaths.length === 0) return null;
+    const homeMarker = pins.find((pin) => pin.type === 'home');
+    if (!homeMarker) return null;
 
-    // Precompute scent penalty for every path (used in both routing modes)
-    const pathPenalties = new Map<string, number>();
-    for (const path of visiblePaths) {
-      if (path.points.length < 2) continue;
-      let penalty = 0;
-      for (const pt of path.points) {
-        const bearingToMarker = computeBearing(pt.lat, pt.lng, marker.lat, marker.lng);
-        const diffToMarker = angleDiff(downwindDeg, bearingToMarker);
-        if (diffToMarker < 30) penalty += 40;
-        else if (diffToMarker < 60) penalty += 18;
-        else if (diffToMarker < 90) penalty += 5;
-        for (const bed of beddingPolys) {
-          const bc = polygonCentroid(bed.points);
-          const bearingToBed = computeBearing(pt.lat, pt.lng, bc.lat, bc.lng);
-          if (angleDiff(downwindDeg, bearingToBed) < 50) penalty += 30;
-        }
+    type RouteNode = { id: string; point: PolygonPoint; edges: Map<string, number> };
+    type RouteSegment = { start: PolygonPoint; end: PolygonPoint; nodes: { id: string; t: number }[] };
+    const nodes = new Map<string, RouteNode>();
+    let nextNodeId = 0;
+
+    const addNode = (point: PolygonPoint): string => {
+      for (const node of nodes.values()) {
+        if (pointsAreSame(node.point, point)) return node.id;
       }
-      for (const bed of beddingPolys) {
-        for (const pt of path.points) {
-          if (pointInPolygon(pt, bed.points)) {
-            penalty += 60;
-            break;
-          }
-        }
-      }
-      pathPenalties.set(path.id, penalty);
-    }
+      const id = `route-node-${nextNodeId++}`;
+      nodes.set(id, { id, point, edges: new Map() });
+      return id;
+    };
 
-    // If a home marker exists, use Dijkstra to find the lowest-penalty route from home → stand
-    if (homeMarker) {
-      // Build adjacency: two paths are connected if any endpoint pair is within 30m
-      const adj = new Map<string, string[]>();
-      visiblePaths.forEach((p) => adj.set(p.id, []));
-      for (let i = 0; i < visiblePaths.length; i++) {
-        for (let j = i + 1; j < visiblePaths.length; j++) {
-          const p1 = visiblePaths[i];
-          const p2 = visiblePaths[j];
-          if (p1.points.length < 2 || p2.points.length < 2) continue;
-          const p1f = p1.points[0], p1l = p1.points[p1.points.length - 1];
-          const p2f = p2.points[0], p2l = p2.points[p2.points.length - 1];
-          if (
-            approxDistance(p1f.lat, p1f.lng, p2f.lat, p2f.lng) < 30 ||
-            approxDistance(p1f.lat, p1f.lng, p2l.lat, p2l.lng) < 30 ||
-            approxDistance(p1l.lat, p1l.lng, p2f.lat, p2f.lng) < 30 ||
-            approxDistance(p1l.lat, p1l.lng, p2l.lat, p2l.lng) < 30
-          ) {
-            adj.get(p1.id)!.push(p2.id);
-            adj.get(p2.id)!.push(p1.id);
-          }
-        }
-      }
+    const addEdge = (firstId: string, secondId: string, extraCost = 0) => {
+      if (firstId === secondId) return;
+      const first = nodes.get(firstId);
+      const second = nodes.get(secondId);
+      if (!first || !second) return;
+      const distance = approxDistance(first.point.lat, first.point.lng, second.point.lat, second.point.lng);
+      const cost = distance + extraCost;
+      const oldForward = first.edges.get(secondId);
+      const oldReverse = second.edges.get(firstId);
+      if (oldForward === undefined || cost < oldForward) first.edges.set(secondId, cost);
+      if (oldReverse === undefined || cost < oldReverse) second.edges.set(firstId, cost);
+    };
 
-      const startNodes: string[] = [];
-      const endNodes = new Set<string>();
-      for (const path of visiblePaths) {
-        if (path.points.length < 2) continue;
-        const fp = path.points[0], lp = path.points[path.points.length - 1];
-        const distToHome = Math.min(
-          approxDistance(fp.lat, fp.lng, homeMarker.lat, homeMarker.lng),
-          approxDistance(lp.lat, lp.lng, homeMarker.lat, homeMarker.lng)
+    const scentPenalty = (from: PolygonPoint, to: PolygonPoint): number => {
+      const midpoint = {
+        lat: (from.lat + to.lat) / 2,
+        lng: (from.lng + to.lng) / 2,
+      };
+      const towardStand = angleDiff(downwindDeg, computeBearing(midpoint.lat, midpoint.lng, selectedPin.lat, selectedPin.lng));
+      // A route segment inside the downwind cone would carry scent toward the
+      // selected stand, so make it non-traversable rather than merely preferring
+      // another route. The wider bands remain soft penalties for optimization.
+      if (towardStand < 30) return Number.POSITIVE_INFINITY;
+      let penalty = towardStand < 60 ? 90 : towardStand < 90 ? 25 : 0;
+      for (const bedding of visiblePolygons.filter((polygon) => polygon.type === 'bedding_zone')) {
+        const center = polygonCentroid(bedding.points);
+        if (angleDiff(downwindDeg, computeBearing(midpoint.lat, midpoint.lng, center.lat, center.lng)) < 50) penalty += 130;
+        if (pointInPolygon(midpoint, bedding.points)) penalty += 260;
+      }
+      return penalty;
+    };
+
+    const routeSegments = visiblePaths
+      .filter((path) => path.points.length >= 2)
+      .flatMap((path) => path.points.slice(0, -1).map((point, index) => {
+        const segment: RouteSegment = {
+          start: point,
+          end: path.points[index + 1],
+          nodes: [],
+        };
+        segment.nodes.push({ id: addNode(segment.start), t: 0 });
+        segment.nodes.push({ id: addNode(segment.end), t: 1 });
+        return segment;
+      }));
+
+    // Split both paths wherever they cross or pass within 35m. This is the key
+    // difference from the old endpoint-only graph.
+    for (let firstIndex = 0; firstIndex < routeSegments.length; firstIndex++) {
+      for (let secondIndex = firstIndex + 1; secondIndex < routeSegments.length; secondIndex++) {
+        const first = routeSegments[firstIndex];
+        const second = routeSegments[secondIndex];
+        const closest = closestPointsOnSegments(first.start, first.end, second.start, second.end);
+        if (closest.distance > 35) continue;
+        first.nodes.push({ id: addNode(closest.first), t: closest.firstT });
+        second.nodes.push({ id: addNode(closest.second), t: closest.secondT });
+        // If there is a small gap between separately drawn paths, make that gap
+        // explicit in the route rather than silently coloring disconnected paths.
+        addEdge(
+          addNode(closest.first),
+          addNode(closest.second),
+          scentPenalty(closest.first, closest.second)
         );
-        if (distToHome < 60) startNodes.push(path.id);
-        const distToStand = Math.min(
-          approxDistance(fp.lat, fp.lng, marker.lat, marker.lng),
-          approxDistance(lp.lat, lp.lng, marker.lat, marker.lng)
-        );
-        if (distToStand < 60) endNodes.add(path.id);
       }
+    }
 
-      if (startNodes.length > 0 && endNodes.size > 0) {
-        const dist = new Map<string, number>();
-        const prev = new Map<string, string>();
-        const pq: { id: string; cost: number }[] = [];
+    const homeId = addNode({ lat: homeMarker.lat, lng: homeMarker.lng });
+    const standId = addNode({ lat: selectedPin.lat, lng: selectedPin.lng });
+    const pinSnapLimit = 180;
+    const connectPinToPaths = (pin: PolygonPoint, pinId: string) => {
+      for (const segment of routeSegments) {
+        const projection = projectPointOntoSegment(pin, segment.start, segment.end);
+        if (projection.distance > pinSnapLimit) continue;
+        const projectedId = addNode(projection.point);
+        segment.nodes.push({ id: projectedId, t: projection.t });
+        addEdge(pinId, projectedId, scentPenalty(pin, projection.point));
+      }
+    };
+    connectPinToPaths(homeMarker, homeId);
+    connectPinToPaths(selectedPin, standId);
 
-        for (const id of startNodes) {
-          const cost = pathPenalties.get(id) || 0;
-          dist.set(id, cost);
-          pq.push({ id, cost });
-        }
-        pq.sort((a, b) => a.cost - b.cost);
+    // Join consecutive split points on each original segment, preserving the
+    // original path geometry and allowing partial-path traversal.
+    for (const segment of routeSegments) {
+      const uniqueNodes = new Map<string, number>();
+      for (const item of segment.nodes) uniqueNodes.set(item.id, item.t);
+      const ordered = [...uniqueNodes.entries()].sort((a, b) => a[1] - b[1]);
+      for (let index = 0; index < ordered.length - 1; index++) {
+        const firstNode = nodes.get(ordered[index][0]);
+        const secondNode = nodes.get(ordered[index + 1][0]);
+        if (!firstNode || !secondNode) continue;
+        const extraCost = scentPenalty(firstNode.point, secondNode.point);
+        addEdge(firstNode.id, secondNode.id, extraCost);
+      }
+    }
 
-        let bestEndNode: string | null = null;
-        let minTotalCost = Infinity;
-
-        while (pq.length > 0) {
-          const curr = pq.shift()!;
-          if ((dist.get(curr.id) ?? Infinity) < curr.cost) continue;
-          if (endNodes.has(curr.id) && curr.cost < minTotalCost) {
-            minTotalCost = curr.cost;
-            bestEndNode = curr.id;
-          }
-          for (const nxt of adj.get(curr.id) || []) {
-            const edgeCost = pathPenalties.get(nxt) || 0;
-            const newDist = curr.cost + edgeCost;
-            if (newDist < (dist.get(nxt) ?? Infinity)) {
-              dist.set(nxt, newDist);
-              prev.set(nxt, curr.id);
-              pq.push({ id: nxt, cost: newDist });
-              pq.sort((a, b) => a.cost - b.cost);
-            }
-          }
-        }
-
-        if (bestEndNode) {
-          const route = new Set<string>();
-          let curr: string | undefined = bestEndNode;
-          while (curr) {
-            route.add(curr);
-            curr = prev.get(curr);
-          }
-          return route;
+    // Dijkstra over the split path network. Pin-to-path connectors have only
+    // physical distance as cost; the path portions carry the scent penalty.
+    const distance = new Map<string, number>([[homeId, 0]]);
+    const previous = new Map<string, string>();
+    const queue: { id: string; cost: number }[] = [{ id: homeId, cost: 0 }];
+    while (queue.length > 0) {
+      queue.sort((a, b) => a.cost - b.cost);
+      const current = queue.shift()!;
+      if (current.cost !== distance.get(current.id)) continue;
+      if (current.id === standId) break;
+      const currentNode = nodes.get(current.id);
+      if (!currentNode) continue;
+      for (const [nextId, edgeCost] of currentNode.edges) {
+        const nextCost = current.cost + edgeCost;
+        if (nextCost < (distance.get(nextId) ?? Infinity)) {
+          distance.set(nextId, nextCost);
+          previous.set(nextId, current.id);
+          queue.push({ id: nextId, cost: nextCost });
         }
       }
     }
 
-    // Fallback: original proximity-based scoring (no home marker or no reachable route)
-    const scored: { id: string; score: number }[] = [];
-    for (const path of visiblePaths) {
-      if (path.points.length < 2) continue;
-      const firstPt = path.points[0];
-      const lastPt = path.points[path.points.length - 1];
-      const d1 = approxDistance(firstPt.lat, firstPt.lng, marker.lat, marker.lng);
-      const d2 = approxDistance(lastPt.lat, lastPt.lng, marker.lat, marker.lng);
-      const minDist = Math.min(d1, d2);
-      if (minDist > 400) continue;
-      let score = 100;
-      if (minDist < 60) score += 50;
-      else if (minDist < 200) score += 30;
-      else score += 10;
-      score -= (pathPenalties.get(path.id) || 0);
-      if (score > 30) scored.push({ id: path.id, score });
+    // Do not draw a direct line when the drawn path network is disconnected:
+    // that would look like a scent-safe route while ignoring the user's paths.
+    if (!distance.has(standId)) return null;
+
+    const route: PolygonPoint[] = [];
+    let currentId: string | undefined = standId;
+    while (currentId) {
+      const node = nodes.get(currentId);
+      if (!node) break;
+      route.push(node.point);
+      currentId = previous.get(currentId);
     }
-    scored.sort((a, b) => b.score - a.score);
-    const bestSet = new Set<string>();
-    const topIds = new Set(scored.slice(0, 3).map((s) => s.id));
-    for (const path of visiblePaths) {
-      if (topIds.has(path.id)) {
-        bestSet.add(path.id);
-        continue;
-      }
-      const fp = path.points[0];
-      const lp = path.points[path.points.length - 1];
-      for (const tid of topIds) {
-        const tp = visiblePaths.find((p) => p.id === tid);
-        if (!tp) continue;
-        const tfp = tp.points[0];
-        const tlp = tp.points[tp.points.length - 1];
-        if (
-          approxDistance(fp.lat, fp.lng, tfp.lat, tfp.lng) < 30 ||
-          approxDistance(fp.lat, fp.lng, tlp.lat, tlp.lng) < 30 ||
-          approxDistance(lp.lat, lp.lng, tfp.lat, tfp.lng) < 30 ||
-          approxDistance(lp.lat, lp.lng, tlp.lat, tlp.lng) < 30
-        ) {
-          bestSet.add(path.id);
-          break;
-        }
-      }
-    }
-    return bestSet;
+    route.reverse();
+    // Keep the rendered route physically attached to the exact marker coordinates
+    // even when a pin was deduplicated against a nearby graph node.
+    if (route.length > 0) route[0] = { lat: homeMarker.lat, lng: homeMarker.lng };
+    if (route.length > 1) route[route.length - 1] = { lat: selectedPin.lat, lng: selectedPin.lng };
+    return route;
   }, [selectedPin, visiblePaths, visiblePolygons, downwindDeg, pins]);
 
   // Polygon drawing handlers
@@ -2115,8 +2191,6 @@ export const MapView: React.FC<MapViewProps> = ({
               if (path.points.length < 2) return null;
               const pathMeta = PATH_METADATA[path.type] || PATH_METADATA.custom;
               const isSelected = selectedPathId === path.id;
-              const isBestPath = bestPathIds.has(path.id);
-
               const svgPoints = path.points
                 .map((pt) => {
                   const px = latLngToPixel(pt.lat, pt.lng);
@@ -2141,12 +2215,12 @@ export const MapView: React.FC<MapViewProps> = ({
                   <polyline
                     points={svgPoints}
                     fill="none"
-                    stroke={isBestPath ? '#22c55e' : pathMeta.stroke}
-                    strokeOpacity={isSelected || isBestPath ? 1 : 0.85}
-                    strokeWidth={isBestPath ? 5 : isSelected ? 5 : 3}
+                    stroke={pathMeta.stroke}
+                    strokeOpacity={isSelected ? 1 : 0.85}
+                    strokeWidth={isSelected ? 5 : 3}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeDasharray={isBestPath ? '' : pathMeta.dash}
+                    strokeDasharray={pathMeta.dash}
                     className="transition-all duration-200 pointer-events-none"
                   />
                   {/* Vertex dots */}
@@ -2198,6 +2272,40 @@ export const MapView: React.FC<MapViewProps> = ({
                 </g>
               );
             })}
+
+            {/* Best Path route — one continuous green line from Home to the selected stand. */}
+            {bestRouteGeometry && bestRouteGeometry.length >= 2 && (
+              <g className="pointer-events-none" key="best-route-geometry">
+                <polyline
+                  points={bestRouteGeometry
+                    .map((pt) => {
+                      const px = latLngToPixel(pt.lat, pt.lng);
+                      return `${px.x},${px.y}`;
+                    })
+                    .join(' ')}
+                  fill="none"
+                  stroke="#052e16"
+                  strokeOpacity={0.9}
+                  strokeWidth={11}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <polyline
+                  points={bestRouteGeometry
+                    .map((pt) => {
+                      const px = latLngToPixel(pt.lat, pt.lng);
+                      return `${px.x},${px.y}`;
+                    })
+                    .join(' ')}
+                  fill="none"
+                  stroke="#22c55e"
+                  strokeWidth={7}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="drop-shadow-[0_0_5px_rgba(34,197,94,0.9)]"
+                />
+              </g>
+            )}
 
             {/* Path Drawing Active Draft */}
             {isDrawingPath && currentPathPoints.length > 0 && (
@@ -3205,13 +3313,19 @@ export const MapView: React.FC<MapViewProps> = ({
                   )}
                 </button>
                 <button
-                  onClick={() => bestPathIds.size > 0 ? setBestPathIds(new Set()) : setBestPathIds(computeBestPathsToStand())}
+                  onClick={() => {
+                    if (bestRouteGeometry) {
+                      setBestRouteGeometry(null);
+                    } else {
+                      setBestRouteGeometry(computeBestPathsToStand());
+                    }
+                  }}
                   className={`p-1 rounded-lg text-xs font-bold flex items-center gap-1 px-2 cursor-pointer transition-all shadow-sm text-white ${
-                    bestPathIds.size > 0
+                    bestRouteGeometry
                       ? 'bg-emerald-500 shadow-emerald-500/30'
                       : 'bg-emerald-600/70 hover:bg-emerald-500 shadow-emerald-900/30'
                   }`}
-                  title={bestPathIds.size > 0 ? 'Clear best path highlights' : 'Find best paths to this stand avoiding scent'}
+                  title={bestRouteGeometry ? 'Clear best path highlights' : 'Find a connected path from Home to this stand avoiding scent'}
                 >
                   <GitBranch className="w-3.5 h-3.5" />
                   <span>Best Path</span>
