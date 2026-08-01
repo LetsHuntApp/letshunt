@@ -734,6 +734,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [selectedPolygonId, setSelectedPolygonId] = useState<string | null>(null);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
+  const [bestPathActive, setBestPathActive] = useState(false);
+  const [bestPathError, setBestPathError] = useState<string | null>(null);
   const [bestRouteGeometry, setBestRouteGeometry] = useState<PolygonPoint[] | null>(null);
 
   // Form inputs for active editing pin
@@ -1132,13 +1134,15 @@ export const MapView: React.FC<MapViewProps> = ({
   const downwindDirText = getWindDirectionText(downwindDeg);
 
   // Compute one ordered route geometry instead of merely coloring whole paths.
-  // The graph is split at pin projections and at path crossings/near-connections, so
-  // a route can use only part of a path and always ends exactly on both pins.
+  // The graph is split at path crossings and pin projections, so the highlight
+  // uses only coordinates that are actually on the user's drawn paths.
   useEffect(() => {
-    // A route belongs to one selected stand and one wind snapshot. Never leave
-    // the previous stand's route painted after either input changes.
+    // A route belongs to one selected stand. Selecting another marker starts a
+    // fresh Best Path calculation instead of leaving the old route on screen.
+    setBestPathActive(false);
+    setBestPathError(null);
     setBestRouteGeometry(null);
-  }, [selectedPinId, visiblePaths, visiblePolygons, downwindDeg, pins]);
+  }, [selectedPinId]);
 
   const computeBestPathsToStand = useCallback((): PolygonPoint[] | null => {
     if (!selectedPin || visiblePaths.length === 0) return null;
@@ -1166,6 +1170,7 @@ export const MapView: React.FC<MapViewProps> = ({
       if (!first || !second) return;
       const distance = approxDistance(first.point.lat, first.point.lng, second.point.lat, second.point.lng);
       const cost = distance + extraCost;
+      if (!Number.isFinite(cost)) return;
       const oldForward = first.edges.get(secondId);
       const oldReverse = second.edges.get(firstId);
       if (oldForward === undefined || cost < oldForward) first.edges.set(secondId, cost);
@@ -1173,20 +1178,35 @@ export const MapView: React.FC<MapViewProps> = ({
     };
 
     const scentPenalty = (from: PolygonPoint, to: PolygonPoint): number => {
-      const midpoint = {
-        lat: (from.lat + to.lat) / 2,
-        lng: (from.lng + to.lng) / 2,
-      };
-      const towardStand = angleDiff(downwindDeg, computeBearing(midpoint.lat, midpoint.lng, selectedPin.lat, selectedPin.lng));
-      // A route segment inside the downwind cone would carry scent toward the
-      // selected stand, so make it non-traversable rather than merely preferring
-      // another route. The wider bands remain soft penalties for optimization.
-      if (towardStand < 30) return Number.POSITIVE_INFINITY;
-      let penalty = towardStand < 60 ? 90 : towardStand < 90 ? 25 : 0;
-      for (const bedding of visiblePolygons.filter((polygon) => polygon.type === 'bedding_zone')) {
-        const center = polygonCentroid(bedding.points);
-        if (angleDiff(downwindDeg, computeBearing(midpoint.lat, midpoint.lng, center.lat, center.lng)) < 50) penalty += 130;
-        if (pointInPolygon(midpoint, bedding.points)) penalty += 260;
+      const edgeDistance = approxDistance(from.lat, from.lng, to.lat, to.lng);
+      const sampleCount = Math.max(2, Math.ceil(edgeDistance / 25));
+      let penalty = 0;
+      const beddingPolygons = visiblePolygons.filter((polygon) => polygon.type === 'bedding_zone');
+
+      // Check several points along the entire edge. This prevents a long path
+      // segment from crossing the downwind cone or a bedding zone while its
+      // midpoint happens to look safe.
+      for (let index = 0; index <= sampleCount; index++) {
+        const t = index / sampleCount;
+        const sample = {
+          lat: from.lat + (to.lat - from.lat) * t,
+          lng: from.lng + (to.lng - from.lng) * t,
+        };
+        const towardStand = angleDiff(downwindDeg, computeBearing(sample.lat, sample.lng, selectedPin.lat, selectedPin.lng));
+        // A route segment inside the downwind cone would carry scent toward the
+        // selected stand, so make it non-traversable rather than merely preferring
+        // another route. The wider bands remain soft penalties for optimization.
+        if (towardStand < 30) return Number.POSITIVE_INFINITY;
+        if (towardStand < 60) penalty += 90 / sampleCount;
+        else if (towardStand < 90) penalty += 25 / sampleCount;
+
+        for (const bedding of beddingPolygons) {
+          const center = polygonCentroid(bedding.points);
+          if (angleDiff(downwindDeg, computeBearing(sample.lat, sample.lng, center.lat, center.lng)) < 50) {
+            penalty += 130 / sampleCount;
+          }
+          if (pointInPolygon(sample, bedding.points)) penalty += 260 / sampleCount;
+        }
       }
       return penalty;
     };
@@ -1211,33 +1231,45 @@ export const MapView: React.FC<MapViewProps> = ({
         const first = routeSegments[firstIndex];
         const second = routeSegments[secondIndex];
         const closest = closestPointsOnSegments(first.start, first.end, second.start, second.end);
-        if (closest.distance > 35) continue;
-        first.nodes.push({ id: addNode(closest.first), t: closest.firstT });
-        second.nodes.push({ id: addNode(closest.second), t: closest.secondT });
-        // If there is a small gap between separately drawn paths, make that gap
-        // explicit in the route rather than silently coloring disconnected paths.
-        addEdge(
-          addNode(closest.first),
-          addNode(closest.second),
-          scentPenalty(closest.first, closest.second)
-        );
+        // Only true crossings/shared endpoints become graph connections.
+        // Nearby parallel paths are intentionally left untouched so the route
+        // can never manufacture an off-path shortcut.
+        if (closest.distance <= 0.5) {
+          const intersectionId = addNode(closest.first);
+          first.nodes.push({ id: intersectionId, t: closest.firstT });
+          second.nodes.push({ id: intersectionId, t: closest.secondT });
+        }
       }
     }
 
-    const homeId = addNode({ lat: homeMarker.lat, lng: homeMarker.lng });
-    const standId = addNode({ lat: selectedPin.lat, lng: selectedPin.lng });
-    const pinSnapLimit = 180;
-    const connectPinToPaths = (pin: PolygonPoint, pinId: string) => {
+    // Add each pin's nearest point on a drawn segment as a graph anchor. There
+    // is intentionally no pin-to-path edge: the marker must already be on the
+    // drawn path. Only sub-meter coordinate rounding is tolerated; the route
+    // never draws a connector from the path to an off-path marker.
+    // A Best Path endpoint must be on the drawn path. This tiny tolerance is
+    // only for floating-point rounding; no connector is ever drawn to a pin.
+    const pinSnapLimit = 0.5;
+    const findPathAnchor = (pin: PolygonPoint): string | null => {
+      let nearest: { segment: RouteSegment; projection: SegmentProjection } | null = null;
       for (const segment of routeSegments) {
         const projection = projectPointOntoSegment(pin, segment.start, segment.end);
         if (projection.distance > pinSnapLimit) continue;
-        const projectedId = addNode(projection.point);
-        segment.nodes.push({ id: projectedId, t: projection.t });
-        addEdge(pinId, projectedId, scentPenalty(pin, projection.point));
+        if (!nearest || projection.distance < nearest.projection.distance) {
+          nearest = { segment, projection };
+        }
       }
+      if (!nearest) return null;
+
+      // Split only the nearest segment. Adding pin projections to every nearby
+      // segment creates orphan nodes and can make the graph look connected when
+      // the marker actually touches just one path.
+      const projectedId = addNode(nearest.projection.point);
+      nearest.segment.nodes.push({ id: projectedId, t: nearest.projection.t });
+      return projectedId;
     };
-    connectPinToPaths(homeMarker, homeId);
-    connectPinToPaths(selectedPin, standId);
+    const homeId = findPathAnchor(homeMarker);
+    const standId = findPathAnchor(selectedPin);
+    if (!homeId || !standId) return null;
 
     // Join consecutive split points on each original segment, preserving the
     // original path geometry and allowing partial-path traversal.
@@ -1254,8 +1286,8 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     }
 
-    // Dijkstra over the split path network. Pin-to-path connectors have only
-    // physical distance as cost; the path portions carry the scent penalty.
+    // Dijkstra over the split path network. Every edge below is a portion of a
+    // saved path, so the route cannot leave the drawn geometry.
     const distance = new Map<string, number>([[homeId, 0]]);
     const previous = new Map<string, string>();
     const queue: { id: string; cost: number }[] = [{ id: homeId, cost: 0 }];
@@ -1289,12 +1321,27 @@ export const MapView: React.FC<MapViewProps> = ({
       currentId = previous.get(currentId);
     }
     route.reverse();
-    // Keep the rendered route physically attached to the exact marker coordinates
-    // even when a pin was deduplicated against a nearby graph node.
-    if (route.length > 0) route[0] = { lat: homeMarker.lat, lng: homeMarker.lng };
-    if (route.length > 1) route[route.length - 1] = { lat: selectedPin.lat, lng: selectedPin.lng };
     return route;
   }, [selectedPin, visiblePaths, visiblePolygons, downwindDeg, pins]);
+
+  // Keep an active Best Path live while the selected hour changes. The route
+  // recomputes from the current wind direction instead of disappearing.
+  useEffect(() => {
+    if (!bestPathActive) {
+      setBestRouteGeometry(null);
+      setBestPathError(null);
+      setShowWindSlider(false);
+      return;
+    }
+
+    const route = computeBestPathsToStand();
+    setBestRouteGeometry(route);
+    // Keep Best Path mode and the wind visualization active even when this
+    // hour has no valid path-only scent-safe route. The status explains why
+    // the green route is absent instead of silently turning the feature off.
+    setBestPathError(route ? null : 'No path-only scent-safe route exists for this hour.');
+    setShowWindSlider(true);
+  }, [bestPathActive, computeBestPathsToStand]);
 
   // Polygon drawing handlers
   const handleStartDrawPolygon = () => {
@@ -2031,7 +2078,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Wind flow animation streaks: deterministic positions so streaks don't jump on hour change;
   // rotation + speed derive from the currently selected hour's wind (downwindDeg / windMph).
   const windStreaks = useMemo(() => {
-    if (!showWindSlider) return [];
+    if (!showWindSlider && !bestPathActive) return [];
     const w = Math.max(dimensions.width, 320);
     const h = Math.max(dimensions.height, 320);
     const margin = 220;
@@ -2059,7 +2106,7 @@ export const MapView: React.FC<MapViewProps> = ({
       });
     }
     return streaks;
-  }, [showWindSlider, windMph, dimensions.width, dimensions.height]);
+  }, [showWindSlider, bestPathActive, windMph, dimensions.width, dimensions.height]);
 
   return (
     <>
@@ -2389,23 +2436,34 @@ export const MapView: React.FC<MapViewProps> = ({
               />
             ))}
 
-            {/* Animated Wind Flow Streaks — visible only while the Check Wind slider is open */}
-            {showWindSlider && windStreaks.length > 0 && (
-              <g>
+            {/* Animated Wind Flow Streaks — intentionally above route/polygon layers
+                so wind direction remains readable over dark satellite imagery. */}
+            {(showWindSlider || bestPathActive) && windStreaks.length > 0 && (
+              <g className="pointer-events-none">
                 {windStreaks.map((s, i) => (
                   <g
                     key={`wind-streak-${i}`}
                     transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
                   >
-                    <g opacity={s.opacity} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
+                    <g opacity={Math.min(0.95, s.opacity + 0.2)} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
                       <line
                         x1={0}
                         y1={0}
                         x2={s.len}
                         y2={0}
-                        stroke="#7dd3fc"
-                        strokeOpacity={0.75}
-                        strokeWidth={s.width}
+                        stroke="#082f49"
+                        strokeOpacity={0.9}
+                        strokeWidth={s.width + 3}
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1={0}
+                        y1={0}
+                        x2={s.len}
+                        y2={0}
+                        stroke="#67e8f9"
+                        strokeOpacity={0.95}
+                        strokeWidth={s.width + 1}
                         strokeLinecap="round"
                       />
                     </g>
@@ -3314,22 +3372,34 @@ export const MapView: React.FC<MapViewProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    if (bestRouteGeometry) {
+                    if (bestPathActive) {
+                      setBestPathActive(false);
+                      setBestPathError(null);
                       setBestRouteGeometry(null);
+                      setShowWindSlider(false);
                     } else {
-                      setBestRouteGeometry(computeBestPathsToStand());
+                      const route = computeBestPathsToStand();
+                      setBestRouteGeometry(route);
+                      setBestPathActive(true);
+                      setBestPathError(route ? null : 'No path-only scent-safe route exists for this hour.');
+                      setShowWindSlider(true);
                     }
                   }}
                   className={`p-1 rounded-lg text-xs font-bold flex items-center gap-1 px-2 cursor-pointer transition-all shadow-sm text-white ${
-                    bestRouteGeometry
+                    bestPathActive
                       ? 'bg-emerald-500 shadow-emerald-500/30'
                       : 'bg-emerald-600/70 hover:bg-emerald-500 shadow-emerald-900/30'
                   }`}
-                  title={bestRouteGeometry ? 'Clear best path highlights' : 'Find a connected path from Home to this stand avoiding scent'}
+                  title={bestPathActive ? 'Clear best path highlights' : 'Find a connected path from Home to this stand avoiding scent'}
                 >
                   <GitBranch className="w-3.5 h-3.5" />
                   <span>Best Path</span>
                 </button>
+                {bestPathError && (
+                  <span className="max-w-48 text-[10px] font-semibold leading-tight text-amber-300" role="status">
+                    {bestPathError}
+                  </span>
+                )}
                 <button
                   onClick={() => setSelectedPinId(null)}
                   className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
