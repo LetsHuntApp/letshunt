@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Compass,
   MapPin,
-  RotateCcw,
   Trash2,
   Edit2,
   Plus,
@@ -1046,11 +1045,28 @@ export const MapView: React.FC<MapViewProps> = ({
     return cands;
   }, [visiblePaths, currentPathPoints, visiblePins]);
 
-  // Handle center location reset
-  const handleResetLocation = () => {
-    setCenterLat(defaultLat);
-    setCenterLng(defaultLng);
-    setZoom(16);
+  // Center the map on the user's current GPS location
+  const [isLocating, setIsLocating] = useState(false);
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCenterLat(position.coords.latitude);
+        setCenterLng(position.coords.longitude);
+        setZoom(16);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.warn('GPS position request notice:', error?.message || error);
+        setIsLocating(false);
+        alert('Could not access your location. Please allow location access for LetsHunt and try again.');
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
   };
 
   // Fetch pin-specific weather if selected
@@ -3247,18 +3263,22 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
 
-        {/* BOTTOM RIGHT FLOATING CONTROLS: Snap to Location Reset */}
+        {/* BOTTOM RIGHT FLOATING CONTROLS: Center on GPS Location */}
         <div className="absolute bottom-16 sm:bottom-4 right-4 z-30 pointer-events-auto">
           <button
-            onClick={handleResetLocation}
+            onClick={handleGetCurrentLocation}
             className={`p-2.5 rounded-2xl border shadow-xl backdrop-blur-md transition-all cursor-pointer ${
               isDark
                 ? 'bg-slate-950/85 border-slate-800 text-emerald-400 hover:bg-slate-800 hover:text-white'
                 : 'bg-white/95 border-slate-200 text-emerald-600 hover:bg-slate-50'
             }`}
-            title="Snap Map to Default Location Center"
+            title="Center map on my current GPS location"
           >
-            <RotateCcw className="w-4 h-4" />
+            {isLocating ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Navigation className="w-4 h-4" />
+            )}
           </button>
         </div>
 
