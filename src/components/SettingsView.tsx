@@ -590,12 +590,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {/* Test button */}
             <button
               onClick={async () => {
-                let sent = sendTestNotification();
+                let sent = await sendTestNotification();
                 let perm = permissionState;
                 if (!sent && supported && perm !== 'denied') {
                   perm = await ensurePermissionGranted();
                   if (perm === 'granted') {
-                    sent = sendTestNotification();
+                    sent = await sendTestNotification();
                     onNotificationPrefsChange({ ...notificationPrefs, enabled: true });
                   }
                 }

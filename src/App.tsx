@@ -37,6 +37,8 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
   longitude: -89.4012,
 };
 
+const HOUR_MS = 3600 * 1000;
+
 export default function App() {
   // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
@@ -177,34 +179,84 @@ export default function App() {
   // Weather alert notifications: fire one separate system notification per
   // upcoming event (cold fronts, baro shifts, rain breaks, prime days, severe weather).
   const notificationTimersRef = useRef<number[]>([]);
+  const lastNotifSigRef = useRef('');
+  // Guards events whose async show is still in-flight, so an effect re-run
+  // (forecast refresh, location change) can never double-fire the same alert
+  // while the first show is still awaiting the service worker.
+  const pendingNotifsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!dailyForecast.length || !notificationPrefs.enabled) return;
     if (!isNotificationSupported() || Notification.permission !== 'granted') return;
 
-    const events = detectWeatherAlerts(dailyForecast, notificationPrefs, units);
-    if (events.length === 0) return;
+    const sig = JSON.stringify({
+      leadTimeHours: notificationPrefs.leadTimeHours,
+      coldFront: notificationPrefs.coldFront,
+      weatherFront: notificationPrefs.weatherFront,
+      rainBreak: notificationPrefs.rainBreak,
+      primeDay: notificationPrefs.primeDay,
+      severeWeather: notificationPrefs.severeWeather,
+    });
+    const settingsChanged = sig !== lastNotifSigRef.current;
+    lastNotifSigRef.current = sig;
 
-    // Each event gets its own notification. The dedup check happens inside the
-    // stagger callback (atomic mark + show), so forecast refreshes and
-    // StrictMode double-invocations can never fire the same event twice, and
-    // the slight stagger lets them stack as individual notifications.
+    const events = detectWeatherAlerts(dailyForecast, notificationPrefs, units);
     const freshEvents = events.filter((e) => !wasNotified(e.id));
+    const timers: number[] = [];
+
+    // Each event gets its own notification. The event is only marked notified
+    // AFTER the system notification actually shows (Android can silently drop
+    // a page-context notification), so a dropped alert is retried instead of
+    // being consumed and lost. The pending set prevents duplicates across
+    // effect re-runs while a show is still in flight.
     freshEvents.forEach((e, idx) => {
-      const timer = window.setTimeout(() => {
-        if (!wasNotified(e.id)) {
-          markNotified(e.id);
-          showSystemNotification(e.title, e.body, e.id);
+      const timer = window.setTimeout(async () => {
+        if (wasNotified(e.id) || pendingNotifsRef.current.has(e.id)) return;
+        pendingNotifsRef.current.add(e.id);
+        try {
+          const shown = await showSystemNotification(e.title, e.body, e.id);
+          if (shown) markNotified(e.id);
+        } finally {
+          pendingNotifsRef.current.delete(e.id);
         }
       }, idx * 400);
-      notificationTimersRef.current.push(timer);
+      timers.push(timer);
     });
+
+    // Whenever the user arms alerts or changes the lead-time window (24/48/72h),
+    // push a confirmation so it is always visibly clear push is on and working.
+    // Only fired when no fresh alert is being delivered — the alerts themselves
+    // are the confirmation then — so the user never gets N+1 notifications.
+    if (settingsChanged && freshEvents.length === 0) {
+      const armedKey = `letshunt_armed_${notificationPrefs.leadTimeHours}`;
+      if (!wasNotified(armedKey, 12 * HOUR_MS)) {
+        const timer = window.setTimeout(async () => {
+          if (wasNotified(armedKey, 12 * HOUR_MS) || pendingNotifsRef.current.has(armedKey)) return;
+          pendingNotifsRef.current.add(armedKey);
+          try {
+            const shown = await showSystemNotification(
+              `🔔 Alerts Armed — next ${notificationPrefs.leadTimeHours}h`,
+              events.length > 0
+                ? `${events.length} weather alert${events.length === 1 ? '' : 's'} in range for ${currentLocation.name} — already delivered.`
+                : `No weather events in range for ${currentLocation.name} yet — you'll be pinged the moment one appears.`,
+              armedKey
+            );
+            if (shown) markNotified(armedKey);
+          } finally {
+            pendingNotifsRef.current.delete(armedKey);
+          }
+        }, 400);
+        timers.push(timer);
+      }
+    }
+
+    notificationTimersRef.current.push(...timers);
 
     return () => {
       notificationTimersRef.current.forEach((t) => window.clearTimeout(t));
       notificationTimersRef.current = [];
     };
-  }, [dailyForecast, notificationPrefs, units]);
+  }, [dailyForecast, notificationPrefs, units, currentLocation.name]);
 
   // Listen for PWA beforeinstallprompt event
   useEffect(() => {

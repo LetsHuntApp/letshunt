@@ -106,7 +106,7 @@ export function markNotified(key: string): void {
 
 // --- Display ---
 
-export function showSystemNotification(title: string, body: string, tag = 'letshunt-alert'): boolean {
+export async function showSystemNotification(title: string, body: string, tag = 'letshunt-alert'): Promise<boolean> {
   if (!isNotificationSupported() || Notification.permission !== 'granted') return false;
 
   // Relative paths resolve correctly from both the page (dev: /, Pages: /LetsHunt/)
@@ -124,7 +124,7 @@ export function showSystemNotification(title: string, body: string, tag = 'letsh
   // Fallback for browsers without an active service worker registration.
   // Note: on Android (especially installed PWAs) page-context `new Notification()`
   // is suppressed — the service-worker path below is the reliable one there.
-  const showViaPage = () => {
+  const showViaPage = (): boolean => {
     try {
       const notification = new Notification(title, options);
       notification.onclick = () => {
@@ -133,32 +133,38 @@ export function showSystemNotification(title: string, body: string, tag = 'letsh
           window.location.assign('/LetsHunt/');
         }
       };
+      return true;
     } catch {
-      /* page notification unavailable */
+      return false;
     }
   };
 
   try {
     if ('serviceWorker' in navigator) {
       // Prefer the active service worker registration: `registration.showNotification()`
-      // is required for reliable display on Android. Race a short timeout so a
-      // missing/slow registration degrades gracefully to the page API.
-      Promise.race([
-        navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, options)),
-        // Generous timeout: on a cold load the SW can take a couple seconds to
-        // install/activate, and Android is exactly the platform that needs it.
-        new Promise((_, reject) => setTimeout(() => reject(new Error('sw-not-ready')), 5000)),
-      ]).catch(() => showViaPage());
-      return true;
+      // is required for reliable display on Android. Resolves with the real
+      // outcome so callers only mark an event notified after it actually shows —
+      // a silently dropped alert must be retried, not consumed.
+      try {
+        const reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          // Generous timeout: on a cold load the SW can take a few seconds to
+          // install/activate, and Android is exactly the platform that needs it.
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('sw-not-ready')), 15000)),
+        ]);
+        await reg.showNotification(title, options);
+        return true;
+      } catch {
+        return showViaPage();
+      }
     }
-    showViaPage();
-    return true;
+    return showViaPage();
   } catch {
     return false;
   }
 }
 
-export function sendTestNotification(): boolean {
+export async function sendTestNotification(): Promise<boolean> {
   return showSystemNotification(
     'LetsHunt Notifications Working 🔔',
     'This is a test alert. You will be notified here when cold fronts, barometric front shifts, breaks in the rain, or prime hunting days approach your grounds.',
