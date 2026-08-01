@@ -30,7 +30,6 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
 export interface WeatherAlertEvent {
   id: string;
   type: NotificationEventType;
-  label: string; // short human label, e.g. "Cold Front Tomorrow"
   title: string; // full notification title with emoji
   body: string; // full notification body
   fireAt: number; // best-effort timestamp to alert about this event
@@ -109,19 +108,47 @@ export function markNotified(key: string): void {
 
 export function showSystemNotification(title: string, body: string, tag = 'letshunt-alert'): boolean {
   if (!isNotificationSupported() || Notification.permission !== 'granted') return false;
+
+  // Relative paths resolve correctly from both the page (dev: /, Pages: /LetsHunt/)
+  // and the service worker scope.
+  const options: NotificationOptions = {
+    body,
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag,
+  };
+
+  // Fallback for browsers without an active service worker registration.
+  // Note: on Android (especially installed PWAs) page-context `new Notification()`
+  // is suppressed — the service-worker path below is the reliable one there.
+  const showViaPage = () => {
+    try {
+      const notification = new Notification(title, options);
+      notification.onclick = () => {
+        window.focus();
+        if (window.location.pathname !== '/LetsHunt/') {
+          window.location.assign('/LetsHunt/');
+        }
+      };
+    } catch {
+      /* page notification unavailable */
+    }
+  };
+
   try {
-    const notification = new Notification(title, {
-      body,
-      icon: '/LetsHunt/icon-192.png',
-      badge: '/LetsHunt/icon-192.png',
-      tag,
-    });
-    notification.onclick = () => {
-      window.focus();
-      if (window.location.pathname !== '/LetsHunt/') {
-        window.location.assign('/LetsHunt/');
-      }
-    };
+    if ('serviceWorker' in navigator) {
+      // Prefer the active service worker registration: `registration.showNotification()`
+      // is required for reliable display on Android. Race a short timeout so a
+      // missing/slow registration degrades gracefully to the page API.
+      Promise.race([
+        navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, options)),
+        // Generous timeout: on a cold load the SW can take a couple seconds to
+        // install/activate, and Android is exactly the platform that needs it.
+        new Promise((_, reject) => setTimeout(() => reject(new Error('sw-not-ready')), 5000)),
+      ]).catch(() => showViaPage());
+      return true;
+    }
+    showViaPage();
     return true;
   } catch {
     return false;
@@ -159,7 +186,6 @@ export function detectWeatherAlerts(
       events.push({
         id: `cold_front_${day.date}`,
         type: 'cold_front',
-        label: `Cold Front ${day.dayName}`,
         title: `❄️ Cold Front ${day.dayName}`,
         body: `${day.dateFormatted} — 24h temp drop of ${Math.round(day.tempDrop24h)}${tempUnit}. Cold-air surge triggers heavy feeding movement. Get on stand early.`,
         fireAt: dayStart + 5 * HOUR_MS, // pre-dawn reminder on the event day
@@ -172,7 +198,6 @@ export function detectWeatherAlerts(
       events.push({
         id: `weather_front_${day.date}`,
         type: 'weather_front',
-        label: `Baro Front Shift ${day.dayName}`,
         title: `🌬️ Barometric Front ${day.dayName}`,
         body: `${day.dateFormatted} — pressure ${dropping ? 'falling ahead of rain. Deer feed hard before the storm arrives.' : 'rising post-front. Clear, stable air sparks daylight travel.'}`,
         fireAt: dayStart + 5 * HOUR_MS,
@@ -184,7 +209,6 @@ export function detectWeatherAlerts(
       events.push({
         id: `severe_weather_${day.date}`,
         type: 'severe_weather',
-        label: `Severe Weather ${day.dayName}`,
         title: `⛈️ Severe Weather ${day.dayName}`,
         body: `${day.dateFormatted} — ${day.weatherDesc} expected. Deer will hunker down in thick cover; adjust your hunt plan.`,
         fireAt: dayStart + 5 * HOUR_MS,
@@ -196,7 +220,6 @@ export function detectWeatherAlerts(
       events.push({
         id: `prime_day_${day.date}`,
         type: 'prime_day',
-        label: `Prime Hunt Day ${day.dayName}`,
         title: `🎯 Prime Hunt Day ${day.dayName}`,
         body: `${day.dateFormatted} — ${day.huntScore}/100 Excellent rating. Best windows: ${day.morningPrime} & ${day.eveningPrime}.`,
         fireAt: dayStart + 5 * HOUR_MS,
@@ -215,7 +238,6 @@ export function detectWeatherAlerts(
         events.push({
           id: `rain_break_${day.date}_${i}`,
           type: 'rain_break',
-          label: `Break in Rain ${day.dayName} ${hour.time}`,
           title: `☔ Break in the Rain ${day.dayName}`,
           body: `${day.dateFormatted} ${hour.time} — rain lets up. Deer surge out to feed and stretch. Prime setup window.`,
           fireAt: hour.timestamp - 30 * 60 * 1000, // 30-minute heads-up
@@ -226,18 +248,4 @@ export function detectWeatherAlerts(
   }
 
   return events.filter((e) => e.fireAt <= horizon).sort((a, b) => a.fireAt - b.fireAt);
-}
-
-export function buildDigestNotification(
-  events: WeatherAlertEvent[],
-  locationName: string
-): { title: string; body: string } {
-  const shown = events.slice(0, 4);
-  const body =
-    shown.map((e) => `• ${e.label}`).join('\n') +
-    (events.length > shown.length ? `\n• +${events.length - shown.length} more…` : '');
-  return {
-    title: `${events.length} Weather Alert${events.length > 1 ? 's' : ''} — ${locationName}`,
-    body,
-  };
 }

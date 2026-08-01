@@ -11,7 +11,6 @@ import {
   getNotificationPrefs,
   saveNotificationPrefs,
   detectWeatherAlerts,
-  buildDigestNotification,
   showSystemNotification,
   wasNotified,
   markNotified,
@@ -175,8 +174,8 @@ export default function App() {
     localStorage.setItem('letshunt_favorites', JSON.stringify(favorites));
   }, [favorites]);
 
-  // Weather alert notifications: fire a daily digest of upcoming events and
-  // schedule timed reminders for each window while the app is open.
+  // Weather alert notifications: fire one separate system notification per
+  // upcoming event (cold fronts, baro shifts, rain breaks, prime days, severe weather).
   const notificationTimersRef = useRef<number[]>([]);
 
   useEffect(() => {
@@ -186,38 +185,26 @@ export default function App() {
     const events = detectWeatherAlerts(dailyForecast, notificationPrefs, units);
     if (events.length === 0) return;
 
-    // One digest notification per location per day (never spams on refresh)
+    // Each event gets its own notification. The dedup check happens inside the
+    // stagger callback (atomic mark + show), so forecast refreshes and
+    // StrictMode double-invocations can never fire the same event twice, and
+    // the slight stagger lets them stack as individual notifications.
     const freshEvents = events.filter((e) => !wasNotified(e.id));
-    if (freshEvents.length > 0) {
-      const locationKey = currentLocation.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-      const digestKey = `digest_${locationKey}_${new Date().toDateString()}`;
-      if (!wasNotified(digestKey)) {
-        markNotified(digestKey);
-        const { title, body } = buildDigestNotification(freshEvents, currentLocation.name);
-        showSystemNotification(title, body);
-      }
-    }
-
-    // Timed heads-up reminders for upcoming event windows (rain breaks fire 30 min before)
-    for (const e of events) {
-      const delay = e.fireAt - Date.now();
-      if (delay <= 0 || delay > 48 * 3600 * 1000) continue;
-      if (wasNotified(e.id)) continue;
+    freshEvents.forEach((e, idx) => {
       const timer = window.setTimeout(() => {
         if (!wasNotified(e.id)) {
           markNotified(e.id);
-          showSystemNotification(e.title, e.body);
+          showSystemNotification(e.title, e.body, e.id);
         }
-      }, delay);
+      }, idx * 400);
       notificationTimersRef.current.push(timer);
-      if (notificationTimersRef.current.length >= 6) break;
-    }
+    });
 
     return () => {
       notificationTimersRef.current.forEach((t) => window.clearTimeout(t));
       notificationTimersRef.current = [];
     };
-  }, [dailyForecast, notificationPrefs, currentLocation, units]);
+  }, [dailyForecast, notificationPrefs, units]);
 
   // Listen for PWA beforeinstallprompt event
   useEffect(() => {

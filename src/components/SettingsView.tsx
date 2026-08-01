@@ -215,7 +215,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     ? 'Permission granted — alerts active'
     : permissionState === 'denied'
     ? 'Blocked by browser — enable in site settings'
-    : 'Permission not granted yet';
+    : 'Tap Enable and allow notifications in the browser prompt';
 
   const ensurePermissionGranted = async (): Promise<NotificationPermission | 'unsupported'> => {
     let perm = getPermissionState();
@@ -517,7 +517,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               Get alerted when conditions move deer — cold fronts, barometric front shifts, breaks in the rain,
               and prime hunting days. Alerts fire while LetsHunt is open, including as an installed app running
-              in the background.
+              in the background. On Android, also allow notifications for LetsHunt in your device Settings.
             </p>
 
             {/* Master toggle */}
