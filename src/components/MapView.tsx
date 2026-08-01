@@ -24,7 +24,8 @@ import {
   Shapes,
   Undo,
   CheckCircle2,
-  Layers
+  Layers,
+  GitBranch
 } from 'lucide-react';
 import {
   ThemeMode,
@@ -546,6 +547,53 @@ function getPathMidpoint(points: PolygonPoint[]): PolygonPoint {
   return points[Math.floor((points.length - 1) / 2)];
 }
 
+// Approximate distance in meters between two lat/lng points (flat-earth approx, fine for hunting areas)
+function approxDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLat = (lat1 - lat2) * 111320;
+  const dLng = (lng1 - lng2) * 111320 * Math.cos(((lat1 + lat2) / 2) * (Math.PI / 180));
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+// Compute bearing (0-360) from point a to point b
+function computeBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const y = Math.sin(dLng) * Math.cos((lat2 * Math.PI) / 180);
+  const x =
+    Math.cos((lat1 * Math.PI) / 180) * Math.sin((lat2 * Math.PI) / 180) -
+    Math.sin((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.cos(dLng);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+// Absolute angular difference (0-180)
+function angleDiff(a: number, b: number): number {
+  const diff = Math.abs(a - b) % 360;
+  return Math.min(diff, 360 - diff);
+}
+
+// Point-in-polygon via ray casting
+function pointInPolygon(pt: PolygonPoint, polygon: PolygonPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const yi = polygon[i].lng,
+      yj = polygon[j].lng;
+    if (yi > pt.lng !== yj > pt.lng && pt.lat < ((polygon[j].lat - polygon[i].lat) * (pt.lng - yi)) / (yj - yi) + polygon[i].lat) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Polygon centroid
+function polygonCentroid(points: PolygonPoint[]): PolygonPoint {
+  let cx = 0,
+    cy = 0;
+  for (const pt of points) {
+    cx += pt.lat;
+    cy += pt.lng;
+  }
+  return { lat: cx / points.length, lng: cy / points.length };
+}
+
 export const MapView: React.FC<MapViewProps> = ({
   location,
   units,
@@ -599,6 +647,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [selectedPolygonId, setSelectedPolygonId] = useState<string | null>(null);
   const [selectedPathId, setSelectedPathId] = useState<string | null>(null);
+  const [bestPathIds, setBestPathIds] = useState<Set<string>>(new Set());
 
   // Form inputs for active editing pin
   const [editingPinId, setEditingPinId] = useState<string | null>(null);
@@ -994,6 +1043,84 @@ export const MapView: React.FC<MapViewProps> = ({
 
   const downwindDeg = (windDeg + 180) % 360;
   const downwindDirText = getWindDirectionText(downwindDeg);
+
+  // Compute best paths to reach the selected marker, avoiding scent toward marker/bedding
+  // Clear best-path highlights when the stand marker is deselected
+  useEffect(() => {
+    if (!selectedPin) {
+      setBestPathIds(new Set());
+    }
+  }, [selectedPin]);
+
+  const computeBestPathsToStand = useCallback(() => {
+    if (!selectedPin || visiblePaths.length === 0) return new Set<string>();
+    const marker = selectedPin;
+    const beddingPolys = visiblePolygons.filter((p) => p.type === 'bedding_zone');
+    const scored: { id: string; score: number }[] = [];
+    for (const path of visiblePaths) {
+      if (path.points.length < 2) continue;
+      const firstPt = path.points[0];
+      const lastPt = path.points[path.points.length - 1];
+      const d1 = approxDistance(firstPt.lat, firstPt.lng, marker.lat, marker.lng);
+      const d2 = approxDistance(lastPt.lat, lastPt.lng, marker.lat, marker.lng);
+      const minDist = Math.min(d1, d2);
+      if (minDist > 400) continue;
+      let score = 100;
+      if (minDist < 60) score += 50;
+      else if (minDist < 200) score += 30;
+      else score += 10;
+      for (const pt of path.points) {
+        const bearingToMarker = computeBearing(pt.lat, pt.lng, marker.lat, marker.lng);
+        const diffToMarker = angleDiff(downwindDeg, bearingToMarker);
+        if (diffToMarker < 30) score -= 40;
+        else if (diffToMarker < 60) score -= 18;
+        else if (diffToMarker < 90) score -= 5;
+        for (const bed of beddingPolys) {
+          const bc = polygonCentroid(bed.points);
+          const bearingToBed = computeBearing(pt.lat, pt.lng, bc.lat, bc.lng);
+          if (angleDiff(downwindDeg, bearingToBed) < 50) score -= 30;
+        }
+      }
+      for (const bed of beddingPolys) {
+        for (const pt of path.points) {
+          if (pointInPolygon(pt, bed.points)) {
+            score -= 60;
+            break;
+          }
+        }
+      }
+      if (score > 30) scored.push({ id: path.id, score });
+    }
+    scored.sort((a, b) => b.score - a.score);
+    // Get top-scoring path(s) and any paths that connect to them
+    const bestSet = new Set<string>();
+    const topIds = new Set(scored.slice(0, 3).map((s) => s.id));
+    for (const path of visiblePaths) {
+      if (topIds.has(path.id)) {
+        bestSet.add(path.id);
+        continue;
+      }
+      // Also include paths that share an endpoint with a top path (connected route)
+      const fp = path.points[0];
+      const lp = path.points[path.points.length - 1];
+      for (const tid of topIds) {
+        const tp = visiblePaths.find((p) => p.id === tid);
+        if (!tp) continue;
+        const tfp = tp.points[0];
+        const tlp = tp.points[tp.points.length - 1];
+        if (
+          approxDistance(fp.lat, fp.lng, tfp.lat, tfp.lng) < 30 ||
+          approxDistance(fp.lat, fp.lng, tlp.lat, tlp.lng) < 30 ||
+          approxDistance(lp.lat, lp.lng, tfp.lat, tfp.lng) < 30 ||
+          approxDistance(lp.lat, lp.lng, tlp.lat, tlp.lng) < 30
+        ) {
+          bestSet.add(path.id);
+          break;
+        }
+      }
+    }
+    return bestSet;
+  }, [selectedPin, visiblePaths, visiblePolygons, downwindDeg]);
 
   // Polygon drawing handlers
   const handleStartDrawPolygon = () => {
@@ -1890,6 +2017,7 @@ export const MapView: React.FC<MapViewProps> = ({
               if (path.points.length < 2) return null;
               const pathMeta = PATH_METADATA[path.type] || PATH_METADATA.custom;
               const isSelected = selectedPathId === path.id;
+              const isBestPath = bestPathIds.has(path.id);
 
               const svgPoints = path.points
                 .map((pt) => {
@@ -1911,16 +2039,16 @@ export const MapView: React.FC<MapViewProps> = ({
                     strokeLinejoin="round"
                     className="transition-all duration-200 pointer-events-none"
                   />
-                  {/* Main colored line */}
+                  {/* Main colored line — green when best path */}
                   <polyline
                     points={svgPoints}
                     fill="none"
-                    stroke={pathMeta.stroke}
-                    strokeOpacity={isSelected ? 1 : 0.85}
-                    strokeWidth={isSelected ? 5 : 3}
+                    stroke={isBestPath ? '#22c55e' : pathMeta.stroke}
+                    strokeOpacity={isSelected || isBestPath ? 1 : 0.85}
+                    strokeWidth={isBestPath ? 5 : isSelected ? 5 : 3}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeDasharray={pathMeta.dash}
+                    strokeDasharray={isBestPath ? '' : pathMeta.dash}
                     className="transition-all duration-200 pointer-events-none"
                   />
                   {/* Vertex dots */}
@@ -1939,8 +2067,8 @@ export const MapView: React.FC<MapViewProps> = ({
                       />
                     );
                   })}
-                  {/* Label at Midpoint */}
-                  {(() => {
+                  {/* Label at Midpoint — only shows when selected */}
+                  {isSelected && (() => {
                     const mid = getPathMidpoint(path.points);
                     const midPx = latLngToPixel(mid.lat, mid.lng);
                     return (
@@ -2977,6 +3105,18 @@ export const MapView: React.FC<MapViewProps> = ({
                       <ChevronDown className="w-3.5 h-3.5" />
                     </>
                   )}
+                </button>
+                <button
+                  onClick={() => bestPathIds.size > 0 ? setBestPathIds(new Set()) : setBestPathIds(computeBestPathsToStand())}
+                  className={`p-1 rounded-lg text-xs font-bold flex items-center gap-1 px-2 cursor-pointer transition-all shadow-sm text-white ${
+                    bestPathIds.size > 0
+                      ? 'bg-emerald-500 shadow-emerald-500/30'
+                      : 'bg-emerald-600/70 hover:bg-emerald-500 shadow-emerald-900/30'
+                  }`}
+                  title={bestPathIds.size > 0 ? 'Clear best path highlights' : 'Find best paths to this stand avoiding scent'}
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  <span>Best Path</span>
                 </button>
                 <button
                   onClick={() => setSelectedPinId(null)}
