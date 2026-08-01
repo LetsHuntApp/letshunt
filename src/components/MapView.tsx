@@ -1193,11 +1193,11 @@ export const MapView: React.FC<MapViewProps> = ({
           lng: from.lng + (to.lng - from.lng) * t,
         };
         const towardStand = angleDiff(downwindDeg, computeBearing(sample.lat, sample.lng, selectedPin.lat, selectedPin.lng));
-        // A route segment inside the downwind cone would carry scent toward the
-        // selected stand, so make it non-traversable rather than merely preferring
-        // another route. The wider bands remain soft penalties for optimization.
-        if (towardStand < 30) return Number.POSITIVE_INFINITY;
-        if (towardStand < 60) penalty += 90 / sampleCount;
+        // Strongly penalize, but never forbid, a segment inside the downwind
+        // cone. Best Path must always return the least-bad available option for
+        // this hour instead of disappearing when every route has some scent risk.
+        if (towardStand < 30) penalty += 10000 / sampleCount;
+        else if (towardStand < 60) penalty += 90 / sampleCount;
         else if (towardStand < 90) penalty += 25 / sampleCount;
 
         for (const bedding of beddingPolygons) {
@@ -1308,8 +1308,9 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     }
 
-    // Do not draw a direct line when the drawn path network is disconnected:
-    // that would look like a scent-safe route while ignoring the user's paths.
+    // If the drawn network cannot connect the on-path Home and stand anchors,
+    // there is no valid path-only route to display. This does not happen merely
+    // because scent is unfavorable: scent risk is always finite and selectable.
     if (!distance.has(standId)) return null;
 
     const route: PolygonPoint[] = [];
@@ -1336,10 +1337,10 @@ export const MapView: React.FC<MapViewProps> = ({
 
     const route = computeBestPathsToStand();
     setBestRouteGeometry(route);
-    // Keep Best Path mode and the wind visualization active even when this
-    // hour has no valid path-only scent-safe route. The status explains why
-    // the green route is absent instead of silently turning the feature off.
-    setBestPathError(route ? null : 'No path-only scent-safe route exists for this hour.');
+    // Keep Best Path mode and the wind visualization active. The route itself
+    // is always the least-scent-risk connected option available for this hour;
+    // an error is reserved for genuinely disconnected/off-path anchors.
+    setBestPathError(route ? null : 'Home and this stand must both touch connected drawn paths.');
     setShowWindSlider(true);
   }, [bestPathActive, computeBestPathsToStand]);
 
@@ -3381,7 +3382,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       const route = computeBestPathsToStand();
                       setBestRouteGeometry(route);
                       setBestPathActive(true);
-                      setBestPathError(route ? null : 'No path-only scent-safe route exists for this hour.');
+                      setBestPathError(route ? null : 'Home and this stand must both touch connected drawn paths.');
                       setShowWindSlider(true);
                     }
                   }}
