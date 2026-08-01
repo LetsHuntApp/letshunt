@@ -51,6 +51,7 @@ interface LogsAndStatsViewProps {
   units: UnitSystem;
   showToast: (msg: string) => void;
   onNavigateToMap?: () => void;
+  hasCustomBackground?: boolean;
 }
 
 const GENDER_COLORS: Record<string, string> = {
@@ -88,8 +89,15 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
   units,
   showToast,
   onNavigateToMap,
+  hasCustomBackground = false,
 }) => {
   const isDark = theme === 'dark';
+const cardBg = hasCustomBackground
+  ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md'
+  : 'bg-slate-900/90';
+const cardBgLight = hasCustomBackground
+  ? 'bg-white/[var(--card-opacity)] backdrop-blur-md'
+  : 'bg-white/95';
 
   // State: Saved logs (filters out any old demo- logs)
   const [logs, setLogs] = useState<DeerKillLog[]>(() => {
@@ -703,12 +711,12 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
       <div
         className={`p-5 sm:p-6 rounded-3xl border shadow-xl relative overflow-hidden transition-all ${
           isDark
-            ? 'bg-slate-900/90 border-slate-800 text-slate-100'
+            ? `${cardBg} border-slate-800 text-slate-100`
             : theme === 'hunting'
             ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-md border-[#d4c4a8] text-[#2a1b0e]'
             : (theme === 'olive' || theme === 'hunting')
             ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
-            : 'bg-white/95 border-slate-200 text-slate-900'
+            : `${cardBgLight} border-slate-200 text-slate-900`
         }`}
       >
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
@@ -838,7 +846,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 1: Time of Day Shot Distribution */}
             <div
               className={`lg:col-span-2 p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -917,7 +925,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 3: Gender Breakdown Pie Chart */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -996,7 +1004,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 2: Dates / Seasonal Distribution */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -1066,7 +1074,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 4: Stand / Hunting Spot Ranking */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -1143,7 +1151,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 5: Specific Calendar Harvest Dates */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -1223,7 +1231,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 6: Temperature Distribution Chart */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -1291,7 +1299,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 7: Wind Speed Distribution */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -1345,7 +1353,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
             {/* GRAPH 8: Wind Direction Distribution */}
             <div
               className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
-                isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+                isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
               <div>
@@ -1403,7 +1411,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
           {/* Filters Bar */}
           <div
             className={`p-4 rounded-3xl border shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-              isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/95 border-slate-200'
+              isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
             }`}
           >
             {/* Search input */}
@@ -1517,7 +1525,7 @@ export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
                 <div
                   key={log.id}
                   className={`rounded-3xl border shadow-lg overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01] ${
-                    isDark ? 'bg-slate-900/90 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                    isDark ? `${cardBg} border-slate-800 text-slate-100` : `${cardBgLight} border-slate-200 text-slate-900`
                   }`}
                 >
                   {/* Card Image Banner if present */}

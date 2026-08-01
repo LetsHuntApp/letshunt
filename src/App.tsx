@@ -447,6 +447,7 @@ export default function App() {
             theme={theme}
             units={units}
             showToast={showToast}
+            hasCustomBackground={!!customBackground}
             onNavigateToMap={() => setActiveTab('map')}
           />
         ) : activeTab === 'trailcams' ? (
