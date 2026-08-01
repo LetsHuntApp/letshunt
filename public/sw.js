@@ -33,6 +33,52 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Push notifications: LetsHunt currently schedules alerts locally from the app
+// (see src/services/notificationService.ts). These handlers make the service
+// worker ready for server-sent pushes if a push backend is added later.
+self.addEventListener('push', (event) => {
+  let title = 'LetsHunt';
+  let body = 'A weather alert is brewing for your hunting grounds.';
+  let url = './';
+  let tag = 'letshunt-alert';
+  try {
+    if (event.data) {
+      const data = event.data.json();
+      title = data.title || title;
+      body = data.body || body;
+      url = data.url || url;
+      tag = data.tag || tag;
+    }
+  } catch (err) {
+    if (event.data) body = event.data.text() || body;
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag,
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          client.focus();
+          return;
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 

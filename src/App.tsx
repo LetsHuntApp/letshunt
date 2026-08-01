@@ -3,9 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DailyForecast, Location, UnitSystem, ThemeMode, PressureUnit } from './types';
 import { fetch5DayHuntingForecast } from './services/weatherService';
+import {
+  NotificationPrefs,
+  getNotificationPrefs,
+  saveNotificationPrefs,
+  detectWeatherAlerts,
+  buildDigestNotification,
+  showSystemNotification,
+  wasNotified,
+  markNotified,
+  isNotificationSupported,
+} from './services/notificationService';
 import { Header } from './components/Header';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
@@ -74,6 +85,13 @@ export default function App() {
     const saved = localStorage.getItem('letshunt_favorites');
     return saved ? JSON.parse(saved) : [FALLBACK_DEFAULT_LOCATION];
   });
+
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(() => getNotificationPrefs());
+
+  const handleNotificationPrefsChange = (prefs: NotificationPrefs) => {
+    setNotificationPrefs(prefs);
+    saveNotificationPrefs(prefs);
+  };
 
   const [dailyForecast, setDailyForecast] = useState<DailyForecast[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -156,6 +174,50 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('letshunt_favorites', JSON.stringify(favorites));
   }, [favorites]);
+
+  // Weather alert notifications: fire a daily digest of upcoming events and
+  // schedule timed reminders for each window while the app is open.
+  const notificationTimersRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    if (!dailyForecast.length || !notificationPrefs.enabled) return;
+    if (!isNotificationSupported() || Notification.permission !== 'granted') return;
+
+    const events = detectWeatherAlerts(dailyForecast, notificationPrefs, units);
+    if (events.length === 0) return;
+
+    // One digest notification per location per day (never spams on refresh)
+    const freshEvents = events.filter((e) => !wasNotified(e.id));
+    if (freshEvents.length > 0) {
+      const locationKey = currentLocation.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+      const digestKey = `digest_${locationKey}_${new Date().toDateString()}`;
+      if (!wasNotified(digestKey)) {
+        markNotified(digestKey);
+        const { title, body } = buildDigestNotification(freshEvents, currentLocation.name);
+        showSystemNotification(title, body);
+      }
+    }
+
+    // Timed heads-up reminders for upcoming event windows (rain breaks fire 30 min before)
+    for (const e of events) {
+      const delay = e.fireAt - Date.now();
+      if (delay <= 0 || delay > 48 * 3600 * 1000) continue;
+      if (wasNotified(e.id)) continue;
+      const timer = window.setTimeout(() => {
+        if (!wasNotified(e.id)) {
+          markNotified(e.id);
+          showSystemNotification(e.title, e.body);
+        }
+      }, delay);
+      notificationTimersRef.current.push(timer);
+      if (notificationTimersRef.current.length >= 6) break;
+    }
+
+    return () => {
+      notificationTimersRef.current.forEach((t) => window.clearTimeout(t));
+      notificationTimersRef.current = [];
+    };
+  }, [dailyForecast, notificationPrefs, currentLocation, units]);
 
   // Listen for PWA beforeinstallprompt event
   useEffect(() => {
@@ -357,6 +419,8 @@ export default function App() {
             onOpenPwaModal={() => setIsPwaModalOpen(true)}
             showToast={showToast}
             onSwitchToDashboard={() => setActiveTab('dashboard')}
+            notificationPrefs={notificationPrefs}
+            onNotificationPrefsChange={handleNotificationPrefsChange}
             customBackground={customBackground}
             onSetCustomBackground={setCustomBackground}
             customBackgroundOpacity={customBackgroundOpacity}
