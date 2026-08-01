@@ -1331,7 +1331,8 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!bestPathActive) {
       setBestRouteGeometry(null);
       setBestPathError(null);
-      setShowWindSlider(false);
+      // Keep the standalone Check Wind slider open while its hour changes.
+      // Explicit close actions and Best Path toggle-off still hide it.
       return;
     }
 
