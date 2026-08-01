@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Push server — secrets & runtime state
+server/node_modules/
+server/vapid.json
+server/subscriptions.json

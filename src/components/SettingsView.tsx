@@ -9,6 +9,7 @@ import {
   sendTestNotification,
   showSystemNotification,
 } from '../services/notificationService';
+import { subscribeUserToPush, unsubscribeUserFromPush } from '../services/pushService';
 import {
   Settings,
   MapPin,
@@ -230,6 +231,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const handleMasterToggle = async (next: boolean) => {
     if (!next) {
       onNotificationPrefsChange({ ...notificationPrefs, enabled: false });
+      // Unsubscribe from background push so alerts stop when the app is closed
+      unsubscribeUserFromPush().catch(() => {});
       showToast('Weather alerts turned off.');
       return;
     }
@@ -238,7 +241,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
     if (perm === 'granted') {
       onNotificationPrefsChange({ ...notificationPrefs, enabled: true });
-      showToast('Weather alerts enabled. You will be notified of cold fronts, front shifts & rain breaks.');
+      // Subscribe to background push — alerts will fire even when the app is closed.
+      // Don't block the UI on this; if the push server isn't reachable (e.g. local
+      // dev or not yet deployed), foreground alerts still work.
+      subscribeUserToPush(
+        { name: currentLocation.name, latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+        {
+          leadTimeHours: notificationPrefs.leadTimeHours,
+          coldFront: notificationPrefs.coldFront,
+          weatherFront: notificationPrefs.weatherFront,
+          rainBreak: notificationPrefs.rainBreak,
+          primeDay: notificationPrefs.primeDay,
+          severeWeather: notificationPrefs.severeWeather,
+        },
+        units
+      ).then((ok) => {
+        if (ok) {
+          showToast('Weather alerts enabled — including background push when the app is closed.');
+        } else {
+          showToast('Weather alerts enabled. Background push requires the companion server — foreground alerts still work.');
+        }
+      }).catch(() => {
+        showToast('Weather alerts enabled. Background push requires the companion server — foreground alerts still work.');
+      });
     } else if (perm === 'denied') {
       showToast('Notifications are blocked by the browser. Enable them in your site settings.');
     } else {
@@ -517,8 +542,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               Get alerted when conditions move deer — cold fronts, barometric front shifts, breaks in the rain,
-              and prime hunting days. Alerts fire while LetsHunt is open, including as an installed app running
-              in the background. On Android, also allow notifications for LetsHunt in your device Settings.
+              and prime hunting days. Alerts fire while LetsHunt is open, as an installed app running
+              in the background, <strong>or even when the app is fully closed</strong> (via background push).
+              On Android, also allow notifications for LetsHunt in your device Settings.
             </p>
 
             {/* Master toggle */}
