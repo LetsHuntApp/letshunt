@@ -2712,6 +2712,8 @@ export const MapView: React.FC<MapViewProps> = ({
             const matchingPin = best ? pins.find(p => p.name === best.name) : null;
             const pinMeta = matchingPin ? PIN_METADATA[matchingPin.type] || PIN_METADATA.stand : null;
             const hourLabel = selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`;
+            const isHunting = theme === 'hunting';
+            const isOlive = theme === 'olive' || theme === 'hunting';
 
             return (
               <div
@@ -2719,9 +2721,17 @@ export const MapView: React.FC<MapViewProps> = ({
                   best
                     ? isDark
                       ? 'bg-emerald-950/95 border-emerald-500/80 text-emerald-200 shadow-emerald-950/40'
+                      : isHunting
+                      ? 'bg-[#eae1cf]/95 border-[#c85a17]/60 text-[#2a1b0e] shadow-[#c85a17]/20'
+                      : isOlive
+                      ? 'bg-[#f7f5ed]/95 border-[#556b2f]/60 text-[#1e2e1b] shadow-[#556b2f]/20'
                       : 'bg-emerald-50 border-emerald-500/80 text-emerald-900 shadow-emerald-500/20'
                     : isDark
                     ? 'bg-slate-950/90 border-slate-800 text-slate-200 shadow-slate-950/40'
+                    : isHunting
+                    ? 'bg-[#eae1cf]/90 border-[#d4c4a8] text-[#2a1b0e] shadow-[#d4c4a8]/30'
+                    : isOlive
+                    ? 'bg-[#f7f5ed]/90 border-[#d8d2c0] text-[#1e2e1b] shadow-[#d8d2c0]/30'
                     : 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-200/50'
                 }`}
               >
@@ -2738,14 +2748,14 @@ export const MapView: React.FC<MapViewProps> = ({
                   title={matchingPin ? `Click to center on ${matchingPin.name}` : 'Set preferred wind on stand pins to see recommendations'}
                 >
                   <span className="text-sm flex-shrink-0">{pinMeta?.emoji || '🎯'}</span>
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${best ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${best ? (isDark ? 'text-emerald-400' : isHunting ? 'text-[#c85a17]' : isOlive ? 'text-[#556b2f]' : 'text-emerald-600') : (isDark ? 'text-slate-400' : isHunting ? 'text-[#8b7355]' : isOlive ? 'text-[#6e6a5e]' : 'text-slate-500')}`}>
                     Best:
                   </span>
-                  <span className="font-black truncate max-w-[100px] sm:max-w-[140px] text-slate-900 dark:text-white">
+                  <span className={`font-black truncate max-w-[100px] sm:max-w-[140px] ${isDark ? 'text-white' : isHunting ? 'text-[#2a1b0e]' : isOlive ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
                     {best ? best.name : (pins.length === 0 ? 'No Stands' : 'No Pref Wind')}
                   </span>
                   {best && (
-                    <span className={`text-[10px] font-normal truncate ${isDark ? 'text-emerald-300/80' : 'text-emerald-700/80'}`}>
+                    <span className={`text-[10px] font-normal truncate ${isDark ? 'text-emerald-300/80' : isHunting ? 'text-[#c85a17]/80' : isOlive ? 'text-[#556b2f]/80' : 'text-emerald-700/80'}`}>
                       ({windDirText}@{hourLabel})
                     </span>
                   )}
@@ -2757,8 +2767,8 @@ export const MapView: React.FC<MapViewProps> = ({
                   }}
                   className={`p-0.5 rounded-md transition-colors cursor-pointer flex-shrink-0 ${
                     best
-                      ? isDark ? 'text-emerald-300 hover:text-white hover:bg-emerald-900/50' : 'text-emerald-700 hover:text-emerald-950 hover:bg-emerald-200/50'
-                      : isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                      ? (isDark ? 'text-emerald-300 hover:text-white hover:bg-emerald-900/50' : isHunting ? 'text-[#c85a17] hover:text-[#2a1b0e] hover:bg-[#d4c4a8]/50' : isOlive ? 'text-[#556b2f] hover:text-[#1e2e1b] hover:bg-[#d8d2c0]/50' : 'text-emerald-700 hover:text-emerald-950 hover:bg-emerald-200/50')
+                      : (isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : isHunting ? 'text-[#8b7355] hover:text-[#2a1b0e] hover:bg-[#d4c4a8]/50' : isOlive ? 'text-[#6e6a5e] hover:text-[#1e2e1b] hover:bg-[#d8d2c0]/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')
                   }`}
                   title="Dismiss badge"
                 >
