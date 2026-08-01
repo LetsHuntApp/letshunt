@@ -1,0 +1,23 @@
+# Render Blueprint — one-click deploy for the LetsHunt push server
+# Deploy this at: https://render.com
+#
+# This creates a free web service running server/push-server.js.
+# Render auto-detects Node.js, runs `npm install && npm start`,
+# and injects the PORT environment variable.
+#
+# The server auto-generates VAPID keys on first run, so zero
+# configuration is needed. Once deployed, copy the .onrender.com
+# URL and paste it into the LetsHunt settings → Push Server URL.
+
+services:
+  - type: web
+    name: letshunt-push
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node push-server.js
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production

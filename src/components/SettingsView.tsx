@@ -623,6 +623,59 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
+            {/* Push server URL — configure after deploying to Render */}
+            <div className="pt-1">
+              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Push Server URL <span className="text-[10px] font-normal normal-case tracking-normal text-slate-500">(for background alerts when app is closed)</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  defaultValue={localStorage.getItem('letshunt_push_server_url') || ''}
+                  placeholder="https://letshunt-push.onrender.com"
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    if (val) {
+                      localStorage.setItem('letshunt_push_server_url', val);
+                    } else {
+                      localStorage.removeItem('letshunt_push_server_url');
+                    }
+                  }}
+                  className={`flex-1 px-3 py-2 rounded-xl border text-xs ${
+                    isDark
+                      ? 'bg-slate-950 border-slate-800 text-slate-200 placeholder-slate-600 focus:border-emerald-500'
+                      : 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-emerald-600'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const raw = localStorage.getItem('letshunt_push_server_url');
+                    if (!raw) { showToast('Enter a push server URL first.'); return; }
+                    const url = raw.replace(/\/+$/, '');
+                    try {
+                      const res = await fetch(`${url}/health`);
+                      if (res.ok) {
+                        const data = await res.json();
+                        showToast(`✅ Push server online — ${data.subscriptions ?? '?'} subscriptions`);
+                      } else {
+                        showToast('Server responded but health check failed.');
+                      }
+                    } catch {
+                      showToast('❌ Could not reach the push server. Is it deployed?');
+                    }
+                  }}
+                  className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${isDark ? 'bg-slate-950 border-slate-800 hover:border-emerald-500 text-slate-200' : 'bg-slate-50 border-slate-200 hover:border-emerald-600 text-slate-800'}`}
+                >
+                  Test
+                </button>
+              </div>
+              <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Deploy the push server first (see README), then paste its URL here.
+                Leave empty for foreground-only alerts.
+              </p>
+            </div>
+
             {/* Test button */}
             <button
               onClick={async () => {
