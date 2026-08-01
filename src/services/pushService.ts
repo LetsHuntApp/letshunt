@@ -20,11 +20,16 @@
 //   Render:       https://letshunt-push.onrender.com
 //   Fly.io:       https://letshunt-push.fly.dev
 //
-// Override at runtime via the browser console:
-//   localStorage.setItem('letshunt_push_server_url', 'https://your-url.com')
-const PUSH_SERVER_URL = (typeof window !== 'undefined' &&
-  localStorage.getItem('letshunt_push_server_url')) ||
-  'http://localhost:3001';
+// Configured via the Settings → Push Server URL input (writes to localStorage),
+// or the browser console: localStorage.setItem('letshunt_push_server_url', '...')
+function getPushServerUrl(): string {
+  if (typeof window === 'undefined') return 'http://localhost:3001';
+  try {
+    const stored = localStorage.getItem('letshunt_push_server_url');
+    if (stored) return stored;
+  } catch { /* localStorage unavailable */ }
+  return 'http://localhost:3001';
+}
 
 /**
  * Convert a base64url-encoded VAPID public key to a Uint8Array for
@@ -46,7 +51,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  */
 async function getVapidPublicKey(): Promise<string | null> {
   try {
-    const res = await fetch(`${PUSH_SERVER_URL}/vapid-public-key`);
+    const res = await fetch(`${getPushServerUrl()}/vapid-public-key`);
     if (!res.ok) return null;
     const data = await res.json();
     return data.publicKey || null;
@@ -108,7 +113,9 @@ export async function subscribeUserToPush(
     }
 
     // Send subscription + location + prefs to the push server
-    const res = await fetch(`${PUSH_SERVER_URL}/subscribe`, {
+    const serverUrl = getPushServerUrl();
+    console.log('[pushService] Registering with push server:', serverUrl);
+    const res = await fetch(`${serverUrl}/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -147,7 +154,7 @@ export async function unsubscribeUserFromPush(): Promise<boolean> {
     if (subscription) {
       // Tell the server to remove this subscription
       try {
-        await fetch(`${PUSH_SERVER_URL}/unsubscribe`, {
+        await fetch(`${getPushServerUrl()}/unsubscribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ endpoint: subscription.endpoint }),
