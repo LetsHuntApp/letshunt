@@ -37,8 +37,6 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
   longitude: -89.4012,
 };
 
-const HOUR_MS = 3600 * 1000;
-
 export default function App() {
   // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
@@ -178,8 +176,11 @@ export default function App() {
 
   // Weather alert notifications: fire one separate system notification per
   // upcoming event (cold fronts, baro shifts, rain breaks, prime days, severe weather).
+  //
+  // Lead-time feedback ("Alerts Armed") is handled directly by the SettingsView
+  // lead-time buttons calling showSystemNotification on every press, avoiding
+  // double-fire when the effect also reacts to the pref change.
   const notificationTimersRef = useRef<number[]>([]);
-  const lastNotifSigRef = useRef('');
   // Guards events whose async show is still in-flight, so an effect re-run
   // (forecast refresh, location change) can never double-fire the same alert
   // while the first show is still awaiting the service worker.
@@ -188,17 +189,6 @@ export default function App() {
   useEffect(() => {
     if (!dailyForecast.length || !notificationPrefs.enabled) return;
     if (!isNotificationSupported() || Notification.permission !== 'granted') return;
-
-    const sig = JSON.stringify({
-      leadTimeHours: notificationPrefs.leadTimeHours,
-      coldFront: notificationPrefs.coldFront,
-      weatherFront: notificationPrefs.weatherFront,
-      rainBreak: notificationPrefs.rainBreak,
-      primeDay: notificationPrefs.primeDay,
-      severeWeather: notificationPrefs.severeWeather,
-    });
-    const settingsChanged = sig !== lastNotifSigRef.current;
-    lastNotifSigRef.current = sig;
 
     const events = detectWeatherAlerts(dailyForecast, notificationPrefs, units);
     const freshEvents = events.filter((e) => !wasNotified(e.id));
@@ -222,33 +212,6 @@ export default function App() {
       }, idx * 400);
       timers.push(timer);
     });
-
-    // Whenever the user arms alerts or changes the lead-time window (24/48/72h),
-    // push a confirmation so it is always visibly clear push is on and working.
-    // Only fired when no fresh alert is being delivered — the alerts themselves
-    // are the confirmation then — so the user never gets N+1 notifications.
-    if (settingsChanged && freshEvents.length === 0) {
-      const armedKey = `letshunt_armed_${notificationPrefs.leadTimeHours}`;
-      if (!wasNotified(armedKey, 12 * HOUR_MS)) {
-        const timer = window.setTimeout(async () => {
-          if (wasNotified(armedKey, 12 * HOUR_MS) || pendingNotifsRef.current.has(armedKey)) return;
-          pendingNotifsRef.current.add(armedKey);
-          try {
-            const shown = await showSystemNotification(
-              `🔔 Alerts Armed — next ${notificationPrefs.leadTimeHours}h`,
-              events.length > 0
-                ? `${events.length} weather alert${events.length === 1 ? '' : 's'} in range for ${currentLocation.name} — already delivered.`
-                : `No weather events in range for ${currentLocation.name} yet — you'll be pinged the moment one appears.`,
-              armedKey
-            );
-            if (shown) markNotified(armedKey);
-          } finally {
-            pendingNotifsRef.current.delete(armedKey);
-          }
-        }, 400);
-        timers.push(timer);
-      }
-    }
 
     notificationTimersRef.current.push(...timers);
 

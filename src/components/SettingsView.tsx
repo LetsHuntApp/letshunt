@@ -7,6 +7,7 @@ import {
   isNotificationSupported,
   requestNotificationPermission,
   sendTestNotification,
+  showSystemNotification,
 } from '../services/notificationService';
 import {
   Settings,
@@ -565,7 +566,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <button
                     key={hours}
                     disabled={!notificationPrefs.enabled}
-                    onClick={() => onNotificationPrefsChange({ ...notificationPrefs, leadTimeHours: hours })}
+                    onClick={() => {
+                      onNotificationPrefsChange({ ...notificationPrefs, leadTimeHours: hours });
+                      if (notificationPrefs.enabled && permissionState === 'granted') {
+                        showSystemNotification(
+                          `🔔 Alerts Armed — next ${hours}h`,
+                          `Weather alerts active for ${currentLocation.name}. You'll be pinged when conditions change.`,
+                          `letshunt_lt_${hours}_${Date.now()}`
+                        );
+                      }
+                    }}
                     className={`py-2 rounded-xl border text-xs font-black transition-all flex flex-col items-center ${
                       notificationPrefs.leadTimeHours === hours
                         ? isDark
