@@ -36,15 +36,28 @@ const HOUR_MS = 3600 * 1000;
 const SEVERE_CODES = new Set([65, 95, 96, 99]);
 
 // ── VAPID setup ──────────────────────────────────────────────────────────────
+//
+// Render's free tier wipes the filesystem on every restart, which would
+// regenerate the VAPID keys and silently invalidate every existing browser
+// subscription. Prefer stable keys from environment variables when present
+// (set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY in the Render dashboard); fall
+// back to the local vapid.json file (generated on first run).
 
 let vapidKeys;
-try {
-  vapidKeys = JSON.parse(fs.readFileSync(VAPID_FILE, 'utf-8'));
-} catch {
-  // Generate on first run if vapid.json is missing
-  vapidKeys = webpush.generateVAPIDKeys();
-  fs.writeFileSync(VAPID_FILE, JSON.stringify(vapidKeys, null, 2));
-  console.log('[push-server] VAPID keys generated and saved to vapid.json');
+const envPublicKey = process.env.VAPID_PUBLIC_KEY;
+const envPrivateKey = process.env.VAPID_PRIVATE_KEY;
+if (envPublicKey && envPrivateKey) {
+  vapidKeys = { publicKey: envPublicKey, privateKey: envPrivateKey };
+  console.log('[push-server] Using VAPID keys from environment variables (stable across restarts).');
+} else {
+  try {
+    vapidKeys = JSON.parse(fs.readFileSync(VAPID_FILE, 'utf-8'));
+  } catch {
+    // Generate on first run if vapid.json is missing
+    vapidKeys = webpush.generateVAPIDKeys();
+    fs.writeFileSync(VAPID_FILE, JSON.stringify(vapidKeys, null, 2));
+    console.log('[push-server] VAPID keys generated and saved to vapid.json');
+  }
 }
 
 webpush.setVapidDetails(

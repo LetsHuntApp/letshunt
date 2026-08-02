@@ -4,11 +4,8 @@
 # This workflow pings the push server's /health endpoint every 10 minutes to
 # keep it awake, so background push notifications always work.
 #
-# After deploying the push server to Render (or any free host), add the server
-# URL as a repository variable:
-#   Settings → Secrets and variables → Actions → Variables
-#   Name:  PUSH_SERVER_URL
-#   Value: https://letshunt-push.onrender.com
+# The URL is hardcoded to the deployed server — no repository variable or
+# manual configuration is required.
 
 name: Push Server Keep-Alive
 
@@ -21,9 +18,8 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    if: ${{ vars.PUSH_SERVER_URL != '' }}
     steps:
       - name: Ping push server health endpoint
         run: |
-          echo "Pinging ${{ vars.PUSH_SERVER_URL }}/health"
-          curl -sf "${{ vars.PUSH_SERVER_URL }}/health" || echo "Server not reachable — may be starting up or not yet deployed."
+          echo "Pinging https://letshunt-push.onrender.com/health"
+          curl -sf "https://letshunt-push.onrender.com/health" || echo "Server not reachable — may be starting up or not yet deployed."

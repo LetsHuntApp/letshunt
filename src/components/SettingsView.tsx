@@ -9,7 +9,7 @@ import {
   sendTestNotification,
   showSystemNotification,
 } from '../services/notificationService';
-import { subscribeUserToPush, unsubscribeUserFromPush } from '../services/pushService';
+import { subscribeUserToPush, unsubscribeUserFromPush, getPushServerUrl, DEFAULT_PUSH_SERVER_URL } from '../services/pushService';
 import {
   Settings,
   MapPin,
@@ -671,7 +671,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
-            {/* Push server URL — configure after deploying to Render */}
+            {/* Push server URL — preconfigured to the deployed server; only needed
+                for custom/self-hosted deployments. */}
             <div className="pt-1">
               <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                 Push Server URL <span className="text-[10px] font-normal normal-case tracking-normal text-slate-500">(for background alerts when app is closed)</span>
@@ -679,8 +680,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="flex gap-2">
                 <input
                   type="url"
-                  defaultValue={localStorage.getItem('letshunt_push_server_url') || ''}
-                  placeholder="https://letshunt-push.onrender.com"
+                  defaultValue={localStorage.getItem('letshunt_push_server_url') || getPushServerUrl()}
+                  placeholder={DEFAULT_PUSH_SERVER_URL}
                   onChange={(e) => {
                     const val = e.target.value.trim();
                     if (val) {
@@ -698,9 +699,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <button
                   type="button"
                   onClick={async () => {
-                    const raw = localStorage.getItem('letshunt_push_server_url');
-                    if (!raw) { showToast('Enter a push server URL first.'); return; }
-                    const url = raw.replace(/\/+$/, '');
+                    const url = getPushServerUrl().replace(/\/+$/, '');
                     try {
                       const res = await fetch(`${url}/health`);
                       if (res.ok) {
@@ -719,8 +718,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </button>
               </div>
               <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                Deploy the push server first (see README), then paste its URL here.
-                Leave empty for foreground-only alerts.
+                Preconfigured to <span className="font-semibold text-emerald-500">{DEFAULT_PUSH_SERVER_URL}</span> — no setup needed.
+                Only change this if you host your own push server.
               </p>
             </div>
 

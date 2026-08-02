@@ -10,25 +10,39 @@
  * Requires the companion push server (server/push-server.js) to be running.
  */
 
-// The push server URL — set this to your deployed server.
-//
-// FREE deployment options (just run `node server/push-server.js`):
-//   Local dev:    http://localhost:3001
-//   Your PC:      http://localhost:3001 (works while your computer is on)
-//
-// FREE always-on options (deploy server/push-server.js):
-//   Render:       https://letshunt-push.onrender.com
-//   Fly.io:       https://letshunt-push.fly.dev
-//
-// Configured via the Settings → Push Server URL input (writes to localStorage),
-// or the browser console: localStorage.setItem('letshunt_push_server_url', '...')
-function getPushServerUrl(): string {
-  if (typeof window === 'undefined') return 'http://localhost:3001';
+// The push server URL — the deployed companion server that delivers background
+// alerts while the app is closed. Hardcoded so no manual setup is needed; a
+// localStorage override (Settings → Push Server URL) is still honored for
+// custom/self-hosted deployments.
+export const DEFAULT_PUSH_SERVER_URL = 'https://letshunt-push.onrender.com';
+const PUSH_SERVER_KEY = 'letshunt_push_server_url';
+// Tracks which VAPID public key the current push subscription was created with,
+// so we can detect when the server rotates its keys (Render's free tier wipes
+// vapid.json on restart and regenerates keys, which silently invalidates every
+// existing browser subscription).
+const VAPID_KEY_STORAGE = 'letshunt_push_vapid_key';
+
+export function getPushServerUrl(): string {
+  if (typeof window === 'undefined') return DEFAULT_PUSH_SERVER_URL;
   try {
-    const stored = localStorage.getItem('letshunt_push_server_url');
+    const stored = localStorage.getItem(PUSH_SERVER_KEY);
     if (stored) return stored;
   } catch { /* localStorage unavailable */ }
-  return 'http://localhost:3001';
+  return DEFAULT_PUSH_SERVER_URL;
+}
+
+function getStoredVapidKey(): string | null {
+  try {
+    return localStorage.getItem(VAPID_KEY_STORAGE);
+  } catch {
+    return null;
+  }
+}
+
+function setStoredVapidKey(key: string): void {
+  try {
+    localStorage.setItem(VAPID_KEY_STORAGE, key);
+  } catch { /* storage unavailable */ }
 }
 
 /**
@@ -101,15 +115,37 @@ export async function subscribeUserToPush(
     let subscription = await reg.pushManager.getSubscription();
 
     if (subscription) {
-      // Already subscribed — update the server with latest prefs
-      console.log('[pushService] Already subscribed, updating prefs on server.');
-    } else {
+      // If the server's VAPID key changed since this subscription was created
+      // (Render free tier regenerates keys on every restart), the old
+      // subscription is dead — 401s on send. Drop it and re-subscribe with the
+      // current key so background push keeps working after a server restart.
+      const prevKey = getStoredVapidKey();
+      if (prevKey !== null && prevKey !== vapidPublicKey) {
+        console.log('[pushService] VAPID key rotated — re-subscribing with new key.');
+        // If the browser refuses to unsubscribe (rare), the old subscription is
+        // dead anyway (401 on send), so drop the reference and create a fresh
+        // one rather than reusing a subscription the server can no longer push to.
+        try {
+          await subscription.unsubscribe();
+        } catch {
+          /* ignore */
+        }
+        subscription = null;
+      }
+    }
+
+    if (!subscription) {
       // Subscribe to push
       subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
       });
+      setStoredVapidKey(vapidPublicKey);
       console.log('[pushService] Push subscription created.');
+    } else {
+      // Already subscribed — update the server with latest prefs
+      setStoredVapidKey(vapidPublicKey);
+      console.log('[pushService] Already subscribed, updating prefs on server.');
     }
 
     // Send subscription + location + prefs to the push server
