@@ -358,7 +358,15 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 {!isToday && onResetToToday && (
                   <button
                     onClick={onResetToToday}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 transition-colors shadow-xs border border-emerald-300 ring-2 ring-emerald-500/20 cursor-pointer"
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs border ring-2 cursor-pointer ${
+                      theme === 'hunting'
+                        ? 'bg-[#c85a17] hover:bg-[#b34e12] active:bg-[#a34610] text-white border-[#e08a5a] ring-[#c85a17]/20'
+                        : (theme === 'olive' || theme === 'hunting')
+                        ? 'bg-[#556b2f] hover:bg-[#4a5e27] active:bg-[#3f5221] text-white border-[#8a9a5b] ring-[#556b2f]/20'
+                        : isDark
+                        ? 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 border-emerald-300 ring-emerald-500/20'
+                        : 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white border-emerald-300 ring-emerald-500/20'
+                    }`}
                   >
                     ↩️ Back to Today
                   </button>

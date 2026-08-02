@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle } from 'lucide-react';
+import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2 } from 'lucide-react';
 import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -67,8 +67,11 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [newLocLon, setNewLocLon] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  // Ref for the import dropzone so the gallery's "Import Photos" CTA can scroll to it
+  // Ref for the import dropzone so the gallery's "Import Photos" CTA can scroll to it,
+  // plus a hidden file input so the compact "Import Photos" header button can trigger
+  // the same import flow once photos already exist.
   const importPanelRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   // Location Search State
   const [locSearchQuery, setLocSearchQuery] = useState('');
@@ -427,6 +430,15 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     showToast(`Selected map pin: ${pin.name}`);
   };
 
+  // File change handler for the compact "Import Photos" header button (used once
+  // photos already exist and the big dropzone card is hidden).
+  const handleCompactImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleStartImport(e.target.files);
+    }
+    e.target.value = '';
+  };
+
   // Save Time Corrections
   const handleSaveTimeCorrections = async () => {
     if (savingCorrections) return;
@@ -536,6 +548,32 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           </div>
         </div>
 
+        {/* Compact "Import Photos" button — shown once photos already exist, so the
+            big dropzone card doesn't crowd the page. Hidden while importing, when
+            the dropzone (with progress) is visible instead. */}
+        {photos.length > 0 && (
+          <>
+            <input
+              ref={importInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleCompactImportChange}
+              className="hidden"
+            />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              disabled={importing}
+              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 ${importing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+              title="Import more trail camera photos"
+            >
+              {importing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+              <span className="hidden sm:inline">Import Photos</span>
+              <span className="sm:hidden">Import</span>
+            </button>
+          </>
+        )}
+
         {/* Sub-Tab Navigation Buttons */}
         <div className={`flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 ${
           isDark
@@ -585,16 +623,20 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       {/* Main Content Area */}
       {activeTab === 'gallery' && (
         <div className="space-y-4">
-          {/* Import Dropzone Component */}
-          <div ref={importPanelRef}>
-            <TrailCameraImport
-              theme={theme}
-              importing={importing}
-              progress={importProgress}
-              onStartImport={handleStartImport}
-              onImportComplete={loadData}
-            />
-          </div>
+          {/* Import Dropzone Component — full teaching card only when no photos
+              have been imported yet; otherwise the compact header button above
+              handles additional imports. */}
+          {photos.length === 0 && (
+            <div ref={importPanelRef}>
+              <TrailCameraImport
+                theme={theme}
+                importing={importing}
+                progress={importProgress}
+                onStartImport={handleStartImport}
+                onImportComplete={loadData}
+              />
+            </div>
+          )}
 
           {/* Location Management Strip */}
           <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>

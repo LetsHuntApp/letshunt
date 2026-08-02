@@ -267,13 +267,10 @@ const getScoreBadgeColor = (score: number) => {
       {bestDay && (
         <button
           onClick={() => {
-            // Always select (expand) the best day, then auto-scroll so its card
-            // comes into view. Runs on the next frame so it targets the layout
-            // AFTER React commits the selection (which expands the card).
-            onSelectDate(bestDay.date);
-            requestAnimationFrame(() => {
-              document.getElementById(`forecast-card-${bestDay.date}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            });
+            // Scroll-only: this banner must NOT change the selected day, because
+            // that would swap the top forecast card. The 7-day list is stable, so
+            // a direct smooth scroll lands on the best day's card on the first press.
+            document.getElementById(`forecast-card-${bestDay.date}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }}
           className={`w-full mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.002] cursor-pointer backdrop-blur-md ${
             isDark
