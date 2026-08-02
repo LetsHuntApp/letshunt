@@ -2478,15 +2478,17 @@ export const MapView: React.FC<MapViewProps> = ({
                     transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
                   >
                     <g opacity={Math.min(0.7, s.opacity + 0.12)} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
-                      {/* Elongated droplet: rounded head leads downwind, tail tapers behind */}
+                      {/* Elongated droplet: rounded head leads downwind, tail tapers behind. The
+                          near-white body reads as an icy streak; the darker underlay is softened
+                          to a subtle rim so the droplets stay visible over bright map tiles too. */}
                       <path
                         d={dropletPath(s.len, Math.min((s.width + 3) * 1.3, s.len * 0.4), Math.min((s.width + 3) * 0.8, s.len * 0.3))}
                         fill="#082f49"
-                        fillOpacity={0.55}
+                        fillOpacity={0.4}
                       />
                       <path
                         d={dropletPath(s.len, Math.min((s.width + 1) * 1.3, s.len * 0.4), Math.min((s.width + 1) * 0.8, s.len * 0.3))}
-                        fill="#67e8f9"
+                        fill="#f8fafc"
                         fillOpacity={0.6}
                       />
                     </g>
