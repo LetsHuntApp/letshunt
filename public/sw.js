@@ -1,11 +1,11 @@
-const CACHE_NAME = 'letshunt-v6';
+const CACHE_NAME = 'letshunt-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './icon-192.png',
-  './icon-512.png',
-  './apple-touch-icon.png',
+  './icon-192-v7.png',
+  './icon-512-v7.png',
+  './apple-touch-icon-v7.png',
   './push-icon-192.png',
   './push-badge-96.png'
 ];

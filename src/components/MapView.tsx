@@ -2118,7 +2118,7 @@ export const MapView: React.FC<MapViewProps> = ({
     const travel = Math.hypot(w, h) + margin * 2;
     const speed = Math.max(45, mph * 34); // px per second
     const dur = travel / speed;
-    const count = Math.max(55, Math.min(160, Math.round((w * h) / 4000)));
+    const count = Math.max(90, Math.min(280, Math.round((w * h) / 2200)));
     // deterministic hash so streak positions stay put across slider scrubs
     const hash = (n: number) => {
       const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
@@ -2129,9 +2129,9 @@ export const MapView: React.FC<MapViewProps> = ({
       streaks.push({
         x: hash(i * 3 + 1) * (w + margin * 2) - margin,
         y: hash(i * 3 + 2) * (h + margin * 2) - margin,
-        len: Math.max(20, mph * 5) + hash(i * 3 + 3) * mph * 5,
-        width: 1.0 + mph * 0.12 + hash(i * 3 + 4) * (1.5 + mph * 0.08),
-        opacity: 0.30 + hash(i * 3 + 5) * 0.35,
+        len: Math.max(12, mph * 3) + hash(i * 3 + 3) * mph * 3,
+        width: 0.6 + mph * 0.08 + hash(i * 3 + 4) * (0.9 + mph * 0.05),
+        opacity: 0.15 + hash(i * 3 + 5) * 0.18,
         delay: -hash(i * 3 + 6) * dur,
         dur,
         travel,
@@ -2477,17 +2477,17 @@ export const MapView: React.FC<MapViewProps> = ({
                     key={`wind-streak-${i}`}
                     transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
                   >
-                    <g opacity={Math.min(0.95, s.opacity + 0.2)} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
+                    <g opacity={Math.min(0.7, s.opacity + 0.12)} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
                       {/* Elongated droplet: rounded head leads downwind, tail tapers behind */}
                       <path
                         d={dropletPath(s.len, Math.min((s.width + 3) * 1.3, s.len * 0.4), Math.min((s.width + 3) * 0.8, s.len * 0.3))}
                         fill="#082f49"
-                        fillOpacity={0.9}
+                        fillOpacity={0.55}
                       />
                       <path
                         d={dropletPath(s.len, Math.min((s.width + 1) * 1.3, s.len * 0.4), Math.min((s.width + 1) * 0.8, s.len * 0.3))}
                         fill="#67e8f9"
-                        fillOpacity={0.95}
+                        fillOpacity={0.6}
                       />
                     </g>
                   </g>

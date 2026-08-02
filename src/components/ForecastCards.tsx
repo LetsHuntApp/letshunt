@@ -277,18 +277,28 @@ const getScoreBadgeColor = (score: number) => {
 
   return (
     <div className="w-full">
-      {/* Best Day Banner — highlights the top-scoring day of the week */}
+      {/* Best Day Banner — highlights the top-scoring day of the week. Uses the
+          same theme-aware card background as the forecast cards (respects the
+          custom-background opacity & blur settings) instead of a hard gradient. */}
       {bestDay && (
         <button
-          onClick={() => onSelectDate(selectedDate === bestDay.date ? '' : bestDay.date)}
-          className={`w-full mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.002] cursor-pointer ${
+          onClick={() => {
+            onSelectDate(selectedDate === bestDay.date ? '' : bestDay.date);
+            // Auto-scroll so the highlighted day's card comes into view. Runs on
+            // the next frame so it targets the layout AFTER React commits the
+            // selection (which expands the card), keeping it centered.
+            requestAnimationFrame(() => {
+              document.getElementById(`forecast-card-${bestDay.date}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+          }}
+          className={`w-full mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.002] cursor-pointer backdrop-blur-md ${
             isDark
-              ? 'bg-gradient-to-r from-emerald-950/80 via-slate-900/[var(--card-opacity)] to-slate-900/[var(--card-opacity)] border-emerald-500/50 ring-1 ring-emerald-500/20'
+              ? 'bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/50 ring-1 ring-emerald-500/20'
               : theme === 'hunting'
-              ? 'bg-gradient-to-r from-[#1a6b3c]/20 via-[#eee6d6]/[var(--card-opacity)] to-[#eee6d6]/[var(--card-opacity)] border-[#1a6b3c]/50'
+              ? 'bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#1a6b3c]/50 text-[#2a1b0e]'
               : (theme === 'olive' || theme === 'hunting')
-              ? 'bg-gradient-to-r from-[#2d4a27]/20 via-[#f7f5ed]/[var(--card-opacity)] to-[#f7f5ed]/[var(--card-opacity)] border-[#556b2f]/50'
-              : 'bg-gradient-to-r from-emerald-50 via-white/[var(--card-opacity)] to-white/[var(--card-opacity)] border-emerald-300 shadow-sm'
+              ? 'bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#556b2f]/50 text-[#1e2e1b]'
+              : 'bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-300 shadow-sm'
           }`}
           title="Tap to jump to the best day"
         >
@@ -309,7 +319,17 @@ const getScoreBadgeColor = (score: number) => {
         </button>
       )}
 
-      <div className="flex items-center justify-between mb-3 px-1">
+      {/* Section heading on a theme-aware card so the title stays legible over
+          any custom background photo (card respects opacity/blur settings). */}
+      <div className={`mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 backdrop-blur-md transition-colors duration-300 ${
+        isDark
+          ? 'bg-slate-900/[var(--card-opacity)] border-slate-700/60'
+          : theme === 'hunting'
+          ? 'bg-[#eee6d6]/[var(--card-opacity)] border-[#d4c4a8]'
+          : (theme === 'olive' || theme === 'hunting')
+          ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-[#d8d2c0]'
+          : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-sm'
+      }`}>
         <h2 className={`text-base sm:text-lg font-black flex items-center gap-2 transition-colors duration-300 ${headerTextColor} ${headerShadow}`}>
           <Calendar className={`w-5 h-5 shrink-0 ${headerIconColor}`} />
           <span>7-Day Deer Hunting Forecast</span>
@@ -354,6 +374,7 @@ const getScoreBadgeColor = (score: number) => {
           return (
             <div
               key={day.date}
+              id={`forecast-card-${day.date}`}
               onClick={() => onSelectDate(isSelected ? '' : day.date)}
               className={`w-full rounded-2xl border transition-all hover:scale-[1.002] cursor-pointer flex flex-col overflow-hidden ${getCardHueClasses(
                 cardScore,
