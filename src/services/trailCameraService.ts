@@ -949,6 +949,15 @@ export async function deletePhotos(ids: string[]): Promise<void> {
   clearAnalyticsCache();
 }
 
+// Restore a photo + its thumbnail entry from an imported backup. Full-res blobs
+// aren't part of JSON backups, so the thumbnail keeps the gallery usable while
+// the original file can be re-imported from the SD card if desired.
+export async function savePhotoWithThumbnail(photo: TrailCameraPhoto, thumbnailUrl?: string): Promise<void> {
+  await putInStore(PHOTOS_STORE, photo);
+  await putInStore(FULL_IMAGES_STORE, { id: photo.id, thumbnailUrl: thumbnailUrl || '' });
+  clearAnalyticsCache();
+}
+
 // ---- Camera Locations ----
 export async function getCameraLocations(): Promise<TrailCameraLocation[]> {
   return getAllFromStore<TrailCameraLocation>(LOCATIONS_STORE);

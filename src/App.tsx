@@ -26,6 +26,7 @@ import { MapView } from './components/MapView';
 import { LogsAndStatsView } from './components/LogsAndStatsView';
 import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
+import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
 import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, Trophy, Camera } from 'lucide-react';
 
@@ -37,6 +38,45 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
   longitude: -89.4012,
 };
 
+// Samples the average perceived luminance of a background image so headings can
+// flip to a contrasting text color and stay readable over a bright/dark photo.
+// Returns true when the image is predominantly dark, false when bright, or null
+// when the image can't be read (cross-origin taint, invalid URL, etc.).
+function measureBackgroundLuminance(url: string): Promise<boolean | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const size = 32;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return resolve(null);
+          ctx.drawImage(img, 0, 0, size, size);
+          const { data } = ctx.getImageData(0, 0, size, size);
+          let sum = 0;
+          let count = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            // Perceived luminance (Rec. 601 luma coefficients)
+            sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            count++;
+          }
+          resolve(sum / (count || 1) < 128);
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
 export default function App() {
   // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
@@ -45,6 +85,11 @@ export default function App() {
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return localStorage.getItem('letshunt_custom_background');
   });
+
+  // Whether the custom background image is predominantly dark (true) or bright
+  // (false). Used to keep headings readable over a photo backdrop. Null when no
+  // background is set or the image couldn't be analyzed.
+  const [backgroundIsDark, setBackgroundIsDark] = useState<boolean | null>(null);
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('letshunt_theme');
@@ -76,10 +121,6 @@ export default function App() {
     return (saved as PressureUnit) || 'inHg';
   });
 
-  const [targetSpecies, setTargetSpecies] = useState<string>(() => {
-    return localStorage.getItem('letshunt_species') || 'Whitetail Deer';
-  });
-
   const [favorites, setFavorites] = useState<Location[]>(() => {
     const saved = localStorage.getItem('letshunt_favorites');
     return saved ? JSON.parse(saved) : [FALLBACK_DEFAULT_LOCATION];
@@ -102,6 +143,16 @@ export default function App() {
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [isPwaModalOpen, setIsPwaModalOpen] = useState<boolean>(false);
 
+  // First-run onboarding: show for brand-new visitors who have never saved a location.
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
+    if (localStorage.getItem('letshunt_onboarded')) return false;
+    const savedLoc = localStorage.getItem('letshunt_location') || localStorage.getItem('letshunt_default_location');
+    return !savedLoc;
+  });
+
+  // Timestamp of the last successful forecast refresh (used for the auto-refresh label).
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+
   // Toast Banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -117,6 +168,22 @@ export default function App() {
     } else {
       localStorage.removeItem('letshunt_custom_background');
     }
+  }, [customBackground]);
+
+  // Re-analyze the background image whenever it changes so headings stay
+  // readable over whatever photo is currently behind the forecast cards.
+  useEffect(() => {
+    let cancelled = false;
+    if (!customBackground) {
+      setBackgroundIsDark(null);
+      return;
+    }
+    measureBackgroundLuminance(customBackground).then((isDark) => {
+      if (!cancelled) setBackgroundIsDark(isDark);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [customBackground]);
 
   const [customBackgroundOpacity, setCustomBackgroundOpacity] = useState<number>(() => {
@@ -165,10 +232,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('letshunt_pressure_unit', pressureUnit);
   }, [pressureUnit]);
-
-  useEffect(() => {
-    localStorage.setItem('letshunt_species', targetSpecies);
-  }, [targetSpecies]);
 
   useEffect(() => {
     localStorage.setItem('letshunt_favorites', JSON.stringify(favorites));
@@ -250,19 +313,45 @@ export default function App() {
     }, 3500);
   };
 
-  // Fetch forecast whenever location or units change
-  const loadForecast = async () => {
-    setLoading(true);
+  // After a backup import (which reloads the page), surface a summary toast
+  // once the app has re-initialized from the freshly restored localStorage.
+  useEffect(() => {
+    const raw = sessionStorage.getItem('letshunt_backup_imported');
+    if (raw) {
+      sessionStorage.removeItem('letshunt_backup_imported');
+      try {
+        const s = JSON.parse(raw);
+        const parts = [
+          `${s.logs ?? 0} log${s.logs === 1 ? '' : 's'}`,
+          `${s.pins ?? 0} pin${s.pins === 1 ? '' : 's'}`,
+          `${s.polygons ?? 0} zone${s.polygons === 1 ? '' : 's'}`,
+          `${s.paths ?? 0} path${s.paths === 1 ? '' : 's'}`,
+          `${s.photos ?? 0} trail photo${s.photos === 1 ? '' : 's'}`,
+        ].filter((p) => !p.startsWith('0 '));
+        showToast(`Backup restored — ${parts.join(', ')}`);
+      } catch {
+        showToast('Backup restored successfully!');
+      }
+    }
+  }, []);
+
+  // Fetch forecast whenever location or units change. `silent` skips the full-screen
+  // loading spinner and preserves the currently selected day (used by auto-refresh).
+  const loadForecast = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const forecasts = await fetch5DayHuntingForecast(currentLocation, units, pressureUnit);
       setDailyForecast(forecasts);
-      if (forecasts.length > 0) {
+      setLastRefreshed(new Date());
+      if (!silent && forecasts.length > 0) {
         setSelectedDate('');
       }
     } catch (err: any) {
       console.error('Failed to fetch forecast:', err);
-      setError('Failed to fetch real-time weather & barometric data. Please check connection and try again.');
+      if (!silent) {
+        setError('Failed to fetch real-time weather & barometric data. Please check connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -270,6 +359,16 @@ export default function App() {
 
   useEffect(() => {
     loadForecast();
+  }, [currentLocation, units, pressureUnit]);
+
+  // Auto-refresh the forecast every 5 minutes while the app is open. Silent refreshes
+  // avoid flashing the loading spinner; errors during a background refresh keep the
+  // last good data on screen instead of replacing it with an error banner.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      loadForecast(true);
+    }, 5 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
   }, [currentLocation, units, pressureUnit]);
 
   const handleToggleTheme = () => {
@@ -302,6 +401,24 @@ export default function App() {
     } else {
       setFavorites([...favorites, loc]);
       showToast(`Saved "${loc.name}" to favorite hunting grounds!`);
+    }
+  };
+
+  const handleOnboardingComplete = (loc: Location | null) => {
+    setIsOnboardingOpen(false);
+    localStorage.setItem('letshunt_onboarded', 'true');
+    if (loc) {
+      setCurrentLocation(loc);
+      setDefaultLocation(loc);
+      const exists = favorites.some(
+        (f) => Math.abs(f.latitude - loc.latitude) < 0.01 && Math.abs(f.longitude - loc.longitude) < 0.01
+      );
+      if (!exists) {
+        setFavorites([...favorites, loc]);
+      }
+      showToast(`Welcome! Grounds set to ${loc.name}`);
+    } else {
+      showToast('Welcome to LetsHunt!');
     }
   };
 
@@ -380,8 +497,6 @@ export default function App() {
         theme={theme}
         hasCustomBackground={!!customBackground}
         onToggleTheme={handleToggleTheme}
-        targetSpecies={targetSpecies}
-        onSelectSpecies={(sp) => setTargetSpecies(sp)}
         favorites={favorites}
         onToggleFavorite={handleToggleFavorite}
         onOpenGuide={() => setIsGuideOpen(true)}
@@ -413,8 +528,6 @@ export default function App() {
         hasCustomBackground={!!customBackground}
             onToggleTheme={handleToggleTheme}
             setTheme={setTheme}
-            targetSpecies={targetSpecies}
-            onSelectSpecies={(sp) => setTargetSpecies(sp)}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
             onOpenGuide={() => setIsGuideOpen(true)}
@@ -511,7 +624,6 @@ export default function App() {
                   location={currentLocation}
                   units={units}
                   pressureUnit={pressureUnit}
-                  targetSpecies={targetSpecies}
                   theme={theme}
         hasCustomBackground={!!customBackground}
                   selectedHour={selectedHour}
@@ -534,6 +646,8 @@ export default function App() {
                       theme={theme}
         hasCustomBackground={!!customBackground}
                       location={currentLocation}
+                      lastRefreshed={lastRefreshed}
+                      backgroundIsDark={backgroundIsDark}
                       onOpenDetails={(date) => {
                         setSelectedDate(date);
                         setActiveTab('details');
@@ -695,6 +809,13 @@ export default function App() {
           <span className="text-[9px] tracking-wider uppercase">Settings</span>
         </button>
       </nav>
+
+      {/* First-run onboarding modal (new visitors only) */}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        theme={theme}
+        onComplete={handleOnboardingComplete}
+      />
 
       {/* Guide Modal */}
       <MeteorologyGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} theme={theme}

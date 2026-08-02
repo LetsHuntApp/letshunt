@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine, AlertTriangle } from 'lucide-react';
+import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine, AlertTriangle, Camera, SlidersHorizontal } from 'lucide-react';
 import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
+import { TeachingEmptyState } from './TeachingEmptyState';
 
 interface TrailCameraGalleryProps {
   theme: ThemeMode;
@@ -17,6 +18,9 @@ interface TrailCameraGalleryProps {
   targets: TrailCameraTarget[];
   showToast: (msg: string) => void;
   units?: string;
+  totalPhotosCount?: number;
+  onGoToImport?: () => void;
+  onClearFilters?: () => void;
 }
 
 const ITEMS_PER_PAGE = 36;
@@ -101,6 +105,9 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   targets,
   showToast,
   units = 'imperial',
+  totalPhotosCount = 0,
+  onGoToImport,
+  onClearFilters,
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -394,9 +401,39 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
       {/* Photos Grid */}
       {paginatedPhotos.length === 0 ? (
-        <div className="text-center py-16 space-y-3 opacity-60">
-          <p className="text-sm font-bold">No photos match your current filter or no photos imported yet.</p>
-        </div>
+        totalPhotosCount > 0 ? (
+          /* Photos exist but the active filters hide them all */
+          <TeachingEmptyState
+            theme={theme}
+            icon={<SlidersHorizontal className="w-6 h-6" />}
+            title="No Photos Match Your Filters"
+            description="You have photos imported, but the current filter combination (or the 'Time Missing' toggle) doesn't match any of them."
+            steps={[
+              { title: 'Check the Time Missing toggle', description: "If it's on, only photos with unreadable times are shown — turn it off to see everything." },
+              { title: 'Loosen the date range', description: 'Widen the start/end dates so the window includes your captures.' },
+              { title: 'Clear all filters', description: 'One tap wipes every filter so you can see the full library again.' },
+            ]}
+            secondaryLabel="Clear All Filters"
+            onSecondary={onClearFilters}
+            compact
+          />
+        ) : (
+          /* No photos imported yet at all */
+          <TeachingEmptyState
+            theme={theme}
+            icon={<Camera className="w-6 h-6" />}
+            title="Import Your First Trail Cam Photos"
+            description="Turn raw camera captures into hunting intelligence — dates and times are read automatically from each photo's timestamp bar, no EXIF needed."
+            steps={[
+              { title: 'Select your photos', description: 'Use the import panel above — drag & drop or tap to pick hundreds of images at once.' },
+              { title: 'We read the timestamps', description: 'OCR extracts the date & time burned into the info bar so every photo is sorted correctly.' },
+              { title: 'Match weather & analyze', description: 'Assign a camera spot and history weather is matched automatically for movement analytics.' },
+            ]}
+            ctaLabel="Import Photos"
+            onCta={onGoToImport}
+            compact
+          />
+        )
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
           {paginatedPhotos.map((photo) => {

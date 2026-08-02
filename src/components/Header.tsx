@@ -23,8 +23,6 @@ interface HeaderProps {
   theme: ThemeMode;
   hasCustomBackground?: boolean;
   onToggleTheme: () => void;
-  targetSpecies: string;
-  onSelectSpecies: (species: string) => void;
   favorites: Location[];
   onToggleFavorite: (loc: Location) => void;
   onOpenGuide: () => void;

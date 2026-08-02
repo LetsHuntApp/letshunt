@@ -26,7 +26,6 @@ import {
   Smartphone,
   Check,
   ShieldCheck,
-  Target,
   Globe,
   Radio,
   Gauge,
@@ -37,7 +36,12 @@ import {
   CloudRain,
   Wind,
   Zap,
+  Database,
+  Download,
+  Upload,
+  Loader2,
 } from 'lucide-react';
+import { exportBackupData, importBackupData, downloadJson, defaultBackupFilename } from '../services/dataBackupService';
 
 interface SettingsViewProps {
   currentLocation: Location;
@@ -53,8 +57,6 @@ interface SettingsViewProps {
   hasCustomBackground?: boolean;
   onToggleTheme: () => void;
   setTheme: (t: ThemeMode) => void;
-  targetSpecies: string;
-  onSelectSpecies: (species: string) => void;
   favorites: Location[];
   onToggleFavorite: (loc: Location) => void;
   onOpenGuide: () => void;
@@ -83,8 +85,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   theme,
   hasCustomBackground = false,
   setTheme,
-  targetSpecies,
-  onSelectSpecies,
   favorites,
   onToggleFavorite,
   onOpenGuide,
@@ -107,6 +107,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const isDark = theme === 'dark';
@@ -178,12 +181,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     );
   };
 
-  const speciesOptions = [
-    { name: 'Whitetail Deer', emoji: '🦌', desc: 'Optimized for thermal ridge funnels, oak flats & rub lines' },
-    { name: 'Mule Deer', emoji: '🏔️', desc: 'Tuned for glassing coulees, alpine basins & high-country draws' },
-    { name: 'Elk', emoji: '🌲', desc: 'Configured for timber benches, wallows & bugling corridors' },
-  ];
-
   const alertRows: { key: keyof Pick<NotificationPrefs, 'coldFront' | 'weatherFront' | 'rainBreak' | 'primeDay' | 'severeWeather'>; icon: React.ComponentType<{ className?: string }>; label: string; desc: string }[] = [
     { key: 'coldFront', icon: Snowflake, label: 'Cold Fronts', desc: 'Sharp 24h temperature drops (~9°F / 5°C)' },
     { key: 'weatherFront', icon: Wind, label: 'Weather Fronts (Baro Shift)', desc: 'Rapid falling or rising barometric pressure' },
@@ -226,6 +223,51 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       setPermissionState(perm);
     }
     return perm;
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const { json, summary } = await exportBackupData();
+      downloadJson(json, defaultBackupFilename());
+      const parts = [
+        `${summary.logs} log${summary.logs === 1 ? '' : 's'}`,
+        `${summary.pins} pin${summary.pins === 1 ? '' : 's'}`,
+        `${summary.polygons} zone${summary.polygons === 1 ? '' : 's'}`,
+        `${summary.paths} path${summary.paths === 1 ? '' : 's'}`,
+        `${summary.photos} trail photo${summary.photos === 1 ? '' : 's'}`,
+      ].filter((s) => !s.startsWith('0 '));
+      showToast(`Backup downloaded — ${parts.join(', ')}`);
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      showToast('Export failed — please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportFile = async (file: File | null | undefined) => {
+    if (!file) return;
+    const ok = window.confirm(
+      'Restore this backup?\n\nThis overwrites current settings, harvest logs & map data, and merges trail cam photos (matched by ID). The app will reload afterwards.'
+    );
+    if (!ok) {
+      if (importInputRef.current) importInputRef.current.value = '';
+      return;
+    }
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const summary = await importBackupData(text);
+      // Signal App to show a toast after the reload (so all stores re-read fresh).
+      sessionStorage.setItem('letshunt_backup_imported', JSON.stringify(summary));
+      window.location.reload();
+    } catch (err: any) {
+      console.error('Import failed:', err);
+      setIsImporting(false);
+      showToast(`Import failed — ${err?.message || 'invalid file'}`);
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
   };
 
   const handleMasterToggle = async (next: boolean) => {
@@ -285,7 +327,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 App Settings
               </h1>
               <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Manage hunting grounds, default location, unit preferences, and species target.
+                Manage hunting grounds, default location, unit preferences, and weather alerts.
               </p>
             </div>
           </div>
@@ -434,7 +476,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             {favorites.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-2">No saved hunting grounds yet. Search above to add.</p>
+              <div className="py-3">
+                <p className="text-xs text-slate-500">No saved hunting grounds yet.</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Search above, then tap <strong>Select</strong> to set an active ground or the{' '}
+                  <Star className="w-3 h-3 inline text-amber-400 -mt-0.5" /> star to save it here for quick switching.
+                </p>
+              </div>
             ) : (
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {favorites.map((fav, i) => {
@@ -529,7 +577,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
-        {/* Section 2: Preferences, Units & Species */}
+        {/* Section 2: Preferences & Units */}
         <div className="space-y-6">
           {/* Push Notifications & Weather Alerts Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
@@ -818,49 +866,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Species Target Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
-              <Target className="w-5 h-5 text-emerald-500" />
-              <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Target Game Species
-              </h2>
-            </div>
-
-            <div className="space-y-2.5">
-              {speciesOptions.map((sp) => {
-                const isSelected = targetSpecies === sp.name;
-                return (
-                  <button
-                    key={sp.name}
-                    onClick={() => {
-                      onSelectSpecies(sp.name);
-                      showToast(`Target species set to ${sp.name}`);
-                    }}
-                    className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-center justify-between gap-3 ${
-                      isSelected
-                        ? isDark
-                          ? 'bg-emerald-950/50 border-emerald-500/60 ring-2 ring-emerald-500/30 text-white'
-                          : 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 text-slate-900'
-                        : isDark
-                        ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{sp.emoji}</span>
-                      <div>
-                        <div className="font-extrabold text-xs sm:text-sm">{sp.name}</div>
-                        <div className="text-[11px] text-slate-500">{sp.desc}</div>
-                      </div>
-                    </div>
-                    {isSelected && <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Appearance & Theme Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
@@ -1082,6 +1087,80 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <Smartphone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                 <span>Web App Installation</span>
               </button>
+            </div>
+          </div>
+
+          {/* Backup & Restore (JSON) Card */}
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
+              <Database className="w-5 h-5 text-emerald-500" />
+              <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Backup & Restore (JSON)
+              </h2>
+            </div>
+
+            <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              Export all your LetsHunt data — hunting grounds, harvest logs, map pins, zones, paths,
+              trail cam targets & locations, and photo metadata (with thumbnails) — to a single JSON
+              file, then restore it here or on another device.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className={`p-3.5 rounded-2xl border flex items-center justify-center gap-2 text-xs font-black transition-all ${
+                  isDark
+                    ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900'
+                    : 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                } ${isExporting ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isExporting ? 'Exporting…' : 'Export JSON Backup'}
+              </button>
+
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={isImporting}
+                className={`p-3.5 rounded-2xl border flex items-center justify-center gap-2 text-xs font-black transition-all ${
+                  isDark
+                    ? 'bg-slate-950/60 border-slate-800 text-slate-200 hover:border-slate-700'
+                    : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300'
+                } ${isImporting ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+              >
+                {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {isImporting ? 'Restoring…' : 'Restore from Backup'}
+              </button>
+            </div>
+
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+                e.target.value = '';
+              }}
+            />
+
+            <div className={`rounded-2xl border p-3.5 space-y-2 ${isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                What's included
+              </div>
+              <ul className={`text-[11px] leading-relaxed space-y-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                <li>• Hunting grounds, default location & all app settings (theme, units, pressure, alerts, map style & layers)</li>
+                <li>• Harvest logs with photos & weather conditions</li>
+                <li>• Map pins (stands, bedding, food plots), zones & paths</li>
+                <li>• Trail cam targets, locations & photo metadata with thumbnails</li>
+              </ul>
+              <p className={`text-[10px] leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                Note: full-resolution trail cam images live in local storage and aren't part of the JSON file —
+                re-import them from your SD card if needed. Restoring overwrites saved settings, logs & map data,
+                merges trail cam photos (matched by ID), and reloads the app. Your custom background photo is
+                included in the file.
+              </p>
             </div>
           </div>
         </div>

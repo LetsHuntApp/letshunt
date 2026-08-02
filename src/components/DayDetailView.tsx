@@ -38,7 +38,6 @@ interface DayDetailViewProps {
   location: Location;
   units: UnitSystem;
   pressureUnit: PressureUnit;
-  targetSpecies: string;
   theme: ThemeMode;
   forecastCards?: React.ReactNode;
   selectedHour?: number;
@@ -79,7 +78,6 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   location,
   units,
   pressureUnit,
-  targetSpecies,
   theme,
   forecastCards,
   selectedHour,
@@ -394,7 +392,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
               <p className={`text-xs flex flex-wrap items-center justify-center sm:justify-start gap-2 font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 <span>📍 {location.name} {location.admin1 ? `(${location.admin1})` : ''}</span>
-                <span>• Target: {targetSpecies}</span>
+                <span>• Whitetail Deer Forecast</span>
               </p>
 
               {/* Specific Weather Score Rationale Box - Only shown when clicked */}

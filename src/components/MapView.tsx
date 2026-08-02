@@ -43,6 +43,20 @@ import {
 } from '../types';
 import { fetch5DayHuntingForecast, searchLocations } from '../services/weatherService';
 import { getBestStandForWind } from '../utils/huntingEngine';
+import { TeachingEmptyState } from './TeachingEmptyState';
+
+// Builds an elongated teardrop path pointing in the +x direction: a rounded head
+// at the leading (downwind) edge that tapers to a point at the trailing end.
+const dropletPath = (len: number, headR: number, bodyW: number) => {
+  const hx = len - headR;
+  return [
+    `M 0 0`,
+    `C ${(len * 0.25).toFixed(1)} ${(-bodyW).toFixed(1)}, ${(len * 0.7).toFixed(1)} ${(-headR).toFixed(1)}, ${hx.toFixed(1)} ${(-headR).toFixed(1)}`,
+    `A ${headR.toFixed(1)} ${headR.toFixed(1)} 0 0 1 ${hx.toFixed(1)} ${headR.toFixed(1)}`,
+    `C ${(len * 0.7).toFixed(1)} ${headR.toFixed(1)}, ${(len * 0.25).toFixed(1)} ${bodyW.toFixed(1)}, 0 0`,
+    `Z`,
+  ].join(' ');
+};
 
 interface MapViewProps {
   location: Location;
@@ -2464,25 +2478,16 @@ export const MapView: React.FC<MapViewProps> = ({
                     transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
                   >
                     <g opacity={Math.min(0.95, s.opacity + 0.2)} style={{ animation: `windFlow ${s.dur}s linear infinite`, animationDelay: `${s.delay}s`, animationFillMode: 'backwards', ...({ '--travel': `${s.travel}px` } as Record<string, string>) }}>
-                      <line
-                        x1={0}
-                        y1={0}
-                        x2={s.len}
-                        y2={0}
-                        stroke="#082f49"
-                        strokeOpacity={0.9}
-                        strokeWidth={s.width + 3}
-                        strokeLinecap="round"
+                      {/* Elongated droplet: rounded head leads downwind, tail tapers behind */}
+                      <path
+                        d={dropletPath(s.len, Math.min((s.width + 3) * 1.3, s.len * 0.4), Math.min((s.width + 3) * 0.8, s.len * 0.3))}
+                        fill="#082f49"
+                        fillOpacity={0.9}
                       />
-                      <line
-                        x1={0}
-                        y1={0}
-                        x2={s.len}
-                        y2={0}
-                        stroke="#67e8f9"
-                        strokeOpacity={0.95}
-                        strokeWidth={s.width + 1}
-                        strokeLinecap="round"
+                      <path
+                        d={dropletPath(s.len, Math.min((s.width + 1) * 1.3, s.len * 0.4), Math.min((s.width + 1) * 0.8, s.len * 0.3))}
+                        fill="#67e8f9"
+                        fillOpacity={0.95}
                       />
                     </g>
                   </g>
@@ -3015,9 +3020,23 @@ export const MapView: React.FC<MapViewProps> = ({
               {activeLayersTab === 'pins' && (
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {pins.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic text-center py-4">
-                      No stand pins created yet. Use the "+ Add" button to drop a marker!
-                    </p>
+                    <TeachingEmptyState
+                      theme={theme}
+                      icon={<MapPin className="w-5 h-5" />}
+                      title="No Stand Pins Yet"
+                      description="Pins mark the exact spots that matter — stands, trail cameras, bedding, food plots & scrapes."
+                      steps={[
+                        { title: 'Tap the + Add button', description: 'Pick a pin type like Tree Stand or Trail Camera.' },
+                        { title: 'Drop it on your property', description: 'Tap the map where the spot sits — zoom in for precision.' },
+                        { title: 'Add preferred wind', description: 'Set your ideal wind and the forecast will recommend this stand when the wind matches.' },
+                      ]}
+                      ctaLabel="Add a Pin"
+                      onCta={() => {
+                        setShowLayersDropdown(false);
+                        setShowAddDropdown(true);
+                      }}
+                      compact
+                    />
                   ) : (
                     pins.map((pin) => {
                       const pinMeta = PIN_METADATA[pin.type] || PIN_METADATA.stand;
@@ -3074,9 +3093,23 @@ export const MapView: React.FC<MapViewProps> = ({
               {activeLayersTab === 'paths' && (
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {paths.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic text-center py-4">
-                      No paths or trails drawn yet. Use "+ Add" to draw a route!
-                    </p>
+                    <TeachingEmptyState
+                      theme={theme}
+                      icon={<GitBranch className="w-5 h-5" />}
+                      title="No Paths or Trails Yet"
+                      description="Paths map the routes deer actually travel — trails, travel corridors, fence lines & creeks."
+                      steps={[
+                        { title: 'Tap + Add → Path', description: 'Switch into path-drawing mode.' },
+                        { title: 'Trace the route on the map', description: 'Click points along the trail; snap to pins & other paths automatically.' },
+                        { title: 'Name and save it', description: 'Connect paths from Home to a stand and Best Path finds the safest scent route.' },
+                      ]}
+                      ctaLabel="Draw a Path"
+                      onCta={() => {
+                        setShowLayersDropdown(false);
+                        setShowAddDropdown(true);
+                      }}
+                      compact
+                    />
                   ) : (
                     paths.map((path) => {
                       const pathMeta = PATH_METADATA[path.type] || PATH_METADATA.custom;
@@ -3132,9 +3165,23 @@ export const MapView: React.FC<MapViewProps> = ({
               {activeLayersTab === 'polygons' && (
                 <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                   {polygons.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic text-center py-4">
-                      No field zones or boundaries drawn yet. Use "+ Add" to draw a polygon!
-                    </p>
+                    <TeachingEmptyState
+                      theme={theme}
+                      icon={<Shapes className="w-5 h-5" />}
+                      title="No Zones or Boundaries Yet"
+                      description="Zones outline your food plots, bedding sanctuaries, water sources, timber & property lines."
+                      steps={[
+                        { title: 'Tap + Add → Zone', description: 'Choose a zone type like Food Plot or Bedding Sanctuary.' },
+                        { title: 'Click the corners', description: 'Place points around the area — acreage & perimeter are calculated automatically.' },
+                        { title: 'Use zones in planning', description: 'Scent-cone and Best Path routing avoid downwind bedding zones automatically.' },
+                      ]}
+                      ctaLabel="Draw a Zone"
+                      onCta={() => {
+                        setShowLayersDropdown(false);
+                        setShowAddDropdown(true);
+                      }}
+                      compact
+                    />
                   ) : (
                     polygons.map((poly) => {
                       const polyMeta = POLYGON_METADATA[poly.type] || POLYGON_METADATA.custom;

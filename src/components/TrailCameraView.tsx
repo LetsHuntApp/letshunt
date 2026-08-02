@@ -67,6 +67,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [newLocLon, setNewLocLon] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
 
+  // Ref for the import dropzone so the gallery's "Import Photos" CTA can scroll to it
+  const importPanelRef = useRef<HTMLDivElement>(null);
+
   // Location Search State
   const [locSearchQuery, setLocSearchQuery] = useState('');
   const [locSearchResults, setLocSearchResults] = useState<Location[]>([]);
@@ -583,13 +586,15 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       {activeTab === 'gallery' && (
         <div className="space-y-4">
           {/* Import Dropzone Component */}
-          <TrailCameraImport
-            theme={theme}
-            importing={importing}
-            progress={importProgress}
-            onStartImport={handleStartImport}
-            onImportComplete={loadData}
-          />
+          <div ref={importPanelRef}>
+            <TrailCameraImport
+              theme={theme}
+              importing={importing}
+              progress={importProgress}
+              onStartImport={handleStartImport}
+              onImportComplete={loadData}
+            />
+          </div>
 
           {/* Location Management Strip */}
           <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>
@@ -598,7 +603,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
               </span>
               {allSpots.length === 0 ? (
-                <span className="text-[10px] opacity-50 italic">No spots added yet</span>
+                <span className="text-[10px] opacity-60 italic">No spots yet — add one to auto-match weather per camera</span>
               ) : (
                 allSpots.map((spot) => {
                   const isDefault = spot.id === defaultLocId;
@@ -660,7 +665,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
               </span>
               {targets.length === 0 ? (
-                <span className="text-[10px] opacity-50 italic">No targets defined</span>
+                <span className="text-[10px] opacity-60 italic">No targets yet — create one to tag & analyze specific deer</span>
               ) : (
                 targets.map((t) => (
                   <span
@@ -698,6 +703,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           <TrailCameraGallery
             theme={theme}
             photos={filteredPhotos}
+            totalPhotosCount={photos.length}
+            onGoToImport={() => importPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            onClearFilters={() => setFilter({})}
             onSelectPhoto={(photo) => setSelectedPhoto(photo)}
             onToggleFavorite={handleToggleFavorite}
             onToggleTag={(photo, targetId) => {

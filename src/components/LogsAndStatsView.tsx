@@ -45,6 +45,7 @@ import {
 } from 'recharts';
 import { ThemeMode, UnitSystem, DeerKillLog, DeerGender, SavedPin } from '../types';
 import { fetchHistoricalWeather } from '../services/weatherService';
+import { TeachingEmptyState } from './TeachingEmptyState';
 
 interface LogsAndStatsViewProps {
   theme: ThemeMode;
@@ -814,29 +815,21 @@ const cardBgLight = hasCustomBackground
 
       {/* Main Tab Content */}
       {logs.length === 0 ? (
-        /* Empty State */
-        <div
-          className={`p-10 text-center rounded-3xl border space-y-4 max-w-xl mx-auto my-8 ${
-            isDark ? 'bg-slate-900/60 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
-          }`}
-        >
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto border border-emerald-500/20 shadow-inner">
-            <Trophy className="w-8 h-8" />
-          </div>
-          <div>
-            <h3 className="text-lg font-black">No Harvest Logs Saved Yet</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-              Start building your harvest database! Log the deer you've shot over the years to unlock custom peak time graphs, stand rankings, and gender ratio breakdown.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <button
-              onClick={handleOpenNewLogModal}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Log First Harvest
-            </button>
-          </div>
+        /* Empty State — teaches the value and the 3-step flow instead of a bare "no logs" line */
+        <div className="max-w-xl mx-auto my-8">
+          <TeachingEmptyState
+            theme={theme}
+            icon={<Trophy className="w-8 h-8" />}
+            title="Log Your First Harvest"
+            description="Every deer you log turns into a data point. Over a season, these logs reveal your best stands, peak times, and the weather that moved deer."
+            steps={[
+              { title: 'Add a harvest', description: 'Pick the date & time, gender, points, weight, and weapon — takes under a minute.' },
+              { title: 'Auto-fill the weather', description: 'Tap the weather button and the exact temp, wind speed & direction at your harvest are fetched from history.' },
+              { title: 'Unlock the analytics', description: 'Peak kill-hour graphs, buck/doe ratios, top stand rankings & seasonal date charts fill in automatically.' },
+            ]}
+            ctaLabel="Log First Harvest"
+            onCta={handleOpenNewLogModal}
+          />
         </div>
       ) : activeTab === 'analytics' ? (
         /* ================= GRAPH & ANALYTICS VIEW ================= */

@@ -31,6 +31,7 @@ import {
   Calendar,
   Target,
   Zap,
+  RefreshCw,
   Trees,
   Compass,
   Sparkles,
@@ -53,6 +54,8 @@ interface ForecastCardsProps {
   onOpenDetails?: (dateStr: string) => void;
   location?: Location;
   hasCustomBackground?: boolean;
+  lastRefreshed?: Date | null;
+  backgroundIsDark?: boolean | null;
 }
 
 export const ForecastCards: React.FC<ForecastCardsProps> = ({
@@ -66,13 +69,51 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   onOpenDetails,
   location,
   hasCustomBackground = false,
+  lastRefreshed,
+  backgroundIsDark = null,
 }) => {
   if (!daily || daily.length === 0) return null;
 
   const isDark = theme === 'dark';
 
+  // Heading text must stay readable in three situations:
+  //  1. Custom background photo present → flip to the measured contrast color
+  //     (dark image → light text, bright image → dark text).
+  //  2. No custom background → theme-aware colors (dark theme → white text,
+  //     light/olive/hunting themes → their dark ink colors).
+  // If a custom background exists but its luminance couldn't be measured
+  // (e.g. cross-origin taint), fall back to the theme's default so we never
+  // guess wrong and strand dark text over a dark photo.
+  const headerLightOnDark = hasCustomBackground ? (backgroundIsDark ?? isDark) : isDark;
+
+  const headerTextColor = headerLightOnDark
+    ? isDark
+      ? 'text-white'
+      : theme === 'hunting'
+      ? 'text-[#f4eee1]'
+      : theme === 'olive'
+      ? 'text-[#f7f5ed]'
+      : 'text-white'
+    : isDark
+    ? 'text-slate-900'
+    : theme === 'hunting'
+    ? 'text-[#2a1b0e]'
+    : theme === 'olive'
+    ? 'text-[#1e2e1b]'
+    : 'text-slate-900';
+
+  const headerIconColor = headerLightOnDark ? 'text-emerald-400' : 'text-emerald-600';
+
+  // Soft drop shadow behind the header text whenever a photo is present — keeps
+  // it legible even over busy sections of the image (and covers the unmeasured
+  // fallback case too).
+  const headerShadow = hasCustomBackground
+    ? 'drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]'
+    : '';
+
   // Find max score day
   const maxScore = Math.max(...daily.map((d) => d.huntScore));
+  const bestDay = daily.find((d) => d.huntScore === maxScore) || daily[0];
 
   const renderWeatherIcon = (iconName: string) => {
     switch (iconName) {
@@ -236,14 +277,54 @@ const getScoreBadgeColor = (score: number) => {
 
   return (
     <div className="w-full">
+      {/* Best Day Banner — highlights the top-scoring day of the week */}
+      {bestDay && (
+        <button
+          onClick={() => onSelectDate(selectedDate === bestDay.date ? '' : bestDay.date)}
+          className={`w-full mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.002] cursor-pointer ${
+            isDark
+              ? 'bg-gradient-to-r from-emerald-950/80 via-slate-900/[var(--card-opacity)] to-slate-900/[var(--card-opacity)] border-emerald-500/50 ring-1 ring-emerald-500/20'
+              : theme === 'hunting'
+              ? 'bg-gradient-to-r from-[#1a6b3c]/20 via-[#eee6d6]/[var(--card-opacity)] to-[#eee6d6]/[var(--card-opacity)] border-[#1a6b3c]/50'
+              : (theme === 'olive' || theme === 'hunting')
+              ? 'bg-gradient-to-r from-[#2d4a27]/20 via-[#f7f5ed]/[var(--card-opacity)] to-[#f7f5ed]/[var(--card-opacity)] border-[#556b2f]/50'
+              : 'bg-gradient-to-r from-emerald-50 via-white/[var(--card-opacity)] to-white/[var(--card-opacity)] border-emerald-300 shadow-sm'
+          }`}
+          title="Tap to jump to the best day"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-amber-500 to-amber-600 shadow-md`}>
+              <Award className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 text-slate-950" />
+            </div>
+            <div className="min-w-0">
+              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
+                Best Day: {bestDay.dayName} · {bestDay.dateFormatted}
+              </div>
+              <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                {bestDay.huntScore}/100 {bestDay.rating} — Best windows: {bestDay.morningPrime} & {bestDay.eveningPrime}
+              </div>
+            </div>
+          </div>
+          <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 -rotate-90 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
+        </button>
+      )}
+
       <div className="flex items-center justify-between mb-3 px-1">
-        <h2 className={`text-base sm:text-lg font-black flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          <Calendar className="w-5 h-5 text-emerald-500 shrink-0" />
+        <h2 className={`text-base sm:text-lg font-black flex items-center gap-2 transition-colors duration-300 ${headerTextColor} ${headerShadow}`}>
+          <Calendar className={`w-5 h-5 shrink-0 ${headerIconColor}`} />
           <span>7-Day Deer Hunting Forecast</span>
         </h2>
-        <span className={`text-xs sm:text-[13px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-          Tap any day to expand full hourly & solar details
-        </span>
+        <div className="flex flex-col items-end gap-0.5">
+          {lastRefreshed && (
+            <span className={`text-[10px] font-bold flex items-center gap-1 transition-colors duration-300 ${headerTextColor}`}>
+              <RefreshCw className="w-3 h-3 text-emerald-500 shrink-0" />
+              <span>Last refreshed {lastRefreshed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+            </span>
+          )}
+          <span className={`text-[10px] sm:text-[13px] font-medium transition-colors duration-300 ${headerTextColor} opacity-75`}>
+            Tap any day to expand full hourly & solar details
+          </span>
+        </div>
       </div>
 
       {/* Vertical Stacked Card List */}
