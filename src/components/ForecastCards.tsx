@@ -55,7 +55,6 @@ interface ForecastCardsProps {
   location?: Location;
   hasCustomBackground?: boolean;
   lastRefreshed?: Date | null;
-  backgroundIsDark?: boolean | null;
 }
 
 export const ForecastCards: React.FC<ForecastCardsProps> = ({
@@ -70,32 +69,17 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   location,
   hasCustomBackground = false,
   lastRefreshed,
-  backgroundIsDark = null,
 }) => {
   if (!daily || daily.length === 0) return null;
 
   const isDark = theme === 'dark';
 
-  // Heading text must stay readable in three situations:
-  //  1. Custom background photo present → flip to the measured contrast color
-  //     (dark image → light text, bright image → dark text).
-  //  2. No custom background → theme-aware colors (dark theme → white text,
-  //     light/olive/hunting themes → their dark ink colors).
-  // If a custom background exists but its luminance couldn't be measured
-  // (e.g. cross-origin taint), fall back to the theme's default so we never
-  // guess wrong and strand dark text over a dark photo.
-  const headerLightOnDark = hasCustomBackground ? (backgroundIsDark ?? isDark) : isDark;
+  // Heading text color is always theme-driven so it pops against the heading's
+  // theme-aware card: dark theme → light text, light/olive/hunting → dark ink.
+  const headerLightOnDark = isDark;
 
   const headerTextColor = headerLightOnDark
-    ? isDark
-      ? 'text-white'
-      : theme === 'hunting'
-      ? 'text-[#f4eee1]'
-      : theme === 'olive'
-      ? 'text-[#f7f5ed]'
-      : 'text-white'
-    : isDark
-    ? 'text-slate-900'
+    ? 'text-white'
     : theme === 'hunting'
     ? 'text-[#2a1b0e]'
     : theme === 'olive'
@@ -283,10 +267,10 @@ const getScoreBadgeColor = (score: number) => {
       {bestDay && (
         <button
           onClick={() => {
-            onSelectDate(selectedDate === bestDay.date ? '' : bestDay.date);
-            // Auto-scroll so the highlighted day's card comes into view. Runs on
-            // the next frame so it targets the layout AFTER React commits the
-            // selection (which expands the card), keeping it centered.
+            // Always select (expand) the best day, then auto-scroll so its card
+            // comes into view. Runs on the next frame so it targets the layout
+            // AFTER React commits the selection (which expands the card).
+            onSelectDate(bestDay.date);
             requestAnimationFrame(() => {
               document.getElementById(`forecast-card-${bestDay.date}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             });
@@ -307,8 +291,16 @@ const getScoreBadgeColor = (score: number) => {
               <Award className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 text-slate-950" />
             </div>
             <div className="min-w-0">
-              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
-                Best Day: {bestDay.dayName} · {bestDay.dateFormatted}
+              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
+                Best Day
+              </div>
+              <div className="flex items-baseline gap-2 flex-wrap min-w-0">
+                <span className={`text-xl sm:text-2xl font-black leading-tight ${isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
+                  {bestDay.dayName}
+                </span>
+                <span className={`text-xs sm:text-sm font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {bestDay.dateFormatted}
+                </span>
               </div>
               <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {bestDay.huntScore}/100 {bestDay.rating} — Best windows: {bestDay.morningPrime} & {bestDay.eveningPrime}

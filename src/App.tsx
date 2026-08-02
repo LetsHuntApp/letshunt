@@ -38,45 +38,6 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
   longitude: -89.4012,
 };
 
-// Samples the average perceived luminance of a background image so headings can
-// flip to a contrasting text color and stay readable over a bright/dark photo.
-// Returns true when the image is predominantly dark, false when bright, or null
-// when the image can't be read (cross-origin taint, invalid URL, etc.).
-function measureBackgroundLuminance(url: string): Promise<boolean | null> {
-  return new Promise((resolve) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const size = 32;
-          const canvas = document.createElement('canvas');
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) return resolve(null);
-          ctx.drawImage(img, 0, 0, size, size);
-          const { data } = ctx.getImageData(0, 0, size, size);
-          let sum = 0;
-          let count = 0;
-          for (let i = 0; i < data.length; i += 4) {
-            // Perceived luminance (Rec. 601 luma coefficients)
-            sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-            count++;
-          }
-          resolve(sum / (count || 1) < 128);
-        } catch {
-          resolve(null);
-        }
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    } catch {
-      resolve(null);
-    }
-  });
-}
-
 export default function App() {
   // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
@@ -85,11 +46,6 @@ export default function App() {
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return localStorage.getItem('letshunt_custom_background');
   });
-
-  // Whether the custom background image is predominantly dark (true) or bright
-  // (false). Used to keep headings readable over a photo backdrop. Null when no
-  // background is set or the image couldn't be analyzed.
-  const [backgroundIsDark, setBackgroundIsDark] = useState<boolean | null>(null);
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
     const saved = localStorage.getItem('letshunt_theme');
@@ -168,22 +124,6 @@ export default function App() {
     } else {
       localStorage.removeItem('letshunt_custom_background');
     }
-  }, [customBackground]);
-
-  // Re-analyze the background image whenever it changes so headings stay
-  // readable over whatever photo is currently behind the forecast cards.
-  useEffect(() => {
-    let cancelled = false;
-    if (!customBackground) {
-      setBackgroundIsDark(null);
-      return;
-    }
-    measureBackgroundLuminance(customBackground).then((isDark) => {
-      if (!cancelled) setBackgroundIsDark(isDark);
-    });
-    return () => {
-      cancelled = true;
-    };
   }, [customBackground]);
 
   const [customBackgroundOpacity, setCustomBackgroundOpacity] = useState<number>(() => {
@@ -647,7 +587,6 @@ export default function App() {
         hasCustomBackground={!!customBackground}
                       location={currentLocation}
                       lastRefreshed={lastRefreshed}
-                      backgroundIsDark={backgroundIsDark}
                       onOpenDetails={(date) => {
                         setSelectedDate(date);
                         setActiveTab('details');
