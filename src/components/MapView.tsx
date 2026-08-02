@@ -2711,6 +2711,7 @@ export const MapView: React.FC<MapViewProps> = ({
             const best = getBestStandForWind(windDeg);
             const matchingPin = best ? pins.find(p => p.name === best.name) : null;
             const pinMeta = matchingPin ? PIN_METADATA[matchingPin.type] || PIN_METADATA.stand : null;
+            const hasNonHomePins = pins.some(p => p.type !== 'home');
             const hourLabel = selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`;
             const isHunting = theme === 'hunting';
             const isOlive = theme === 'olive' || theme === 'hunting';
@@ -2752,7 +2753,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     Best:
                   </span>
                   <span className={`font-black truncate max-w-[100px] sm:max-w-[140px] ${isDark ? 'text-white' : isHunting ? 'text-[#2a1b0e]' : isOlive ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
-                    {best ? best.name : (pins.length === 0 ? 'No Stands' : 'No Pref Wind')}
+                    {best ? best.name : (pins.length === 0 || !hasNonHomePins ? 'No Stands' : 'No Pref Wind')}
                   </span>
                   {best && (
                     <span className={`text-[10px] font-normal truncate ${isDark ? 'text-emerald-300/80' : isHunting ? 'text-[#c85a17]/80' : isOlive ? 'text-[#556b2f]/80' : 'text-emerald-700/80'}`}>

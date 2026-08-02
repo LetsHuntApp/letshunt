@@ -818,7 +818,9 @@ export function getBestStandForWind(windDeg: number): { name: string; type: stri
     const saved = localStorage.getItem('letshunt_saved_pins');
     if (!saved) return null;
     const pins: SavedPin[] = JSON.parse(saved);
-    const standsWithWind = pins.filter(p => (p.preferredWindDeg !== undefined) || (p.preferredWind && p.preferredWind.length > 0));
+    // Home / Cabin is a starting point, not a hunting location, so it can never
+    // be recommended as the best stand for the current wind direction.
+    const standsWithWind = pins.filter(p => p.type !== 'home' && ((p.preferredWindDeg !== undefined) || (p.preferredWind && p.preferredWind.length > 0)));
     if (standsWithWind.length === 0) return null;
 
     let bestPin: SavedPin | null = null;
