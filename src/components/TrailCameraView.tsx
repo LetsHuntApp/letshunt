@@ -541,7 +541,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <Camera className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm sm:text-lg font-black tracking-tight truncate">Trail Camera</h2>
+            <h2 className="text-sm sm:text-lg font-black tracking-tight truncate">Trail Cam Photo Analyzer</h2>
             <p className="hidden sm:block text-xs opacity-70">
               Bulk photo import, automatic historical weather matching & deer movement analytics.
             </p>

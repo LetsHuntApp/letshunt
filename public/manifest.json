@@ -7,10 +7,16 @@
   "scope": "/LetsHunt/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "fullscreen"],
-  "background_color": "#020617",
+  "background_color": "#ffffff",
   "theme_color": "#020617",
   "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "./splash-logo-1024.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "any"
+    },
     {
       "src": "./icon-192-v7.png",
       "type": "image/png",
