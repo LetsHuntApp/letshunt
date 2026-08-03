@@ -30,6 +30,11 @@ const CHANNELS: WatchChannel[] = [
   { id: 'UC7jyHQoVzomw7gV3q4H1m7A', name: 'GrowingDeer.tv', color: '#10b981' },
   { id: 'UC7P2vU0_8iK450630h73v4w', name: 'Deer & Deer Hunting', color: '#3b82f6' },
   { id: 'UCiMNtu_Y-gd3ij7BT_clunw', name: 'The Deer Society', color: '#ec4899' },
+  { id: 'UCAaa0mleeU128Ad5iM1RFIg', name: 'MeatEater', color: '#f97316' },
+  { id: 'UCEto3mpl-owyuDrlg2CVCIw', name: 'Dude Perfect Outdoors', color: '#06b6d4' },
+  { id: 'UCfv4iVCP-yW8KBxThqDPqsQ', name: 'Heartland Bowhunter', color: '#78716c' },
+  { id: 'UCptLNmlgA-3p2g1IyPefO7w', name: 'The Canadian Whitetail', color: '#e11d48' },
+  { id: 'UCdcHCVzY4IQLLVvwhUGho5Q', name: 'Whitetail Edge', color: '#14b8a6' },
 ];
 
 // Guaranteed fallback content so the feed is never empty.
@@ -55,9 +60,24 @@ const SEED_VIDEOS: WatchVideo[] = [
   { id: 'kj7J8KAf_Tw', channelId: 'UCiMNtu_Y-gd3ij7BT_clunw', channel: 'The Deer Society', title: 'The Hunt for "GREAT 8" | His FINAL Chapter...', isSeed: true },
   { id: 'hBIu0EhWuH4', channelId: 'UCiMNtu_Y-gd3ij7BT_clunw', channel: 'The Deer Society', title: 'Our BEST Food Plots | Planting 101 + GIVEAWAY!', isSeed: true },
   { id: 'CE9tIB85K4U', channelId: 'UCiMNtu_Y-gd3ij7BT_clunw', channel: 'The Deer Society', title: 'Deer Society Podcast: Episode 7 (Ben Rising)', isSeed: true },
+  { id: 'a0pn6stBQBI', channelId: 'UCAaa0mleeU128Ad5iM1RFIg', channel: 'MeatEater', title: 'Can boiling carp in beer make it taste actually good?', isSeed: true },
+  { id: '9HFFUkm_PBM', channelId: 'UCAaa0mleeU128Ad5iM1RFIg', channel: 'MeatEater', title: 'Steve and Seth Make The Most Ridiculous Carp Recipe Ever', isSeed: true },
+  { id: 'Kgn2SpxaCXs', channelId: 'UCAaa0mleeU128Ad5iM1RFIg', channel: 'MeatEater', title: "Clay Newcomb's Arkansas Bear Camp | MeatEater's 12 in '26", isSeed: true },
+  { id: 'wEjVn8Un2i0', channelId: 'UCEto3mpl-owyuDrlg2CVCIw', channel: 'Dude Perfect Outdoors', title: 'We Played Golf With Hunting Gear', isSeed: true },
+  { id: 'FTQVimRy3q4', channelId: 'UCEto3mpl-owyuDrlg2CVCIw', channel: 'Dude Perfect Outdoors', title: 'This trip BROKE us', isSeed: true },
+  { id: 'hGyg88I3JbU', channelId: 'UCEto3mpl-owyuDrlg2CVCIw', channel: 'Dude Perfect Outdoors', title: 'This River Broke Us', isSeed: true },
+  { id: 'MWTyWwKWrRU', channelId: 'UCfv4iVCP-yW8KBxThqDPqsQ', channel: 'Heartland Bowhunter', title: 'Sleep? Never Heard Of It', isSeed: true },
+  { id: 'MSkEm-AoT8o', channelId: 'UCfv4iVCP-yW8KBxThqDPqsQ', channel: 'Heartland Bowhunter', title: "The Bowhunter's Zen", isSeed: true },
+  { id: 'xzEXGwi9B4c', channelId: 'UCfv4iVCP-yW8KBxThqDPqsQ', channel: 'Heartland Bowhunter', title: 'The Habitat Upgrade Every Deer Hunter Should Make', isSeed: true },
+  { id: '0MLzu9RUweA', channelId: 'UCptLNmlgA-3p2g1IyPefO7w', channel: 'The Canadian Whitetail', title: 'Years of Hunting This Buck... She Finally Gets Him!', isSeed: true },
+  { id: '6se3BEdOSWA', channelId: 'UCptLNmlgA-3p2g1IyPefO7w', channel: 'The Canadian Whitetail', title: 'Shoot or Pass? Are you a gambler?', isSeed: true },
+  { id: 'JL8Xg-Kp-8g', channelId: 'UCptLNmlgA-3p2g1IyPefO7w', channel: 'The Canadian Whitetail', title: 'Bucks like this can go from nice to great to dream haunting myths!', isSeed: true },
+  { id: 'JYNslgBNKyM', channelId: 'UCdcHCVzY4IQLLVvwhUGho5Q', channel: 'Whitetail Edge', title: 'A surprise attack on opening weekend, 400 days after setting this up?', isSeed: true },
+  { id: '2KBUpqxxvQA', channelId: 'UCdcHCVzY4IQLLVvwhUGho5Q', channel: 'Whitetail Edge', title: 'Mock Scrapes at your stand right NOW? | Ben Rising', isSeed: true },
+  { id: 'A1VSb4ShemY', channelId: 'UCdcHCVzY4IQLLVvwhUGho5Q', channel: 'Whitetail Edge', title: 'Would you do this?', isSeed: true },
 ];
 
-const CACHE_KEY = 'letshunt_watch_videos_v2';
+const CACHE_KEY = 'letshunt_watch_videos_v3';
 const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
 const MAX_PER_CHANNEL = 8;
 
@@ -313,7 +333,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
               </span>
             </h2>
             <p className="text-xs sm:text-sm opacity-70 mt-0.5">
-              Deer hunting videos from Realtree, Drury Outdoors, Canada in the Rough, The Hunting Public, GrowingDeer.tv & more — shuffled fresh from YouTube.
+              Deer hunting videos from Realtree, Drury Outdoors, MeatEater, The Hunting Public, Whitetail Edge & 7 more channels — shuffled fresh from YouTube.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
