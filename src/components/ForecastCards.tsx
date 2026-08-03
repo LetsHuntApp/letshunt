@@ -94,9 +94,12 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
 
   // Soft drop shadow behind the header text whenever a photo is present — keeps
   // it legible even over busy sections of the image (and covers the unmeasured
-  // fallback case too).
+  // fallback case too). Dark text themes get a much subtler shadow so it doesn't
+  // muddy the heading in light/olive/hunting.
   const headerShadow = hasCustomBackground
-    ? 'drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]'
+    ? isDark
+      ? 'drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]'
+      : 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]'
     : '';
 
   // Find max score day
