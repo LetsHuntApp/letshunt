@@ -9,7 +9,7 @@
   "display_override": ["standalone", "minimal-ui", "fullscreen"],
   "background_color": "#ffffff",
   "theme_color": "#020617",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     {
       "src": "./splash-logo-1024.png",
