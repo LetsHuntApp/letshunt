@@ -703,7 +703,7 @@ export default function App() {
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'dashboard' || activeTab === 'details'
-              ? 'text-emerald-500 font-extrabold scale-105'
+              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 font-semibold'
               : 'text-slate-500 hover:text-slate-900 font-semibold'
@@ -720,7 +720,7 @@ export default function App() {
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'map'
-              ? 'text-emerald-500 font-extrabold scale-105'
+              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 font-semibold'
               : 'text-slate-500 hover:text-slate-900 font-semibold'
@@ -737,7 +737,7 @@ export default function App() {
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'logs'
-              ? 'text-emerald-500 font-extrabold scale-105'
+              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 font-semibold'
               : 'text-slate-500 hover:text-slate-900 font-semibold'
@@ -754,7 +754,7 @@ export default function App() {
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'trailcams'
-              ? 'text-emerald-500 font-extrabold scale-105'
+              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 font-semibold'
               : 'text-slate-500 hover:text-slate-900 font-semibold'
@@ -771,7 +771,7 @@ export default function App() {
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'watch'
-              ? 'text-emerald-500 font-extrabold scale-105'
+              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 font-semibold'
               : 'text-slate-500 hover:text-slate-900 font-semibold'
@@ -788,7 +788,7 @@ export default function App() {
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'settings'
-              ? 'text-emerald-500 font-extrabold scale-105'
+              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 font-semibold'
               : 'text-slate-500 hover:text-slate-900 font-semibold'
