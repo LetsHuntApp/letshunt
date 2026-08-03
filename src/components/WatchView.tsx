@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2, Flame, Eye, PawPrint } from 'lucide-react';
+import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2, Flame, Eye, PawPrint, Search, SearchX, ChevronDown, AlertTriangle } from 'lucide-react';
 import { ThemeMode } from '../types';
 
 interface WatchVideo {
@@ -8,6 +8,7 @@ interface WatchVideo {
   channelId: string;
   channel: string;
   publishedAt?: string;
+  publishedText?: string; // raw publish label from search results (e.g. "3 days ago")
   thumb?: string;
   isSeed?: boolean;
 }
@@ -161,6 +162,121 @@ function formatViews(n?: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
   return `${n}`;
+}
+
+// --- YouTube search ----------------------------------------------------------
+// YouTube search pages (and channel search pages) are scraped through the same
+// CORS proxy used everywhere else. Search returns classic `videoRenderer` nodes
+// (unlike channel /videos tabs which use lockupViewModel), so it gets its own
+// parser. No API key needed.
+
+interface SearchOutcome {
+  videos: WatchVideo[];
+  views: Record<string, number>; // videoId -> parsed view count from the search payload
+}
+
+// "26,692 views" -> 26692
+function parseViewCountText(text?: string): number | null {
+  if (!text) return null;
+  const m = String(text).match(/([\d,.]+)\s*views/i);
+  if (!m) return null;
+  const n = parseInt(m[1].replace(/,/g, ''), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+const RELATIVE_PUBLISH_UNITS: Record<string, number> = {
+  second: 1000,
+  minute: 60_000,
+  hour: 3_600_000,
+  day: 86_400_000,
+  week: 604_800_000,
+  month: 2_592_000_000, // ~30 days
+  year: 31_536_000_000, // ~365 days
+};
+
+// "3 days ago" / "streamed 2 hours ago" -> approximate ISO timestamp so the
+// "Newest" sort and feed timeAgo() chips work on search results.
+function publishLabelToIso(text?: string): string | undefined {
+  if (!text) return undefined;
+  const m = /^\s*(?:streamed|premiered|live)?\s*([\d.]+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/i.exec(String(text));
+  if (!m) return undefined;
+  const shift = parseFloat(m[1]) * (RELATIVE_PUBLISH_UNITS[m[2].toLowerCase()] ?? 0);
+  return shift ? new Date(Date.now() - shift).toISOString() : undefined;
+}
+
+// Turn one `videoRenderer` object (from a search page) into a WatchVideo.
+function parseSearchVideo(v: any): WatchVideo | null {
+  if (!v || !v.videoId) return null;
+  const title = String(v?.title?.runs?.[0]?.text ?? v?.title?.simpleText ?? '').trim() || 'Untitled video';
+  const ownerRun = v?.ownerText?.runs?.[0] ?? v?.shortBylineText?.runs?.[0];
+  const channel = String(ownerRun?.text ?? '').trim();
+  const channelId = String(ownerRun?.navigationEndpoint?.browseEndpoint?.browseId ?? '');
+  const thumbs: any[] = v?.thumbnail?.thumbnails ?? [];
+  const thumb = thumbs.length ? thumbs[thumbs.length - 1]?.url : undefined;
+  const publishedText = String(v?.publishedTimeText?.simpleText ?? '').trim() || undefined;
+  return {
+    id: String(v.videoId),
+    title,
+    channelId,
+    channel: channel || (channelId ? 'YouTube' : 'Unknown channel'),
+    publishedAt: publishLabelToIso(publishedText),
+    publishedText,
+    thumb,
+  };
+}
+
+function parseSearchHtml(html: string): SearchOutcome {
+  const marker = 'var ytInitialData = ';
+  const start = html.indexOf(marker);
+  if (start === -1) return { videos: [], views: {} };
+  const jsonStart = start + marker.length;
+  const endIdx = html.indexOf(';</script>', jsonStart);
+  if (endIdx === -1) return { videos: [], views: {} };
+  let data: any;
+  try {
+    data = JSON.parse(html.slice(jsonStart, endIdx));
+  } catch {
+    return { videos: [], views: {} };
+  }
+  const sections: any[] =
+    data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents ?? [];
+  const videos: WatchVideo[] = [];
+  const views: Record<string, number> = {};
+  for (const section of sections) {
+    const items: any[] = section?.itemSectionRenderer?.contents ?? [];
+    for (const item of items) {
+      const v = item?.videoRenderer;
+      const parsed = parseSearchVideo(v);
+      if (!parsed) continue;
+      const count = parseViewCountText(v?.viewCountText?.simpleText);
+      if (count !== null) views[parsed.id] = count;
+      videos.push(parsed);
+    }
+  }
+  return { videos, views };
+}
+
+// Raw search across all of YouTube.
+async function searchYouTube(query: string, signal: AbortSignal): Promise<SearchOutcome> {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+  const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, { signal });
+  const html = await res.text();
+  const out = parseSearchHtml(html);
+  return out.videos.length > 0 ? out : { videos: [], views: {} };
+}
+
+// Channel-scoped search. The dedicated /channel/<id>/search page is bot-blocked
+// through the proxy, so we run a normal YouTube search biased toward the channel
+// (query + channel name) and keep only videos that actually belong to it.
+async function searchChannelVideos(
+  ch: WatchChannel,
+  query: string,
+  signal: AbortSignal
+): Promise<SearchOutcome> {
+  const biased = `${query} ${ch.name}`.trim();
+  const out = await searchYouTube(biased, signal);
+  out.videos = out.videos.filter((v) => v.channelId === ch.id);
+  return out;
 }
 
 // Pull a video's view count straight off its watch page (no API key needed).
@@ -411,6 +527,14 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const [fetchingViews, setFetchingViews] = useState(false);
   const [loadingChannelMore, setLoadingChannelMore] = useState(false);
   const [channelFullyLoaded, setChannelFullyLoaded] = useState(false);
+  // YouTube search: `activeQuery` non-null puts the grid into search mode.
+  const [searchInput, setSearchInput] = useState('');
+  const [activeQuery, setActiveQuery] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<WatchVideo[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  // Non-null activeQuery means the grid is showing live search results.
+  const activeSearch = activeQuery !== null;
   const mountedRef = useRef(true);
   // Latest videos mirror for async paths (avoids side effects inside a React
   // state updater, which React may invoke twice in StrictMode).
@@ -426,6 +550,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const fetchingViewsRef = useRef(false);
   const loadingChannelMoreRef = useRef(false);
   const channelContinuationTokenRef = useRef<string | null>(null);
+  const searchControllerRef = useRef<AbortController | null>(null);
+  const activeQueryRef = useRef<string | null>(null);
+  const searchActiveRef = useRef(false);
 
   useEffect(() => {
     videosRef.current = videos;
@@ -446,6 +573,14 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   useEffect(() => {
     sortModeRef.current = sortMode;
   }, [sortMode]);
+
+  useEffect(() => {
+    activeQueryRef.current = activeQuery;
+  }, [activeQuery]);
+
+  useEffect(() => {
+    searchActiveRef.current = activeQuery !== null;
+  }, [activeQuery]);
 
   // A new channel selection starts a fresh "load more from this channel" run.
   useEffect(() => {
@@ -633,8 +768,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       (entries) => {
         // Auto-stream only in the unfiltered feed — when a channel filter is
         // active the incoming pool videos can't match it, so a manual button
-        // is shown instead.
-        if (entries[0].isIntersecting && !filterRef.current) loadMorePool();
+        // is shown instead. Search results are also excluded (they're a
+        // separate single-page result set).
+        if (entries[0].isIntersecting && !filterRef.current && !searchActiveRef.current) loadMorePool();
       },
       { rootMargin: '700px 0px' }
     );
@@ -750,34 +886,100 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     ];
   }, [channelCounts, blockedChannels]);
 
-  // Apply the active sort (most popular or newest) on top of the channel filter.
+  // Apply the active sort (most popular or newest) on top of the current list —
+  // either the channel-filtered feed or the live search results.
   const sortedVideos = useMemo(() => {
+    const base = activeSearch
+      ? (searchResults ?? []).filter((v) => !blockedChannels.includes(v.channelId))
+      : visibleVideos;
     if (sortMode === 'newest') {
-      return [...visibleVideos].sort((a, b) => {
+      return [...base].sort((a, b) => {
         const ta = a.publishedAt ? new Date(a.publishedAt).getTime() : -Infinity;
         const tb = b.publishedAt ? new Date(b.publishedAt).getTime() : -Infinity;
         return tb - ta;
       });
     }
     if (sortMode === 'popular') {
-      return [...visibleVideos].sort((a, b) => {
+      return [...base].sort((a, b) => {
         const va = viewCounts[a.id] ?? -1;
         const vb = viewCounts[b.id] ?? -1;
         return vb - va;
       });
     }
-    return visibleVideos;
-  }, [visibleVideos, sortMode, viewCounts]);
+    return base;
+  }, [activeSearch, searchResults, visibleVideos, sortMode, viewCounts]);
 
   const handleSortPopular = () => {
     setSortMode((prev) => (prev === 'popular' ? null : 'popular'));
-    fetchMissingViews(videosRef.current);
+    fetchMissingViews(activeQuery ? (searchResults ?? []) : videosRef.current);
   };
 
   const filterChannelName = useMemo(
     () => ALL_CHANNELS.find((c) => c.id === filterChannel)?.name || 'this channel',
     [filterChannel]
   );
+
+  const searchScopeLabel = useMemo(
+    () => (filterChannel ? filterChannelName : 'all of YouTube'),
+    [filterChannel, filterChannelName]
+  );
+
+  // Run a YouTube search. `scopeId` = a channel id to search inside, or null for
+  // all of YouTube. Cancels any in-flight search first so rapid re-searches
+  // can't race.
+  const runSearch = useCallback(async (scopeId: string | null, query: string) => {
+    searchControllerRef.current?.abort();
+    const controller = new AbortController();
+    searchControllerRef.current = controller;
+    const timeoutId = window.setTimeout(() => controller.abort(), 25000);
+    if (mountedRef.current) setSearching(true);
+    setSearchError(null);
+    try {
+      const ch = scopeId ? ALL_CHANNELS.find((c) => c.id === scopeId) : null;
+      const outcome = ch
+        ? await searchChannelVideos(ch, query, controller.signal)
+        : await searchYouTube(query, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted) return;
+      setSearchResults(outcome.videos);
+      if (outcome.views && Object.keys(outcome.views).length > 0) {
+        viewCountsRef.current = { ...viewCountsRef.current, ...outcome.views };
+        persistViews(viewCountsRef.current);
+        setViewCounts({ ...viewCountsRef.current });
+      }
+      if (sortModeRef.current === 'popular') fetchMissingViews(outcome.videos);
+    } catch {
+      if (mountedRef.current && !controller.signal.aborted) {
+        setSearchError('Could not reach YouTube search right now — try again in a moment.');
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+      if (mountedRef.current) setSearching(false);
+    }
+  }, [fetchMissingViews]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchInput.trim();
+    if (!q) return;
+    setActiveQuery(q);
+    runSearch(filterRef.current, q);
+  };
+
+  const clearSearch = () => {
+    searchControllerRef.current?.abort();
+    setSearchInput('');
+    setActiveQuery(null);
+    setSearchResults(null);
+    setSearchError(null);
+  };
+
+  // When a search is active and the user picks a different channel, re-run the
+  // same query scoped to the newly selected channel (or back to all of YouTube).
+  useEffect(() => {
+    const q = activeQueryRef.current;
+    if (q) runSearch(filterChannel, q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterChannel]);
 
   // When a channel filter is active, the bottom button loads more videos from
   // that exact channel. The first press scrapes the channel's /videos page;
@@ -883,7 +1085,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
             <h2 className="text-lg sm:text-2xl font-black tracking-tight flex items-center gap-2">
               Watch
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300' : 'bg-emerald-100 border-emerald-300 text-emerald-700'}`}>
-                {visibleVideos.length} videos
+                {activeSearch ? (searchResults?.length ?? 0) : visibleVideos.length}{activeSearch ? ' results' : ' videos'}
               </span>
             </h2>
             <p className="text-xs sm:text-sm opacity-70 mt-0.5">
@@ -934,6 +1136,60 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
           </p>
         )}
       </div>
+
+      {/* YouTube search bar */}
+      <form
+        onSubmit={handleSearchSubmit}
+        className={`${cardBase} ${cardBg} p-2.5 sm:p-3 flex items-center gap-2`}
+        role="search"
+      >
+        <Search className="w-4 h-4 flex-shrink-0 opacity-50" />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder={filterChannel ? `Search ${filterChannelName} for videos…` : 'Search any hunting video on YouTube…'}
+          className="flex-1 min-w-0 bg-transparent text-sm font-medium outline-none placeholder:opacity-50"
+          style={{ color: 'inherit' }}
+          aria-label="Search YouTube"
+        />
+        {(searchInput || activeSearch) && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="p-1.5 rounded-lg opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+            title={activeSearch ? 'Exit search' : 'Clear'}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={searching || !searchInput.trim()}
+          className={`px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md ${actionBtn} ${searching || !searchInput.trim() ? 'opacity-60 cursor-not-allowed' : ''}`}
+          title={filterChannel ? `Search ${filterChannelName} on YouTube` : 'Search all of YouTube'}
+        >
+          {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" /> : <Search className="w-3.5 h-3.5" />}
+          {searching ? 'Searching…' : 'Search'}
+        </button>
+      </form>
+
+      {activeSearch && (
+        <div className={`flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider opacity-80 px-1`}>
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${chipIdle}`}>
+            <Search className="w-3 h-3" /> "{activeQuery}"
+            <span className="opacity-60">in {searchScopeLabel}</span>
+          </span>
+          <button
+            onClick={clearSearch}
+            className={`text-[10px] font-black uppercase tracking-wider underline-offset-2 hover:underline transition-colors cursor-pointer ${isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+            title="Exit search"
+          >
+            <SearchX className="w-3 h-3 inline mr-1" />
+            Exit search
+          </button>
+        </div>
+      )}
 
       {/* Channel filter chips */}
       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-thin">
@@ -991,7 +1247,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       </div>
 
       {/* Video grid */}
-      {visibleVideos.length === 0 ? (
+      {!activeSearch && visibleVideos.length === 0 ? (
         <div className={`${cardBase} ${cardBg} p-10 text-center space-y-3`}>
           <Tv className="w-10 h-10 mx-auto opacity-40" />
           <p className="text-sm font-bold">No videos in this filter yet.</p>
@@ -1019,7 +1275,36 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
 
       {/* Endless feed sentinel + states */}
       <div ref={sentinelRef} className="py-2 flex items-center justify-center">
-        {filterChannel ? (
+        {activeSearch ? (
+          searchError ? (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl border text-[11px] font-bold ${cardBase} ${cardBg}`}>
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              {searchError}
+              <button
+                onClick={() => runSearch(filterRef.current, activeQuery ?? '')}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 transition-all cursor-pointer hover:scale-105 ${actionBtn}`}
+                title="Try the search again"
+              >
+                <RefreshCw className="w-3 h-3" /> Retry
+              </button>
+            </div>
+          ) : searching ? (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold border ${isDark ? 'bg-slate-800/70 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" />
+              {filterChannel ? `Searching ${filterChannelName}…` : 'Searching YouTube…'}
+            </div>
+          ) : !searchResults || searchResults.length === 0 ? (
+            <div className={`flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-center ${cardBase} ${cardBg}`}>
+              <SearchX className="w-5 h-5 opacity-60" />
+              <p className="text-[11px] font-bold">No videos found for "{activeQuery}" in {searchScopeLabel}.</p>
+              <p className="text-[10px] opacity-60">Try different keywords, or clear the search to return to the feed.</p>
+            </div>
+          ) : (
+            <div className={`text-[10px] font-semibold uppercase tracking-widest opacity-50 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Showing top {searchResults.length} results for "{activeQuery}" in {searchScopeLabel}
+            </div>
+          )
+        ) : filterChannel ? (
           channelFullyLoaded ? (
             <div className={`text-[10px] font-semibold uppercase tracking-widest opacity-50 text-center ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               That's all of {filterChannelName}'s videos loaded.
@@ -1034,7 +1319,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
               {loadingChannelMore ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" />
               ) : (
-                <RefreshCw className="w-3.5 h-3.5" />
+                <ChevronDown className="w-3.5 h-3.5" />
               )}
               {loadingChannelMore ? 'Loading more…' : `Load more videos from ${filterChannelName}`}
             </button>
@@ -1047,7 +1332,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         ) : !hasMore ? (
           <div className={`flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-center ${cardBase} ${cardBg}`}>
             <PawPrint className="w-5 h-5 text-emerald-500" />
-            <p className="text-[11px] font-bold">You've reached the end of the feed — 29 channels covered.</p>
+            <p className="text-[11px] font-bold">You've reached the end of the feed — {ALL_CHANNELS.length} channels covered.</p>
             <p className="text-[10px] opacity-60">Hit "New Videos" to refresh everything with the latest uploads.</p>
           </div>
         ) : (
@@ -1219,7 +1504,7 @@ function VideoCard({
 }) {
   const channel = ALL_CHANNELS.find((c) => c.id === video.channelId);
   const color = channel?.color || '#10b981';
-  const ago = timeAgo(video.publishedAt);
+  const ago = timeAgo(video.publishedAt) || video.publishedText || '';
 
   // Press-and-hold anywhere on a card (touch or mouse) blocks its channel.
   const holdTimerRef = useRef<number | null>(null);
@@ -1483,8 +1768,8 @@ function WatchPlayerModal({
               <div className="mt-1.5 flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                 <span className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{video.channel}</span>
-                {video.publishedAt && (
-                  <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>· {timeAgo(video.publishedAt)}</span>
+                {(video.publishedAt || video.publishedText) && (
+                  <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>· {timeAgo(video.publishedAt) || video.publishedText}</span>
                 )}
               </div>
             </div>
