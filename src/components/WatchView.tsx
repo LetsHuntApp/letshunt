@@ -1144,7 +1144,18 @@ function VideoCard({
   const holdTriggeredRef = useRef(false);
   const [holding, setHolding] = useState(false);
   const [ringFilled, setRingFilled] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const ringCircumference = 2 * Math.PI * 28;
+
+  // Esc dismisses the block-confirm overlay
+  useEffect(() => {
+    if (!confirming) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirming(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [confirming]);
 
   const clearHold = () => {
     if (holdTimerRef.current !== null) {
@@ -1178,7 +1189,7 @@ function VideoCard({
     holdTimerRef.current = window.setTimeout(() => {
       holdTriggeredRef.current = true;
       clearHold();
-      onBlock(video);
+      setConfirming(true);
     }, HOLD_TO_BLOCK_MS);
   };
 
@@ -1279,6 +1290,60 @@ function VideoCard({
           </span>
         </div>
       </div>
+      {/* Block confirmation overlay */}
+      {confirming && (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-2xl bg-black/85 backdrop-blur-md"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2">
+            <Ban className="w-5 h-5 text-red-400" />
+            <span className="text-white text-sm font-black uppercase tracking-wider">
+              Block {video.channel}?
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(false);
+                onBlock(video);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  setConfirming(false);
+                  onBlock(video);
+                }
+              }}
+              className="px-4 py-2 rounded-xl bg-red-500 text-white text-xs font-black uppercase tracking-wider hover:bg-red-400 transition-colors cursor-pointer shadow-lg"
+            >
+              Yes
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  setConfirming(false);
+                }
+              }}
+              className="px-4 py-2 rounded-xl bg-white/15 text-white text-xs font-black uppercase tracking-wider hover:bg-white/25 transition-colors cursor-pointer border border-white/20"
+            >
+              Cancel
+            </div>
+          </div>
+        </div>
+      )}
     </button>
   );
 }
