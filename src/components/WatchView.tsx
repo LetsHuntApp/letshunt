@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2 } from 'lucide-react';
+import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2 } from 'lucide-react';
 import { ThemeMode } from '../types';
 
 interface WatchVideo {
@@ -64,6 +64,8 @@ const ENDLESS_POOL: WatchChannel[] = [
 
 const ALL_CHANNELS: WatchChannel[] = [...FEATURED_CHANNELS, ...ENDLESS_POOL];
 const POOL_BATCH_SIZE = 5;
+const HOLD_TO_BLOCK_MS = 600; // press-and-hold duration on a card to block its channel
+const HOLD_AFFORDANCE_MS = 130; // delay before the 'hold to block' ring appears (keeps quick taps clean)
 
 // Guaranteed fallback content so the feed is never empty.
 const SEED_VIDEOS: WatchVideo[] = [
@@ -106,6 +108,7 @@ const SEED_VIDEOS: WatchVideo[] = [
 ];
 
 const CACHE_KEY = 'letshunt_watch_videos_v4';
+const BLOCK_KEY = 'letshunt_watch_blocked_v1';
 const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
 const MAX_PER_CHANNEL = 8;
 
@@ -228,6 +231,18 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const [filterChannel, setFilterChannel] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [feedNote, setFeedNote] = useState<string | null>(null);
+  // Channels the user has permanently blocked by pressing-and-holding a video.
+  const [blockedChannels, setBlockedChannels] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(BLOCK_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((c) => typeof c === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+  const [manageOpen, setManageOpen] = useState(false);
+  const [toast, setToast] = useState<{ channelId: string; name: string } | null>(null);
   const mountedRef = useRef(true);
   // Latest videos mirror for async paths (avoids side effects inside a React
   // state updater, which React may invoke twice in StrictMode).
@@ -236,6 +251,8 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const loadingMoreRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<string | null>(null);
+  const blockedChannelsRef = useRef<string[]>(blockedChannels);
+  const toastTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     videosRef.current = videos;
@@ -244,6 +261,23 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   useEffect(() => {
     filterRef.current = filterChannel;
   }, [filterChannel]);
+
+  useEffect(() => {
+    blockedChannelsRef.current = blockedChannels;
+  }, [blockedChannels]);
+
+  // If the filtered channel just got blocked, fall back to the full feed.
+  useEffect(() => {
+    if (filterChannel && blockedChannels.includes(filterChannel)) setFilterChannel(null);
+  }, [filterChannel, blockedChannels]);
+
+  // Clear the undo-toast timer on unmount.
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    },
+    []
+  );
 
   const persistCache = () => {
     try {
@@ -265,12 +299,16 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
       // Refresh the featured channels plus any endless-pool channels that have
-      // already streamed into the feed.
-      const inFeed = new Set(videosRef.current.map((v) => v.channelId));
-      const poolLoaded = ENDLESS_POOL.filter((c) => inFeed.has(c.id));
-      const channelsToRefresh = [...FEATURED_CHANNELS, ...poolLoaded];
+      // already streamed into the feed (skipping permanently blocked ones).
+      const blockedSet = new Set(blockedChannelsRef.current);
+      const poolLoaded = ENDLESS_POOL.slice(0, poolProgressRef.current).filter((c) => !blockedSet.has(c.id));
+      const channelsToRefresh = [...FEATURED_CHANNELS, ...poolLoaded].filter((c) => !blockedSet.has(c.id));
       const results = await Promise.allSettled(channelsToRefresh.map((ch) => fetchChannelVideos(ch, controller.signal)));
-      const fresh = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+      // Guard against a block that happened while the fetch was in flight.
+      const blockedSetNow = new Set(blockedChannelsRef.current);
+      const fresh = results
+        .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+        .filter((v) => !blockedSetNow.has(v.channelId));
       if (fresh.length === 0) {
         if (mountedRef.current && !silent) {
           setFeedNote('Could not reach YouTube right now — showing saved videos.');
@@ -328,12 +366,17 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     if (nextIndex >= ENDLESS_POOL.length) return;
     loadingMoreRef.current = true;
     if (mountedRef.current) setLoadingMore(true);
-    const batch = ENDLESS_POOL.slice(nextIndex, nextIndex + POOL_BATCH_SIZE);
+    const blockedSet = new Set(blockedChannelsRef.current);
+    const batch = ENDLESS_POOL.slice(nextIndex, nextIndex + POOL_BATCH_SIZE).filter((c) => !blockedSet.has(c.id));
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
       const results = await Promise.allSettled(batch.map((ch) => fetchChannelVideos(ch, controller.signal)));
-      const fresh = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+      // Guard against a block that happened while the fetch was in flight.
+      const blockedSetNow = new Set(blockedChannelsRef.current);
+      const fresh = results
+        .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
+        .filter((v) => !blockedSetNow.has(v.channelId));
       if (mountedRef.current) {
         if (fresh.length > 0) {
           const merged = mergeVideos(videosRef.current, shuffleArray(fresh));
@@ -383,24 +426,97 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     persistCache();
   };
 
+  const persistBlocked = (list: string[]) => {
+    try {
+      localStorage.setItem(BLOCK_KEY, JSON.stringify(list));
+    } catch {
+      /* storage full / private mode */
+    }
+  };
+
+  const showToast = (channelId: string, name: string) => {
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    setToast({ channelId, name });
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 5000);
+  };
+
+  // Long-press on a video → permanently hide every video from its channel.
+  const blockChannel = (channelId: string) => {
+    if (blockedChannelsRef.current.includes(channelId)) return;
+    const next = [...blockedChannelsRef.current, channelId];
+    blockedChannelsRef.current = next;
+    persistBlocked(next);
+    setBlockedChannels(next);
+    // Purge the channel's videos from the live feed + cache.
+    const pruned = videosRef.current.filter((v) => v.channelId !== channelId);
+    videosRef.current = pruned;
+    setVideos(pruned);
+    persistCache();
+    if (filterRef.current === channelId) setFilterChannel(null);
+    const ch = ALL_CHANNELS.find((c) => c.id === channelId);
+    showToast(channelId, ch?.name || 'Channel');
+  };
+
+  const unblockChannel = (channelId: string) => {
+    const next = blockedChannelsRef.current.filter((c) => c !== channelId);
+    blockedChannelsRef.current = next;
+    persistBlocked(next);
+    setBlockedChannels(next);
+    if (toast && toast.channelId === channelId) setToast(null);
+    // Re-seed instantly, then silently refresh to pull the latest uploads back.
+    const seeds = shuffleArray(SEED_VIDEOS.filter((v) => v.channelId === channelId));
+    if (seeds.length > 0) {
+      const merged = mergeVideos(videosRef.current, seeds);
+      videosRef.current = merged;
+      setVideos(merged);
+      persistCache();
+    }
+    refreshFeed(true);
+  };
+
+  const unblockAll = () => {
+    if (blockedChannelsRef.current.length === 0) return;
+    blockedChannelsRef.current = [];
+    persistBlocked([]);
+    setBlockedChannels([]);
+    setToast(null);
+    const seeds = shuffleArray(SEED_VIDEOS);
+    const merged = mergeVideos(videosRef.current, seeds);
+    videosRef.current = merged;
+    setVideos(merged);
+    persistCache();
+    refreshFeed(true);
+  };
+
   const hasMore = poolProgress < ENDLESS_POOL.length;
 
+  // Blocked channels' videos are excluded everywhere (grid, counts, chips).
+  const unblockedVideos = useMemo(
+    () => videos.filter((v) => !blockedChannels.includes(v.channelId)),
+    [videos, blockedChannels]
+  );
+
   const visibleVideos = useMemo(() => {
-    if (!filterChannel) return videos;
-    return videos.filter((v) => v.channelId === filterChannel);
-  }, [videos, filterChannel]);
+    if (!filterChannel) return unblockedVideos;
+    return unblockedVideos.filter((v) => v.channelId === filterChannel);
+  }, [unblockedVideos, filterChannel]);
 
   const channelCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const v of videos) counts[v.channelId] = (counts[v.channelId] || 0) + 1;
+    for (const v of unblockedVideos) counts[v.channelId] = (counts[v.channelId] || 0) + 1;
     return counts;
-  }, [videos]);
+  }, [unblockedVideos]);
 
   // Featured chips always show; pool channels appear as they stream in.
+  // Blocked channels disappear from the chip row entirely.
   const chipChannels = useMemo(() => {
-    const withVideos = new Set(channelCounts && Object.keys(channelCounts));
-    return [...FEATURED_CHANNELS, ...ENDLESS_POOL.filter((c) => withVideos.has(c.id))];
-  }, [channelCounts]);
+    const withVideos = new Set(Object.keys(channelCounts));
+    const notBlocked = (c: WatchChannel) => !blockedChannels.includes(c.id);
+    return [
+      ...FEATURED_CHANNELS.filter(notBlocked),
+      ...ENDLESS_POOL.filter((c) => withVideos.has(c.id) && notBlocked(c)),
+    ];
+  }, [channelCounts, blockedChannels]);
 
   const cardBase = 'rounded-2xl border backdrop-blur-xl shadow-xl';
   const cardBg = isDark
@@ -454,10 +570,23 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
               </span>
             </h2>
             <p className="text-xs sm:text-sm opacity-70 mt-0.5">
-              An endless feed of deer hunting videos — Realtree, Drury Outdoors, MeatEater, The Hunting Public & 27 more channels. New uploads stream in as you scroll.
+              An endless feed of deer hunting videos — Realtree, Drury Outdoors, MeatEater, The Hunting Public & 27 more channels. New uploads stream in as you scroll. Press and hold any video to block its channel.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {blockedChannels.length > 0 && (
+              <button
+                onClick={() => {
+                  setToast(null);
+                  setManageOpen(true);
+                }}
+                className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md ${actionBtn}`}
+                title="Manage blocked channels"
+              >
+                <Ban className="w-3.5 h-3.5" />
+                Blocked ({blockedChannels.length})
+              </button>
+            )}
             <button
               onClick={handleShuffle}
               className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md ${actionBtn}`}
@@ -517,7 +646,11 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         <div className={`${cardBase} ${cardBg} p-10 text-center space-y-3`}>
           <Tv className="w-10 h-10 mx-auto opacity-40" />
           <p className="text-sm font-bold">No videos in this filter yet.</p>
-          <p className="text-xs opacity-60">Try another channel, or hit "New Videos" to refresh the feed.</p>
+          <p className="text-xs opacity-60">
+            {videos.length === 0 && blockedChannels.length > 0
+              ? 'Every channel is blocked — open "Blocked" in the header to unblock some.'
+              : 'Try another channel, or hit "New Videos" to refresh the feed.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -528,6 +661,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
               isDark={isDark}
               cardBg={cardBg}
               onOpen={() => setActiveVideo(video)}
+              onBlock={(v) => blockChannel(v.channelId)}
             />
           ))}
         </div>
@@ -575,6 +709,111 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
           }}
         />
       )}
+
+      {/* Undo toast after blocking a channel */}
+      {toast && (
+        <div
+          className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 sm:gap-3 pl-3 pr-1.5 py-2 rounded-2xl border shadow-2xl backdrop-blur-xl ${
+            isDark
+              ? 'bg-slate-900/95 border-slate-700 text-slate-100'
+              : isHunting
+              ? 'bg-[#eae1cf]/95 border-[#d4c4a8] text-[#2a1b0e]'
+              : isOlive
+              ? 'bg-[#f7f5ed]/95 border-[#d8d2c0] text-[#1e2e1b]'
+              : 'bg-white/95 border-slate-200 text-slate-900'
+          }`}
+        >
+          <Ban className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <span className="text-xs font-bold whitespace-nowrap">Blocked {toast.name}</span>
+          <button
+            onClick={() => unblockChannel(toast.channelId)}
+            className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 ${actionBtn}`}
+            title="Unblock this channel"
+          >
+            <Undo2 className="w-3 h-3" /> Undo
+          </button>
+          <button
+            onClick={() => setToast(null)}
+            className="p-1.5 rounded-lg opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+            title="Dismiss"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Blocked channels manager */}
+      {manageOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setManageOpen(false)}
+        >
+          <div
+            className={`${cardBase} ${cardBg} w-full max-w-sm rounded-2xl p-4 sm:p-5 shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className="text-sm font-black flex items-center gap-2">
+                <Ban className="w-4 h-4 text-red-500" /> Blocked channels
+              </h3>
+              <button
+                onClick={() => setManageOpen(false)}
+                className="p-1.5 rounded-lg opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {blockedChannels.length === 0 ? (
+              <p className="text-xs opacity-60 py-4 text-center">
+                No blocked channels — press and hold any video to block its channel.
+              </p>
+            ) : (
+              <ul className="space-y-2 max-h-72 overflow-y-auto">
+                {blockedChannels.map((id) => {
+                  const ch = ALL_CHANNELS.find((c) => c.id === id);
+                  return (
+                    <li
+                      key={id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${
+                        isDark
+                          ? 'bg-slate-800/60 border-slate-700'
+                          : isHunting
+                          ? 'bg-[#e8ddca] border-[#d4c4a8]'
+                          : isOlive
+                          ? 'bg-[#efe9d7] border-[#d8d2c0]'
+                          : 'bg-slate-100 border-slate-200'
+                      }`}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: ch?.color || '#94a3b8' }} />
+                      <span className="text-xs font-bold flex-1 truncate">{ch?.name || id}</span>
+                      <button
+                        onClick={() => unblockChannel(id)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 transition-all cursor-pointer hover:scale-105 ${actionBtn}`}
+                        title="Unblock this channel"
+                      >
+                        <Undo2 className="w-3 h-3" /> Unblock
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {blockedChannels.length > 0 && (
+              <button
+                onClick={() => {
+                  unblockAll();
+                  setManageOpen(false);
+                }}
+                className={`mt-3 w-full px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all cursor-pointer hover:scale-[1.02] ${actionBtn}`}
+                title="Remove every block"
+              >
+                Unblock all
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -605,20 +844,95 @@ function VideoCard({
   isDark,
   cardBg,
   onOpen,
+  onBlock,
 }: {
   key?: React.Key;
   video: WatchVideo;
   isDark: boolean;
   cardBg: string;
   onOpen: () => void;
+  onBlock: (video: WatchVideo) => void;
 }) {
   const channel = ALL_CHANNELS.find((c) => c.id === video.channelId);
   const color = channel?.color || '#10b981';
   const ago = timeAgo(video.publishedAt);
+
+  // Press-and-hold anywhere on a card (touch or mouse) blocks its channel.
+  const holdTimerRef = useRef<number | null>(null);
+  const showHoldTimerRef = useRef<number | null>(null);
+  const fillTimerRef = useRef<number | null>(null);
+  const holdStartRef = useRef<{ x: number; y: number } | null>(null);
+  const holdTriggeredRef = useRef(false);
+  const [holding, setHolding] = useState(false);
+  const [ringFilled, setRingFilled] = useState(false);
+  const ringCircumference = 2 * Math.PI * 28;
+
+  const clearHold = () => {
+    if (holdTimerRef.current !== null) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    if (showHoldTimerRef.current !== null) {
+      window.clearTimeout(showHoldTimerRef.current);
+      showHoldTimerRef.current = null;
+    }
+    if (fillTimerRef.current !== null) {
+      window.clearTimeout(fillTimerRef.current);
+      fillTimerRef.current = null;
+    }
+    holdStartRef.current = null;
+    setHolding(false);
+    setRingFilled(false);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return; // primary press only (right-click keeps its menu)
+    holdTriggeredRef.current = false;
+    holdStartRef.current = { x: e.clientX, y: e.clientY };
+    // Show the 'hold to block' ring only after a short delay so quick taps that
+    // simply open the video never flash it.
+    showHoldTimerRef.current = window.setTimeout(() => {
+      setHolding(true);
+      setRingFilled(false);
+      fillTimerRef.current = window.setTimeout(() => setRingFilled(true), 20);
+    }, HOLD_AFFORDANCE_MS);
+    holdTimerRef.current = window.setTimeout(() => {
+      holdTriggeredRef.current = true;
+      clearHold();
+      onBlock(video);
+    }, HOLD_TO_BLOCK_MS);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (holdTimerRef.current === null || !holdStartRef.current) return;
+    const dx = e.clientX - holdStartRef.current.x;
+    const dy = e.clientY - holdStartRef.current.y;
+    if (Math.hypot(dx, dy) > 12) clearHold(); // finger moved → it's a scroll, not a hold
+  };
+
   return (
     <button
-      onClick={onOpen}
-      className={`group text-left overflow-hidden rounded-2xl border backdrop-blur-xl shadow-xl transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-2xl ${cardBg} focus:outline-none focus:ring-2 focus:ring-emerald-500/50`}
+      onClick={(e) => {
+        // A click right after a successful long-press must not open the video.
+        if (holdTriggeredRef.current) {
+          holdTriggeredRef.current = false;
+          e.preventDefault();
+          return;
+        }
+        onOpen();
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={clearHold}
+      onPointerLeave={clearHold}
+      onPointerCancel={clearHold}
+      onContextMenu={(e) => {
+        // Swallow the native long-press menu so holding = blocking, never text select.
+        if (showHoldTimerRef.current !== null || holdTimerRef.current !== null || holdTriggeredRef.current) {
+          e.preventDefault();
+        }
+      }}
+      className={`group text-left overflow-hidden rounded-2xl border backdrop-blur-xl shadow-xl transition-all duration-200 cursor-pointer hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] ${cardBg} focus:outline-none focus:ring-2 focus:ring-emerald-500/50`}
     >
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-slate-950">
@@ -642,6 +956,30 @@ function VideoCard({
             <Play className="w-6 h-6 fill-current ml-0.5" />
           </div>
         </div>
+        {/* Hold-to-block progress ring */}
+        {holding && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1.5 bg-slate-950/55 backdrop-blur-[1px]">
+            <svg width="72" height="72" viewBox="0 0 72 72" className="drop-shadow-lg">
+              <circle cx="36" cy="36" r="28" fill="rgba(2,6,23,0.65)" stroke="rgba(255,255,255,0.25)" strokeWidth="4" />
+              <circle
+                cx="36"
+                cy="36"
+                r="28"
+                fill="none"
+                stroke="#34d399"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={ringCircumference}
+                strokeDashoffset={ringFilled ? 0 : ringCircumference}
+                transform="rotate(-90 36 36)"
+                style={{ transition: ringFilled ? `stroke-dashoffset ${HOLD_TO_BLOCK_MS - HOLD_AFFORDANCE_MS}ms linear` : 'none' }}
+              />
+            </svg>
+            <span className="text-[9px] font-black uppercase tracking-widest text-white drop-shadow">
+              Hold to block
+            </span>
+          </div>
+        )}
       </div>
       {/* Body */}
       <div className="p-3 sm:p-3.5">
