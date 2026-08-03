@@ -41,6 +41,7 @@ import {
   Upload,
   Loader2,
 } from 'lucide-react';
+import { DeerIcon } from './DeerIcon';
 import { exportBackupData, importBackupData, downloadJson, defaultBackupFilename } from '../services/dataBackupService';
 
 interface SettingsViewProps {
@@ -644,7 +645,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       onNotificationPrefsChange({ ...notificationPrefs, leadTimeHours: hours });
                       if (notificationPrefs.enabled && permissionState === 'granted') {
                         showSystemNotification(
-                          `🔔 Alerts Armed — next ${hours}h`,
+                          `Alerts Armed — next ${hours}h`,
                           `Weather alerts active for ${currentLocation.name}. You'll be pinged when conditions change.`,
                           `letshunt_lt_${hours}_${Date.now()}`
                         );
@@ -704,12 +705,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       const res = await fetch(`${url}/health`);
                       if (res.ok) {
                         const data = await res.json();
-                        showToast(`✅ Push server online — ${data.subscriptions ?? '?'} subscriptions`);
+                        showToast(`Push server online — ${data.subscriptions ?? '?'} subscriptions`);
                       } else {
                         showToast('Server responded but health check failed.');
                       }
                     } catch {
-                      showToast('❌ Could not reach the push server. Is it deployed?');
+                      showToast('Could not reach the push server. Is it deployed?');
                     }
                   }}
                   className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${isDark ? 'bg-slate-950 border-slate-800 hover:border-emerald-500 text-slate-200' : 'bg-slate-50 border-slate-200 hover:border-emerald-600 text-slate-800'}`}
@@ -958,7 +959,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-between w-full mb-1">
-                  <span className="text-base leading-none">🦌</span>
+                  <DeerIcon className="w-5 h-5 text-[#c85a17]" />
                   {theme === 'hunting' && <Check className="w-3.5 h-3.5 text-[#c85a17]" />}
                 </div>
                 <div>

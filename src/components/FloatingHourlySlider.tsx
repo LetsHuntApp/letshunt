@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Zap, RotateCcw } from 'lucide-react';
+import { Clock, Zap, RotateCcw, MapPin } from 'lucide-react';
 import { getHour12Label } from '../utils/huntingEngine';
 import { ThemeMode, HourlyForecast } from '../types';
 
@@ -155,7 +155,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
                     : 'bg-emerald-500 text-slate-950 border-emerald-300 ring-2 ring-emerald-500/30'
                 }`}
               >
-                {isNow ? `📍 NOW (${getHour12Label(localHour)})` : getHour12Label(localHour)}
+                {isNow ? <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> NOW ({getHour12Label(localHour)})</span> : getHour12Label(localHour)}
               </div>
 
               {/* Pointer Pin Arrow (visible when popped up above thumb) */}

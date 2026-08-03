@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Location, ThemeMode } from '../types';
 import { searchLocations } from '../services/weatherService';
 import { MapPin, Search, Compass, Check, X, Target, CloudSun, BellRing, ArrowRight, ChevronLeft } from 'lucide-react';
+import { DeerIcon } from './DeerIcon';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -132,7 +133,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           </button>
 
           <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg flex items-center justify-center mb-3">
-            <span className="text-3xl">🦌</span>
+            <DeerIcon className="w-10 h-10 text-white" />
           </div>
           <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${textPrimary}`}>Welcome to LetsHunt</h1>
           <p className={`text-xs mt-1 ${textSecondary}`}>

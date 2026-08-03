@@ -4,6 +4,7 @@ import { WindCompass } from './WindCompass';
 import { PressureChart } from './PressureChart';
 import { DeerIcon } from './DeerIcon';
 import { RutStatusModal } from './RutStatusModal';
+import { RutPhaseIcon } from './RutPhaseIcon';
 import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, calculateHuntScore, getBestStandForWind, getDetailedConditionExplanation } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import {
@@ -31,6 +32,10 @@ import {
   Info,
   Calendar,
   Star,
+  Undo2,
+  Crosshair,
+  MapPin,
+  BarChart3,
 } from 'lucide-react';
 
 interface DayDetailViewProps {
@@ -351,7 +356,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider border cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shadow-xs ring-2 ring-transparent hover:ring-amber-500/40 ${rutInfo.badgeStyle}`}
                   title="Click for Rut Phase Breakdown & Hunter Tips"
                 >
-                  <span>{rutInfo.emoji}</span>
+                  <RutPhaseIcon iconName={rutInfo.iconName} className="w-4 h-4 flex-shrink-0" />
                   <span>{rutInfo.name}</span>
                   <Info className="w-3.5 h-3.5 opacity-80 shrink-0" />
                 </button>
@@ -368,7 +373,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                         : 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white border-emerald-300 ring-emerald-500/20'
                     }`}
                   >
-                    ↩️ Back to Today
+                    <Undo2 className="w-4 h-4" /> Back to Today
                   </button>
                 )}
               </div>
@@ -376,7 +381,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {/* Centered Best Hunt Time Badge */}
               <div className="flex items-center justify-center w-full">
                 <span className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/35 text-emerald-600 dark:text-emerald-400 shadow-xs">
-                  🎯 Best Hunt: {getBestHuntTime(day)}
+                  <Crosshair className="w-3.5 h-3.5" /> Best Hunt: {getBestHuntTime(day)}
                 </span>
               </div>
             </div>
@@ -399,7 +404,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               </div>
 
               <p className={`text-xs flex flex-wrap items-center justify-center sm:justify-start gap-2 font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                <span>📍 {location.name} {location.admin1 ? `(${location.admin1})` : ''}</span>
+                <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> {location.name} {location.admin1 ? `(${location.admin1})` : ''}</span>
                 <span>• Whitetail Deer Forecast</span>
               </p>
 
@@ -558,7 +563,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             >
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>📊 Deer Movement Factor Breakdown</span>
+                  <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Deer Movement Factor Breakdown</span>
                 </h3>
                 <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Variables driving prediction score for {day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted})

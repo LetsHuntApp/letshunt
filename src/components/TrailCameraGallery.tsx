@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine, AlertTriangle, Camera, SlidersHorizontal } from 'lucide-react';
+import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine, AlertTriangle, Camera, SlidersHorizontal, Check } from 'lucide-react';
 import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
 import { TeachingEmptyState } from './TeachingEmptyState';
@@ -443,7 +443,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             const timeWasDefaulted = photo.timeDefaulted === true;
             const dateStr = photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'No Date';
             const timeStr = photo.dateTime ? new Date(photo.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'OCR failed';
-            const timeWarning = timeWasDefaulted ? '⚠ Time not read — defaults to 12:00 PM' : '';
+            const timeWarning = timeWasDefaulted ? 'Time not read — defaults to 12:00 PM' : '';
 
             return (
               <div
@@ -598,7 +598,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                                     >
                                       <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: t.color }} />
                                       {t.name}
-                                      {hasTag && <span className="ml-auto text-xs opacity-70">✓</span>}
+                                      {hasTag && <Check className="w-3.5 h-3.5 ml-auto opacity-70" />}
                                     </button>
                                   );
                                 })}
@@ -664,7 +664,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                         className="font-extrabold truncate drop-shadow flex items-center gap-1"
                         title={timeWarning}
                       >
-                        <span className="text-amber-300">⚠</span>
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
                         <span>{dateStr}</span>
                         <span className="text-amber-300 text-[10px] font-bold">12:00 PM</span>
                       </div>

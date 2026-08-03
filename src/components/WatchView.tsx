@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2, Flame, Eye } from 'lucide-react';
+import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2, Flame, Eye, PawPrint } from 'lucide-react';
 import { ThemeMode } from '../types';
 
 interface WatchVideo {
@@ -961,7 +961,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
           </div>
         ) : !hasMore ? (
           <div className={`flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-center ${cardBase} ${cardBg}`}>
-            <span className="text-sm">🦌</span>
+            <PawPrint className="w-5 h-5 text-emerald-500" />
             <p className="text-[11px] font-bold">You've reached the end of the feed — 29 channels covered.</p>
             <p className="text-[10px] opacity-60">Hit "New Videos" to refresh everything with the latest uploads.</p>
           </div>

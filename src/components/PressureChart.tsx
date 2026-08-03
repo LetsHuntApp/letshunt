@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HourlyForecast, UnitSystem, ThemeMode, PressureUnit } from '../types';
-import { Droplets } from 'lucide-react';
+import { Droplets, Activity } from 'lucide-react';
 
 interface PressureChartProps {
   hourly: HourlyForecast[];
@@ -138,7 +138,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center flex-wrap gap-x-2 gap-y-1">
-            <span>📈 Precipitation & Barometric Pressure Trend</span>
+            <span className="inline-flex items-center gap-2"><Activity className="w-4 h-4" /> Precipitation & Barometric Pressure Trend</span>
             {selectedDayName && (
               <span
                 className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider border ${

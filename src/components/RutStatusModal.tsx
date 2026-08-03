@@ -2,6 +2,7 @@ import React from 'react';
 import { RutPhase } from '../utils/rutEngine';
 import { Location, ThemeMode } from '../types';
 import { X, Sparkles, Flame, ShieldAlert, Compass, Eye, Volume2, Target } from 'lucide-react';
+import { RutPhaseIcon } from './RutPhaseIcon';
 
 interface RutStatusModalProps {
   isOpen: boolean;
@@ -106,7 +107,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
           }`}
         >
           <div className="flex items-center gap-2.5">
-            <span className="text-2xl sm:text-3xl select-none">{rutInfo.emoji}</span>
+            <RutPhaseIcon iconName={rutInfo.iconName} className="w-8 h-8 sm:w-9 sm:h-9 flex-shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <span

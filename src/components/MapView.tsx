@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
+  Camera,
   Compass,
+  Construction,
+  Crosshair,
+  Droplets,
+  Flag,
+  Home,
   MapPin,
   Trash2,
   Edit2,
@@ -24,7 +30,16 @@ import {
   Undo,
   CheckCircle2,
   Layers,
-  GitBranch
+  GitBranch,
+  LucideIcon,
+  Mountain,
+  PawPrint,
+  Route,
+  Ruler,
+  Sprout,
+  TreeDeciduous,
+  TreePine,
+  Wheat
 } from 'lucide-react';
 import {
   ThemeMode,
@@ -380,27 +395,33 @@ function getPolygonAreaAndPerimeter(points: PolygonPoint[], unitSystem: UnitSyst
 }
 
 // Metadata for Marker Types
+// Renders the icon stored in PIN/POLYGON/PATH metadata, with a safe fallback.
+const MetaIcon = ({ icon, fallback, className }: { icon?: LucideIcon; fallback: LucideIcon; className?: string }) => {
+  const Icon = icon ?? fallback;
+  return <Icon className={className} />;
+};
+
 export const PIN_METADATA: Record<
   PinType,
-  { label: string; emoji: string; color: string; bg: string; border: string }
+  { label: string; icon: LucideIcon; color: string; bg: string; border: string }
 > = {
-  stand: { label: 'Tree Stand', emoji: '🎯', color: 'bg-emerald-600 text-white', bg: 'bg-emerald-900/90 text-emerald-200', border: 'border-emerald-500' },
-  trail_cam: { label: 'Trail Camera', emoji: '📷', color: 'bg-sky-600 text-white', bg: 'bg-sky-900/90 text-sky-200', border: 'border-sky-500' },
-  bedding: { label: 'Bedding Sanctuary', emoji: '🦌', color: 'bg-purple-600 text-white', bg: 'bg-purple-900/90 text-purple-200', border: 'border-purple-500' },
-  food_plot: { label: 'Primary Food Plot', emoji: '🌾', color: 'bg-lime-600 text-white', bg: 'bg-lime-900/90 text-lime-200', border: 'border-lime-500' },
-  scrape: { label: 'Scrape / Rub', emoji: '🪵', color: 'bg-amber-700 text-white', bg: 'bg-amber-900/90 text-amber-200', border: 'border-amber-600' },
-  home: { label: 'Home / Cabin', emoji: '🏠', color: 'bg-orange-600 text-white', bg: 'bg-orange-900/90 text-orange-200', border: 'border-orange-500' },
-  other: { label: 'Other Landmark', emoji: '📍', color: 'bg-slate-500 text-white', bg: 'bg-slate-950/90 text-slate-300', border: 'border-slate-400' },
+  stand: { label: 'Tree Stand', icon: Crosshair, color: 'bg-emerald-600 text-white', bg: 'bg-emerald-900/90 text-emerald-200', border: 'border-emerald-500' },
+  trail_cam: { label: 'Trail Camera', icon: Camera, color: 'bg-sky-600 text-white', bg: 'bg-sky-900/90 text-sky-200', border: 'border-sky-500' },
+  bedding: { label: 'Bedding Sanctuary', icon: PawPrint, color: 'bg-purple-600 text-white', bg: 'bg-purple-900/90 text-purple-200', border: 'border-purple-500' },
+  food_plot: { label: 'Primary Food Plot', icon: Wheat, color: 'bg-lime-600 text-white', bg: 'bg-lime-900/90 text-lime-200', border: 'border-lime-500' },
+  scrape: { label: 'Scrape / Rub', icon: TreeDeciduous, color: 'bg-amber-700 text-white', bg: 'bg-amber-900/90 text-amber-200', border: 'border-amber-600' },
+  home: { label: 'Home / Cabin', icon: Home, color: 'bg-orange-600 text-white', bg: 'bg-orange-900/90 text-orange-200', border: 'border-orange-500' },
+  other: { label: 'Other Landmark', icon: MapPin, color: 'bg-slate-500 text-white', bg: 'bg-slate-950/90 text-slate-300', border: 'border-slate-400' },
 };
 
 // Metadata for Polygon Types
 export const POLYGON_METADATA: Record<
   PolygonType,
-  { label: string; emoji: string; color: string; stroke: string; fill: string; fillOpacity: number; border: string; bg: string }
+  { label: string; icon: LucideIcon; color: string; stroke: string; fill: string; fillOpacity: number; border: string; bg: string }
 > = {
   crop_field: {
     label: 'Crop Field',
-    emoji: '🌽',
+    icon: Sprout,
     color: '#eab308',
     stroke: '#eab308',
     fill: '#fef08a',
@@ -410,7 +431,7 @@ export const POLYGON_METADATA: Record<
   },
   food_plot: {
     label: 'Food Plot',
-    emoji: '🌾',
+    icon: Wheat,
     color: '#22c55e',
     stroke: '#22c55e',
     fill: '#86efac',
@@ -420,7 +441,7 @@ export const POLYGON_METADATA: Record<
   },
   bedding_zone: {
     label: 'Bedding Sanctuary',
-    emoji: '🦌',
+    icon: PawPrint,
     color: '#a855f7',
     stroke: '#a855f7',
     fill: '#d8b4fe',
@@ -430,7 +451,7 @@ export const POLYGON_METADATA: Record<
   },
   water_source: {
     label: 'Water Source / Creek',
-    emoji: '💧',
+    icon: Droplets,
     color: '#06b6d4',
     stroke: '#06b6d4',
     fill: '#67e8f9',
@@ -440,7 +461,7 @@ export const POLYGON_METADATA: Record<
   },
   timber_woods: {
     label: 'Timber / Hardwoods',
-    emoji: '🌲',
+    icon: TreePine,
     color: '#15803d',
     stroke: '#15803d',
     fill: '#4ade80',
@@ -450,7 +471,7 @@ export const POLYGON_METADATA: Record<
   },
   custom: {
     label: 'Custom Zone',
-    emoji: '🚩',
+    icon: Flag,
     color: '#f97316',
     stroke: '#f97316',
     fill: '#fdba74',
@@ -460,7 +481,7 @@ export const POLYGON_METADATA: Record<
   },
   property_boundary: {
     label: 'Property Boundary',
-    emoji: '🏡',
+    icon: Home,
     color: '#f43f5e',
     stroke: '#f43f5e',
     fill: '#fda4af',
@@ -473,11 +494,11 @@ export const POLYGON_METADATA: Record<
 // Metadata for Path / Polyline Types
 export const PATH_METADATA: Record<
   PathType,
-  { label: string; emoji: string; color: string; stroke: string; border: string; bg: string; dash: string }
+  { label: string; icon: LucideIcon; color: string; stroke: string; border: string; bg: string; dash: string }
 > = {
   travel_route: {
     label: 'Travel Route',
-    emoji: '🛤️',
+    icon: Route,
     color: '#f59e0b',
     stroke: '#f59e0b',
     border: 'border-amber-500/50',
@@ -486,7 +507,7 @@ export const PATH_METADATA: Record<
   },
   deer_trail: {
     label: 'Deer Trail',
-    emoji: '🦌',
+    icon: PawPrint,
     color: '#22c55e',
     stroke: '#22c55e',
     border: 'border-emerald-500/50',
@@ -495,7 +516,7 @@ export const PATH_METADATA: Record<
   },
   fence_line: {
     label: 'Fence Line',
-    emoji: '🚧',
+    icon: Construction,
     color: '#f43f5e',
     stroke: '#f43f5e',
     border: 'border-rose-500/50',
@@ -504,7 +525,7 @@ export const PATH_METADATA: Record<
   },
   creek: {
     label: 'Creek / Waterway',
-    emoji: '💧',
+    icon: Droplets,
     color: '#06b6d4',
     stroke: '#06b6d4',
     border: 'border-cyan-500/50',
@@ -513,7 +534,7 @@ export const PATH_METADATA: Record<
   },
   ridge: {
     label: 'Ridge Line',
-    emoji: '⛰️',
+    icon: Mountain,
     color: '#a855f7',
     stroke: '#a855f7',
     border: 'border-purple-500/50',
@@ -522,7 +543,7 @@ export const PATH_METADATA: Record<
   },
   custom: {
     label: 'Custom Path',
-    emoji: '📏',
+    icon: Ruler,
     color: '#f97316',
     stroke: '#f97316',
     border: 'border-orange-500/50',
@@ -2229,7 +2250,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           fontSize={10}
                           fontWeight="bold"
                         >
-                          {polyMeta.emoji} {poly.name.length > 10 ? poly.name.substring(0, 10) + '…' : poly.name}
+                          {poly.name.length > 10 ? poly.name.substring(0, 10) + '…' : poly.name}
                         </text>
                       </g>
                     );
@@ -2351,7 +2372,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           fontSize={10}
                           fontWeight="bold"
                         >
-                          {pathMeta.emoji} {path.name.length > 12 ? path.name.substring(0, 12) + '…' : path.name}
+                          {path.name.length > 12 ? path.name.substring(0, 12) + '…' : path.name}
                         </text>
                       </g>
                     );
@@ -2553,7 +2574,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     </div>
                   </div>
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-sky-950/95 text-sky-200 text-[10px] font-black px-2 py-0.5 rounded-md border border-sky-600 shadow-md pointer-events-none">
-                    📍 {gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : `My Location (${location.name})`}
+                    <MapPin className="w-3 h-3 inline-block mr-1 -mt-0.5" />{gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : `My Location (${location.name})`}
                   </div>
                 </div>
               );
@@ -2590,7 +2611,7 @@ export const MapView: React.FC<MapViewProps> = ({
                         : 'w-8 h-8 hover:scale-110 z-20'
                     } ${pinMeta.color}`}
                   >
-                    <span className="text-sm">{pinMeta.emoji}</span>
+                    <span className="text-sm"><MetaIcon icon={pinMeta.icon} fallback={Crosshair} className="w-4 h-4" /></span>
                   </div>
 
                   {/* Pin Name Label */}
@@ -2641,7 +2662,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-emerald-500/15 hover:text-emerald-400 transition-colors cursor-pointer"
                 >
-                  <span className="text-base">🎯</span>
+                  <Crosshair className="w-5 h-5" />
                   <div>
                     <div>Add Marker</div>
                     <div className="text-[9px] text-slate-400 font-normal">Drop Stand / Trail Cam Pin</div>
@@ -2652,7 +2673,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   onClick={handleStartDrawPolygon}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-amber-500/15 hover:text-amber-400 transition-colors cursor-pointer"
                 >
-                  <span className="text-base">🌾</span>
+                  <Wheat className="w-5 h-5" />
                   <div>
                     <div>Add Polygon Zone</div>
                     <div className="text-[9px] text-slate-400 font-normal">Plot Food Plot / Bedding Zone</div>
@@ -2663,7 +2684,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   onClick={handleStartDrawPropertyBoundary}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-rose-500/15 hover:text-rose-400 transition-colors cursor-pointer"
                 >
-                  <span className="text-base">🏡</span>
+                  <Home className="w-5 h-5" />
                   <div>
                     <div>Add Property Boundary</div>
                     <div className="text-[9px] text-slate-400 font-normal">Draw Land Perimeter Line</div>
@@ -2674,7 +2695,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   onClick={handleStartDrawPath}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-sky-500/15 hover:text-sky-400 transition-colors cursor-pointer"
                 >
-                  <span className="text-base">🛤️</span>
+                  <Route className="w-5 h-5" />
                   <div>
                     <div>Add Path / Route</div>
                     <div className="text-[9px] text-slate-400 font-normal">Draw Deer Trail / Travel Route Line</div>
@@ -2777,7 +2798,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   className={`flex items-center gap-1.5 truncate ${matchingPin ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
                   title={matchingPin ? `Click to center on ${matchingPin.name}` : 'Set preferred wind on stand pins to see recommendations'}
                 >
-                  <span className="text-sm flex-shrink-0">{pinMeta?.emoji || '🎯'}</span>
+                  <span className="flex-shrink-0 flex items-center"><MetaIcon icon={pinMeta?.icon} fallback={Crosshair} className="w-4 h-4" /></span>
                   <span className={`text-[10px] font-extrabold uppercase tracking-wider ${best ? (isDark ? 'text-emerald-400' : isHunting ? 'text-[#c85a17]' : isOlive ? 'text-[#556b2f]' : 'text-emerald-600') : (isDark ? 'text-slate-400' : isHunting ? 'text-[#8b7355]' : isOlive ? 'text-[#6e6a5e]' : 'text-slate-500')}`}>
                     Best:
                   </span>
@@ -2847,7 +2868,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   onClick={() => setShowLayersDropdown(false)}
                   className="text-slate-400 hover:text-rose-400 font-extrabold text-xs p-1 cursor-pointer"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -2953,7 +2974,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2 flex-nowrap">
-                    <span className="text-sm">🏡</span>
+                    <Home className="w-4 h-4" />
                     <span>Show Property Boundaries</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
@@ -2995,7 +3016,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">🛤️</span>
+                    <Route className="w-4 h-4" />
                     <span>Show Paths & Trails</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
@@ -3078,7 +3099,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           onClick={() => centerOnPin(pin)}
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
-                            <span className="text-lg flex-shrink-0">{pinMeta.emoji}</span>
+                            <span className="flex-shrink-0 flex items-center"><MetaIcon icon={pinMeta.icon} fallback={Crosshair} className="w-5 h-5" /></span>
                             <div className="truncate">
                               <div className="text-xs font-bold truncate">{pin.name}</div>
                               <div className="text-[10px] text-slate-400 truncate">{pinMeta.label}</div>
@@ -3151,7 +3172,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           onClick={() => selectPathAndCenter(path)}
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
-                            <span className="text-lg flex-shrink-0">{pathMeta.emoji}</span>
+                            <span className="flex-shrink-0 flex items-center"><MetaIcon icon={pathMeta.icon} fallback={Route} className="w-5 h-5" /></span>
                             <div className="truncate">
                               <div className="text-xs font-bold truncate">{path.name}</div>
                               <div className="text-[10px] text-sky-400 font-semibold truncate">{pathMeta.label}</div>
@@ -3223,7 +3244,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           onClick={() => selectPolygonAndCenter(poly)}
                         >
                           <div className="flex items-center gap-2 overflow-hidden">
-                            <span className="text-lg flex-shrink-0">{polyMeta.emoji}</span>
+                            <span className="flex-shrink-0 flex items-center"><MetaIcon icon={polyMeta.icon} fallback={Flag} className="w-5 h-5" /></span>
                             <div className="truncate">
                               <div className="text-xs font-bold truncate">{poly.name}</div>
                               <div className="text-[10px] text-amber-400 font-semibold truncate">{polyMeta.label}</div>
@@ -3448,7 +3469,7 @@ export const MapView: React.FC<MapViewProps> = ({
             {/* Header Bar */}
             <div className="flex items-center justify-between p-3 border-b border-slate-800/30 bg-slate-950/20">
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="text-xl flex-shrink-0">{PIN_METADATA[selectedPin.type]?.emoji}</span>
+                <span className="text-xl flex-shrink-0 flex items-center"><MetaIcon icon={PIN_METADATA[selectedPin.type]?.icon} fallback={Crosshair} className="w-5 h-5" /></span>
                 <div className="truncate">
                   <h4 className="text-xs font-black truncate">{selectedPin.name}</h4>
                   <span className="text-[10px] text-emerald-400 font-bold block truncate">
@@ -3718,8 +3739,8 @@ export const MapView: React.FC<MapViewProps> = ({
               isDark ? 'border-slate-800/30 bg-slate-950/20' : 'border-slate-200 bg-slate-100/60'
             }`}>
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="text-xl flex-shrink-0">
-                  {POLYGON_METADATA[selectedPolygon.type]?.emoji || '🚩'}
+                <span className="text-xl flex-shrink-0 flex items-center">
+                  <MetaIcon icon={POLYGON_METADATA[selectedPolygon.type]?.icon} fallback={Flag} className="w-5 h-5" />
                 </span>
                 <div className="truncate">
                   <h4 className="text-xs font-black truncate">{selectedPolygon.name}</h4>
@@ -3822,8 +3843,8 @@ export const MapView: React.FC<MapViewProps> = ({
               isDark ? 'border-slate-800/30 bg-slate-950/20' : 'border-slate-200 bg-slate-100/60'
             }`}>
               <div className="flex items-center gap-2 overflow-hidden">
-                <span className="text-xl flex-shrink-0">
-                  {PATH_METADATA[selectedPath.type]?.emoji || '🛤️'}
+                <span className="text-xl flex-shrink-0 flex items-center">
+                  <MetaIcon icon={PATH_METADATA[selectedPath.type]?.icon} fallback={Route} className="w-5 h-5" />
                 </span>
                 <div className="truncate">
                   <h4 className="text-xs font-black truncate">{selectedPath.name}</h4>
@@ -3938,7 +3959,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 onClick={() => setIsSavingNewPolygonModal(false)}
                 className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -3971,7 +3992,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 >
                   {Object.entries(POLYGON_METADATA).map(([typeKey, meta]) => (
                     <option key={typeKey} value={typeKey}>
-                      {meta.emoji} {meta.label}
+                      {meta.label}
                     </option>
                   ))}
                 </select>
@@ -4036,7 +4057,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 onClick={() => setEditingPolygonId(null)}
                 className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -4068,7 +4089,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 >
                   {Object.entries(POLYGON_METADATA).map(([typeKey, meta]) => (
                     <option key={typeKey} value={typeKey}>
-                      {meta.emoji} {meta.label}
+                      {meta.label}
                     </option>
                   ))}
                 </select>
@@ -4132,7 +4153,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 onClick={() => setIsSavingNewPathModal(false)}
                 className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -4165,7 +4186,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 >
                   {Object.entries(PATH_METADATA).map(([typeKey, meta]) => (
                     <option key={typeKey} value={typeKey}>
-                      {meta.emoji} {meta.label}
+                      {meta.label}
                     </option>
                   ))}
                 </select>
@@ -4230,7 +4251,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 onClick={() => setEditingPathId(null)}
                 className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -4262,7 +4283,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 >
                   {Object.entries(PATH_METADATA).map(([typeKey, meta]) => (
                     <option key={typeKey} value={typeKey}>
-                      {meta.emoji} {meta.label}
+                      {meta.label}
                     </option>
                   ))}
                 </select>
@@ -4326,7 +4347,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 onClick={() => setEditingPinId(null)}
                 className="text-slate-400 hover:text-rose-400 font-extrabold text-sm p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -4357,13 +4378,13 @@ export const MapView: React.FC<MapViewProps> = ({
                     isDark ? 'bg-slate-950 border-slate-800 text-white focus:border-emerald-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-600'
                   }`}
                 >
-                  <option value="stand">🎯 Tree Stand</option>
-                  <option value="trail_cam">📷 Trail Camera</option>
-                  <option value="bedding">🦌 Bedding Sanctuary</option>
-                  <option value="food_plot">🌾 Primary Food Plot</option>
-                  <option value="scrape">🪵 Scrapeline / Rubbing Tree</option>
-                  <option value="home">🏠 Home / Cabin</option>
-                  <option value="other">📍 Other Marker</option>
+                  <option value="stand">Tree Stand</option>
+                  <option value="trail_cam">Trail Camera</option>
+                  <option value="bedding">Bedding Sanctuary</option>
+                  <option value="food_plot">Primary Food Plot</option>
+                  <option value="scrape">Scrapeline / Rubbing Tree</option>
+                  <option value="home">Home / Cabin</option>
+                  <option value="other">Other Marker</option>
                 </select>
               </div>
 

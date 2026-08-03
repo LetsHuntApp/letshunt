@@ -4,6 +4,7 @@ import { WindCompass } from './WindCompass';
 import { PressureChart } from './PressureChart';
 import { DeerIcon } from './DeerIcon';
 import { RutStatusModal } from './RutStatusModal';
+import { RutPhaseIcon } from './RutPhaseIcon';
 import { getHour12Label, getRatingFromScore, getWeatherDetails, calculateHuntScore, celsiusToFahrenheit, getBestStandForWind } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import { motion } from 'motion/react';
@@ -22,6 +23,7 @@ import {
   Calendar,
   Info,
   Star,
+  BarChart3,
 } from 'lucide-react';
 
 interface DetailedPredictionViewProps {
@@ -252,7 +254,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs ring-2 ring-transparent hover:ring-amber-500/40 ${rutInfo.badgeStyle}`}
                 title="Click for Rut Phase Breakdown & Hunter Tips"
               >
-                <span>{rutInfo.emoji}</span>
+                <RutPhaseIcon iconName={rutInfo.iconName} className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>{rutInfo.name}</span>
                 <Info className="w-3 h-3 ml-0.5 opacity-80" />
               </button>
@@ -267,18 +269,18 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           </p>
 
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
-              🌅 Sunrise: {day.solunar?.sunrise || '6:30 AM'}
+            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+              <Sunrise className="w-3.5 h-3.5" /> Sunrise: {day.solunar?.sunrise || '6:30 AM'}
             </span>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
-              🌇 Sunset: {day.solunar?.sunset || '6:45 PM'}
+            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+              <Sunset className="w-3.5 h-3.5" /> Sunset: {day.solunar?.sunset || '6:45 PM'}
             </span>
           </div>
 
           <div className={`w-full p-3.5 rounded-2xl border text-xs leading-relaxed flex items-start gap-3 ${
             isDark ? 'bg-slate-950/50 border-slate-800/85 text-slate-100' : 'bg-slate-50/80 border-slate-200 shadow-xs'
           }`}>
-            <span className="text-2xl select-none leading-none mt-0.5">{rutInfo.emoji}</span>
+            <RutPhaseIcon iconName={rutInfo.iconName} className="w-7 h-7 mt-0.5 flex-shrink-0" />
             <div>
               <div className="font-extrabold text-[12px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
                 Rut Phase: {rutInfo.name} ({rutInfo.description})
@@ -356,7 +358,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>📈 24-Hour Deer Movement Score Chart</span>
+                  <span className="inline-flex items-center gap-2"><TrendingUp className="w-4 h-4" /> 24-Hour Deer Movement Score Chart</span>
                 </h3>
                 <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Movement index from 0-100. Select times on the chart or the slider to inspect tactical details.
@@ -562,7 +564,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             >
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>📊 Deer Movement Factor Breakdown</span>
+                  <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Deer Movement Factor Breakdown</span>
                 </h3>
                 <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Atmospheric, lunar, and regional variables driving the tactical score

@@ -3,7 +3,6 @@ import { Location } from '../types';
 export interface RutPhase {
   name: string;
   phaseId: 'summer' | 'early' | 'pre_rut' | 'peak_rut' | 'lockdown' | 'post_rut' | 'late';
-  emoji: string;
   iconName: string;
   badgeStyle: string;
   description: string;
@@ -62,7 +61,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Quiet Summer',
         phaseId: 'summer',
-        emoji: '🌳',
         iconName: 'Trees',
         badgeStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35',
         description: 'Quiet Velvet Pattern',
@@ -72,7 +70,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Early Season',
         phaseId: 'early',
-        emoji: '🦌',
         iconName: 'Compass',
         badgeStyle: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/35',
         description: 'Green Food & Bedding Shift',
@@ -82,7 +79,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Pre-Rut',
         phaseId: 'pre_rut',
-        emoji: '🪵',
         iconName: 'Sparkles',
         badgeStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35',
         description: 'Scraping & Sparring Phase',
@@ -92,7 +88,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Peak Rut Chasing',
         phaseId: 'peak_rut',
-        emoji: '🔥',
         iconName: 'Flame',
         badgeStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35',
         description: 'The Seeking & Chasing Frenzy',
@@ -102,7 +97,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Lockdown Phase',
         phaseId: 'lockdown',
-        emoji: '🔒',
         iconName: 'Lock',
         badgeStyle: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/35',
         description: 'Doe Lockdown Phase',
@@ -112,7 +106,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Post-Rut',
         phaseId: 'post_rut',
-        emoji: '🩹',
         iconName: 'ShieldCheck',
         badgeStyle: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/35',
         description: 'Secondary Doe Search',
@@ -123,7 +116,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Late Season',
         phaseId: 'late',
-        emoji: '❄️',
         iconName: 'Snowflake',
         badgeStyle: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/35',
         description: 'Severe Winter Bed-to-Feed',
@@ -136,7 +128,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Quiet Summer',
         phaseId: 'summer',
-        emoji: '🌳',
         iconName: 'Trees',
         badgeStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35',
         description: 'Quiet Velvet Phase',
@@ -146,7 +137,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Early Season',
         phaseId: 'early',
-        emoji: '🦌',
         iconName: 'Compass',
         badgeStyle: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/35',
         description: 'Early Feeder & Oak Patterns',
@@ -156,7 +146,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Pre-Rut',
         phaseId: 'pre_rut',
-        emoji: '🪵',
         iconName: 'Sparkles',
         badgeStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35',
         description: 'Scraping & Sparring Phase',
@@ -166,7 +155,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Peak Rut Chasing',
         phaseId: 'peak_rut',
-        emoji: '🔥',
         iconName: 'Flame',
         badgeStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35',
         description: 'The Southern Chase is ON!',
@@ -176,7 +164,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Lockdown Phase',
         phaseId: 'lockdown',
-        emoji: '🔒',
         iconName: 'Lock',
         badgeStyle: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/35',
         description: 'Brush Lockdown Phase',
@@ -187,7 +174,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Post-Rut',
         phaseId: 'post_rut',
-        emoji: '🩹',
         iconName: 'ShieldCheck',
         badgeStyle: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/35',
         description: 'Secondary Buck Seek',
@@ -198,7 +184,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Late Season',
         phaseId: 'late',
-        emoji: '❄️',
         iconName: 'Snowflake',
         badgeStyle: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/35',
         description: 'Late Winter Food Patterns',
@@ -211,7 +196,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Quiet Summer',
         phaseId: 'summer',
-        emoji: '🌳',
         iconName: 'Trees',
         badgeStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35',
         description: 'Quiet Velvet Phase',
@@ -221,7 +205,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Early Season',
         phaseId: 'early',
-        emoji: '🦌',
         iconName: 'Compass',
         badgeStyle: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/35',
         description: 'Predictable Bed-to-Feed Patterns',
@@ -231,7 +214,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Pre-Rut',
         phaseId: 'pre_rut',
-        emoji: '🪵',
         iconName: 'Sparkles',
         badgeStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35',
         description: 'Scraping & Rubbing Phase',
@@ -241,7 +223,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Peak Rut Chasing',
         phaseId: 'peak_rut',
-        emoji: '🔥',
         iconName: 'Flame',
         badgeStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35',
         description: 'Crucial Seeking & Chasing',
@@ -251,7 +232,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Lockdown Phase',
         phaseId: 'lockdown',
-        emoji: '🔒',
         iconName: 'Lock',
         badgeStyle: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/35',
         description: 'Doe Lockdown Phase',
@@ -261,7 +241,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Post-Rut',
         phaseId: 'post_rut',
-        emoji: '🩹',
         iconName: 'ShieldCheck',
         badgeStyle: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/35',
         description: 'Secondary Rut Chasing',
@@ -272,7 +251,6 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
       return {
         name: 'Late Season',
         phaseId: 'late',
-        emoji: '❄️',
         iconName: 'Snowflake',
         badgeStyle: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/35',
         description: 'Late Winter Bed-to-Feed Patterns',

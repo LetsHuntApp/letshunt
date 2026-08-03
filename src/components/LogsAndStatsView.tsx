@@ -26,7 +26,11 @@ import {
   Award,
   Thermometer,
   Wind,
-  RefreshCw
+  RefreshCw,
+  PawPrint,
+  Sun,
+  Moon,
+  Compass
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -879,8 +883,8 @@ const cardBgLight = hasCustomBackground
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                               <p className="font-extrabold text-emerald-400">{data.label} (Hour {data.hour}:00)</p>
                               <p className="mt-1 font-bold">{data.count} Deer Shot</p>
-                              {data.isMorningPrime && <span className="text-[10px] text-amber-300">☀️ Morning Prime Window</span>}
-                              {data.isEveningPrime && <span className="text-[10px] text-purple-300">🌙 Evening Prime Window</span>}
+                              {data.isMorningPrime && <span className="text-[10px] text-amber-300 inline-flex items-center gap-1"><Sun className="w-3 h-3" /> Morning Prime Window</span>}
+                              {data.isEveningPrime && <span className="text-[10px] text-purple-300 inline-flex items-center gap-1"><Moon className="w-3 h-3" /> Evening Prime Window</span>}
                             </div>
                           );
                         }
@@ -1037,8 +1041,10 @@ const cardBgLight = hasCustomBackground
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                               <p className="font-extrabold text-emerald-400">{data.month} Season</p>
                               <p className="font-bold mt-1">{data.Harvests} Total Harvests</p>
-                              <p className="text-[11px] text-slate-300">
-                                🦌 {data.Bucks} Bucks | 👧 {data.Does} Does
+                              <p className="text-[11px] text-slate-300 flex items-center gap-1.5 flex-wrap">
+                                <PawPrint className="w-3.5 h-3.5 text-emerald-400" /> {data.Bucks} Bucks
+                                <span className="opacity-40">|</span>
+                                <PawPrint className="w-3.5 h-3.5 text-sky-300" /> {data.Does} Does
                               </p>
                             </div>
                           );
@@ -1110,7 +1116,7 @@ const cardBgLight = hasCustomBackground
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                               <p className="font-extrabold text-emerald-400">{data.stand}</p>
                               <p className="font-bold mt-1">{data.kills} Deer Harvested</p>
-                              {data.bucks > 0 && <p className="text-emerald-300">🦌 {data.bucks} Bucks</p>}
+                              {data.bucks > 0 && <p className="text-emerald-300 flex items-center gap-1"><PawPrint className="w-3.5 h-3.5" /> {data.bucks} Bucks</p>}
                               {data.topPoints > 0 && (
                                 <p className="text-amber-300 font-semibold">Max Points: {data.topPoints} Pts</p>
                               )}
@@ -1182,10 +1188,12 @@ const cardBgLight = hasCustomBackground
                             const data = payload[0].payload;
                             return (
                               <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
-                                <p className="font-extrabold text-emerald-400">📅 {data.monthDay}</p>
+                                <p className="font-extrabold text-emerald-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {data.monthDay}</p>
                                 <p className="font-bold mt-1 text-sm">{data.count} Deer Harvested</p>
-                                <p className="text-[11px] text-slate-300 mt-0.5">
-                                  🦌 {data.bucks} Bucks | 👧 {data.does} Does
+                                <p className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                  <PawPrint className="w-3.5 h-3.5 text-emerald-400" /> {data.bucks} Bucks
+                                  <span className="opacity-40">|</span>
+                                  <PawPrint className="w-3.5 h-3.5 text-sky-300" /> {data.does} Does
                                 </p>
                                 {data.datesList && data.datesList.length > 0 && (
                                   <p className="text-[10px] text-slate-400 mt-1 border-t border-slate-800 pt-1">
@@ -1256,7 +1264,7 @@ const cardBgLight = hasCustomBackground
                           const data = payload[0].payload;
                           return (
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
-                              <p className="font-extrabold text-sky-400">🌡️ Temp Bracket: {data.label}</p>
+                              <p className="font-extrabold text-sky-400 flex items-center gap-1"><Thermometer className="w-3.5 h-3.5" /> Temp Bracket: {data.label}</p>
                               <p className="font-bold mt-1 text-sm">{data.count} Deer Harvested</p>
                             </div>
                           );
@@ -1324,7 +1332,7 @@ const cardBgLight = hasCustomBackground
                           const data = payload[0].payload;
                           return (
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
-                              <p className="font-extrabold text-teal-400">💨 Wind Speed: {data.label} {units === 'metric' ? 'km/h' : 'mph'}</p>
+                              <p className="font-extrabold text-teal-400 flex items-center gap-1"><Wind className="w-3.5 h-3.5" /> Wind Speed: {data.label} {units === 'metric' ? 'km/h' : 'mph'}</p>
                               <p className="font-bold mt-1 text-sm">{data.count} Deer Harvested</p>
                             </div>
                           );
@@ -1378,7 +1386,7 @@ const cardBgLight = hasCustomBackground
                           const data = payload[0].payload;
                           return (
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
-                              <p className="font-extrabold text-indigo-400">🧭 Wind Direction: {data.direction}</p>
+                              <p className="font-extrabold text-indigo-400 flex items-center gap-1"><Compass className="w-3.5 h-3.5" /> Wind Direction: {data.direction}</p>
                               <p className="font-bold mt-1 text-sm">{data.count} Deer Harvested</p>
                             </div>
                           );
@@ -1594,12 +1602,12 @@ const cardBgLight = hasCustomBackground
                       )}
                       {log.temperature !== undefined && (
                         <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-sky-300' : 'bg-slate-100 border-slate-200 text-sky-700'}`}>
-                          🌡️ {log.temperature}°{units === 'metric' ? 'C' : 'F'}
+                          <Thermometer className="w-3.5 h-3.5" /> {log.temperature}°{units === 'metric' ? 'C' : 'F'}
                         </span>
                       )}
                       {(log.windSpeed !== undefined || log.windDirection) && (
                         <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-teal-300' : 'bg-slate-100 border-slate-200 text-teal-700'}`}>
-                          💨 {log.windDirection ? `${log.windDirection} ` : ''}{log.windSpeed !== undefined ? `${log.windSpeed} ${units === 'metric' ? 'km/h' : 'mph'}` : ''}
+                          <Wind className="w-3.5 h-3.5" /> {log.windDirection ? `${log.windDirection} ` : ''}{log.windSpeed !== undefined ? `${log.windSpeed} ${units === 'metric' ? 'km/h' : 'mph'}` : ''}
                         </span>
                       )}
                     </div>
@@ -1721,7 +1729,7 @@ const cardBgLight = hasCustomBackground
                       <option value="">-- Custom Stand Name --</option>
                       {mapPins.map((pin) => (
                         <option key={pin.id} value={pin.id}>
-                          🎯 {pin.name} ({pin.type})
+                          {pin.name} ({pin.type})
                         </option>
                       ))}
                     </select>
