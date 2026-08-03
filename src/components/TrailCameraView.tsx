@@ -598,7 +598,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <LayoutGrid className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Gallery</span> ({photos.length})
+            <LayoutGrid className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Photos</span> ({photos.length})
           </button>
 
           <button
@@ -615,7 +615,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 : 'text-slate-500 hover:text-slate-900'
             }`}
           >
-            <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Analytics</span>
+            <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Analytics</span>
           </button>
         </div>
       </div>
