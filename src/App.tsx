@@ -31,7 +31,7 @@ import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
 import { WatchView } from './components/WatchView';
-import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, Trophy, Camera, Tv } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, Tv } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
   name: 'Madison',
@@ -743,8 +743,8 @@ export default function App() {
               : 'text-slate-500 hover:text-slate-900 font-semibold'
           }`}
         >
-          <Trophy className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Logs & Stats</span>
+          <ScrollText className="w-4.5 h-4.5" />
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Logs</span>
         </button>
 
         <button

@@ -7,7 +7,7 @@ import {              Compass,
               LayoutDashboard,
               Home,
               Map,
-              Trophy,
+              ScrollText,
               Camera,
               Tv,
             } from 'lucide-react';
@@ -387,8 +387,8 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
-                <span className="hidden xs:inline">Logs & Stats</span>
+                <ScrollText className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500" />
+                <span className="hidden xs:inline">Logs</span>
               </button>
 
               <button
