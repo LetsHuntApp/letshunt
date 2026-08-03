@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2 } from 'lucide-react';
+import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2, Ban, Undo2, Flame, Eye } from 'lucide-react';
 import { ThemeMode } from '../types';
 
 interface WatchVideo {
@@ -31,23 +31,21 @@ const FEATURED_CHANNELS: WatchChannel[] = [
   { id: 'UC7P2vU0_8iK450630h73v4w', name: 'Deer & Deer Hunting', color: '#3b82f6' },
   { id: 'UCiMNtu_Y-gd3ij7BT_clunw', name: 'The Deer Society', color: '#ec4899' },
   { id: 'UCAaa0mleeU128Ad5iM1RFIg', name: 'MeatEater', color: '#f97316' },
-  { id: 'UCEto3mpl-owyuDrlg2CVCIw', name: 'Dude Perfect Outdoors', color: '#06b6d4' },
   { id: 'UCfv4iVCP-yW8KBxThqDPqsQ', name: 'Heartland Bowhunter', color: '#78716c' },
   { id: 'UCptLNmlgA-3p2g1IyPefO7w', name: 'The Canadian Whitetail', color: '#e11d48' },
   { id: 'UCdcHCVzY4IQLLVvwhUGho5Q', name: 'Whitetail Edge', color: '#14b8a6' },
+  { id: 'UCfvm658L03oMaU-n_lgMg7g', name: 'Chris Bee', color: '#a16207' },
+  { id: 'UCyBxMQwjk60yeQYcqo9KD9A', name: 'Seek One', color: '#dc2626' },
 ];
 
 // Verified deer-hunting channels (each ID confirmed against its live YouTube
 // RSS feed title). These stream in progressively as you scroll so the feed
 // never ends — every new channel adds its latest uploads to the pool.
 const ENDLESS_POOL: WatchChannel[] = [
-  { id: 'UCrGdH4LqIyExkYzmCMn2LXA', name: 'Whitetail Properties', color: '#84cc16' },
   { id: 'UCYt16x16v0EvIg4I2FuUycA', name: 'Wired to Hunt', color: '#0ea5e9' },
-  { id: 'UCyBxMQwjk60yeQYcqo9KD9A', name: 'Seek One', color: '#dc2626' },
   { id: 'UCAb0IaDRgP7gsTAslJ6D32w', name: 'The Hunting Beast', color: '#b45309' },
   { id: 'UCI9V_Hs6YjaPHC-PzeKxzbw', name: 'Midwest Whitetail', color: '#7c3aed' },
   { id: 'UCvOvumDi0Vqjd3OZLyKWRyQ', name: 'Bone Collector', color: '#92400e' },
-  { id: 'UCLRfBKtLU7FP11cdtdvScWA', name: 'Mossy Oak', color: '#4d7c0f' },
   { id: 'UCRH6FEPoRlqFLY_-TOs78Aw', name: 'Deer Meat for Dinner', color: '#be123c' },
   { id: 'UCN91fTupmCWtfBPRmeMCOGg', name: 'Southern Ground Hunting', color: '#a16207' },
   { id: 'UC3MBWAo7P6nb_1If0qoZwhQ', name: 'GoWild', color: '#2563eb' },
@@ -93,9 +91,9 @@ const SEED_VIDEOS: WatchVideo[] = [
   { id: 'a0pn6stBQBI', channelId: 'UCAaa0mleeU128Ad5iM1RFIg', channel: 'MeatEater', title: 'Can boiling carp in beer make it taste actually good?', isSeed: true },
   { id: '9HFFUkm_PBM', channelId: 'UCAaa0mleeU128Ad5iM1RFIg', channel: 'MeatEater', title: 'Steve and Seth Make The Most Ridiculous Carp Recipe Ever', isSeed: true },
   { id: 'Kgn2SpxaCXs', channelId: 'UCAaa0mleeU128Ad5iM1RFIg', channel: 'MeatEater', title: "Clay Newcomb's Arkansas Bear Camp | MeatEater's 12 in '26", isSeed: true },
-  { id: 'wEjVn8Un2i0', channelId: 'UCEto3mpl-owyuDrlg2CVCIw', channel: 'Dude Perfect Outdoors', title: 'We Played Golf With Hunting Gear', isSeed: true },
-  { id: 'FTQVimRy3q4', channelId: 'UCEto3mpl-owyuDrlg2CVCIw', channel: 'Dude Perfect Outdoors', title: 'This trip BROKE us', isSeed: true },
-  { id: 'hGyg88I3JbU', channelId: 'UCEto3mpl-owyuDrlg2CVCIw', channel: 'Dude Perfect Outdoors', title: 'This River Broke Us', isSeed: true },
+  { id: 'R5qCPcjhgiA', channelId: 'UCfvm658L03oMaU-n_lgMg7g', channel: 'Chris Bee', title: 'This Mathews Bow Is Almost Impossible to Get', isSeed: true },
+  { id: 'X91M6Izenbw', channelId: 'UCfvm658L03oMaU-n_lgMg7g', channel: 'Chris Bee', title: 'Whitetail Buck Deer | #BEEREAL', isSeed: true },
+  { id: 'qQ3evdVitlw', channelId: 'UCfvm658L03oMaU-n_lgMg7g', channel: 'Chris Bee', title: '116 Yard Shot On A Moose | #BEEREAL', isSeed: true },
   { id: 'MWTyWwKWrRU', channelId: 'UCfv4iVCP-yW8KBxThqDPqsQ', channel: 'Heartland Bowhunter', title: 'Sleep? Never Heard Of It', isSeed: true },
   { id: 'MSkEm-AoT8o', channelId: 'UCfv4iVCP-yW8KBxThqDPqsQ', channel: 'Heartland Bowhunter', title: "The Bowhunter's Zen", isSeed: true },
   { id: 'xzEXGwi9B4c', channelId: 'UCfv4iVCP-yW8KBxThqDPqsQ', channel: 'Heartland Bowhunter', title: 'The Habitat Upgrade Every Deer Hunter Should Make', isSeed: true },
@@ -107,10 +105,14 @@ const SEED_VIDEOS: WatchVideo[] = [
   { id: 'A1VSb4ShemY', channelId: 'UCdcHCVzY4IQLLVvwhUGho5Q', channel: 'Whitetail Edge', title: 'Would you do this?', isSeed: true },
 ];
 
-const CACHE_KEY = 'letshunt_watch_videos_v4';
+const CACHE_KEY = 'letshunt_watch_videos_v5';
 const BLOCK_KEY = 'letshunt_watch_blocked_v1';
+const VIEWS_KEY = 'letshunt_watch_views_v1';
 const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
 const MAX_PER_CHANNEL = 8;
+const MAX_VIEW_FETCH = 48; // videos to count views for per popularity pass
+const VIEW_FETCH_CONCURRENCY = 6;
+const VIEW_FETCH_TIMEOUT = 20000;
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -150,6 +152,32 @@ function timeAgo(iso?: string): string {
 function extractVideoId(link: string): string | null {
   const m = String(link || '').match(/[?&]v=([\w-]{6,})/);
   return m ? m[1] : null;
+}
+
+function formatViews(n?: number): string {
+  if (!n || n <= 0) return '';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return `${n}`;
+}
+
+// Pull a video's view count straight off its watch page (no API key needed).
+// The count lives in ytInitialData inside a videoViewCountRenderer block.
+async function fetchViewCount(videoId: string, signal: AbortSignal): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`,
+      { signal }
+    );
+    const html = await res.text();
+    const m = html.match(/"videoViewCountRenderer":\{"viewCount":\{"simpleText":"([\d.,]+)\s*views/);
+    const raw = m ? m[1] : html.match(/"simpleText":"(\d[\d.,]*)\s*views/)?.[1];
+    if (!raw) return null;
+    const n = parseInt(raw.replace(/,/g, ''), 10);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
 }
 
 // Fetch the latest uploads from one channel. Primary path: rss2json (JSON,
@@ -243,6 +271,18 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   });
   const [manageOpen, setManageOpen] = useState(false);
   const [toast, setToast] = useState<{ channelId: string; name: string } | null>(null);
+  // Cached view counts (videoId -> views) powering the "Most Popular" sort.
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>(() => {
+    try {
+      const raw = localStorage.getItem(VIEWS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, number>) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [sortMode, setSortMode] = useState<'popular' | 'newest' | null>(null);
+  const [fetchingViews, setFetchingViews] = useState(false);
   const mountedRef = useRef(true);
   // Latest videos mirror for async paths (avoids side effects inside a React
   // state updater, which React may invoke twice in StrictMode).
@@ -253,6 +293,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const filterRef = useRef<string | null>(null);
   const blockedChannelsRef = useRef<string[]>(blockedChannels);
   const toastTimerRef = useRef<number | null>(null);
+  const viewCountsRef = useRef<Record<string, number>>(viewCounts);
+  const sortModeRef = useRef<'popular' | 'newest' | null>(null);
+  const fetchingViewsRef = useRef(false);
 
   useEffect(() => {
     videosRef.current = videos;
@@ -265,6 +308,14 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   useEffect(() => {
     blockedChannelsRef.current = blockedChannels;
   }, [blockedChannels]);
+
+  useEffect(() => {
+    viewCountsRef.current = viewCounts;
+  }, [viewCounts]);
+
+  useEffect(() => {
+    sortModeRef.current = sortMode;
+  }, [sortMode]);
 
   // If the filtered channel just got blocked, fall back to the full feed.
   useEffect(() => {
@@ -291,6 +342,49 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       );
     } catch { /* storage full / private mode */ }
   };
+
+  const persistViews = (counts: Record<string, number>) => {
+    try {
+      localStorage.setItem(VIEWS_KEY, JSON.stringify(counts));
+    } catch { /* storage full / private mode */ }
+  };
+
+  // Lazily count views for videos that don't have a cached number yet, with
+  // bounded concurrency. Called when "Most Popular" is active.
+  const fetchMissingViews = useCallback(async (videoList: WatchVideo[]) => {
+    if (fetchingViewsRef.current) return;
+    const missing = videoList
+      .filter((v) => viewCountsRef.current[v.id] === undefined)
+      .slice(0, MAX_VIEW_FETCH);
+    if (missing.length === 0) return;
+    fetchingViewsRef.current = true;
+    if (mountedRef.current) setFetchingViews(true);
+    const queue = [...missing];
+    const worker = async () => {
+      while (queue.length > 0) {
+        const v = queue.shift()!;
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), VIEW_FETCH_TIMEOUT);
+        try {
+          const count = await fetchViewCount(v.id, controller.signal);
+          if (count !== null && mountedRef.current) {
+            viewCountsRef.current = { ...viewCountsRef.current, [v.id]: count };
+          }
+        } catch {
+          /* individual failures are fine */
+        } finally {
+          window.clearTimeout(timeoutId);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(VIEW_FETCH_CONCURRENCY, queue.length) }, worker));
+    if (mountedRef.current) {
+      persistViews(viewCountsRef.current);
+      setViewCounts({ ...viewCountsRef.current });
+      setFetchingViews(false);
+    }
+    fetchingViewsRef.current = false;
+  }, []);
 
   const refreshFeed = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -327,11 +421,12 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         setLastUpdated(new Date());
         setFeedNote(null);
         setRefreshing(false);
+        if (sortModeRef.current === 'popular') fetchMissingViews(shuffled);
       }
     } finally {
       window.clearTimeout(timeoutId);
     }
-  }, []);
+  }, [fetchMissingViews]);
 
   // Load cached feed instantly (resuming scroll position), then refresh in the background.
   useEffect(() => {
@@ -386,13 +481,14 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         poolProgressRef.current = nextIndex + batch.length;
         setPoolProgress(poolProgressRef.current);
         persistCache();
+        if (sortModeRef.current === 'popular') fetchMissingViews(videosRef.current);
       }
     } finally {
       window.clearTimeout(timeoutId);
       loadingMoreRef.current = false;
       if (mountedRef.current) setLoadingMore(false);
     }
-  }, []);
+  }, [fetchMissingViews]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -518,6 +614,30 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     ];
   }, [channelCounts, blockedChannels]);
 
+  // Apply the active sort (most popular or newest) on top of the channel filter.
+  const sortedVideos = useMemo(() => {
+    if (sortMode === 'newest') {
+      return [...visibleVideos].sort((a, b) => {
+        const ta = a.publishedAt ? new Date(a.publishedAt).getTime() : -Infinity;
+        const tb = b.publishedAt ? new Date(b.publishedAt).getTime() : -Infinity;
+        return tb - ta;
+      });
+    }
+    if (sortMode === 'popular') {
+      return [...visibleVideos].sort((a, b) => {
+        const va = viewCounts[a.id] ?? -1;
+        const vb = viewCounts[b.id] ?? -1;
+        return vb - va;
+      });
+    }
+    return visibleVideos;
+  }, [visibleVideos, sortMode, viewCounts]);
+
+  const handleSortPopular = () => {
+    setSortMode((prev) => (prev === 'popular' ? null : 'popular'));
+    fetchMissingViews(videosRef.current);
+  };
+
   const cardBase = 'rounded-2xl border backdrop-blur-xl shadow-xl';
   const cardBg = isDark
     ? 'bg-slate-900/80 border-slate-800 text-slate-100'
@@ -570,7 +690,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
               </span>
             </h2>
             <p className="text-xs sm:text-sm opacity-70 mt-0.5">
-              An endless feed of deer hunting videos — Realtree, Drury Outdoors, MeatEater, The Hunting Public & 27 more channels. New uploads stream in as you scroll. Press and hold any video to block its channel.
+              An endless feed of deer hunting videos — Realtree, Drury Outdoors, MeatEater, The Hunting Public & 25 more channels. New uploads stream in as you scroll. Press and hold any video to block its channel.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -641,6 +761,38 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         ))}
       </div>
 
+      {/* Sort controls: Most Popular / Newest */}
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+        <button
+          onClick={handleSortPopular}
+          className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-black border whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${sortMode === 'popular' ? chipActive : chipIdle}`}
+          title="Sort by most viewed first"
+        >
+          <Flame className="w-3 h-3" /> Most Popular
+        </button>
+        <button
+          onClick={() => setSortMode((prev) => (prev === 'newest' ? null : 'newest'))}
+          className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-black border whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${sortMode === 'newest' ? chipActive : chipIdle}`}
+          title="Sort by newest uploads first"
+        >
+          <Clock className="w-3 h-3" /> Newest
+        </button>
+        {sortMode === 'popular' && fetchingViews && (
+          <span className={`text-[10px] font-bold flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <Loader2 className="w-3 h-3 animate-spin text-emerald-500" /> Counting views…
+          </span>
+        )}
+        {sortMode && (
+          <button
+            onClick={() => setSortMode(null)}
+            className={`text-[10px] font-bold uppercase tracking-wider underline-offset-2 hover:underline transition-colors cursor-pointer ${isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+            title="Back to the shuffled feed"
+          >
+            Clear sort
+          </button>
+        )}
+      </div>
+
       {/* Video grid */}
       {visibleVideos.length === 0 ? (
         <div className={`${cardBase} ${cardBg} p-10 text-center space-y-3`}>
@@ -654,12 +806,13 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {visibleVideos.map((video) => (
+          {sortedVideos.map((video) => (
             <VideoCard
               key={video.id}
               video={video}
               isDark={isDark}
               cardBg={cardBg}
+              views={viewCounts[video.id]}
               onOpen={() => setActiveVideo(video)}
               onBlock={(v) => blockChannel(v.channelId)}
             />
@@ -677,7 +830,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         ) : !hasMore ? (
           <div className={`flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-center ${cardBase} ${cardBg}`}>
             <span className="text-sm">🦌</span>
-            <p className="text-[11px] font-bold">You've reached the end of the feed — 31 channels covered.</p>
+            <p className="text-[11px] font-bold">You've reached the end of the feed — 29 channels covered.</p>
             <p className="text-[10px] opacity-60">Hit "New Videos" to refresh everything with the latest uploads.</p>
           </div>
         ) : filterChannel ? (
@@ -703,8 +856,8 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
           cardBg={cardBg}
           onClose={() => setActiveVideo(null)}
           onNext={() => {
-            const idx = visibleVideos.findIndex((v) => v.id === activeVideo.id);
-            const next = visibleVideos[(idx + 1) % visibleVideos.length];
+            const idx = sortedVideos.findIndex((v) => v.id === activeVideo.id);
+            const next = sortedVideos[(idx + 1) % sortedVideos.length];
             if (next) setActiveVideo(next);
           }}
         />
@@ -843,6 +996,7 @@ function VideoCard({
   video,
   isDark,
   cardBg,
+  views,
   onOpen,
   onBlock,
 }: {
@@ -850,6 +1004,7 @@ function VideoCard({
   video: WatchVideo;
   isDark: boolean;
   cardBg: string;
+  views?: number;
   onOpen: () => void;
   onBlock: (video: WatchVideo) => void;
 }) {
@@ -948,6 +1103,12 @@ function VideoCard({
         {ago && (
           <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-slate-200 text-[9px] font-bold shadow-md">
             <Clock className="w-2.5 h-2.5" /> {ago}
+          </div>
+        )}
+        {/* View count chip (populated by the Most Popular sort) */}
+        {views && views > 0 && (
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-950/80 text-slate-200 text-[9px] font-bold shadow-md">
+            <Eye className="w-2.5 h-2.5" /> {formatViews(views)} views
           </div>
         )}
         {/* Hover play overlay */}

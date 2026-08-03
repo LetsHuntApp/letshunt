@@ -688,7 +688,7 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
-        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch justify-around px-1 py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md transition-colors duration-200 ${
+        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch justify-around gap-1 px-1.5 py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md transition-colors duration-200 ${
           isDark
             ? 'bg-slate-950/90 border-slate-800 text-slate-100'
             : (theme === 'olive' || theme === 'hunting')

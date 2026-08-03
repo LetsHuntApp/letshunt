@@ -336,7 +336,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right: Navigation Tabs */}
           <div className="hidden md:flex items-center gap-1 flex-shrink-0 min-w-0">
-            <nav className={`flex items-center p-0.5 rounded-2xl border flex-shrink-0 max-w-full ${
+            <nav className={`flex items-center gap-1 p-0.5 rounded-2xl border flex-shrink-0 max-w-full ${
               isDark
                 ? 'bg-slate-900/90 border-slate-800'
                 : (theme === 'olive' || theme === 'hunting')
