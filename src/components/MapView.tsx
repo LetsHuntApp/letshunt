@@ -1061,6 +1061,9 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Center the map on the user's current GPS location
   const [isLocating, setIsLocating] = useState(false);
+  // Live GPS fix captured by the locate button — drives the blue "my location"
+  // dot on the map instead of the dot being pinned to the forecast location.
+  const [gpsFix, setGpsFix] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by this browser.');
@@ -1071,6 +1074,11 @@ export const MapView: React.FC<MapViewProps> = ({
       (position) => {
         setCenterLat(position.coords.latitude);
         setCenterLng(position.coords.longitude);
+        setGpsFix({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy || 25,
+        });
         setZoom(16);
         setIsLocating(false);
       },
@@ -1079,7 +1087,7 @@ export const MapView: React.FC<MapViewProps> = ({
         setIsLocating(false);
         alert('Could not access your location. Please allow location access for LetsHunt and try again.');
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
     );
   };
 
@@ -2503,35 +2511,49 @@ export const MapView: React.FC<MapViewProps> = ({
 
           {/* Marker Pins Overlay */}
           <div className="absolute inset-0 pointer-events-none z-20">
-            {/* User's Current Location Marker */}
+            {/* User's Current Location Marker — blue dot tracks the live GPS fix
+                once the locate button is used; falls back to the forecast location
+                before that. A translucent halo visualizes GPS accuracy. */}
             {(() => {
-              const myPx = latLngToPixel(location.latitude, location.longitude);
+              const myLat = gpsFix ? gpsFix.lat : location.latitude;
+              const myLng = gpsFix ? gpsFix.lng : location.longitude;
+              const myPx = latLngToPixel(myLat, myLng);
               if (myPx.x < -40 || myPx.x > dimensions.width + 40 || myPx.y < -40 || myPx.y > dimensions.height + 40) {
                 return null;
               }
+              // Convert GPS accuracy (meters) to pixel radius at the current zoom
+              // so the halo roughly matches real-world uncertainty.
+              const metersPerPixel = (156543.03392 * Math.cos((myLat * Math.PI) / 180)) / Math.pow(2, zoom);
+              const accuracyRadiusPx = gpsFix ? Math.max(10, gpsFix.accuracy / metersPerPixel) : 0;
               return (
                 <div
                   key="user-current-location"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (hasMovedRef.current || isDrawingPolygon || isDrawingPath || (Date.now() - lastPinchTimeRef.current < 400)) return;
-                    setCenterLat(location.latitude);
-                    setCenterLng(location.longitude);
+                    setCenterLat(myLat);
+                    setCenterLng(myLng);
                   }}
                   className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 ${
                     isDrawingPolygon || isDrawingPath ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
                   }`}
                   style={{ left: `${myPx.x}px`, top: `${myPx.y}px` }}
-                  title="My Current Location"
+                  title={gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : 'My Current Location'}
                 >
                   <div className="relative flex items-center justify-center">
+                    {gpsFix && (
+                      <div
+                        className="absolute rounded-full bg-sky-500/20 border border-sky-400/40"
+                        style={{ width: `${accuracyRadiusPx * 2}px`, height: `${accuracyRadiusPx * 2}px` }}
+                      />
+                    )}
                     <div className="absolute -inset-2 bg-sky-500/30 rounded-full animate-ping" />
                     <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center shadow-2xl ring-2 ring-white border border-sky-400 font-extrabold text-xs z-10 hover:scale-110 transition-transform">
                       <Navigation className="w-4 h-4 fill-white text-sky-200" />
                     </div>
                   </div>
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-sky-950/95 text-sky-200 text-[10px] font-black px-2 py-0.5 rounded-md border border-sky-600 shadow-md pointer-events-none">
-                    📍 My Location ({location.name})
+                    📍 {gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : `My Location (${location.name})`}
                   </div>
                 </div>
               );
