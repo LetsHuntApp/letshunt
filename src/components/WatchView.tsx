@@ -255,7 +255,13 @@ async function fetchChannelVideos(
 // Scrape a channel's /videos tab for videos the feed hasn't loaded yet. The
 // page embeds a `var ytInitialData = {...}` JSON blob whose grid items are
 // lockupViewModel nodes with contentId + title under metadata.
-async function scrapeChannelVideos(ch: WatchChannel, existingIds: Set<string>, signal: AbortSignal): Promise<WatchVideo[]> {
+// Returns videos plus a continuation token for paginating deeper.
+interface ScrapeResult {
+  videos: WatchVideo[];
+  continuationToken: string | null;
+}
+
+async function scrapeChannelVideos(ch: WatchChannel, existingIds: Set<string>, signal: AbortSignal): Promise<ScrapeResult> {
   const res = await fetch(
     `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/channel/${ch.id}/videos?view=0&sort=dd`)}`,
     { signal }
@@ -263,45 +269,103 @@ async function scrapeChannelVideos(ch: WatchChannel, existingIds: Set<string>, s
   const html = await res.text();
   const marker = 'var ytInitialData = ';
   const start = html.indexOf(marker);
-  if (start === -1) return [];
+  if (start === -1) return { videos: [], continuationToken: null };
   const jsonStart = start + marker.length;
   const endIdx = html.indexOf(';</script>', jsonStart);
-  if (endIdx === -1) return [];
+  if (endIdx === -1) return { videos: [], continuationToken: null };
   const data = JSON.parse(html.slice(jsonStart, endIdx));
   const tabs: any[] = data?.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
   const videosTab = tabs.find((t) => t?.tabRenderer?.title === 'Videos');
   const grid: any[] = videosTab?.tabRenderer?.content?.richGridRenderer?.contents || [];
   const found: WatchVideo[] = [];
+  let continuationToken: string | null = null;
   for (const item of grid) {
     const lv = item?.richItemRenderer?.content?.lockupViewModel;
-    if (!lv) continue;
-    const id = typeof lv.contentId === 'string' ? lv.contentId : '';
-    if (!id || existingIds.has(id)) continue;
-    const t = lv?.metadata?.lockupMetadataViewModel?.title;
-    const title = typeof t === 'string' ? t : typeof t?.content === 'string' ? t.content : 'Untitled video';
-    const sources: any[] = lv?.contentImage?.thumbnailViewModel?.image?.sources || [];
-    const thumb = sources.length ? sources[sources.length - 1].url : undefined;
-    found.push({
-      id,
-      title: String(title).trim(),
-      channelId: ch.id,
-      channel: ch.name,
-      thumb,
-    });
+    if (lv) {
+      const id = typeof lv.contentId === 'string' ? lv.contentId : '';
+      if (id && !existingIds.has(id)) {
+        const t = lv?.metadata?.lockupMetadataViewModel?.title;
+        const title = typeof t === 'string' ? t : typeof t?.content === 'string' ? t.content : 'Untitled video';
+        const sources: any[] = lv?.contentImage?.thumbnailViewModel?.image?.sources || [];
+        const thumb = sources.length ? sources[sources.length - 1].url : undefined;
+        found.push({
+          id,
+          title: String(title).trim(),
+          channelId: ch.id,
+          channel: ch.name,
+          thumb,
+        });
+      }
+      continue;
+    }
+    // Look for the "load more" continuation token
+    const cep = item?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token;
+    if (typeof cep === 'string' && cep) continuationToken = cep;
   }
-  return found;
+  return { videos: found, continuationToken };
+}
+
+// Fetch the next page of a channel's videos using a continuation token.
+async function scrapeChannelVideosContinue(ch: WatchChannel, continuationToken: string, existingIds: Set<string>, signal: AbortSignal): Promise<ScrapeResult> {
+  const res = await fetch(
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/browse_ajax?ctoken=${continuationToken}&continuation=${continuationToken}`)}`,
+    { signal }
+  );
+  const raw = await res.text();
+  // browse_ajax returns JSON directly (or JSON wrapped in HTML in some cases)
+  let data: any;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    // Sometimes wrapped in a script tag or HTML — try extracting
+    const m = raw.match(/\{[^{]*"response"[^}]*\}/);
+    if (!m) return { videos: [], continuationToken: null };
+    data = JSON.parse(m[0]);
+  }
+  // Walk the response structure to find the video items
+  const items: any[] =
+    data?.response?.continuationContents?.richGridContinuation?.contents ||
+    data?.continuationContents?.richGridContinuation?.contents ||
+    data?.onResponseReceivedActions?.[0]?.appendContinuationItemsAction?.continuationItems ||
+    [];
+  const found: WatchVideo[] = [];
+  let nextContinuationToken: string | null = null;
+  for (const item of items) {
+    const lv = item?.richItemRenderer?.content?.lockupViewModel;
+    if (lv) {
+      const id = typeof lv.contentId === 'string' ? lv.contentId : '';
+      if (id && !existingIds.has(id)) {
+        const t = lv?.metadata?.lockupMetadataViewModel?.title;
+        const title = typeof t === 'string' ? t : typeof t?.content === 'string' ? t.content : 'Untitled video';
+        const sources: any[] = lv?.contentImage?.thumbnailViewModel?.image?.sources || [];
+        const thumb = sources.length ? sources[sources.length - 1].url : undefined;
+        found.push({
+          id,
+          title: String(title).trim(),
+          channelId: ch.id,
+          channel: ch.name,
+          thumb,
+        });
+      }
+      continue;
+    }
+    const cep = item?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token;
+    if (typeof cep === 'string' && cep) nextContinuationToken = cep;
+  }
+  return { videos: found, continuationToken: nextContinuationToken };
 }
 
 // Load more videos from one specific channel: prefer the full /videos page
 // scrape (up to ~30 videos), fall back to the full RSS feed (up to 15).
-async function fetchMoreChannelVideos(ch: WatchChannel, existingIds: Set<string>, signal: AbortSignal): Promise<WatchVideo[]> {
+async function fetchMoreChannelVideos(ch: WatchChannel, existingIds: Set<string>, signal: AbortSignal): Promise<ScrapeResult> {
   try {
-    const scraped = await scrapeChannelVideos(ch, existingIds, signal);
-    if (scraped.length > 0) return scraped;
+    const result = await scrapeChannelVideos(ch, existingIds, signal);
+    if (result.videos.length > 0) return result;
   } catch {
     /* fall back to RSS */
   }
-  return fetchChannelVideos(ch, signal, { max: 15, exclude: existingIds });
+  const rssVideos = await fetchChannelVideos(ch, signal, { max: 15, exclude: existingIds });
+  return { videos: rssVideos, continuationToken: null };
 }
 
 interface WatchViewProps {
@@ -361,6 +425,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const sortModeRef = useRef<'popular' | 'newest' | null>(null);
   const fetchingViewsRef = useRef(false);
   const loadingChannelMoreRef = useRef(false);
+  const channelContinuationTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     videosRef.current = videos;
@@ -385,6 +450,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   // A new channel selection starts a fresh "load more from this channel" run.
   useEffect(() => {
     setChannelFullyLoaded(false);
+    channelContinuationTokenRef.current = null;
   }, [filterChannel]);
 
   // If the filtered channel just got blocked, fall back to the full feed.
@@ -714,8 +780,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   );
 
   // When a channel filter is active, the bottom button loads more videos from
-  // that exact channel (scraping its /videos page, RSS as fallback) instead of
-  // streaming more pool channels that wouldn't match the filter anyway.
+  // that exact channel. The first press scrapes the channel's /videos page;
+  // subsequent presses use the YouTube continuation token to paginate deeper
+  // until the channel is fully exhausted.
   const loadMoreFromFilteredChannel = async () => {
     const chId = filterRef.current;
     if (!chId || loadingChannelMoreRef.current) return;
@@ -726,17 +793,33 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 25000);
     try {
-      const existingIds = new Set<string>(videosRef.current.map((v) => v.id));          const more = await fetchMoreChannelVideos(ch, existingIds, controller.signal);
-          if (mountedRef.current) {
-            const filtered = filterTurkeyVideos(more);
-            if (filtered.length > 0) {
-              const merged = mergeVideos(videosRef.current, shuffleArray(filtered));
+      const existingIds = new Set<string>(videosRef.current.map((v) => v.id));
+      const token = channelContinuationTokenRef.current;
+      let result: ScrapeResult;
+      if (token) {
+        // Continue paginating from where we left off
+        result = await scrapeChannelVideosContinue(ch, token, existingIds, controller.signal);
+      } else {
+        // First load — scrape the main /videos page
+        result = await fetchMoreChannelVideos(ch, existingIds, controller.signal);
+      }
+      if (mountedRef.current) {
+        const filtered = filterTurkeyVideos(result.videos);
+        if (filtered.length > 0) {
+          channelContinuationTokenRef.current = result.continuationToken;
+          const merged = mergeVideos(videosRef.current, shuffleArray(filtered));
           videosRef.current = merged;
           setVideos(merged);
           persistCache();
-          if (sortModeRef.current === 'popular') fetchMissingViews(more);
+          if (sortModeRef.current === 'popular') fetchMissingViews(result.videos);
+          if (!result.continuationToken) setChannelFullyLoaded(true);
         } else {
-          setChannelFullyLoaded(true);
+          // No new videos after filtering, but there may be more pages
+          if (result.continuationToken) {
+            channelContinuationTokenRef.current = result.continuationToken;
+          } else {
+            setChannelFullyLoaded(true);
+          }
         }
       }
     } catch {
