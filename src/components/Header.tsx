@@ -336,7 +336,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right: Navigation Tabs */}
           <div className="hidden md:flex items-center gap-1 flex-shrink-0 min-w-0">
-            <nav className={`flex items-center gap-1 p-0.5 rounded-2xl border flex-shrink-0 max-w-full ${
+            <nav className={`grid grid-cols-6 items-center gap-1 p-0.5 rounded-2xl border flex-shrink-0 max-w-full ${
               isDark
                 ? 'bg-slate-900/90 border-slate-800'
                 : (theme === 'olive' || theme === 'hunting')
@@ -345,7 +345,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}>
               <button
                 onClick={() => onTabChange('dashboard')}
-                className={`whitespace-nowrap px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 sm:gap-1.5 ${
+                className={`whitespace-nowrap px-1 sm:px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-1.5 w-full ${
                   activeTab === 'dashboard' || activeTab === 'details'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
                     : isDark
@@ -361,7 +361,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('map')}
-                className={`whitespace-nowrap px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 sm:gap-1.5 ${
+                className={`whitespace-nowrap px-1 sm:px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-1.5 w-full ${
                   activeTab === 'map'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
                     : isDark
@@ -377,7 +377,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('logs')}
-                className={`whitespace-nowrap px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 sm:gap-1.5 ${
+                className={`whitespace-nowrap px-1 sm:px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-1.5 w-full ${
                   activeTab === 'logs'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
                     : isDark
@@ -393,7 +393,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('trailcams')}
-                className={`whitespace-nowrap px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 sm:gap-1.5 ${
+                className={`whitespace-nowrap px-1 sm:px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-1.5 w-full ${
                   activeTab === 'trailcams'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
                     : isDark
@@ -409,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('watch')}
-                className={`whitespace-nowrap px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 sm:gap-1.5 ${
+                className={`whitespace-nowrap px-1 sm:px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-1.5 w-full ${
                   activeTab === 'watch'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
                     : isDark
@@ -425,7 +425,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('settings')}
-                className={`whitespace-nowrap px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 sm:gap-1.5 ${
+                className={`whitespace-nowrap px-1 sm:px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-1.5 w-full ${
                   activeTab === 'settings'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md' : 'bg-emerald-600 text-white shadow-md'
                     : isDark
