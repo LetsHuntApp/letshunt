@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DailyForecast, UnitSystem, ThemeMode, PressureUnit, Location } from '../types';
 import { DeerIcon } from './DeerIcon';
 import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind } from '../utils/huntingEngine';
@@ -70,6 +70,10 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   hasCustomBackground = false,
   lastRefreshed,
 }) => {
+  // Which 7-day card the Best Day banner auto-expanded — kept separate from the
+  // real selection so tapping the banner never swaps the top forecast card.
+  const [autoExpandedDate, setAutoExpandedDate] = useState<string | null>(null);
+
   if (!daily || daily.length === 0) return null;
 
   const isDark = theme === 'dark';
@@ -98,6 +102,19 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   // Find max score day
   const maxScore = Math.max(...daily.map((d) => d.huntScore));
   const bestDay = daily.find((d) => d.huntScore === maxScore) || daily[0];
+
+  // Peak hourly deer-movement score for the best day, e.g. "93% chance at 5 PM".
+  const bestDayPeak = (() => {
+    if (!bestDay.hourly || bestDay.hourly.length === 0) return null;
+    let peak = bestDay.hourly[0];
+    for (const h of bestDay.hourly) {
+      if (h.huntScore > peak.huntScore) peak = h;
+    }
+    return {
+      score: peak.huntScore,
+      label: getHour12Label(new Date(peak.timestamp).getHours()).replace(':00 ', ' '),
+    };
+  })();
 
   const renderWeatherIcon = (iconName: string) => {
     switch (iconName) {
@@ -267,9 +284,9 @@ const getScoreBadgeColor = (score: number) => {
       {bestDay && (
         <button
           onClick={() => {
-            // Scroll-only: this banner must NOT change the selected day, because
-            // that would swap the top forecast card. The 7-day list is stable, so
-            // a direct smooth scroll lands on the best day's card on the first press.
+            // Expand the best day's 7-day card WITHOUT changing the selected day
+            // (that would swap the top forecast card), then smooth-scroll to it.
+            setAutoExpandedDate(bestDay.date);
             document.getElementById(`forecast-card-${bestDay.date}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }}
           className={`w-full mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.002] cursor-pointer backdrop-blur-md ${
@@ -300,7 +317,9 @@ const getScoreBadgeColor = (score: number) => {
                 </span>
               </div>
               <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {bestDay.huntScore}/100 {bestDay.rating} — Best windows: {bestDay.morningPrime} & {bestDay.eveningPrime}
+                {bestDayPeak
+                  ? `${bestDayPeak.score}% chance of deer movement at ${bestDayPeak.label}`
+                  : `${bestDay.huntScore}% chance of deer movement`}
               </div>
             </div>
           </div>
@@ -340,6 +359,7 @@ const getScoreBadgeColor = (score: number) => {
       <div className="flex flex-col gap-3.5">
         {daily.map((day) => {
           const isSelected = day.date === selectedDate;
+          const isExpanded = isSelected || day.date === autoExpandedDate;
           const hourData = selectedHour !== undefined && day.hourly && day.hourly[selectedHour] ? day.hourly[selectedHour] : null;
           const cardScore = hourData ? hourData.huntScore : day.huntScore;
           const cardRating = hourData ? getRatingFromScore(hourData.huntScore) : day.rating;
@@ -364,7 +384,10 @@ const getScoreBadgeColor = (score: number) => {
             <div
               key={day.date}
               id={`forecast-card-${day.date}`}
-              onClick={() => onSelectDate(isSelected ? '' : day.date)}
+              onClick={() => {
+                setAutoExpandedDate(null);
+                onSelectDate(isSelected ? '' : day.date);
+              }}
               className={`w-full rounded-2xl border transition-all hover:scale-[1.002] cursor-pointer flex flex-col overflow-hidden ${getCardHueClasses(
                 cardScore,
                 isSelected
@@ -473,7 +496,7 @@ const getScoreBadgeColor = (score: number) => {
                     <div className={`w-6 sm:w-7 h-6 sm:h-7 shrink-0 flex items-center justify-center rounded-full hover:bg-slate-500/10 transition-colors ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       <ChevronDown
                         className={`w-5 h-5 transition-transform duration-300 ease-in-out ${
-                          isSelected ? 'rotate-180' : 'rotate-0'
+                          isExpanded ? 'rotate-180' : 'rotate-0'
                         }`}
                       />
                     </div>
@@ -485,11 +508,11 @@ const getScoreBadgeColor = (score: number) => {
               <motion.div
                 initial={false}
                 animate={{
-                  height: isSelected ? 'auto' : 0,
-                  opacity: isSelected ? 1 : 0,
+                  height: isExpanded ? 'auto' : 0,
+                  opacity: isExpanded ? 1 : 0,
                 }}
                 transition={{
-                  duration: isSelected ? 0.35 : 0,
+                  duration: isExpanded ? 0.35 : 0,
                   ease: [0.04, 0.62, 0.23, 0.98], // elegant spring-like ease
                 }}
                 className="overflow-hidden"
