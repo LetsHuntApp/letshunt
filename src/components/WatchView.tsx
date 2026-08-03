@@ -182,8 +182,14 @@ async function fetchViewCount(videoId: string, signal: AbortSignal): Promise<num
 
 // Fetch the latest uploads from one channel. Primary path: rss2json (JSON,
 // CORS-enabled, free tier). Fallback: the raw feed XML through allorigins.
-async function fetchChannelVideos(ch: WatchChannel, signal: AbortSignal): Promise<WatchVideo[]> {
+async function fetchChannelVideos(
+  ch: WatchChannel,
+  signal: AbortSignal,
+  opts: { max?: number; exclude?: Set<string> } = {}
+): Promise<WatchVideo[]> {
   const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${ch.id}`;
+  const max = opts.max ?? MAX_PER_CHANNEL;
+  const isExcluded = (id: string) => !!opts.exclude?.has(id);
 
   // Primary: rss2json proxy
   try {
@@ -194,10 +200,10 @@ async function fetchChannelVideos(ch: WatchChannel, signal: AbortSignal): Promis
     const data = await res.json();
     if (data && data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
       return data.items
-        .slice(0, MAX_PER_CHANNEL)
+        .slice(0, max)
         .map((item: any): WatchVideo | null => {
           const id = extractVideoId(item.link) || extractVideoId(item.id || item.guid || '');
-          if (!id) return null;
+          if (!id || isExcluded(id)) return null;
           return {
             id,
             title: String(item.title || '').trim() || 'Untitled video',
@@ -220,10 +226,10 @@ async function fetchChannelVideos(ch: WatchChannel, signal: AbortSignal): Promis
     const doc = new DOMParser().parseFromString(xml, 'text/xml');
     const entries = Array.from(doc.getElementsByTagName('entry'));
     return entries
-      .slice(0, MAX_PER_CHANNEL)
+      .slice(0, max)
       .map((entry): WatchVideo | null => {
         const id = entry.getElementsByTagNameNS('*', 'videoId')[0]?.textContent?.trim();
-        if (!id) return null;
+        if (!id || isExcluded(id)) return null;
         const title = entry.getElementsByTagNameNS('*', 'title')[0]?.textContent?.trim();
         const published = entry.getElementsByTagNameNS('*', 'published')[0]?.textContent?.trim();
         const thumb = entry.getElementsByTagNameNS('*', 'thumbnail')[0]?.getAttribute('url') || undefined;
@@ -238,8 +244,62 @@ async function fetchChannelVideos(ch: WatchChannel, signal: AbortSignal): Promis
       })
       .filter((v: WatchVideo | null): v is WatchVideo => v !== null);
   } catch {
-    return [];
+    // Throwing (rather than returning []) lets the caller tell a real network
+    // failure apart from a genuinely exhausted channel.
+    throw new Error(`Could not reach YouTube feed for ${ch.name}`);
   }
+}
+
+// Scrape a channel's /videos tab for videos the feed hasn't loaded yet. The
+// page embeds a `var ytInitialData = {...}` JSON blob whose grid items are
+// lockupViewModel nodes with contentId + title under metadata.
+async function scrapeChannelVideos(ch: WatchChannel, existingIds: Set<string>, signal: AbortSignal): Promise<WatchVideo[]> {
+  const res = await fetch(
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/channel/${ch.id}/videos?view=0&sort=dd`)}`,
+    { signal }
+  );
+  const html = await res.text();
+  const marker = 'var ytInitialData = ';
+  const start = html.indexOf(marker);
+  if (start === -1) return [];
+  const jsonStart = start + marker.length;
+  const endIdx = html.indexOf(';</script>', jsonStart);
+  if (endIdx === -1) return [];
+  const data = JSON.parse(html.slice(jsonStart, endIdx));
+  const tabs: any[] = data?.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
+  const videosTab = tabs.find((t) => t?.tabRenderer?.title === 'Videos');
+  const grid: any[] = videosTab?.tabRenderer?.content?.richGridRenderer?.contents || [];
+  const found: WatchVideo[] = [];
+  for (const item of grid) {
+    const lv = item?.richItemRenderer?.content?.lockupViewModel;
+    if (!lv) continue;
+    const id = typeof lv.contentId === 'string' ? lv.contentId : '';
+    if (!id || existingIds.has(id)) continue;
+    const t = lv?.metadata?.lockupMetadataViewModel?.title;
+    const title = typeof t === 'string' ? t : typeof t?.content === 'string' ? t.content : 'Untitled video';
+    const sources: any[] = lv?.contentImage?.thumbnailViewModel?.image?.sources || [];
+    const thumb = sources.length ? sources[sources.length - 1].url : undefined;
+    found.push({
+      id,
+      title: String(title).trim(),
+      channelId: ch.id,
+      channel: ch.name,
+      thumb,
+    });
+  }
+  return found;
+}
+
+// Load more videos from one specific channel: prefer the full /videos page
+// scrape (up to ~30 videos), fall back to the full RSS feed (up to 15).
+async function fetchMoreChannelVideos(ch: WatchChannel, existingIds: Set<string>, signal: AbortSignal): Promise<WatchVideo[]> {
+  try {
+    const scraped = await scrapeChannelVideos(ch, existingIds, signal);
+    if (scraped.length > 0) return scraped;
+  } catch {
+    /* fall back to RSS */
+  }
+  return fetchChannelVideos(ch, signal, { max: 15, exclude: existingIds });
 }
 
 interface WatchViewProps {
@@ -283,6 +343,8 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   });
   const [sortMode, setSortMode] = useState<'popular' | 'newest' | null>(null);
   const [fetchingViews, setFetchingViews] = useState(false);
+  const [loadingChannelMore, setLoadingChannelMore] = useState(false);
+  const [channelFullyLoaded, setChannelFullyLoaded] = useState(false);
   const mountedRef = useRef(true);
   // Latest videos mirror for async paths (avoids side effects inside a React
   // state updater, which React may invoke twice in StrictMode).
@@ -296,6 +358,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   const viewCountsRef = useRef<Record<string, number>>(viewCounts);
   const sortModeRef = useRef<'popular' | 'newest' | null>(null);
   const fetchingViewsRef = useRef(false);
+  const loadingChannelMoreRef = useRef(false);
 
   useEffect(() => {
     videosRef.current = videos;
@@ -316,6 +379,11 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   useEffect(() => {
     sortModeRef.current = sortMode;
   }, [sortMode]);
+
+  // A new channel selection starts a fresh "load more from this channel" run.
+  useEffect(() => {
+    setChannelFullyLoaded(false);
+  }, [filterChannel]);
 
   // If the filtered channel just got blocked, fall back to the full feed.
   useEffect(() => {
@@ -638,6 +706,50 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     fetchMissingViews(videosRef.current);
   };
 
+  const filterChannelName = useMemo(
+    () => ALL_CHANNELS.find((c) => c.id === filterChannel)?.name || 'this channel',
+    [filterChannel]
+  );
+
+  // When a channel filter is active, the bottom button loads more videos from
+  // that exact channel (scraping its /videos page, RSS as fallback) instead of
+  // streaming more pool channels that wouldn't match the filter anyway.
+  const loadMoreFromFilteredChannel = async () => {
+    const chId = filterRef.current;
+    if (!chId || loadingChannelMoreRef.current) return;
+    const ch = ALL_CHANNELS.find((c) => c.id === chId);
+    if (!ch) return;
+    loadingChannelMoreRef.current = true;
+    if (mountedRef.current) setLoadingChannelMore(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 25000);
+    try {
+      const existingIds = new Set<string>(videosRef.current.map((v) => v.id));
+      const more = await fetchMoreChannelVideos(ch, existingIds, controller.signal);
+      if (mountedRef.current) {
+        if (more.length > 0) {
+          const merged = mergeVideos(videosRef.current, shuffleArray(more));
+          videosRef.current = merged;
+          setVideos(merged);
+          persistCache();
+          if (sortModeRef.current === 'popular') fetchMissingViews(more);
+        } else {
+          setChannelFullyLoaded(true);
+        }
+      }
+    } catch {
+      // Network/proxy hiccup — keep the button so the user can retry instead
+      // of falsely reporting the channel as fully loaded.
+      if (mountedRef.current) {
+        setFeedNote(`Could not reach YouTube for ${ch.name} right now — try again in a moment.`);
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+      loadingChannelMoreRef.current = false;
+      if (mountedRef.current) setLoadingChannelMore(false);
+    }
+  };
+
   const cardBase = 'rounded-2xl border backdrop-blur-xl shadow-xl';
   const cardBg = isDark
     ? 'bg-slate-900/80 border-slate-800 text-slate-100'
@@ -822,7 +934,27 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
 
       {/* Endless feed sentinel + states */}
       <div ref={sentinelRef} className="py-2 flex items-center justify-center">
-        {loadingMore ? (
+        {filterChannel ? (
+          channelFullyLoaded ? (
+            <div className={`text-[10px] font-semibold uppercase tracking-widest opacity-50 text-center ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              That's all of {filterChannelName}'s videos loaded.
+            </div>
+          ) : (
+            <button
+              onClick={loadMoreFromFilteredChannel}
+              disabled={loadingChannelMore}
+              className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md ${actionBtn} ${loadingChannelMore ? 'opacity-60 cursor-wait' : ''}`}
+              title={`Load more videos from ${filterChannelName}`}
+            >
+              {loadingChannelMore ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+              {loadingChannelMore ? 'Loading more…' : `Load more videos from ${filterChannelName}`}
+            </button>
+          )
+        ) : loadingMore ? (
           <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold border ${isDark ? 'bg-slate-800/70 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
             <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" />
             Loading more deer hunting videos…
@@ -833,14 +965,6 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
             <p className="text-[11px] font-bold">You've reached the end of the feed — 29 channels covered.</p>
             <p className="text-[10px] opacity-60">Hit "New Videos" to refresh everything with the latest uploads.</p>
           </div>
-        ) : filterChannel ? (
-          <button
-            onClick={loadMorePool}
-            className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md ${actionBtn}`}
-            title="Stream more channels into the feed"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Load more channels
-          </button>
         ) : (
           <div className={`text-[10px] font-semibold uppercase tracking-widest opacity-50 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             Keep scrolling · more channels below
