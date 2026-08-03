@@ -67,7 +67,6 @@ const HOLD_AFFORDANCE_MS = 130; // delay before the 'hold to block' ring appears
 
 // Guaranteed fallback content so the feed is never empty.
 const SEED_VIDEOS: WatchVideo[] = [
-  { id: '66RYs_ZKKfY', channelId: 'UC-lwzUkDAAU2q12Cnc9vEbg', channel: 'Realtree', title: 'Turkey Vest Dump | Turkey Hunting Tips', isSeed: true },
   { id: 'z5ff0Teh7uY', channelId: 'UC-lwzUkDAAU2q12Cnc9vEbg', channel: 'Realtree', title: '40 Years of Realtree | Long Live Real', isSeed: true },
   { id: 'AovinoTvL5E', channelId: 'UC-lwzUkDAAU2q12Cnc9vEbg', channel: 'Realtree', title: 'Realtree Outdoors – North Texas', isSeed: true },
   { id: 'IB-3jLJS3K8', channelId: 'UCA7i6_2TiXy1YL5yE4czEXg', channel: 'Drury Outdoors', title: 'November Success: Iowa Rut Rewind | Dream Season Live', isSeed: true },
@@ -77,8 +76,6 @@ const SEED_VIDEOS: WatchVideo[] = [
   { id: 'fSxFKLyqFX0', channelId: 'UClRRi9cvDVVBNSnNAYaDeKA', channel: 'Canada in the Rough', title: 'The BEST Canadian Hunt EVER', isSeed: true },
   { id: 'upwgwCIP1yE', channelId: 'UClRRi9cvDVVBNSnNAYaDeKA', channel: 'Canada in the Rough', title: 'BIG Moose in Manitoba', isSeed: true },
   { id: 'dUwY8vZpRKw', channelId: 'UCzlnaIrdxwJITyrESOReqxg', channel: 'The Hunting Public', title: "Ted Miller's 2025 Deer Season!", isSeed: true },
-  { id: 'jG2DpOVFrj4', channelId: 'UCzlnaIrdxwJITyrESOReqxg', channel: 'The Hunting Public', title: 'EPIC Turkey Road Trip!!! (3 Public Land Gobblers in 3 Days!)', isSeed: true },
-  { id: 'AtbkD-ME15U', channelId: 'UCzlnaIrdxwJITyrESOReqxg', channel: 'The Hunting Public', title: 'A Perfect Opener On Public Land | Turkey Hunting', isSeed: true },
   { id: 'GswaBRBtF8E', channelId: 'UC7jyHQoVzomw7gV3q4H1m7A', channel: 'GrowingDeer.tv', title: 'A Familiar Buck Is Back… Plus New Food Options', isSeed: true },
   { id: '06H9GsL0wy8', channelId: 'UC7jyHQoVzomw7gV3q4H1m7A', channel: 'GrowingDeer.tv', title: 'Tis The Season!!! 2026 Food Plots', isSeed: true },
   { id: '4z97X63EByE', channelId: 'UC7jyHQoVzomw7gV3q4H1m7A', channel: 'GrowingDeer.tv', title: 'FREE Inputs That Grow Bigger Deer', isSeed: true },
@@ -132,6 +129,11 @@ function mergeVideos(base: WatchVideo[], fresh: WatchVideo[]): WatchVideo[] {
     merged.push(v);
   }
   return merged;
+}
+
+function filterTurkeyVideos(videos: WatchVideo[]): WatchVideo[] {
+  const re = /\bturkey/i;
+  return videos.filter((v) => !re.test(v.title));
 }
 
 function timeAgo(iso?: string): string {
@@ -468,9 +470,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       const results = await Promise.allSettled(channelsToRefresh.map((ch) => fetchChannelVideos(ch, controller.signal)));
       // Guard against a block that happened while the fetch was in flight.
       const blockedSetNow = new Set(blockedChannelsRef.current);
-      const fresh = results
+      const fresh = filterTurkeyVideos(results
         .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
-        .filter((v) => !blockedSetNow.has(v.channelId));
+        .filter((v) => !blockedSetNow.has(v.channelId)));
       if (fresh.length === 0) {
         if (mountedRef.current && !silent) {
           setFeedNote('Could not reach YouTube right now — showing saved videos.');
@@ -504,7 +506,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && Array.isArray(parsed.videos) && parsed.videos.length > 0) {
-          const cached = parsed.videos as WatchVideo[];
+          const cached = filterTurkeyVideos(parsed.videos as WatchVideo[]);
           videosRef.current = cached;
           setVideos(cached);
           const pp = Number(parsed.poolProgress) || 0;
@@ -537,9 +539,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       const results = await Promise.allSettled(batch.map((ch) => fetchChannelVideos(ch, controller.signal)));
       // Guard against a block that happened while the fetch was in flight.
       const blockedSetNow = new Set(blockedChannelsRef.current);
-      const fresh = results
+      const fresh = filterTurkeyVideos(results
         .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
-        .filter((v) => !blockedSetNow.has(v.channelId));
+        .filter((v) => !blockedSetNow.has(v.channelId)));
       if (mountedRef.current) {
         if (fresh.length > 0) {
           const merged = mergeVideos(videosRef.current, shuffleArray(fresh));
@@ -656,7 +658,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
 
   // Blocked channels' videos are excluded everywhere (grid, counts, chips).
   const unblockedVideos = useMemo(
-    () => videos.filter((v) => !blockedChannels.includes(v.channelId)),
+    () => filterTurkeyVideos(videos.filter((v) => !blockedChannels.includes(v.channelId))),
     [videos, blockedChannels]
   );
 
@@ -724,11 +726,11 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 25000);
     try {
-      const existingIds = new Set<string>(videosRef.current.map((v) => v.id));
-      const more = await fetchMoreChannelVideos(ch, existingIds, controller.signal);
-      if (mountedRef.current) {
-        if (more.length > 0) {
-          const merged = mergeVideos(videosRef.current, shuffleArray(more));
+      const existingIds = new Set<string>(videosRef.current.map((v) => v.id));          const more = await fetchMoreChannelVideos(ch, existingIds, controller.signal);
+          if (mountedRef.current) {
+            const filtered = filterTurkeyVideos(more);
+            if (filtered.length > 0) {
+              const merged = mergeVideos(videosRef.current, shuffleArray(filtered));
           videosRef.current = merged;
           setVideos(merged);
           persistCache();
