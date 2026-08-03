@@ -688,7 +688,7 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
-        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-center justify-around px-4 py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md transition-colors duration-200 ${
+        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch justify-around px-1 py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md transition-colors duration-200 ${
           isDark
             ? 'bg-slate-950/90 border-slate-800 text-slate-100'
             : (theme === 'olive' || theme === 'hunting')
@@ -701,7 +701,7 @@ export default function App() {
             setActiveTab('dashboard');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'dashboard' || activeTab === 'details'
               ? 'text-emerald-500 font-extrabold scale-105'
               : isDark
@@ -710,7 +710,7 @@ export default function App() {
           }`}
         >
           <LayoutDashboard className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase">Dashboard</span>
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Dashboard</span>
         </button>
 
         <button
@@ -718,7 +718,7 @@ export default function App() {
             setActiveTab('map');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'map'
               ? 'text-emerald-500 font-extrabold scale-105'
               : isDark
@@ -727,7 +727,7 @@ export default function App() {
           }`}
         >
           <Map className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase">Map Plotter</span>
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Map</span>
         </button>
 
         <button
@@ -735,7 +735,7 @@ export default function App() {
             setActiveTab('logs');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'logs'
               ? 'text-emerald-500 font-extrabold scale-105'
               : isDark
@@ -744,7 +744,7 @@ export default function App() {
           }`}
         >
           <Trophy className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase">Logs & Stats</span>
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Logs & Stats</span>
         </button>
 
         <button
@@ -752,7 +752,7 @@ export default function App() {
             setActiveTab('trailcams');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'trailcams'
               ? 'text-emerald-500 font-extrabold scale-105'
               : isDark
@@ -761,7 +761,7 @@ export default function App() {
           }`}
         >
           <Camera className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase">Trail Cams</span>
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Trail Cams</span>
         </button>
 
         <button
@@ -769,7 +769,7 @@ export default function App() {
             setActiveTab('watch');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'watch'
               ? 'text-emerald-500 font-extrabold scale-105'
               : isDark
@@ -778,7 +778,7 @@ export default function App() {
           }`}
         >
           <Tv className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase">Watch</span>
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Watch</span>
         </button>
 
         <button
@@ -786,7 +786,7 @@ export default function App() {
             setActiveTab('settings');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex flex-col items-center gap-0.5 py-0.5 px-3 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
             activeTab === 'settings'
               ? 'text-emerald-500 font-extrabold scale-105'
               : isDark
@@ -795,7 +795,7 @@ export default function App() {
           }`}
         >
           <Settings className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase">Settings</span>
+          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Settings</span>
         </button>
       </nav>
 

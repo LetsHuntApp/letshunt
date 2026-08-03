@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid } from 'lucide-react';
+import { Tv, Shuffle, RefreshCw, Play, ExternalLink, X, Youtube, Clock, LayoutGrid, Loader2 } from 'lucide-react';
 import { ThemeMode } from '../types';
 
 interface WatchVideo {
@@ -22,7 +22,7 @@ interface WatchChannel {
 // YouTube RSS feed (through a CORS-friendly JSON proxy) so the feed pulls in
 // brand-new uploads, with the seed videos below guaranteeing content even
 // when the network or the proxy is unavailable.
-const CHANNELS: WatchChannel[] = [
+const FEATURED_CHANNELS: WatchChannel[] = [
   { id: 'UC-lwzUkDAAU2q12Cnc9vEbg', name: 'Realtree', color: '#22c55e' },
   { id: 'UCA7i6_2TiXy1YL5yE4czEXg', name: 'Drury Outdoors', color: '#f59e0b' },
   { id: 'UClRRi9cvDVVBNSnNAYaDeKA', name: 'Canada in the Rough', color: '#ef4444' },
@@ -36,6 +36,34 @@ const CHANNELS: WatchChannel[] = [
   { id: 'UCptLNmlgA-3p2g1IyPefO7w', name: 'The Canadian Whitetail', color: '#e11d48' },
   { id: 'UCdcHCVzY4IQLLVvwhUGho5Q', name: 'Whitetail Edge', color: '#14b8a6' },
 ];
+
+// Verified deer-hunting channels (each ID confirmed against its live YouTube
+// RSS feed title). These stream in progressively as you scroll so the feed
+// never ends — every new channel adds its latest uploads to the pool.
+const ENDLESS_POOL: WatchChannel[] = [
+  { id: 'UCrGdH4LqIyExkYzmCMn2LXA', name: 'Whitetail Properties', color: '#84cc16' },
+  { id: 'UCYt16x16v0EvIg4I2FuUycA', name: 'Wired to Hunt', color: '#0ea5e9' },
+  { id: 'UCyBxMQwjk60yeQYcqo9KD9A', name: 'Seek One', color: '#dc2626' },
+  { id: 'UCAb0IaDRgP7gsTAslJ6D32w', name: 'The Hunting Beast', color: '#b45309' },
+  { id: 'UCI9V_Hs6YjaPHC-PzeKxzbw', name: 'Midwest Whitetail', color: '#7c3aed' },
+  { id: 'UCvOvumDi0Vqjd3OZLyKWRyQ', name: 'Bone Collector', color: '#92400e' },
+  { id: 'UCLRfBKtLU7FP11cdtdvScWA', name: 'Mossy Oak', color: '#4d7c0f' },
+  { id: 'UCRH6FEPoRlqFLY_-TOs78Aw', name: 'Deer Meat for Dinner', color: '#be123c' },
+  { id: 'UCN91fTupmCWtfBPRmeMCOGg', name: 'Southern Ground Hunting', color: '#a16207' },
+  { id: 'UC3MBWAo7P6nb_1If0qoZwhQ', name: 'GoWild', color: '#2563eb' },
+  { id: 'UCypQ8hJKXxd9qtFA7ZQrUsg', name: 'Exodus Outdoor Gear', color: '#0f766e' },
+  { id: 'UC7_nWW1mtBWsHlw10zOw-dA', name: 'National Deer Assoc.', color: '#16a34a' },
+  { id: 'UCUq4OwmhW3VWdZVxwXiH6BA', name: 'Legendary Whitetails', color: '#c026d3' },
+  { id: 'UC5JBVVa0aVNqAd0ec-752YQ', name: 'Antler Up Outdoors', color: '#d97706' },
+  { id: 'UCm2kmwM1LIRjrnbqynMjTzQ', name: 'Whitetail Habitat Sol.', color: '#65a30d' },
+  { id: 'UC8arffOPd-5ltKWF7BbsdvQ', name: 'Catman Outdoors', color: '#0891b2' },
+  { id: 'UCSshpE8mN7W252CECgWh8_w', name: 'Rut N Strut Outdoors', color: '#ea580c' },
+  { id: 'UCz6TOVPZ0qFu13ldyjca3GQ', name: 'The Element', color: '#1d4ed8' },
+  { id: 'UCy4ETUFM-cVBsKV3QMIhXaQ', name: 'Deer Hunter Podcast', color: '#db2777' },
+];
+
+const ALL_CHANNELS: WatchChannel[] = [...FEATURED_CHANNELS, ...ENDLESS_POOL];
+const POOL_BATCH_SIZE = 5;
 
 // Guaranteed fallback content so the feed is never empty.
 const SEED_VIDEOS: WatchVideo[] = [
@@ -77,7 +105,7 @@ const SEED_VIDEOS: WatchVideo[] = [
   { id: 'A1VSb4ShemY', channelId: 'UCdcHCVzY4IQLLVvwhUGho5Q', channel: 'Whitetail Edge', title: 'Would you do this?', isSeed: true },
 ];
 
-const CACHE_KEY = 'letshunt_watch_videos_v3';
+const CACHE_KEY = 'letshunt_watch_videos_v4';
 const CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
 const MAX_PER_CHANNEL = 8;
 
@@ -194,17 +222,41 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
 
   const [videos, setVideos] = useState<WatchVideo[]>(() => shuffleArray(SEED_VIDEOS));
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [poolProgress, setPoolProgress] = useState(0); // how many pool channels have been attempted
   const [activeVideo, setActiveVideo] = useState<WatchVideo | null>(null);
   const [filterChannel, setFilterChannel] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [feedNote, setFeedNote] = useState<string | null>(null);
   const mountedRef = useRef(true);
-  // Latest videos mirror for the async refresh path (avoids side effects inside
-  // a React state updater, which React may invoke twice in StrictMode).
+  // Latest videos mirror for async paths (avoids side effects inside a React
+  // state updater, which React may invoke twice in StrictMode).
   const videosRef = useRef<WatchVideo[]>(videos);
+  const poolProgressRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<string | null>(null);
+
   useEffect(() => {
     videosRef.current = videos;
   }, [videos]);
+
+  useEffect(() => {
+    filterRef.current = filterChannel;
+  }, [filterChannel]);
+
+  const persistCache = () => {
+    try {
+      localStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({
+          _ts: Date.now(),
+          videos: videosRef.current,
+          poolProgress: poolProgressRef.current,
+        })
+      );
+    } catch { /* storage full / private mode */ }
+  };
 
   const refreshFeed = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -212,7 +264,12 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     // Never let a hung proxy leave the refresh spinner spinning forever.
     const timeoutId = window.setTimeout(() => controller.abort(), 15000);
     try {
-      const results = await Promise.allSettled(CHANNELS.map((ch) => fetchChannelVideos(ch, controller.signal)));
+      // Refresh the featured channels plus any endless-pool channels that have
+      // already streamed into the feed.
+      const inFeed = new Set(videosRef.current.map((v) => v.channelId));
+      const poolLoaded = ENDLESS_POOL.filter((c) => inFeed.has(c.id));
+      const channelsToRefresh = [...FEATURED_CHANNELS, ...poolLoaded];
+      const results = await Promise.allSettled(channelsToRefresh.map((ch) => fetchChannelVideos(ch, controller.signal)));
       const fresh = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
       if (fresh.length === 0) {
         if (mountedRef.current && !silent) {
@@ -226,10 +283,9 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         // fallback entries so new uploads never lose their time chip.
         const merged = mergeVideos(fresh, videosRef.current);
         const shuffled = shuffleArray(merged);
+        videosRef.current = shuffled;
         setVideos(shuffled);
-        try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ _ts: Date.now(), videos: shuffled }));
-        } catch { /* storage full / private mode */ }
+        persistCache();
         setLastUpdated(new Date());
         setFeedNote(null);
         setRefreshing(false);
@@ -239,15 +295,22 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     }
   }, []);
 
-  // Load cached feed instantly, then refresh in the background.
+  // Load cached feed instantly (resuming scroll position), then refresh in the background.
   useEffect(() => {
     mountedRef.current = true;
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.videos) && parsed.videos.length > 0 && Date.now() - (parsed._ts || 0) < CACHE_TTL) {
-          setVideos(parsed.videos);
+        if (parsed && Array.isArray(parsed.videos) && parsed.videos.length > 0) {
+          const cached = parsed.videos as WatchVideo[];
+          videosRef.current = cached;
+          setVideos(cached);
+          const pp = Number(parsed.poolProgress) || 0;
+          if (pp >= 0 && pp <= ENDLESS_POOL.length) {
+            poolProgressRef.current = pp;
+            setPoolProgress(pp);
+          }
         }
       }
     } catch { /* ignore corrupt cache */ }
@@ -256,6 +319,53 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
       mountedRef.current = false;
     };
   }, [refreshFeed]);
+
+  // Endless feed: when the sentinel scrolls into view, stream the next batch
+  // of channels from the verified pool.
+  const loadMorePool = useCallback(async () => {
+    if (loadingMoreRef.current) return;
+    const nextIndex = poolProgressRef.current;
+    if (nextIndex >= ENDLESS_POOL.length) return;
+    loadingMoreRef.current = true;
+    if (mountedRef.current) setLoadingMore(true);
+    const batch = ENDLESS_POOL.slice(nextIndex, nextIndex + POOL_BATCH_SIZE);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+    try {
+      const results = await Promise.allSettled(batch.map((ch) => fetchChannelVideos(ch, controller.signal)));
+      const fresh = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+      if (mountedRef.current) {
+        if (fresh.length > 0) {
+          const merged = mergeVideos(videosRef.current, shuffleArray(fresh));
+          videosRef.current = merged;
+          setVideos(merged);
+        }
+        poolProgressRef.current = nextIndex + batch.length;
+        setPoolProgress(poolProgressRef.current);
+        persistCache();
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+      loadingMoreRef.current = false;
+      if (mountedRef.current) setLoadingMore(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        // Auto-stream only in the unfiltered feed — when a channel filter is
+        // active the incoming pool videos can't match it, so a manual button
+        // is shown instead.
+        if (entries[0].isIntersecting && !filterRef.current) loadMorePool();
+      },
+      { rootMargin: '700px 0px' }
+    );
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [loadMorePool]);
 
   // ESC closes the player
   useEffect(() => {
@@ -267,8 +377,13 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
   }, []);
 
   const handleShuffle = () => {
-    setVideos((prev) => shuffleArray(prev));
+    const shuffled = shuffleArray(videosRef.current);
+    videosRef.current = shuffled;
+    setVideos(shuffled);
+    persistCache();
   };
+
+  const hasMore = poolProgress < ENDLESS_POOL.length;
 
   const visibleVideos = useMemo(() => {
     if (!filterChannel) return videos;
@@ -280,6 +395,12 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
     for (const v of videos) counts[v.channelId] = (counts[v.channelId] || 0) + 1;
     return counts;
   }, [videos]);
+
+  // Featured chips always show; pool channels appear as they stream in.
+  const chipChannels = useMemo(() => {
+    const withVideos = new Set(channelCounts && Object.keys(channelCounts));
+    return [...FEATURED_CHANNELS, ...ENDLESS_POOL.filter((c) => withVideos.has(c.id))];
+  }, [channelCounts]);
 
   const cardBase = 'rounded-2xl border backdrop-blur-xl shadow-xl';
   const cardBg = isDark
@@ -333,7 +454,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
               </span>
             </h2>
             <p className="text-xs sm:text-sm opacity-70 mt-0.5">
-              Deer hunting videos from Realtree, Drury Outdoors, MeatEater, The Hunting Public, Whitetail Edge & 7 more channels — shuffled fresh from YouTube.
+              An endless feed of deer hunting videos — Realtree, Drury Outdoors, MeatEater, The Hunting Public & 27 more channels. New uploads stream in as you scroll.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -376,7 +497,7 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
         >
           <LayoutGrid className="w-3 h-3" /> All Channels
         </button>
-        {CHANNELS.map((ch) => (
+        {chipChannels.map((ch) => (
           <button
             key={ch.id}
             onClick={() => setFilterChannel(filterChannel === ch.id ? null : ch.id)}
@@ -411,6 +532,34 @@ export const WatchView: React.FC<WatchViewProps> = ({ theme }) => {
           ))}
         </div>
       )}
+
+      {/* Endless feed sentinel + states */}
+      <div ref={sentinelRef} className="py-2 flex items-center justify-center">
+        {loadingMore ? (
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold border ${isDark ? 'bg-slate-800/70 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" />
+            Loading more deer hunting videos…
+          </div>
+        ) : !hasMore ? (
+          <div className={`flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-center ${cardBase} ${cardBg}`}>
+            <span className="text-sm">🦌</span>
+            <p className="text-[11px] font-bold">You've reached the end of the feed — 31 channels covered.</p>
+            <p className="text-[10px] opacity-60">Hit "New Videos" to refresh everything with the latest uploads.</p>
+          </div>
+        ) : filterChannel ? (
+          <button
+            onClick={loadMorePool}
+            className={`px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border flex items-center gap-1.5 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md ${actionBtn}`}
+            title="Stream more channels into the feed"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Load more channels
+          </button>
+        ) : (
+          <div className={`text-[10px] font-semibold uppercase tracking-widest opacity-50 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            Keep scrolling · more channels below
+          </div>
+        )}
+      </div>
 
       {/* Full-screen embedded player modal */}
       {activeVideo && (
@@ -463,7 +612,7 @@ function VideoCard({
   cardBg: string;
   onOpen: () => void;
 }) {
-  const channel = CHANNELS.find((c) => c.id === video.channelId);
+  const channel = ALL_CHANNELS.find((c) => c.id === video.channelId);
   const color = channel?.color || '#10b981';
   const ago = timeAgo(video.publishedAt);
   return (
@@ -525,7 +674,7 @@ function WatchPlayerModal({
   onClose: () => void;
   onNext: () => void;
 }) {
-  const channel = CHANNELS.find((c) => c.id === video.channelId);
+  const channel = ALL_CHANNELS.find((c) => c.id === video.channelId);
   const color = channel?.color || '#10b981';
   return (
     <div
