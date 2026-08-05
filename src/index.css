@@ -200,6 +200,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
 [class*="bg-[#e5dfcd]/[var(--card-opacity)]"] {
   background-color: rgb(229 223 205 / var(--card-opacity, 0.9)) !important;
 }
+/* Backwoods score-dial plate in dark mode — a lighter walnut than the
+   near-black card fill so the dial visibly stands out. Arbitrary hex +
+   unitless var alpha needs this rgb() fallback (color-mix() would be
+   invalid), mirroring the other card-opacity fallbacks above. */
+[class*="bg-[#5d4826]/[var(--card-opacity)]"] {
+  background-color: rgb(93 72 38 / var(--card-opacity, 0.92)) !important;
+}
 
 /* Gradients support using rgb slash notation to preserve layout and design */
 .via-slate-900\/\[var\(--card-opacity\)\],
@@ -347,7 +354,7 @@ rect:focus {
   --pb-bg: #e6dcc1;
   --pb-bg-deep: #ddd0a9;
   --pb-text: #2a1d10;
-  --pb-text-muted: #6c5938;
+  --pb-text-muted: #57442a;
   --pb-card: #d3c298;
   --pb-card-deep: #bea878;
   --pb-border: #5a3a1f;
@@ -372,7 +379,7 @@ html.dark.backwoods {
   --pb-bg: #1f1a10;
   --pb-bg-deep: #2a2218;
   --pb-text: #d9c8a1;
-  --pb-text-muted: #8f7d56;
+  --pb-text-muted: #b3a077;
   --pb-card: #2e2519;
   --pb-card-deep: #241c12;
   --pb-border: #8a7045;
@@ -554,8 +561,8 @@ html.backwoods, .backwoods {
    that to walnut, making the labels nearly invisible on their own chip. */
 .backwoods .text-slate-300 { color: #5a4128 !important; }
 .backwoods .text-slate-400 { color: var(--pb-text-muted) !important; }
-.backwoods .text-slate-500 { color: #7a6645 !important; }
-.backwoods .text-slate-600 { color: #6c5938 !important; }
+.backwoods .text-slate-500 { color: #5a4528 !important; }
+.backwoods .text-slate-600 { color: #4f3c22 !important; }
 .backwoods .text-slate-700 { color: #4a3820 !important; }
 .backwoods .text-slate-800 { color: #3a2c1a !important; }
 .backwoods .text-slate-900,
@@ -719,7 +726,7 @@ html.backwoods, .backwoods {
   color: #a87838;
 }
 .backwoods .text-amber-600, .backwoods .text-amber-700, .backwoods .text-amber-800 {
-  color: #7c5a26;
+  color: #5f431b;
 }
 .backwoods .text-amber-300, .backwoods .text-amber-400, .backwoods .text-amber-200 {
   color: #c79447;
@@ -1068,4 +1075,219 @@ html.backwoods, .backwoods {
   --tw-gradient-via: rgb(58 46 28 / var(--card-opacity, 0.92)) !important;
   --tw-gradient-to: rgb(40 32 19 / var(--card-opacity, 0.92)) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+
+/* ===== BACKWOODS × DARK MODE — text readability pass =====
+   The light-mode `.backwoods .text-*` rules remap dim/grey text to warm
+   browns tuned for light kraft cards (#d3c298). Those browns are nearly
+   invisible on the dark walnut card fill (rgb 58,46,28), so dark mode
+   re-maps every neutral + semantic text class to light cream / pastel
+   tones that hold ≥4.5:1 on the dark cards — both in plain text and on
+   the dark-tinted chips below. */
+.dark.backwoods .text-slate-100,
+.dark.backwoods .text-slate-200,
+.dark.backwoods .text-slate-900,
+.dark.backwoods .text-slate-950 {
+  color: var(--pb-text) !important;
+}
+.dark.backwoods .text-slate-300 {
+  color: #d4c69c !important;
+}
+.dark.backwoods .text-slate-400 {
+  color: #c2b185 !important;
+}
+.dark.backwoods .text-slate-500,
+.dark.backwoods .text-slate-600 {
+  color: #b3a077 !important;
+}
+.dark.backwoods .text-slate-700,
+.dark.backwoods .text-slate-800 {
+  color: #d4c69c !important;
+}
+
+/* Semantic pastels — keep the hue cue but bright enough for dark kraft. */
+.dark.backwoods .text-emerald-500,
+.dark.backwoods .text-emerald-400,
+.dark.backwoods .text-emerald-600 {
+  color: #e8874a !important;
+}
+.dark.backwoods .text-emerald-700,
+.dark.backwoods .text-emerald-800 {
+  color: #8fbc6e !important;
+}
+.dark.backwoods .text-emerald-900 {
+  color: #b39260 !important;
+}
+.dark.backwoods .text-emerald-300 {
+  color: #e0793f !important;
+}
+.dark.backwoods .text-amber-500 {
+  color: #d9a94f !important;
+}
+.dark.backwoods .text-amber-600,
+.dark.backwoods .text-amber-700,
+.dark.backwoods .text-amber-800 {
+  color: #e0b566 !important;
+}
+.dark.backwoods .text-amber-300,
+.dark.backwoods .text-amber-400,
+.dark.backwoods .text-amber-200 {
+  color: #e0b566 !important;
+}
+.dark.backwoods .text-orange-500,
+.dark.backwoods .text-orange-600 {
+  color: #e08a5a !important;
+}
+.dark.backwoods .text-orange-300,
+.dark.backwoods .text-orange-400 {
+  color: #e08a5a !important;
+}
+.dark.backwoods .text-rose-500,
+.dark.backwoods .text-rose-600 {
+  color: #e08a6a !important;
+}
+.dark.backwoods .text-rose-700,
+.dark.backwoods .text-rose-800,
+.dark.backwoods .text-rose-900 {
+  color: #e59c84 !important;
+}
+.dark.backwoods .text-rose-300,
+.dark.backwoods .text-rose-400,
+.dark.backwoods .text-rose-200 {
+  color: #eeb39c !important;
+}
+.dark.backwoods .text-sky-500,
+.dark.backwoods .text-sky-700 {
+  color: #8fae74 !important;
+}
+.dark.backwoods .text-sky-300,
+.dark.backwoods .text-sky-400 {
+  color: #a9c08a !important;
+}
+.dark.backwoods .text-sky-200 {
+  color: #bcd0a0 !important;
+}
+.dark.backwoods .text-teal-300,
+.dark.backwoods .text-teal-400,
+.dark.backwoods .text-teal-500,
+.dark.backwoods .text-teal-700 {
+  color: #8fbc7c !important;
+}
+.dark.backwoods .text-purple-500,
+.dark.backwoods .text-purple-600 {
+  color: #c79bb0 !important;
+}
+.dark.backwoods .text-purple-300,
+.dark.backwoods .text-purple-200 {
+  color: #d9b8c6 !important;
+}
+.dark.backwoods .text-lime-500,
+.dark.backwoods .text-lime-600 {
+  color: #a8c078 !important;
+}
+.dark.backwoods .text-lime-300,
+.dark.backwoods .text-lime-200 {
+  color: #c0d094 !important;
+}
+
+/* Dark-tinted chip fills — the light-mode `.backwoods [class*=bg-*-*]`
+   rules give chips a light kraft fill, which makes the light text above
+   wash out. Re-tint the chip backgrounds to the dark walnut family so
+   the cream/pastel text holds contrast. */
+.dark.backwoods [class*="bg-emerald-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-100/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-500/20"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-500/35"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-950/30"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-950/40"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-950/50"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-emerald-900/50"]:not([class*="hover:"]) {
+  background-color: rgba(46, 56, 32, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-amber-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-amber-100/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-amber-100/60"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-amber-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-amber-500/20"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-amber-500/35"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-amber-950/40"]:not([class*="hover:"]) {
+  background-color: rgba(72, 50, 22, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-orange-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-orange-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-orange-500/20"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-orange-900/90"]:not([class*="hover:"]) {
+  background-color: rgba(72, 50, 22, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-rose-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-rose-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-rose-500/20"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-rose-950/40"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-rose-950/50"]:not([class*="hover:"]) {
+  background-color: rgba(66, 32, 24, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-sky-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-sky-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-sky-500/20"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-sky-900/90"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-sky-950/50"]:not([class*="hover:"]) {
+  background-color: rgba(34, 48, 28, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-purple-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-purple-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-purple-900/90"]:not([class*="hover:"]) {
+  background-color: rgba(54, 38, 58, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-lime-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-lime-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-lime-900/90"]:not([class*="hover:"]) {
+  background-color: rgba(58, 64, 28, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-teal-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-teal-950/50"]:not([class*="hover:"]) {
+  background-color: rgba(38, 56, 42, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+.dark.backwoods [class*="bg-blue-500/15"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-blue-900/90"]:not([class*="hover:"]) {
+  background-color: rgba(30, 44, 56, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+
+/* Chip-text compounds in dark — the light-mode chip rules flatten
+   semantic text to walnut ink, which is unreadable on dark chips. The
+   `.dark.backwoods` semantic text rules above already win on specificity
+   (0,3,0 vs 0,2,0), but the chip-text compound selectors are also (0,3,0)
+   and come EARLIER in the file — re-state the key ones so the light
+   pastels win by source order too. */
+.dark.backwoods [class~="bg-amber-50"][class*="text-amber-700"],
+.dark.backwoods [class~="bg-amber-50"][class*="text-amber-800"],
+.dark.backwoods [class~="bg-amber-100"][class*="text-amber-700"],
+.dark.backwoods [class~="bg-amber-100"][class*="text-amber-800"],
+.dark.backwoods [class~="bg-amber-500/20"][class*="text-amber-700"],
+.dark.backwoods [class~="bg-amber-500/15"][class*="text-amber-700"],
+.dark.backwoods [class~="bg-orange-50"][class*="text-orange-700"],
+.dark.backwoods [class~="bg-orange-500/20"][class*="text-orange-700"],
+.dark.backwoods [class~="bg-emerald-50"][class*="text-emerald-700"],
+.dark.backwoods [class~="bg-emerald-50"][class*="text-emerald-800"],
+.dark.backwoods [class~="bg-emerald-100"][class*="text-emerald-700"],
+.dark.backwoods [class~="bg-emerald-100"][class*="text-emerald-800"],
+.dark.backwoods [class~="bg-emerald-500/20"][class*="text-emerald-700"],
+.dark.backwoods [class~="bg-emerald-500/15"][class*="text-emerald-700"],
+.dark.backwoods [class~="bg-sky-50"][class*="text-sky-700"],
+.dark.backwoods [class~="bg-sky-500/20"][class*="text-sky-700"],
+.dark.backwoods [class~="bg-sky-500/15"][class*="text-sky-700"],
+.dark.backwoods [class~="bg-rose-50"][class*="text-rose-700"],
+.dark.backwoods [class~="bg-rose-100"][class*="text-rose-700"],
+.dark.backwoods [class~="bg-rose-500/20"][class*="text-rose-700"],
+.dark.backwoods [class~="bg-rose-500/15"][class*="text-rose-700"] {
+  color: var(--pb-text) !important;
 }

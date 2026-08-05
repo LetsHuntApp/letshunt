@@ -140,7 +140,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     return day.factors;
   }, [selectedHour, day, units, pressureUnit, location]);
 
-  const scoreStrokeColor = isDark
+  const scoreStrokeColor = isDark && theme === 'backwoods'
+    ? (currentScore >= 90 ? '#8fbc6e' : currentScore >= 76 ? '#a8c078' : currentScore >= 46 ? '#e0b566' : '#e08a6a')
+    : isDark
     ? (currentScore >= 90 ? '#34d399' : currentScore >= 76 ? '#10b981' : currentScore >= 46 ? '#d97706' : '#f43f5e')
     : theme === 'hunting'
     ? (currentScore >= 90 ? '#1a6b3c' : currentScore >= 76 ? '#4a8c5e' : currentScore >= 46 ? '#c85a17' : '#8b3a3a')
@@ -156,7 +158,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? '#d97706' // amber-600 (Warm Amber)
     : '#f43f5e'; // rose-500 (Terracotta)
 
-  const scoreTextColor = isDark
+  const scoreTextColor = isDark && theme === 'backwoods'
+    ? (currentScore >= 90 ? 'text-[#8fbc6e]' : currentScore >= 76 ? 'text-[#a8c078]' : currentScore >= 46 ? 'text-[#e0b566]' : 'text-[#e08a6a]')
+    : isDark
     ? (currentScore >= 90 ? 'text-emerald-300' : currentScore >= 76 ? 'text-emerald-300' : currentScore >= 46 ? 'text-amber-300' : 'text-rose-300')
     : theme === 'hunting'
     ? (currentScore >= 90 ? 'text-[#1a6b3c]' : currentScore >= 76 ? 'text-[#4a8c5e]' : currentScore >= 46 ? 'text-[#c85a17]' : 'text-[#8b3a3a]')
@@ -251,6 +255,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   ? isDark
                     ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 border-emerald-600/60 shadow-xl ring-4 ring-emerald-500/25'
                     : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#f2efe4] border-2 border-[#556b2f] shadow-xl ring-4 ring-[#556b2f]/25'
+                  : theme === 'backwoods'
+                  ? isDark
+                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#5d4826]/[var(--card-opacity)] border-2 border-[#d3c298]/60 shadow-xl ring-4 ring-[#d3c298]/25'
+                    : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#eae1cf] border-2 border-[#5a3a1f] shadow-xl ring-4 ring-[#5a3a1f]/25'
                   : 'w-32 h-32 sm:w-36 sm:h-36'
               }`}>
                 {/* SVG Circle Track */}
@@ -261,7 +269,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     cy="50"
                     r="40"
                     fill="transparent"
-                    stroke={isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : (theme === 'olive' || theme === 'hunting') ? '#ded8c8' : '#e2e8f0'}
+                    stroke={isDark ? (theme === 'backwoods' ? '#4a3820' : '#1e293b') : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : theme === 'backwoods' ? '#bea878' : '#e2e8f0'}
                     strokeWidth="8"
                   />
                   {/* Colored Indicator */}
@@ -271,7 +279,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     r="40"
                     fill="transparent"
                     stroke={scoreStrokeColor}
-                    strokeWidth={theme === 'hunting' ? "10" : (theme === 'olive' || theme === 'hunting') ? "10" : "8"}
+                    strokeWidth={theme === 'hunting' || theme === 'olive' || theme === 'backwoods' ? "10" : "8"}
                     strokeDasharray={`${2 * Math.PI * 40}`}
                     strokeDashoffset={`${2 * Math.PI * 40 * (1 - currentScore / 100)}`}
                     strokeLinecap="round"
@@ -283,7 +291,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${scoreTextColor} -mb-0.5`} 
                     style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') || theme === 'backwoods' ? scoreStrokeColor : undefined }}
                   />
-                  <div className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' ? (isDark ? 'text-3xl sm:text-4xl text-white' : `text-3xl sm:text-4xl ${theme === 'hunting' ? 'text-[#2a1b0e]' : 'text-[#1e2e1b]'}`) : 'text-2xl sm:text-3xl'}`}>
+                  <div className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' || theme === 'backwoods' ? (isDark ? 'text-3xl sm:text-4xl text-white' : `text-3xl sm:text-4xl ${theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-[#2a1d10]'}`) : 'text-2xl sm:text-3xl'}`}>
                     {currentScore}
                   </div>
                   <div 
@@ -295,7 +303,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-500 dark:text-amber-400" />}
                     <span>{getRatingFromScore(currentScore)}</span>
                   </div>
-                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-slate-500'} -mt-0.5 opacity-90`}>
+                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : theme === 'backwoods' ? 'text-[#c44a17]' : 'text-slate-500'} -mt-0.5 opacity-90`}>
                     SCORE
                   </div>
                 </div>
