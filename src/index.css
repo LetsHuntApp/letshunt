@@ -1319,6 +1319,47 @@ html.backwoods, .backwoods {
   border-color: rgba(138, 112, 69, 0.6) !important;
 }
 
+/* Backwoods-dark hero metrics and expanded forecast content use the same
+   walnut surface as the surrounding dark cards. These scoped selectors
+   intentionally follow the user-facing dashboard region and win over the
+   older semantic chip re-tints. */
+.dark.backwoods .backwoods-dashboard .backwoods-dark-hero-badge,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-metric,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-slate-950/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-slate-100/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-slate-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-emerald-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-emerald-500/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-amber-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-amber-500/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-blue-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-blue-500/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-purple-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-purple-500/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-sky-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-sky-500/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-rose-50/"],
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded [class*="bg-rose-500/"] {
+  background-color: rgba(58, 46, 28, var(--card-opacity, 0.92)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: rgba(138, 112, 69, 0.55) !important;
+  box-shadow: var(--pb-shadow);
+}
+
+.dark.backwoods .backwoods-dashboard .backwoods-dark-hero-badge,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-metric,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded {
+  color: #d9c8a1 !important;
+}
+
+.dark.backwoods .backwoods-dashboard .backwoods-dark-metric svg,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-expanded svg,
+.dark.backwoods .backwoods-dashboard .backwoods-dark-hero-badge svg {
+  color: #c79447 !important;
+}
+
 /* ===== BACKWOODS DARK DASHBOARD BADGES =====
    Dashboard subcards and status badges are intentionally brown-on-brown at
    night. Keep their paper texture and opacity controls, but use the same

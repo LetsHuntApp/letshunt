@@ -73,24 +73,66 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   // Calculate percentage along the track for thumb position (0 to 100%)
   const handlePercent = (localHour / 23) * 100;
 
+  const sliderTrackClass = isDark
+    ? theme === 'hunting' ? 'bg-[#3b2418] border-[#6b4228]'
+    : theme === 'backwoods' ? 'bg-[#2e2519] border-[#5a3a1f]'
+    : theme === 'olive' ? 'bg-[#26351b] border-[#465b2d]'
+    : 'bg-slate-800 border-slate-700'
+    : theme === 'hunting' ? 'bg-[#ead8bd] border-[#c8a982]'
+    : theme === 'backwoods' ? 'bg-[#bea878] border-[#8f7548]'
+    : theme === 'olive' ? 'bg-[#e0e5c9] border-[#aeb88c]'
+    : 'bg-slate-200 border-slate-300';
+
+  const sliderProgressClass = isNow
+    ? isDark
+      ? theme === 'hunting' ? 'bg-[#e08a5a]' : theme === 'backwoods' ? 'bg-[#d9a94f]' : theme === 'olive' ? 'bg-[#a8c078]' : 'bg-amber-400'
+      : theme === 'hunting' ? 'bg-[#c85a17]' : theme === 'backwoods' ? 'bg-[#c44a17]' : theme === 'olive' ? 'bg-[#8a9a5b]' : 'bg-amber-500'
+    : isDark
+    ? theme === 'hunting' ? 'bg-[#c85a17]' : theme === 'backwoods' ? 'bg-[#6a9b46]' : theme === 'olive' ? 'bg-[#6f8f45]' : 'bg-emerald-500'
+    : theme === 'hunting' ? 'bg-[#a34610]' : theme === 'backwoods' ? 'bg-[#3d5a2a]' : theme === 'olive' ? 'bg-[#556b2f]' : 'bg-emerald-500';
+
+  const sliderThumbClass = isNow
+    ? isDark
+      ? theme === 'hunting' ? 'bg-[#e08a5a] text-[#24150e] border-[#f0ba7a] ring-[#e08a5a]/30' : theme === 'backwoods' ? 'bg-[#d9a94f] text-[#2a1d10] border-[#f0cf83] ring-[#d9a94f]/30' : theme === 'olive' ? 'bg-[#a8c078] text-[#1c2614] border-[#d0dc9e] ring-[#a8c078]/30' : 'bg-amber-400 text-slate-950 border-amber-200 ring-amber-400/30'
+      : theme === 'hunting' ? 'bg-[#c85a17] text-white border-[#e08a5a] ring-[#c85a17]/30' : theme === 'backwoods' ? 'bg-[#c44a17] text-[#f5f0e8] border-[#e08a5a] ring-[#c44a17]/30' : theme === 'olive' ? 'bg-[#8a9a5b] text-white border-[#c0ca91] ring-[#8a9a5b]/30' : 'bg-amber-500 text-slate-950 border-amber-300 ring-amber-500/30'
+    : isDark
+    ? theme === 'hunting' ? 'bg-[#c85a17] text-white border-[#e08a5a] ring-[#c85a17]/30' : theme === 'backwoods' ? 'bg-[#6a9b46] text-[#1f1a10] border-[#a8c078] ring-[#6a9b46]/30' : theme === 'olive' ? 'bg-[#6f8f45] text-[#10180b] border-[#a8c078] ring-[#6f8f45]/30' : 'bg-emerald-500 text-slate-950 border-emerald-300 ring-emerald-500/30'
+    : theme === 'hunting' ? 'bg-[#a34610] text-white border-[#d97642] ring-[#a34610]/30' : theme === 'backwoods' ? 'bg-[#3d5a2a] text-[#f5f0e8] border-[#8fbc6e] ring-[#3d5a2a]/30' : theme === 'olive' ? 'bg-[#556b2f] text-white border-[#8a9a5b] ring-[#556b2f]/30' : 'bg-emerald-500 text-slate-950 border-emerald-300 ring-emerald-500/30';
+
   return (
     <div className="fixed bottom-13 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl animate-fadeIn pointer-events-auto">
       <div
         style={{
           backgroundColor: isDark
-            ? 'rgba(2, 6, 23, var(--slider-opacity, 0.98))'
+            ? theme === 'hunting'
+              ? 'rgba(34, 22, 16, var(--slider-opacity, 0.98))'
+              : theme === 'backwoods'
+              ? 'rgba(31, 26, 16, var(--slider-opacity, 0.98))'
+              : theme === 'olive'
+              ? 'rgba(28, 38, 20, var(--slider-opacity, 0.98))'
+              : 'rgba(2, 6, 23, var(--slider-opacity, 0.98))'
             : theme === 'hunting'
             ? 'rgba(234, 225, 207, var(--slider-opacity, 0.98))'
-            : (theme === 'olive' || theme === 'hunting')
+            : theme === 'backwoods'
+            ? 'rgba(211, 194, 152, var(--slider-opacity, 0.98))'
+            : theme === 'olive'
             ? 'rgba(247, 245, 237, var(--slider-opacity, 0.98))'
             : 'rgba(255, 255, 255, var(--slider-opacity, 0.98))'
         }}
         className={`rounded-2xl backdrop-blur-xl border shadow-2xl p-2 sm:p-2.5 transition-all ${
           isDark
-            ? 'border-slate-700/80 text-slate-100 shadow-emerald-950/30'
+            ? theme === 'hunting'
+              ? 'border-[#4a3320] text-[#f5e9d6] shadow-black/30'
+              : theme === 'backwoods'
+              ? 'border-[#382b1c] text-[#d9c8a1] shadow-black/30'
+              : theme === 'olive'
+              ? 'border-[#2c3d1f] text-[#dde6cb] shadow-black/30'
+              : 'border-slate-700/80 text-slate-100 shadow-emerald-950/30'
             : theme === 'hunting'
-            ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
-            : (theme === 'olive' || theme === 'hunting')
+            ? 'border-[#d4c4a8] text-[#2a1b0e]'
+            : theme === 'backwoods'
+            ? 'border-[#9c845b] text-[#2a1d10]'
+            : theme === 'olive'
             ? 'border-[#d8d2c0] text-[#1e2e1b] shadow-[#556b2f]/10'
             : 'border-slate-300 text-slate-900 shadow-slate-500/20'
         }`}
@@ -101,7 +143,11 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
             <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
-            <span className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 truncate">
+            <span className={`text-xs font-black uppercase tracking-wider truncate ${
+              isDark
+                ? theme === 'backwoods' ? 'text-[#c79447]' : theme === 'hunting' ? 'text-[#e08a5a]' : theme === 'olive' ? 'text-[#a8c078]' : 'text-emerald-400'
+                : theme === 'backwoods' ? 'text-[#c44a17]' : theme === 'hunting' ? 'text-[#a34610]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-600'
+            }`}>
               Hourly Hunt
             </span>
             {currentHourData?.isPrimeWindow && (
@@ -114,7 +160,18 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
           {!isNow && (
             <button
               onClick={() => { handleHourChange(currentLocalHour); onResetToToday?.(); }}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black transition-all bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-400 border border-amber-500/40 flex-shrink-0"
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black transition-all border flex-shrink-0 ${
+                isDark
+                  ? theme === 'backwoods' ? 'bg-[#483216] hover:bg-[#5a401e] text-[#e0b566] border-[#8a7045]'
+                  : theme === 'hunting' ? 'bg-[#4a2b1b] hover:bg-[#613620] text-[#f0ba7a] border-[#8a5536]'
+                  : theme === 'olive' ? 'bg-[#2e3b20] hover:bg-[#3c4d28] text-[#c0d094] border-[#556b2f]'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border-amber-500/40'
+                  : theme === 'backwoods' ? 'bg-[#e0c985] hover:bg-[#cdb56f] text-[#5a3a1f] border-[#9c845b]'
+                  : theme === 'hunting' ? 'bg-[#f0d7b5] hover:bg-[#e6c298] text-[#7a3415] border-[#c85a17]'
+                  : theme === 'olive' ? 'bg-[#e1e5c7] hover:bg-[#d2d9ad] text-[#3d5a2a] border-[#8a9a5b]'
+                  : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 border-amber-500/40'
+              }`}
+
             >
               <RotateCcw className="w-2.5 h-2.5" /> Reset to Live
             </button>
@@ -126,12 +183,10 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
           {/* Track Bar & Thumb Wrapper */}
           <div className="relative w-full h-7 sm:h-7">
             {/* Visual Track Line */}
-            <div className="w-full h-full bg-slate-200 dark:bg-slate-800 rounded-full shadow-inner overflow-hidden border border-slate-300/40 dark:border-slate-700/60 flex items-center">
+            <div className={`w-full h-full ${sliderTrackClass} rounded-full shadow-inner overflow-hidden border flex items-center`}>
               {/* Progress Highlight */}
               <div
-                className={`h-full ${
-                  isNow ? 'bg-amber-500' : 'bg-emerald-500'
-                }`}
+                className={`h-full ${sliderProgressClass}`}
                 style={{ width: `${handlePercent}%` }}
               />
             </div>
@@ -149,11 +204,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
               }}
             >
               <div
-                className={`h-[34px] px-3.5 rounded-xl font-black text-xs shadow-md border-2 flex items-center justify-center gap-1 whitespace-nowrap transition-colors ${
-                  isNow
-                    ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-500/30'
-                    : 'bg-emerald-500 text-slate-950 border-emerald-300 ring-2 ring-emerald-500/30'
-                }`}
+                className={`h-[34px] px-3.5 rounded-xl font-black text-xs shadow-md border-2 flex items-center justify-center gap-1 whitespace-nowrap transition-colors ring-2 ${sliderThumbClass}`}
               >
                 {isNow ? <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" /> NOW ({getHour12Label(localHour)})</span> : getHour12Label(localHour)}
               </div>
@@ -162,7 +213,9 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
               {isDragging && (
                 <div
                   className={`w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-[6px] -mt-0.5 ${
-                    isNow ? 'border-t-amber-500' : 'border-t-emerald-500'
+                    isNow
+                      ? theme === 'hunting' ? 'border-t-[#e08a5a]' : theme === 'backwoods' ? 'border-t-[#d9a94f]' : theme === 'olive' ? 'border-t-[#a8c078]' : 'border-t-amber-500'
+                      : theme === 'hunting' ? 'border-t-[#c85a17]' : theme === 'backwoods' ? 'border-t-[#6a9b46]' : theme === 'olive' ? 'border-t-[#6f8f45]' : 'border-t-emerald-500'
                   }`}
                 />
               )}

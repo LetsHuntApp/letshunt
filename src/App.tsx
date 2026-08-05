@@ -775,14 +775,22 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
-        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors duration-200 ${
+        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-colors duration-200 ${
           isDark
-            ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/60 text-slate-100'
-            : theme === 'backwoods'
-            ? 'bg-[#ddd0a9]/[var(--card-opacity)] border-[#5a3a1f]/70 text-[#2a1d10]'
-            : (theme === 'olive' || theme === 'hunting')
-            ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-[#d8d2c0]/70 text-[#1e2e1b]'
-            : 'bg-white/[var(--card-opacity)] border-slate-200/70 text-slate-900'
+            ? themeVariant === 'hunting'
+              ? 'bg-[#221610] border-[#4a3320] text-[#f5e9d6]'
+              : themeVariant === 'backwoods'
+              ? 'bg-[#1f1a10] border-[#382b1c] text-[#d9c8a1]'
+              : themeVariant === 'olive'
+              ? 'bg-[#1c2614] border-[#2c3d1f] text-[#dde6cb]'
+              : 'bg-slate-950 border-slate-800/60 text-slate-100'
+            : themeVariant === 'hunting'
+            ? 'bg-[#f5f0e8] border-[#d4c5a9]/70 text-[#2a1d10]'
+            : themeVariant === 'backwoods'
+            ? 'bg-[#e6dcc1] border-[#5a3a1f]/70 text-[#2a1d10]'
+            : themeVariant === 'olive'
+            ? 'bg-[#f7f5ed] border-[#d8d2c0]/70 text-[#1e2e1b]'
+            : 'bg-white border-slate-200/70 text-slate-900'
         }`}
       >
         <button
