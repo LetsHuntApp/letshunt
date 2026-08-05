@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Make Tailwind's `dark:` utilities follow the app's html.dark class instead
+   of the OS `prefers-color-scheme`. Without this, every `dark:text-*` /
+   `dark:bg-*` / `dark:border-*` utility silently stays in its light variant
+   on machines whose OS theme is light — which is exactly why some surfaces
+   (e.g. the expanded day-forecast content) kept rendering light in dark app
+   mode. The custom CSS blocks below (.dark.olive etc.) already keyed off
+   html.dark; this brings the Tailwind utilities in line with them. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ===== GLOBAL UI POLISH ===== */
 
 /* Wind flow animation — used by the map wind streak overlay.

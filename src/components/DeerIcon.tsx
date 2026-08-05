@@ -2,15 +2,17 @@ import React from 'react';
 
 interface DeerIconProps {
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export const DeerIcon: React.FC<DeerIconProps> = ({ className = 'w-6 h-6' }) => {
+export const DeerIcon: React.FC<DeerIconProps> = ({ className = 'w-6 h-6', style }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="6 3.5 18 22"
       fill="currentColor"
       className={className}
+      style={style}
       aria-hidden="true"
     >
       <path

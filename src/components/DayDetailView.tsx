@@ -174,7 +174,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? 'text-emerald-600'
     : currentScore >= 46
     ? 'text-amber-600'
-    : 'text-rose-600';
+    : 'text-rose-500';
 
   return (
     <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn">
@@ -289,7 +289,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className="text-center z-10 flex flex-col items-center justify-center">
                   <DeerIcon 
                     className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${scoreTextColor} -mb-0.5`} 
-                    style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') || theme === 'backwoods' ? scoreStrokeColor : undefined }}
+                    style={{ color: scoreStrokeColor }}
                   />
                   <div className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' || theme === 'backwoods' ? (isDark ? 'text-3xl sm:text-4xl text-white' : `text-3xl sm:text-4xl ${theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-[#2a1d10]'}`) : 'text-2xl sm:text-3xl'}`}>
                     {currentScore}
@@ -298,7 +298,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     className={`text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1 ${
                       theme === 'hunting' ? 'text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : scoreTextColor
                     }`}
-                    style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') || theme === 'backwoods' ? scoreStrokeColor : undefined }}
+                    style={{ color: scoreStrokeColor }}
                   >
                     {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-500 dark:text-amber-400" />}
                     <span>{getRatingFromScore(currentScore)}</span>
