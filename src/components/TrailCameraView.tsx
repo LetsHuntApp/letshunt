@@ -115,6 +115,11 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // Target Manager State
   const [isTargetManagerOpen, setIsTargetManagerOpen] = useState(false);
 
+  // Currently-emphasised target in the top-of-page dropdown. Purely visual —
+  // gives the user a way to surface one target at a glance. Edit / delete
+  // still happens inside the Target Manager modal.
+  const [selectedTargetId, setSelectedTargetId] = useState<string>('');
+
   // Default camera location for photo uploads
   const [defaultLocId, setDefaultLocId] = useState<string>(() => {
     try {
@@ -130,6 +135,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       setShowLocDropdown(false);
     }
   }, [isLocationModalOpen]);
+
+  // Keep the target dropdown's selection in sync with the live target list:
+  // if the currently selected target got deleted, fall back gracefully.
+  useEffect(() => {
+    if (selectedTargetId && !targets.some((t) => t.id === selectedTargetId)) {
+      setSelectedTargetId(targets[0]?.id || '');
+    }
+  }, [targets, selectedTargetId]);
 
   // Load photos & locations on mount
   useEffect(() => {
@@ -698,58 +711,127 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </div>
           )}
 
-          {/* Location Management Strip */}
-          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-thin flex-1 min-w-0">
+          {/* Location Management Strip — dropdown + delete + Add button */}
+          <div className={`${cardBase} ${cardBg} flex flex-col sm:flex-row sm:items-center gap-2 p-2 sm:p-3 text-xs`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
               <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
                 <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
               </span>
-              {allSpots.length === 0 ? (
-                <span className="text-[10px] opacity-60 italic">No spots yet — add one to auto-match weather per camera</span>
-              ) : (
-                allSpots.map((spot) => {
-                  const isDefault = spot.id === defaultLocId;
-                  return (
-                    <span
-                      key={spot.id}
-                      onClick={() => !spot._isMapPin && handleSetDefaultLocation(spot.id)}
-                      title={spot._isMapPin ? 'Map pin — cannot set as default' : isDefault ? 'Click to unset as default' : 'Click to set as default upload spot'}
-                      className={`px-2.5 py-1 rounded-lg font-bold border flex-shrink-0 flex items-center gap-1 transition-all ${
-                        spot._isMapPin
-                          ? isDark
-                            ? 'text-amber-300 bg-amber-900/40 border-amber-600/40 cursor-default'
-                            : 'text-amber-700 bg-amber-100/80 border-amber-300 cursor-default'
-                          : isDefault
-                            ? isDark
-                              ? 'text-emerald-300 bg-emerald-900/50 border-emerald-500 shadow-md shadow-emerald-500/20'
-                              : 'text-emerald-700 bg-emerald-100/80 border-emerald-400 shadow-md cursor-pointer'
-                            : isDark
-                              ? 'text-sky-300 bg-slate-800/80 border-slate-700 hover:border-sky-500 cursor-pointer'
-                              : 'text-sky-700 bg-sky-100/80 border-sky-200 hover:border-sky-500 cursor-pointer'
-                      }`}
-                    >
-                      {spot._isMapPin ? <TreePine className="w-3 h-3" /> : isDefault ? (
-                        <svg className="w-3 h-3 fill-current text-emerald-400" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                      ) : (
-                        <MapPin className="w-3 h-3" />
-                      )}
-                      {spot.name}
-                      {isDefault && !spot._isMapPin && (
-                        <span className="text-[9px] opacity-60 ml-0.5">· default</span>
-                      )}
-                      {!spot._isMapPin && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteLocation(spot.id); }}
-                          title="Delete this spot"
-                          className="ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-rose-500/20 hover:text-rose-400 transition-colors cursor-pointer"
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      )}
-                    </span>
-                  );
-                })
-              )}
+              <select
+                value={defaultLocId}
+                onChange={(e) => {
+                  // Selecting a spot from the dropdown becomes the new default
+                  // upload spot — same one-tap behavior the pill-strip used to
+                  // give you via click. Selecting the empty option clears it.
+                  const value = e.target.value;
+                  if (value === '') {
+                    if (defaultLocId !== '') {
+                      setDefaultLocId('');
+                      try { localStorage.removeItem('letshunt_trailcam_default_loc'); } catch {}
+                      showToast('Default spot cleared');
+                    }
+                    return;
+                  }
+                  handleSetDefaultLocation(value);
+                }}
+                title="Choose the default upload spot — new imports go here for weather matching"
+                className={`flex-1 min-w-0 max-w-xs px-2 py-1.5 text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
+              >
+                <option value="">
+                  {allSpots.length === 0 ? '— No spots yet —' : '— No default spot —'}
+                </option>
+                {allSpots.map((spot) => (
+                  <option key={spot.id} value={spot.id}>
+                    {spot._isMapPin ? '🗺 ' : ''}{spot.name}{spot.id === defaultLocId ? '  ★ default' : ''}
+                  </option>
+                ))}
+              </select>
+
+              {/* Star button — toggles default on the currently selected spot
+                  even when you don't want to scroll the dropdown. Also clears
+                  the default if the chosen spot is already the default. */}
+              <button
+                onClick={() => {
+                  if (!defaultLocId) {
+                    showToast('Pick a spot first to mark it as your default');
+                    return;
+                  }
+                  const spot = allSpots.find((s) => s.id === defaultLocId);
+                  if (spot?._isMapPin) {
+                    showToast('Map pins can\'t be the default upload spot — add a real spot first');
+                    return;
+                  }
+                  handleSetDefaultLocation(defaultLocId);
+                }}
+                title={
+                  !defaultLocId
+                    ? 'Pick a spot first'
+                    : (allSpots.find((s) => s.id === defaultLocId)?._isMapPin
+                        ? 'Map pins cannot be set as default'
+                        : defaultLocId
+                          ? 'Click to clear default'
+                          : 'Mark selected spot as default')
+                }
+                disabled={!defaultLocId}
+                className={`px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold transition-all border cursor-pointer flex items-center gap-1 ${
+                  !defaultLocId
+                    ? isDark
+                      ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed'
+                      : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                    : defaultLocId
+                      ? isDark
+                        ? 'bg-emerald-900/50 border-emerald-500 text-emerald-200 hover:bg-emerald-900/70'
+                        : isHunting
+                        ? 'bg-[#c4b498] border-[#a0865a] text-[#2a1b0e] hover:bg-[#b8a386]'
+                        : isOlive
+                        ? 'bg-[#cbc5b0] border-[#a8a589] text-[#1e2e1b] hover:bg-[#c4bea4]'
+                        : 'bg-emerald-100 border-emerald-400 text-emerald-700 hover:bg-emerald-200'
+                      : buttonSecondaryBg
+                }`}
+              >
+                <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <span className="hidden sm:inline">Default</span>
+              </button>
+
+              {/* Delete the currently-selected spot (only enabled for real
+                  camera spots; map pins can't be deleted from here). */}
+              <button
+                onClick={() => {
+                  if (!defaultLocId) {
+                    showToast('Pick a spot first to delete it');
+                    return;
+                  }
+                  const spot = allSpots.find((s) => s.id === defaultLocId);
+                  if (spot?._isMapPin) {
+                    showToast('Map pins are read-only here — remove them from the Map view');
+                    return;
+                  }
+                  handleDeleteLocation(defaultLocId);
+                }}
+                disabled={!defaultLocId || !!allSpots.find((s) => s.id === defaultLocId)?._isMapPin}
+                title={
+                  !defaultLocId
+                    ? 'Pick a spot first'
+                    : (allSpots.find((s) => s.id === defaultLocId)?._isMapPin
+                        ? 'Map pins can\u2019t be deleted here'
+                        : 'Delete selected spot')
+                }
+                className={`px-2 py-1 sm:py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center justify-center ${
+                  !defaultLocId || allSpots.find((s) => s.id === defaultLocId)?._isMapPin
+                    ? isDark
+                      ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed'
+                      : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                    : isDark
+                    ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-rose-900/40 hover:border-rose-500/60 hover:text-rose-300'
+                    : isHunting
+                    ? 'bg-[#e8ddca] border-[#d4c4a8] text-[#2a1b0e] hover:bg-rose-100 hover:border-rose-400 hover:text-rose-700'
+                    : isOlive
+                    ? 'bg-[#efe9d7] border-[#d8d2c0] text-[#1e2e1b] hover:bg-rose-100 hover:border-rose-400 hover:text-rose-700'
+                    : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-rose-100 hover:border-rose-400 hover:text-rose-700'
+                }`}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <button
@@ -760,33 +842,48 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </button>
           </div>
 
-          {/* Target Management Strip */}
-          <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 p-2 sm:p-3 text-xs`}>
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-0.5 scrollbar-thin">
+          {/* Target Management Strip — dropdown + Add (Manage) button */}
+          <div className={`${cardBase} ${cardBg} flex flex-col sm:flex-row sm:items-center gap-2 p-2 sm:p-3 text-xs`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
               <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
                 <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
               </span>
-              {targets.length === 0 ? (
-                <span className="text-[10px] opacity-60 italic">No targets yet — create one to tag & analyze specific deer</span>
-              ) : (
-                targets.map((t) => (
-                  <span
-                    key={t.id}
-                    className="px-2.5 py-1 rounded-lg font-bold flex-shrink-0 text-white text-[11px] flex items-center gap-1"
-                    style={{ backgroundColor: t.color }}
-                  >
-                    <Crosshair className="w-3 h-3" />
-                    {t.name}
-                  </span>
-                ))
+              <select
+                value={selectedTargetId}
+                onChange={(e) => setSelectedTargetId(e.target.value)}
+                title="Quick-view a target — colour-swatch is shown for each option"
+                className={`flex-1 min-w-0 max-w-xs px-2 py-1.5 text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
+              >
+                <option value="">
+                  {targets.length === 0 ? '— No targets yet —' : `— All targets (${targets.length}) —`}
+                </option>
+                {targets.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    ● {t.name}
+                  </option>
+                ))}
+              </select>
+              {/* Tiny colour swatch preview for the selected target */}
+              {selectedTargetId && (
+                <span
+                  className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-white/20 flex-shrink-0 shadow-inner"
+                  style={{
+                    backgroundColor:
+                      targets.find((t) => t.id === selectedTargetId)?.color || 'transparent',
+                  }}
+                  title={`${
+                    targets.find((t) => t.id === selectedTargetId)?.name || ''
+                  } colour swatch`}
+                />
               )}
             </div>
 
             <button
               onClick={() => setIsTargetManagerOpen(true)}
+              title="Open the target manager to add, edit, recolour, or remove targets"
               className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5`}
             >
-              <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Manage </span>Targets
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Add </span>Targets
             </button>
           </div>
 
