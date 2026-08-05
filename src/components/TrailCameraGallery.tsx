@@ -124,6 +124,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   // In-place date setter — opens when user taps the "OCR Failed" badge on a card.
   const [dateModalPhotoId, setDateModalPhotoId] = useState<string | null>(null);
   const [editDateValue, setEditDateValue] = useState<string>('');
+  const [dateModalThumb, setDateModalThumb] = useState<string | null>(null);
   const [bulkReOcrInProgress, setBulkReOcrInProgress] = useState(false);
   const [savingDate, setSavingDate] = useState(false);
 
@@ -215,6 +216,19 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
       `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`
     );
     setDateModalPhotoId(photoId);
+    // Reset to null so the placeholder shimmer shows until the thumb resolves,
+    // preventing a stale thumbnail from a different photo flashing for an instant.
+    setDateModalThumb(null);
+    // Load a thumbnail so the user can see WHICH photo they're setting a date on.
+    (async () => {
+      try {
+        const url = await getThumbnailUrl(photoId);
+        if (url) {
+          // Guard against the user closing/opening another photo mid-fetch.
+          setDateModalThumb((current) => (current === null ? url : current));
+        }
+      } catch {/* ignore */}
+    })();
   };
 
   const closeDateModal = () => {
@@ -223,6 +237,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
     // weather fetch.
     if (savingDate) return;
     setDateModalPhotoId(null);
+    setDateModalThumb(null);
   };
 
   const handleSaveDateFromGallery = async () => {
@@ -789,6 +804,30 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             <h3 className="text-base font-extrabold flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-400" /> Set Capture Date
             </h3>
+
+            {/* Thumbnail preview — lets the user confirm visually which photo
+                they're setting the date on, instead of trusting the filename. */}
+            <div
+              className={`w-full aspect-video rounded-xl overflow-hidden border flex items-center justify-center ${
+                isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-200 border-slate-300'
+              }`}
+            >
+              {dateModalThumb ? (
+                <img
+                  src={dateModalThumb}
+                  alt={photos.find((p) => p.id === dateModalPhotoId)?.fileName || ''}
+                  className="w-full h-full object-contain bg-black/40"
+                  loading="lazy"
+                  draggable={false}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-[10px] opacity-60 animate-pulse">
+                  <Camera className="w-6 h-6" />
+                  Loading preview…
+                </div>
+              )}
+            </div>
+
             <p className="text-xs opacity-70 leading-snug">
               OCR couldn't read the timestamp on{' '}
               <span className="font-bold">{photos.find((p) => p.id === dateModalPhotoId)?.fileName}</span>.

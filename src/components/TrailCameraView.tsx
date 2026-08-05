@@ -21,6 +21,7 @@ import {
   filterPhotos,
   computeAnalytics,
   matchWeatherForPhoto,
+  getThumbnailUrl,
 } from '../services/trailCameraService';
 import { searchLocations } from '../services/weatherService';
 
@@ -60,6 +61,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [timeCorrectionPhotos, setTimeCorrectionPhotos] = useState<TrailCameraPhoto[]>([]);
   const [timeCorrectionValues, setTimeCorrectionValues] = useState<Record<string, string>>({});
   const [savingCorrections, setSavingCorrections] = useState(false);
+  // Thumbnail cache for the time-correction modal rows so the user can see
+  // which picture they're correcting without guessing from the filename.
+  const [timeCorrectionThumbs, setTimeCorrectionThumbs] = useState<Record<string, string>>({});
 
   // New Location Modal State
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -469,14 +473,37 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       setSavingCorrections(false);
       setTimeCorrectionPhotos([]);
       setTimeCorrectionValues({});
+      setTimeCorrectionThumbs({});
     }
   };
 
   const handleSkipTimeCorrections = () => {
     setTimeCorrectionPhotos([]);
     setTimeCorrectionValues({});
+    setTimeCorrectionThumbs({});
     showToast('You can correct times later using the "Time Missing" filter in the gallery');
   };
+
+  // Load tiny thumbnails for each photo in the time-correction modal so the
+  // user can visually confirm which image's time they're correcting. Runs in
+  // the background; rows render with a placeholder until their thumb resolves.
+  useEffect(() => {
+    if (timeCorrectionPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const newThumbs: Record<string, string> = {};
+      for (const p of timeCorrectionPhotos) {
+        if (timeCorrectionThumbs[p.id]) continue;
+        const url = await getThumbnailUrl(p.id);
+        if (cancelled) return;
+        if (url) newThumbs[p.id] = url;
+      }
+      if (Object.keys(newThumbs).length > 0) {
+        setTimeCorrectionThumbs((prev) => ({ ...prev, ...newThumbs }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [timeCorrectionPhotos]);
 
   // Filtered Photos
   const filteredPhotos = useMemo(() => {
@@ -563,15 +590,45 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 onChange={handleCompactImportChange}
                 className="hidden"
               />
-              <button
-                onClick={() => importInputRef.current?.click()}
-                disabled={importing}
-                className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 ${importing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
-                title="Import more trail camera photos"
-              >
-                {importing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                <span>Import</span>
-              </button>
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                <button
+                  onClick={() => importInputRef.current?.click()}
+                  disabled={importing}
+                  className={`${buttonPrimary} ${buttonPrimaryBg} shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 ${importing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                  title="Import more trail camera photos"
+                >
+                  {importing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                  <span>Import</span>
+                </button>
+                {importing && importProgress && importProgress.total > 0 && (
+                  <div
+                    className={`flex items-center gap-1.5 px-1.5 sm:px-2 py-1 rounded-lg border text-[10px] sm:text-[11px] font-black tracking-wide ${
+                      isDark
+                        ? 'bg-slate-800/80 border-emerald-500/40 text-emerald-300'
+                        : isHunting
+                        ? 'bg-[#e8ddca]/80 border-[#c4b498] text-[#5a3e1f]'
+                        : isOlive
+                        ? 'bg-[#efe9d7]/80 border-[#cbc5b0] text-[#3e4a2a]'
+                        : 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                    }`}
+                    title={`Importing ${importProgress.completed} of ${importProgress.total} photos`}
+                  >
+                    <span className="tabular-nums">
+                      {Math.round((importProgress.completed / importProgress.total) * 100)}%
+                    </span>
+                    {/* Inline mini progress bar */}
+                    <div className="w-10 sm:w-14 h-1.5 rounded-full overflow-hidden bg-slate-700/40 dark:bg-slate-900/60 border border-slate-500/20">
+                      <div
+                        className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                        style={{ width: `${Math.round((importProgress.completed / importProgress.total) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="opacity-60 font-semibold hidden sm:inline tabular-nums">
+                      {importProgress.completed}/{importProgress.total}
+                    </span>
+                  </div>
+                )}
+              </div>
             </>
           ) : null}
 
@@ -843,32 +900,55 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {timeCorrectionPhotos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className={`flex items-center gap-3 p-3 rounded-xl border ${
-                    isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold truncate">{photo.fileName}</div>
-                    <div className="text-[10px] opacity-60">
-                      Date: {photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'Unknown'}
+              {timeCorrectionPhotos.map((photo) => {
+                const thumb = timeCorrectionThumbs[photo.id];
+                return (
+                  <div
+                    key={photo.id}
+                    className={`flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border ${
+                      isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'
+                    }`}
+                  >
+                    {/* Thumbnail preview so the user can see WHICH photo they're
+                        correcting without having to guess from the filename. */}
+                    <div
+                      className={`w-16 h-12 sm:w-20 sm:h-14 flex-shrink-0 rounded-lg overflow-hidden border flex items-center justify-center ${
+                        isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-200 border-slate-300'
+                      }`}
+                      title={photo.fileName}
+                    >
+                      {thumb ? (
+                        <img
+                          src={thumb}
+                          alt={photo.fileName}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          draggable={false}
+                        />
+                      ) : (
+                        <Camera className={`w-4 h-4 ${isDark ? 'text-slate-600' : 'text-slate-400'} animate-pulse`} />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold truncate">{photo.fileName}</div>
+                      <div className="text-[10px] opacity-60">
+                        Date: {photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'Unknown'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Clock className="w-3.5 h-3.5 text-amber-400" />
+                      <input
+                        type="datetime-local"
+                        value={timeCorrectionValues[photo.id] || ''}
+                        onChange={(e) => setTimeCorrectionValues(prev => ({ ...prev, [photo.id]: e.target.value }))}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-bold border ${
+                          isDark ? 'bg-slate-950 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-900'
+                        }`}
+                      />
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <input
-                      type="datetime-local"
-                      value={timeCorrectionValues[photo.id] || ''}
-                      onChange={(e) => setTimeCorrectionValues(prev => ({ ...prev, [photo.id]: e.target.value }))}
-                      className={`px-2 py-1.5 rounded-lg text-xs font-bold border ${
-                        isDark ? 'bg-slate-950 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-900'
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/30">
