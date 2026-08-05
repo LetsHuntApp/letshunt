@@ -313,7 +313,7 @@ const getScoreBadgeColor = (score: number) => {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full backwoods-dashboard">
       {/* Best Day Banner — highlights the top-scoring day of the week. Uses the
           same theme-aware card background as the forecast cards (respects the
           custom-background opacity & blur settings) instead of a hard gradient. */}

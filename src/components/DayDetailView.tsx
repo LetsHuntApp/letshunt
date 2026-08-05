@@ -177,7 +177,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     : 'text-rose-500';
 
   return (
-    <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn">
+    <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn backwoods-dashboard">
       {/* Hero Overview Header Card */}
       <div
         className={`rounded-3xl p-3 sm:p-4 border shadow-xl relative overflow-hidden transition-colors backdrop-blur-xl ${

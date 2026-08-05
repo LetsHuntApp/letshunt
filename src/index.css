@@ -1300,3 +1300,127 @@ html.backwoods, .backwoods {
 .dark.backwoods [class~="bg-rose-500/15"][class*="text-rose-700"] {
   color: var(--pb-text) !important;
 }
+
+/* ===== BACKWOODS DARK DASHBOARD BADGES =====
+   Dashboard subcards and status badges are intentionally brown-on-brown at
+   night. Keep their paper texture and opacity controls, but use the same
+   walnut surface family as the surrounding cards and a warm cream text ramp.
+   Utility selectors use exact class tokens (rather than `class*="bg-amber-50"`)
+   so solid amber/emerald action buttons and score badges are not accidentally
+   converted into brown subcards. */
+.dark.backwoods .backwoods-dashboard [class~="bg-amber-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-amber-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-amber-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-amber-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-amber-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-purple-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-purple-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-purple-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-purple-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-purple-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-blue-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-blue-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-blue-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-blue-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-blue-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-sky-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-sky-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-sky-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-sky-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-sky-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-emerald-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-emerald-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-emerald-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-emerald-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-emerald-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-cyan-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-cyan-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-cyan-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-cyan-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-cyan-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-teal-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-teal-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-teal-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-teal-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-teal-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-indigo-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-indigo-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-indigo-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-indigo-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-indigo-500/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class~="bg-rose-50"],
+.dark.backwoods .backwoods-dashboard [class~="bg-rose-100"],
+.dark.backwoods .backwoods-dashboard [class*="bg-rose-50/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-rose-100/"]:not([class*="hover:"]),
+.dark.backwoods .backwoods-dashboard [class*="bg-rose-500/"] {
+  background-color: rgba(46, 37, 25, var(--card-opacity, 0.92)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: rgba(138, 112, 69, 0.6) !important;
+  box-shadow: var(--pb-shadow);
+}
+
+/* Apply the cream ramp only when the same badge/subcard also owns a
+   semantic text utility. Standalone headings and icons keep their normal
+   Backwoods-dark semantic colors. */
+.dark.backwoods .backwoods-dashboard [class~="bg-amber-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-amber-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-amber-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-amber-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-amber-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-purple-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-purple-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-purple-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-purple-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-purple-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-blue-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-blue-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-blue-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-blue-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-blue-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-sky-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-sky-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-sky-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-sky-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-sky-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-emerald-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-emerald-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-emerald-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-emerald-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-emerald-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-cyan-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-cyan-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-cyan-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-cyan-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-cyan-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-teal-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-teal-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-teal-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-teal-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-teal-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-indigo-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-indigo-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-indigo-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-indigo-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-indigo-500/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-rose-50"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class~="bg-rose-100"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-rose-50/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-rose-100/"][class*="text-"],
+.dark.backwoods .backwoods-dashboard [class*="bg-rose-500/"][class*="text-"] {
+  color: #eadbb9 !important;
+}
+/* Preserve a visible hover lift for dashboard controls whose source utility
+   is a translucent semantic hover background. */
+.dark.backwoods .backwoods-dashboard [class*="hover:bg-emerald"]:hover,
+.dark.backwoods .backwoods-dashboard [class*="hover:bg-slate"]:hover {
+  background-color: rgba(70, 56, 34, calc(var(--card-opacity, 0.92) * 1.08)) !important;
+}
+.dark.backwoods .backwoods-dashboard [class*="hover:bg-amber"]:hover {
+  background-color: rgba(90, 64, 30, calc(var(--card-opacity, 0.92) * 1.08)) !important;
+}
+.dark.backwoods .backwoods-dashboard [class*="hover:bg-purple"]:hover,
+.dark.backwoods .backwoods-dashboard [class*="hover:bg-blue"]:hover,
+.dark.backwoods .backwoods-dashboard [class*="hover:bg-sky"]:hover {
+  background-color: rgba(60, 48, 30, calc(var(--card-opacity, 0.92) * 1.08)) !important;
+}
