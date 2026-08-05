@@ -189,14 +189,6 @@ const getScoreBadgeColor = (score: number) => {
       if (score >= 76) return 'bg-[#4a8c5e] text-white border-[#4a8c5e] shadow-sm';
       if (score >= 46) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
-    } else if (theme === 'backwoods') {
-      // Theme-aware four-tier scoring: excellent = deep forest, good = pine,
-      // fair = hunter orange, poor = rust red. All sit cleanly on the kraft
-      // background and read at a glance from the card header.
-      if (score >= 90) return 'bg-[#1f3a1c] text-white border-[#1f3a1c] shadow-sm';
-      if (score >= 76) return 'bg-[#3d5a2a] text-white border-[#3d5a2a] shadow-sm';
-      if (score >= 46) return 'bg-[#c44a17] text-white border-[#c44a17] shadow-sm';
-      return 'bg-[#7a2f1a] text-white border-[#7a2f1a] shadow-sm';
     } else if ((theme === 'olive' || theme === 'hunting')) {
       if (score >= 90) return 'bg-[#2d4a27] text-white border-[#556b2f] shadow-sm';
       if (score >= 76) return 'bg-[#556b2f] text-white border-[#8a9a5b] shadow-sm';
@@ -223,11 +215,7 @@ const getScoreBadgeColor = (score: number) => {
     if (score >= 90) { // Excellent - Dark green
       if (isSelected) {
         return isDark
-          ? theme === 'backwoods'
-            ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbExcellent}]/70 ring-2 ring-[${pbExcellent}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
-            : `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
-          : theme === 'backwoods'
-          ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbExcellent}] ring-2 ring-[${pbExcellent}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
+          ? `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
           ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#1a6b3c] ring-2 ring-[#1a6b3c]/40 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
@@ -235,11 +223,7 @@ const getScoreBadgeColor = (score: number) => {
           : `bg-white/[var(--card-opacity)] border-emerald-600 ring-2 ring-emerald-600/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? theme === 'backwoods'
-          ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbExcellent}]/40 hover:border-[${pbExcellent}]/70 shadow-md transition-all ${glass}`
-          : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-700/30 hover:border-emerald-700/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
-        : theme === 'backwoods'
-        ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbExcellent}]/35 hover:border-[${pbExcellent}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
+        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-700/30 hover:border-emerald-700/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
         : theme === 'hunting'
         ? `bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#d4c4a8]/35 hover:border-[#d4c4a8]/60 shadow-xs text-[#2a1b0e] transition-all ${glass}`
         : (theme === 'olive' || theme === 'hunting')
@@ -250,11 +234,7 @@ const getScoreBadgeColor = (score: number) => {
     if (score >= 76) { // Good - Sage green
       if (isSelected) {
         return isDark
-          ? theme === 'backwoods'
-            ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbGood}]/70 ring-2 ring-[${pbGood}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
-            : `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
-          : theme === 'backwoods'
-          ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbGood}] ring-2 ring-[${pbGood}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
+          ? `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
           ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#4a8c5e] ring-2 ring-[#4a8c5e]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
@@ -262,11 +242,7 @@ const getScoreBadgeColor = (score: number) => {
           : `bg-white/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? theme === 'backwoods'
-          ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbGood}]/40 hover:border-[${pbGood}]/70 shadow-md transition-all ${glass}`
-          : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/30 hover:border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
-        : theme === 'backwoods'
-        ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbGood}]/35 hover:border-[${pbGood}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
+        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/30 hover:border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
         : theme === 'hunting'
         ? `bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#d4c4a8]/30 hover:border-[#d4c4a8]/50 shadow-xs text-[#2a1b0e] transition-all ${glass}`
         : (theme === 'olive' || theme === 'hunting')
@@ -277,11 +253,7 @@ const getScoreBadgeColor = (score: number) => {
     if (score >= 46) { // Fair - Amber/Ochre
       if (isSelected) {
         return isDark
-          ? theme === 'backwoods'
-            ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbFair}]/70 ring-2 ring-[${pbFair}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
-            : `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
-          : theme === 'backwoods'
-          ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbFair}] ring-2 ring-[${pbFair}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
+          ? `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
           ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#c85a17] ring-2 ring-[#c85a17]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
@@ -289,11 +261,7 @@ const getScoreBadgeColor = (score: number) => {
           : `bg-white/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? theme === 'backwoods'
-          ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbFair}]/40 hover:border-[${pbFair}]/70 shadow-md transition-all ${glass}`
-          : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-amber-500/30 hover:border-amber-500/60 shadow-md shadow-amber-950/20 hover:shadow-amber-500/5 transition-all ${glass}`
-        : theme === 'backwoods'
-        ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbFair}]/35 hover:border-[${pbFair}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
+        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-amber-500/30 hover:border-amber-500/60 shadow-md shadow-amber-950/20 hover:shadow-amber-500/5 transition-all ${glass}`
         : theme === 'hunting'
         ? `bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#d4c4a8]/30 hover:border-[#d4c4a8]/50 shadow-xs text-[#2a1b0e] transition-all ${glass}`
         : (theme === 'olive' || theme === 'hunting')
@@ -304,11 +272,7 @@ const getScoreBadgeColor = (score: number) => {
     // Poor (< 46) - Red
     if (isSelected) {
       return isDark
-        ? theme === 'backwoods'
-          ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbPoor}]/70 ring-2 ring-[${pbPoor}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
-          : `bg-slate-900/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10 scale-[1.01] z-10 ${glass}`
-        : theme === 'backwoods'
-        ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbPoor}] ring-2 ring-[${pbPoor}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
+        ? `bg-slate-900/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10 scale-[1.01] z-10 ${glass}`
         : theme === 'hunting'
         ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#8b3a3a] ring-2 ring-[#8b3a3a]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
         : (theme === 'olive' || theme === 'hunting')
@@ -316,11 +280,7 @@ const getScoreBadgeColor = (score: number) => {
         : `bg-white/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/30 shadow-md shadow-rose-500/5 scale-[1.01] z-10 ${glass}`;
     }
     return isDark
-      ? theme === 'backwoods'
-        ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbPoor}]/40 hover:border-[${pbPoor}]/70 shadow-md transition-all ${glass}`
-        : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-rose-500/30 hover:border-rose-500/60 shadow-md shadow-rose-950/20 hover:shadow-rose-500/5 transition-all ${glass}`
-      : theme === 'backwoods'
-      ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbPoor}]/35 hover:border-[${pbPoor}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
+      ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-rose-500/30 hover:border-rose-500/60 shadow-md shadow-rose-950/20 hover:shadow-rose-500/5 transition-all ${glass}`
       : theme === 'hunting'
       ? `bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#8b3a3a]/30 hover:border-[#8b3a3a]/50 shadow-xs text-[#2a1b0e] transition-all ${glass}`
       : (theme === 'olive' || theme === 'hunting')
@@ -329,7 +289,7 @@ const getScoreBadgeColor = (score: number) => {
   };
 
   return (
-    <div className="w-full backwoods-dashboard">
+    <div className="w-full">
       {/* Best Day Banner — highlights the top-scoring day of the week. Uses the
           same theme-aware card background as the forecast cards (respects the
           custom-background opacity & blur settings) instead of a hard gradient. */}
@@ -445,26 +405,14 @@ const getScoreBadgeColor = (score: number) => {
                 isSelected
               )}`}
             >
-              {/* Backwoods texture — pinned to each forecast card so every
-                  day in the week reads as an entry from a field guide. */}
-              {theme === 'backwoods' && (
-                <>
-                  <PaperTexture
-                    variant="binding"
-                    opacity={0.45}
-                    blendMode="multiply"
-                    tone="#5a3a1f"
-                    className="absolute top-0 left-0 w-3 h-full"
-                  />
-                  <PaperTexture
-                    variant="fibers"
-                    opacity={0.55}
-                    blendMode="multiply"
-                    tone="#5a3a1f"
-                    className="absolute inset-0"
-                  />
-                </>
-              )}
+              {/* Subtle paper texture overlay so the card has a tactile feel. */}
+              <PaperTexture
+                variant="fibers"
+                opacity={0.18}
+                blendMode="soft-light"
+                tone={isDark ? '#94a3b8' : '#94a3b8'}
+                className="absolute inset-0 pointer-events-none rounded-2xl"
+              />
 
               {/* COMPACT CARD HEADER (always visible, click-toggleable) */}
               <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
@@ -590,7 +538,7 @@ const getScoreBadgeColor = (score: number) => {
                 }}
                 className="overflow-hidden"
               >
-                <div className="theme-expanded-content backwoods-dark-expanded px-4 pb-4 sm:px-5 sm:pb-5 border-t border-slate-500/15">
+                <div className="theme-expanded-content px-4 pb-4 sm:px-5 sm:pb-5 border-t border-slate-500/15">
                   {/* Highlight & Status Badges */}
                   <div className="flex flex-wrap gap-1.5 mt-3.5 mb-3.5">
                     {/* Semi-rectangular Pill Style Badge for Rut Status */}

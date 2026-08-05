@@ -135,7 +135,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   // isDark comes from the orthogonal themeMode prop (not the composite
   // `theme` string, which collapses to the variant name for olive/hunting/
-  // backwoods) so the whole Settings view flips correctly in dark mode.
+  // (standard / olive / hunting) so the whole Settings view flips correctly in dark mode.
   const isDark = themeMode === 'dark';
 
   // Search debounced
@@ -376,37 +376,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         className={`relative overflow-hidden p-5 sm:p-6 rounded-3xl border shadow-lg ${
           isDark
             ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-            : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f]'
             : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
         }`}
       >
-        {/* Topographic fragment in the top-right corner for backwoods theme;
-            wash gradient for everything else so settings still feel layered
-            without a hard rectangular shape. */}
-        {theme === 'backwoods' ? (
-          <PaperTexture
-            variant="leaflet"
-            opacity={0.32}
-            tone="#5a3a1f"
-            className="absolute -top-2 -right-6 w-44 h-32 opacity-80"
-          />
-        ) : (
-          <PaperTexture
-            variant="wash"
-            opacity={0.06}
-            blendMode="soft-light"
-            tone={isDark ? '#94a3b8' : '#94a3b8'}
-            className="absolute inset-x-0 top-0 h-12"
-          />
-        )}
+        {/* Wash gradient overlay so the settings panel still feels layered. */}
+        <PaperTexture
+          variant="wash"
+          opacity={0.06}
+          blendMode="soft-light"
+          tone={isDark ? '#94a3b8' : '#94a3b8'}
+          className="absolute inset-x-0 top-0 h-12"
+        />
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
               className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0 ${
-                theme === 'backwoods'
-                  ? 'bg-[#c44a17]/15 border border-[#5a3a1f]/40 text-[#c44a17]'
-                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
+                'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
               }`}
             >
               <Settings className="w-6 h-6" />
@@ -414,14 +399,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div>
               <h1
                 className={`text-xl sm:text-2xl font-black tracking-tight ${
-                  isDark ? 'text-white' : theme === 'backwoods' ? 'text-[#2a1d10]' : 'text-slate-900'
+                  isDark ? 'text-white' : 'text-slate-900'
                 }`}
               >
                 App Settings
               </h1>
               <p
                 className={`text-xs mt-0.5 ${
-                  isDark ? 'text-slate-400' : theme === 'backwoods' ? 'text-[#5a3a1f]' : 'text-slate-600'
+                  isDark ? 'text-slate-400' : 'text-slate-600'
                 }`}
               >
                 Manage hunting grounds, default location, unit preferences, and weather alerts.
@@ -432,9 +417,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <button
             onClick={onSwitchToDashboard}
             className={`px-4 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto ${
-              theme === 'backwoods'
-                ? 'bg-[#c44a17] hover:bg-[#a23d12]'
-                : 'bg-emerald-600 hover:bg-emerald-500'
+              'bg-emerald-600 hover:bg-emerald-500'
             }`}
           >
             <span>Back to Dashboard</span>
@@ -446,16 +429,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* Section 1: Location & Hunting Grounds Management */}
         <div className={`p-5 sm:p-6 rounded-3xl border space-y-5 ${
           isDark
-            ? theme === 'backwoods'
-              ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-              : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-            : theme === 'backwoods'
-              ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
               : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'
         }`}>
           <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
-            <MapPin className={`w-5 h-5 ${theme === 'backwoods' ? 'text-[#c44a17]' : 'text-emerald-500'}`} />
-            <h2 className={`text-base font-black ${isDark ? 'text-white' : theme === 'backwoods' ? 'text-[#2a1d10]' : 'text-slate-900'}`}>
+            <MapPin className="w-5 h-5 text-emerald-500" />
+            <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Hunting Grounds & Default Location
             </h2>
           </div>
@@ -463,11 +442,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           {/* Active & Default Location Card */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
             isDark
-              ? theme === 'backwoods'
-                ? 'bg-[#3a2a16]/60 border-[#d3c298]/30'
-                : 'bg-slate-950/60 border-slate-800'
-              : theme === 'backwoods'
-                ? 'bg-[#bea878]/60 border-[#5a3a1f]/30'
+              ? 'bg-slate-950/60 border-slate-800'
                 : 'bg-slate-50 border-slate-200'
           }`}>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -698,12 +673,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="space-y-6">
           {/* Push Notifications & Weather Alerts Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
-          ? theme === 'backwoods'
-            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
-            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <BellRing className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -986,12 +957,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* Unit System Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
-          ? theme === 'backwoods'
-            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
-            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Thermometer className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1048,12 +1015,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* Barometric Pressure Unit Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
-          ? theme === 'backwoods'
-            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
-            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Gauge className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1110,12 +1073,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* Appearance & Theme Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
-          ? theme === 'backwoods'
-            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
-            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Sun className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1211,31 +1170,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
                 </button>
 
-                <button
-                  onClick={() => {
-                    setVariant('backwoods');
-                    showToast('Backwoods Theme Activated');
-                  }}
-                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                    themeVariant === 'backwoods'
-                      ? 'bg-[#c44a17]/20 border-[#5a3a1f] ring-2 ring-[#c44a17]/40 text-[#2a1d10]'
-                      : isDark
-                      ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full mb-1">
-                    <div className="flex gap-1">
-                      <span className="w-3 h-3 rounded-sm bg-[#1f1a10] border border-[#5a3a1f]/60" />
-                      <span className="w-3 h-3 rounded-sm bg-[#e6dcc1] border border-[#5a3a1f]/40" />
-                    </div>
-                    {themeVariant === 'backwoods' && <Check className="w-3.5 h-3.5 text-[#c44a17]" />}
-                  </div>
-                  <div>
-                    <div className="font-black text-xs">Backwoods</div>
-                    <div className="text-[9px] text-[#5a3a1f]">Aged Paper &amp; Topo</div>
-                  </div>
-                </button>
               </div>
             </div>
 
@@ -1250,15 +1184,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   themeMode === 'dark'
                     ? themeVariant === 'hunting'
                       ? 'bg-[#c85a17]/15 text-[#c85a17]'
-                      : themeVariant === 'backwoods'
-                      ? 'bg-[#c44a17]/15 text-[#c44a17]'
                       : themeVariant === 'olive'
                       ? 'bg-[#556b2f]/20 text-[#556b2f]'
                       : 'bg-emerald-500/15 text-emerald-400'
                     : themeVariant === 'hunting'
                     ? 'bg-[#c85a17]/15 text-[#c85a17]'
-                    : themeVariant === 'backwoods'
-                    ? 'bg-[#c44a17]/15 text-[#c44a17]'
                     : themeVariant === 'olive'
                     ? 'bg-[#556b2f]/20 text-[#556b2f]'
                     : 'bg-amber-500/15 text-amber-500'
@@ -1273,7 +1203,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     Applies to <strong>{
                       themeVariant === 'standard' ? 'Standard' :
                       themeVariant === 'olive' ? 'Olive' :
-                      themeVariant === 'hunting' ? 'Hunter' : 'Backwoods'
+                      'Hunter'
                     }</strong> — flip anytime.
                   </div>
                 </div>
@@ -1378,12 +1308,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* Quick Guides & Web App Tool Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-3 ${isDark
-          ? theme === 'backwoods'
-            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
-            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <h2 className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               Help & Resources
             </h2>
@@ -1413,12 +1339,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           {/* Backup & Restore (JSON) Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
-          ? theme === 'backwoods'
-            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
-            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : theme === 'backwoods'
-            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
-            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Database className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>

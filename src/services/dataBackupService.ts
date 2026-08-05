@@ -244,7 +244,7 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
   const settings = backup.settings || ({} as LetsHuntBackup['settings']);
 
   // Settings — validate enum values so a hand-edited backup can't corrupt state.
-  const validThemes: ThemeVariantMode[] = ['dark', 'light', 'olive', 'hunting', 'backwoods'];
+  const validThemes: ThemeVariantMode[] = ['dark', 'light', 'olive', 'hunting'];
   const validUnits: UnitSystem[] = ['imperial', 'metric'];
   const validPressure: PressureUnit[] = ['inHg', 'hPa'];
   // Restore theme as both the legacy composite key AND the new variant/mode
@@ -253,7 +253,7 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
     safeSet(LOCAL_STORAGE_KEYS.theme, settings.theme);
     // Resolve variant: explicit composite wins, otherwise derive.
     let variant: ThemeVariant = 'standard';
-    if (settings.theme === 'olive' || settings.theme === 'hunting' || settings.theme === 'backwoods') {
+    if (settings.theme === 'olive' || settings.theme === 'hunting') {
       variant = settings.theme;
     }
     // Resolve mode: prefer the new explicit field from this build's export;

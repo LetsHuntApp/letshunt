@@ -116,35 +116,33 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   // color per theme × mode. Center elements use the returned stroke hex
   // directly, avoiding theme utility overrides that could break the match.
   const getScoreColorClasses = (score: number) => {
-    const bwDark = theme === 'backwoods' && isDark;
-    const bwLight = theme === 'backwoods' && !isDark;
     if (score >= 90) { // Excellent - Deep Pine Green (emerald-800)
       return {
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-800/10 dark:ring-emerald-500/10',
-        stroke: bwDark ? '#8fbc6e' : bwLight ? '#2f4a1f' : isDark ? '#34d399' : '#047857', // emerald-400 vs emerald-700
+        stroke: isDark ? '#34d399' : '#047857', // emerald-400 vs emerald-700
       };
     } else if (score >= 76) { // Good - Sage Green (emerald-500/600)
       return {
         bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
         border: 'border-emerald-500/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
-        stroke: bwDark ? '#a8c078' : bwLight ? '#3d5a2a' : isDark ? '#10b981' : '#059669', // emerald-500 vs emerald-600
+        stroke: isDark ? '#10b981' : '#059669', // emerald-500 vs emerald-600
       };
     } else if (score >= 46) { // Fair - Warm Amber/Ochre (amber-500/600)
       return {
         bg: 'bg-amber-500/10 dark:bg-amber-500/15',
         border: 'border-amber-500/20 dark:border-amber-500/30',
         ring: 'ring-amber-500/10 dark:ring-amber-500/10',
-        stroke: bwDark ? '#e0b566' : bwLight ? '#c44a17' : '#d97706', // amber-600
+        stroke: '#d97706', // amber-600
       };
     } else { // Poor - Dusty Terracotta/Rose (rose-500/600)
       return {
         bg: 'bg-rose-500/10 dark:bg-rose-500/15',
         border: 'border-rose-500/20 dark:border-rose-500/30',
         ring: 'ring-rose-500/10 dark:ring-rose-500/10',
-        stroke: bwDark ? '#e08a6a' : bwLight ? '#8a3424' : '#f43f5e', // rose-500
+        stroke: '#f43f5e', // rose-500
       };
     }
   };
