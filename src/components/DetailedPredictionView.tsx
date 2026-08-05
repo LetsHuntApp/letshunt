@@ -109,17 +109,14 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const weatherDetails = hourData ? getWeatherDetails(hourData.weatherCode) : getWeatherDetails(day.weatherCode);
 
   // Score gauge color helper — Backwoods gets its own palette (mirroring the
-  // dashboard dial) so the ring, the deer inside it, and the rating label all
-  // share one color per theme × mode. The backwoods `text` values are
-  // arbitrary hex classes on purpose: the .backwoods / .dark.backwoods text
-  // remaps use `!important`, which would otherwise beat the inline stroke
-  // color applied to the deer/label and break the ring↔deer color match.
+  // dashboard dial) so the ring and every center element share one exact
+  // color per theme × mode. Center elements use the returned stroke hex
+  // directly, avoiding theme utility overrides that could break the match.
   const getScoreColorClasses = (score: number) => {
     const bwDark = theme === 'backwoods' && isDark;
     const bwLight = theme === 'backwoods' && !isDark;
     if (score >= 90) { // Excellent - Deep Pine Green (emerald-800)
       return {
-        text: bwDark ? 'text-[#8fbc6e]' : bwLight ? 'text-[#2f4a1f]' : 'text-emerald-800 dark:text-emerald-400',
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-800/10 dark:ring-emerald-500/10',
@@ -127,7 +124,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       };
     } else if (score >= 76) { // Good - Sage Green (emerald-500/600)
       return {
-        text: bwDark ? 'text-[#a8c078]' : bwLight ? 'text-[#3d5a2a]' : 'text-emerald-600 dark:text-emerald-400',
         bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
         border: 'border-emerald-500/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
@@ -135,7 +131,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       };
     } else if (score >= 46) { // Fair - Warm Amber/Ochre (amber-500/600)
       return {
-        text: bwDark ? 'text-[#e0b566]' : bwLight ? 'text-[#c44a17]' : 'text-amber-600 dark:text-amber-400',
         bg: 'bg-amber-500/10 dark:bg-amber-500/15',
         border: 'border-amber-500/20 dark:border-amber-500/30',
         ring: 'ring-amber-500/10 dark:ring-amber-500/10',
@@ -143,7 +138,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       };
     } else { // Poor - Dusty Terracotta/Rose (rose-500/600)
       return {
-        text: bwDark ? 'text-[#e08a6a]' : bwLight ? 'text-[#8a3424]' : 'text-rose-600 dark:text-rose-400',
         bg: 'bg-rose-500/10 dark:bg-rose-500/15',
         border: 'border-rose-500/20 dark:border-rose-500/30',
         ring: 'ring-rose-500/10 dark:ring-rose-500/10',
@@ -328,21 +322,27 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               />
             </svg>
             <div className="text-center z-10 flex flex-col items-center justify-center">
-              <DeerIcon 
-                className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${colors.text} -mb-0.5`} 
-                style={{ color: colors.stroke }}
+              <DeerIcon
+                className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
+                style={{ color: colors.stroke, fill: colors.stroke }}
               />
-              <div className="text-3xl sm:text-4xl font-black tracking-tight leading-none">
-                {activeScore}
-              </div>
-              <div 
-                className={`text-[10px] sm:text-xs font-black uppercase tracking-wider ${colors.text} leading-tight mt-0.5 flex items-center justify-center gap-1`}
+              <div
+                className="text-3xl sm:text-4xl font-black tracking-tight leading-none"
                 style={{ color: colors.stroke }}
               >
-                {isExcellentDay && <Star className="w-3.5 h-3.5 fill-current text-amber-500 dark:text-amber-400" />}
+                {activeScore}
+              </div>
+              <div
+                className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                style={{ color: colors.stroke }}
+              >
+                {isExcellentDay && <Star className="w-3.5 h-3.5" style={{ color: colors.stroke, fill: colors.stroke }} />}
                 <span>{getRatingFromScore(activeScore)}</span>
               </div>
-              <div className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'} -mt-0.5 opacity-90`}>
+              <div
+                className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
+                style={{ color: colors.stroke }}
+              >
                 SCORE
               </div>
             </div>

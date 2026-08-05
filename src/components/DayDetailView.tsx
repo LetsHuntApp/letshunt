@@ -158,24 +158,6 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? '#d97706' // amber-600 (Warm Amber)
     : '#f43f5e'; // rose-500 (Terracotta)
 
-  const scoreTextColor = isDark && theme === 'backwoods'
-    ? (currentScore >= 90 ? 'text-[#8fbc6e]' : currentScore >= 76 ? 'text-[#a8c078]' : currentScore >= 46 ? 'text-[#e0b566]' : 'text-[#e08a6a]')
-    : isDark
-    ? (currentScore >= 90 ? 'text-emerald-300' : currentScore >= 76 ? 'text-emerald-300' : currentScore >= 46 ? 'text-amber-300' : 'text-rose-300')
-    : theme === 'hunting'
-    ? (currentScore >= 90 ? 'text-[#1a6b3c]' : currentScore >= 76 ? 'text-[#4a8c5e]' : currentScore >= 46 ? 'text-[#c85a17]' : 'text-[#8b3a3a]')
-    : (theme === 'olive' || theme === 'hunting')
-    ? 'text-[#1e2e1b]'
-    : theme === 'backwoods'
-    ? (currentScore >= 90 ? 'text-[#2f4a1f]' : currentScore >= 76 ? 'text-[#3d5a2a]' : currentScore >= 46 ? 'text-[#c44a17]' : 'text-[#8a3424]')
-    : currentScore >= 90
-    ? 'text-emerald-700'
-    : currentScore >= 76
-    ? 'text-emerald-600'
-    : currentScore >= 46
-    ? 'text-amber-600'
-    : 'text-rose-500';
-
   return (
     <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn backwoods-dashboard">
       {/* Hero Overview Header Card */}
@@ -261,23 +243,27 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   />
                 </svg>
                 <div className="text-center z-10 flex flex-col items-center justify-center">
-                  <DeerIcon 
-                    className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${scoreTextColor} -mb-0.5`} 
-                    style={{ color: scoreStrokeColor }}
+                  <DeerIcon
+                    className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
+                    style={{ color: scoreStrokeColor, fill: scoreStrokeColor }}
                   />
-                  <div className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' || theme === 'backwoods' ? (isDark ? 'text-3xl sm:text-4xl text-white' : `text-3xl sm:text-4xl ${theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-[#2a1d10]'}`) : 'text-2xl sm:text-3xl'}`}>
-                    {currentScore}
-                  </div>
-                  <div 
-                    className={`text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1 ${
-                      theme === 'hunting' ? 'text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : scoreTextColor
-                    }`}
+                  <div
+                    className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' || theme === 'backwoods' ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'}`}
                     style={{ color: scoreStrokeColor }}
                   >
-                    {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-500 dark:text-amber-400" />}
+                    {currentScore}
+                  </div>
+                  <div
+                    className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                    style={{ color: scoreStrokeColor }}
+                  >
+                    {isExcellentDay && <Star className="w-3 h-3" style={{ color: scoreStrokeColor, fill: scoreStrokeColor }} />}
                     <span>{getRatingFromScore(currentScore)}</span>
                   </div>
-                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : theme === 'backwoods' ? 'text-[#c44a17]' : 'text-slate-500'} -mt-0.5 opacity-90`}>
+                  <div
+                    className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest -mt-0.5 opacity-90"
+                    style={{ color: scoreStrokeColor }}
+                  >
                     SCORE
                   </div>
                 </div>
