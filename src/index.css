@@ -186,6 +186,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background-color: rgb(244 238 225 / var(--card-opacity, 0.9)) !important;
 }
 
+/* Backwoods kraft card fallbacks for card-opacity — #d3c298 (the backwoods
+   card surface) and the TrailCameraView sub-tab chips (#dccab8 / #e5dfcd)
+   were missing rgb() fallbacks, so Tailwind's color-mix() output with a
+   unitless alpha var was invalid and the cards rendered transparent over a
+   custom background image. */
+[class*="bg-[#d3c298]/[var(--card-opacity)]"] {
+  background-color: rgb(211 194 152 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-[#dccab8]/[var(--card-opacity)]"] {
+  background-color: rgb(220 202 184 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-[#e5dfcd]/[var(--card-opacity)]"] {
+  background-color: rgb(229 223 205 / var(--card-opacity, 0.9)) !important;
+}
+
 /* Gradients support using rgb slash notation to preserve layout and design */
 .via-slate-900\/\[var\(--card-opacity\)\],
 [class*="via-slate-900/[var(--card-opacity)]"] {
@@ -989,6 +1004,28 @@ html.backwoods, .backwoods {
   background-color: rgb(2 6 23 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
 }
 
+/* Base-state re-tints for cards that carry a hover:bg-* class. The
+   :not([class*="hover:"]) guard above skips them (e.g. ForecastCards' day
+   cards carry hover:bg-slate-900/[calc(var(--card-opacity)*1.15)]), leaving
+   their resting surface as plain dark slate instead of the variant palette.
+   Re-tint the resting surface here; the :hover rules BELOW this block
+   repaint the lifted state, so both stay in sync. */
+.dark.olive [class*="bg-slate-900/[var(--card-opacity)]"][class*="hover:bg-slate-900/"],
+.dark.olive [class*="bg-slate-950/[var(--card-opacity)]"][class*="hover:bg-slate-950/"] {
+  background-color: rgb(28 40 21 / var(--card-opacity, 0.92)) !important;
+  border-color: rgba(85, 107, 47, 0.45) !important;
+}
+.dark.hunting [class*="bg-slate-900/[var(--card-opacity)]"][class*="hover:bg-slate-900/"],
+.dark.hunting [class*="bg-slate-950/[var(--card-opacity)]"][class*="hover:bg-slate-950/"] {
+  background-color: rgb(46 30 15 / var(--card-opacity, 0.92)) !important;
+  border-color: rgba(200, 90, 23, 0.35) !important;
+}
+.dark.backwoods [class*="bg-slate-900/[var(--card-opacity)]"][class*="hover:bg-slate-900/"],
+.dark.backwoods [class*="bg-slate-950/[var(--card-opacity)]"][class*="hover:bg-slate-950/"] {
+  background-color: rgb(58 46 28 / var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+
 /* Hover-state overrides for the dark variant palettes. The
    :not([class*="hover:"]) guard above keeps hover:bg-* states alive, but it
    also excludes the base state of any card that carries a hover class (e.g.
@@ -1006,4 +1043,29 @@ html.backwoods, .backwoods {
 .dark.backwoods [class*="hover:bg-slate-900/"]:hover,
 .dark.backwoods [class*="hover:bg-slate-950/"]:hover {
   background-color: rgb(70 56 34 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}
+
+/* Gradient-stop re-tints — the hero cards emit dark gradients with
+   via-slate-900 / to-slate-950 stops (both the [var(--card-opacity)] variants
+   from DayDetailView and the fixed stops from DetailedPredictionView), which
+   the bg-* re-tints above don't cover. Re-tint those stops so the top forecast
+   cards match the moss / walnut / kraft surface tint of every other card in
+   the dark variants. */
+.dark.olive [class*="via-slate-900"],
+.dark.olive [class*="to-slate-950"] {
+  --tw-gradient-via: rgb(28 40 21 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-to: rgb(20 29 15 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+.dark.hunting [class*="via-slate-900"],
+.dark.hunting [class*="to-slate-950"] {
+  --tw-gradient-via: rgb(46 30 15 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-to: rgb(32 21 10 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
+.dark.backwoods [class*="via-slate-900"],
+.dark.backwoods [class*="to-slate-950"] {
+  --tw-gradient-via: rgb(58 46 28 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-to: rgb(40 32 19 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
 }

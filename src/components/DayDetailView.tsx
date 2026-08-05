@@ -140,59 +140,61 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     return day.factors;
   }, [selectedHour, day, units, pressureUnit, location]);
 
-  const scoreStrokeColor =
-    theme === 'hunting'
-      ? (currentScore >= 90 ? '#1a6b3c' : currentScore >= 76 ? '#4a8c5e' : currentScore >= 46 ? '#c85a17' : '#8b3a3a')
-      : (theme === 'olive' || theme === 'hunting')
-      ? (currentScore >= 90 ? '#2d4a27' : currentScore >= 76 ? '#556b2f' : currentScore >= 46 ? '#b87333' : '#8b3a3a')
-      : theme === 'backwoods'
-      ? (currentScore >= 90 ? '#2f4a1f' : currentScore >= 76 ? '#3d5a2a' : currentScore >= 46 ? '#c44a17' : '#8a3424')
-      : currentScore >= 90
-      ? (isDark ? '#34d399' : '#047857') // emerald-400 (Vibrant Green) vs emerald-700 (Pine Forest Green)
-      : currentScore >= 76
-      ? (isDark ? '#10b981' : '#059669') // emerald-500 (Sage Green) vs emerald-600
-      : currentScore >= 46
-      ? '#d97706' // amber-600 (Warm Amber)
-      : '#f43f5e'; // rose-500 (Terracotta)
+  const scoreStrokeColor = isDark
+    ? (currentScore >= 90 ? '#34d399' : currentScore >= 76 ? '#10b981' : currentScore >= 46 ? '#d97706' : '#f43f5e')
+    : theme === 'hunting'
+    ? (currentScore >= 90 ? '#1a6b3c' : currentScore >= 76 ? '#4a8c5e' : currentScore >= 46 ? '#c85a17' : '#8b3a3a')
+    : (theme === 'olive' || theme === 'hunting')
+    ? (currentScore >= 90 ? '#2d4a27' : currentScore >= 76 ? '#556b2f' : currentScore >= 46 ? '#b87333' : '#8b3a3a')
+    : theme === 'backwoods'
+    ? (currentScore >= 90 ? '#2f4a1f' : currentScore >= 76 ? '#3d5a2a' : currentScore >= 46 ? '#c44a17' : '#8a3424')
+    : currentScore >= 90
+    ? '#047857' // emerald-700 (Pine Forest Green)
+    : currentScore >= 76
+    ? '#059669' // emerald-600
+    : currentScore >= 46
+    ? '#d97706' // amber-600 (Warm Amber)
+    : '#f43f5e'; // rose-500 (Terracotta)
 
-  const scoreTextColor =
-    theme === 'hunting'
-      ? (currentScore >= 90 ? 'text-[#1a6b3c]' : currentScore >= 76 ? 'text-[#4a8c5e]' : currentScore >= 46 ? 'text-[#c85a17]' : 'text-[#8b3a3a]')
-      : (theme === 'olive' || theme === 'hunting')
-      ? 'text-[#1e2e1b]'
-      : theme === 'backwoods'
-      ? (currentScore >= 90 ? 'text-[#2f4a1f]' : currentScore >= 76 ? 'text-[#3d5a2a]' : currentScore >= 46 ? 'text-[#c44a17]' : 'text-[#8a3424]')
-      : currentScore >= 90
-      ? 'text-emerald-800 dark:text-emerald-400'
-      : currentScore >= 76
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : currentScore >= 46
-      ? 'text-amber-600 dark:text-amber-400'
-      : 'text-rose-600 dark:text-rose-400';
+  const scoreTextColor = isDark
+    ? (currentScore >= 90 ? 'text-emerald-300' : currentScore >= 76 ? 'text-emerald-300' : currentScore >= 46 ? 'text-amber-300' : 'text-rose-300')
+    : theme === 'hunting'
+    ? (currentScore >= 90 ? 'text-[#1a6b3c]' : currentScore >= 76 ? 'text-[#4a8c5e]' : currentScore >= 46 ? 'text-[#c85a17]' : 'text-[#8b3a3a]')
+    : (theme === 'olive' || theme === 'hunting')
+    ? 'text-[#1e2e1b]'
+    : theme === 'backwoods'
+    ? (currentScore >= 90 ? 'text-[#2f4a1f]' : currentScore >= 76 ? 'text-[#3d5a2a]' : currentScore >= 46 ? 'text-[#c44a17]' : 'text-[#8a3424]')
+    : currentScore >= 90
+    ? 'text-emerald-700'
+    : currentScore >= 76
+    ? 'text-emerald-600'
+    : currentScore >= 46
+    ? 'text-amber-600'
+    : 'text-rose-600';
 
   return (
     <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn">
       {/* Hero Overview Header Card */}
       <div
         className={`rounded-3xl p-3 sm:p-4 border shadow-xl relative overflow-hidden transition-colors backdrop-blur-xl ${
-          theme === 'hunting'
+          isDark
+            ? isExcellentDay
+              ? 'bg-gradient-to-br from-emerald-950/50 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-600/50 text-slate-100'
+              : isGoodDay
+              ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-500/35 text-slate-100'
+              : isModerateDay
+              ? 'bg-gradient-to-br from-amber-950/40 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-amber-500/40 text-slate-100'
+              : 'bg-gradient-to-br from-rose-950/40 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-rose-500/40 text-slate-100'
+            : theme === 'hunting'
             ? 'bg-gradient-to-br from-[#f4eee1]/[var(--card-opacity)] via-[#eae1cf]/[var(--card-opacity)] to-[#e0d6c0]/[var(--card-opacity)] border-2 border-[#c85a17]/40 text-[#2a1b0e] shadow-lg ring-1 ring-[#c85a17]/20'
-            : (theme === 'olive' || theme === 'hunting')
+            : theme === 'olive'
             ? 'bg-gradient-to-br from-[#f7f5ed]/[var(--card-opacity)] via-[#efebd9]/[var(--card-opacity)] to-[#e8e4d5]/[var(--card-opacity)] border-2 border-[#556b2f]/40 text-[#1e2e1b] shadow-lg ring-1 ring-[#556b2f]/20'
             : isExcellentDay
-            ? isDark
-              ? 'bg-gradient-to-br from-emerald-950/50 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-600/50 text-slate-100'
-              : 'bg-gradient-to-br from-emerald-50/95 via-white/[var(--card-opacity)] to-emerald-50/45 border-emerald-300 text-slate-900 shadow-sm'
+            ? 'bg-gradient-to-br from-emerald-50/95 via-white/[var(--card-opacity)] to-emerald-50/45 border-emerald-300 text-slate-900 shadow-sm'
             : isGoodDay
-            ? isDark
-              ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-500/35 text-slate-100'
-              : 'bg-gradient-to-br from-emerald-50/80 via-white/[var(--card-opacity)] to-emerald-50/30 border-emerald-200 text-slate-900 shadow-sm'
+            ? 'bg-gradient-to-br from-emerald-50/80 via-white/[var(--card-opacity)] to-emerald-50/30 border-emerald-200 text-slate-900 shadow-sm'
             : isModerateDay
-            ? isDark
-              ? 'bg-gradient-to-br from-amber-950/40 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-amber-500/40 text-slate-100'
-              : 'bg-gradient-to-br from-amber-50/80 via-white/[var(--card-opacity)] to-amber-50/50 border-amber-200 text-slate-900 shadow-sm'
-            : isDark
-            ? 'bg-gradient-to-br from-rose-950/40 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-rose-500/40 text-slate-100'
+            ? 'bg-gradient-to-br from-amber-50/80 via-white/[var(--card-opacity)] to-amber-50/50 border-amber-200 text-slate-900 shadow-sm'
             : 'bg-gradient-to-br from-rose-50/80 via-white/[var(--card-opacity)] to-rose-50/50 border-rose-200 text-slate-900 shadow-sm'
         }`}
       >
@@ -242,9 +244,13 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {/* Circular Gauge Score */}
               <div className={`relative flex items-center justify-center shrink-0 transition-all ${
                 theme === 'hunting'
-                  ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#eae1cf] border-2 border-[#c85a17] shadow-xl ring-4 ring-[#c85a17]/25'
-                  : (theme === 'olive' || theme === 'hunting')
-                  ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#f2efe4] border-2 border-[#556b2f] shadow-xl ring-4 ring-[#556b2f]/25'
+                  ? isDark
+                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 border-emerald-600/60 shadow-xl ring-4 ring-emerald-500/25'
+                    : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#eae1cf] border-2 border-[#c85a17] shadow-xl ring-4 ring-[#c85a17]/25'
+                  : theme === 'olive'
+                  ? isDark
+                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 border-emerald-600/60 shadow-xl ring-4 ring-emerald-500/25'
+                    : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#f2efe4] border-2 border-[#556b2f] shadow-xl ring-4 ring-[#556b2f]/25'
                   : 'w-32 h-32 sm:w-36 sm:h-36'
               }`}>
                 {/* SVG Circle Track */}
@@ -277,7 +283,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${scoreTextColor} -mb-0.5`} 
                     style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') || theme === 'backwoods' ? scoreStrokeColor : undefined }}
                   />
-                  <div className={`font-black tracking-tight leading-none ${theme === 'hunting' ? 'text-3xl sm:text-4xl text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'text-3xl sm:text-4xl text-[#1e2e1b]' : 'text-2xl sm:text-3xl'}`}>
+                  <div className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' ? (isDark ? 'text-3xl sm:text-4xl text-white' : `text-3xl sm:text-4xl ${theme === 'hunting' ? 'text-[#2a1b0e]' : 'text-[#1e2e1b]'}`) : 'text-2xl sm:text-3xl'}`}>
                     {currentScore}
                   </div>
                   <div 
@@ -289,7 +295,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-500 dark:text-amber-400" />}
                     <span>{getRatingFromScore(currentScore)}</span>
                   </div>
-                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : isDark ? 'text-slate-400' : 'text-slate-500'} -mt-0.5 opacity-90`}>
+                  <div className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-slate-500'} -mt-0.5 opacity-90`}>
                     SCORE
                   </div>
                 </div>
