@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair, Navigation, Target, AlertCircle, Eraser } from 'lucide-react';
-import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
+import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getFullImageBlob, getThumbnailUrl, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
 
 interface TrailCameraDetailProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   photo: TrailCameraPhoto;
   photos: TrailCameraPhoto[];
   onClose: () => void;

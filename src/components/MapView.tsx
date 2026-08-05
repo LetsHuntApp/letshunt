@@ -54,7 +54,8 @@ import {
   PolygonPoint,
   SavedPolygon,
   PathType,
-  SavedPath
+  SavedPath,
+  ThemeVariantMode
 } from '../types';
 import { fetch5DayHuntingForecast, searchLocations } from '../services/weatherService';
 import { getBestStandForWind } from '../utils/huntingEngine';
@@ -77,7 +78,7 @@ interface MapViewProps {
   location: Location;
   units: UnitSystem;
   pressureUnit: PressureUnit;
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
   dailyForecast: DailyForecast[];
   onSelectLocation?: (loc: Location) => void;

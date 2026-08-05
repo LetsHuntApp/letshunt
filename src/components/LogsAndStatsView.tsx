@@ -47,12 +47,12 @@ import {
   Area,
   Legend
 } from 'recharts';
-import { ThemeMode, UnitSystem, DeerKillLog, DeerGender, SavedPin } from '../types';
+import { ThemeMode, ThemeVariantMode, UnitSystem, DeerKillLog, DeerGender, SavedPin } from '../types';
 import { fetchHistoricalWeather } from '../services/weatherService';
 import { TeachingEmptyState } from './TeachingEmptyState';
 
 interface LogsAndStatsViewProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   units: UnitSystem;
   showToast: (msg: string) => void;
   onNavigateToMap?: () => void;

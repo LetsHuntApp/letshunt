@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Location, UnitSystem, ThemeMode, PressureUnit } from '../types';
+import { Location, UnitSystem, ThemeMode, ThemeVariant, ThemeVariantMode, PressureUnit } from '../types';
 import { searchLocations } from '../services/weatherService';
 import {
   NotificationPrefs,
@@ -9,7 +9,7 @@ import {
   sendTestNotification,
   showSystemNotification,
 } from '../services/notificationService';
-import { subscribeUserToPush, unsubscribeUserFromPush, getPushServerUrl, DEFAULT_PUSH_SERVER_URL } from '../services/pushService';
+import { subscribeUserToPush, unsubscribeUserFromPush, getPushServerUrl, DEFAULT_PUSH_SERVER_URL, sendTestClosedAppPush } from '../services/pushService';
 import {
   Settings,
   MapPin,
@@ -40,9 +40,14 @@ import {
   Download,
   Upload,
   Loader2,
+  Send,
+  AlertCircle,
+  Activity,
+  Trees,
 } from 'lucide-react';
 import { DeerIcon } from './DeerIcon';
 import { exportBackupData, importBackupData, downloadJson, defaultBackupFilename } from '../services/dataBackupService';
+import { PaperTexture } from './PaperTexture';
 
 interface SettingsViewProps {
   currentLocation: Location;
@@ -54,10 +59,17 @@ interface SettingsViewProps {
   setUnits: (u: UnitSystem) => void;
   pressureUnit: PressureUnit;
   setPressureUnit: (p: PressureUnit) => void;
-  theme: ThemeMode;
+  // Composite theme (variant × mode). Use isDark = ThemeMode-based check
+  // elsewhere if you only care about light/dark; `theme` picks the variant.
+  theme: ThemeVariantMode;
   hasCustomBackground?: boolean;
   onToggleTheme: () => void;
-  setTheme: (t: ThemeMode) => void;
+  setTheme: (t: ThemeVariantMode) => void;
+  // Split state setters (preferred for new code):
+  themeVariant: ThemeVariant;
+  themeMode: ThemeMode;
+  setVariant: (v: ThemeVariant) => void;
+  setMode: (m: ThemeMode) => void;
   favorites: Location[];
   onToggleFavorite: (loc: Location) => void;
   onOpenGuide: () => void;
@@ -86,6 +98,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   theme,
   hasCustomBackground = false,
   setTheme,
+  themeVariant,
+  themeMode,
+  setVariant,
+  setMode,
   favorites,
   onToggleFavorite,
   onOpenGuide,
@@ -103,6 +119,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [permissionState, setPermissionState] = useState<NotificationPermission | 'unsupported'>(() => getPermissionState());
   const supported = isNotificationSupported();
+  const [isBackgroundTesting, setIsBackgroundTesting] = useState(false);
+  const [bgTestStatus, setBgTestStatus] = useState<{ kind: 'idle' | 'waking' | 'sending' | 'success' | 'error'; message: string }>(
+    { kind: 'idle', message: '' }
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -271,6 +291,38 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
+  const handleBackgroundPushTest = async () => {
+    setIsBackgroundTesting(true);
+    setBgTestStatus({ kind: 'waking', message: 'Preparing browser subscription…' });
+    try {
+      const result = await sendTestClosedAppPush(
+        { name: currentLocation.name, latitude: currentLocation.latitude, longitude: currentLocation.longitude },
+        {
+          leadTimeHours: notificationPrefs.leadTimeHours,
+          coldFront: notificationPrefs.coldFront,
+          weatherFront: notificationPrefs.weatherFront,
+          rainBreak: notificationPrefs.rainBreak,
+          primeDay: notificationPrefs.primeDay,
+          severeWeather: notificationPrefs.severeWeather,
+        },
+        units,      (state, info) => {
+          if (state === 'waking') setBgTestStatus({ kind: 'waking', message: info || 'Waking up push server…' });
+          else if (state === 'sending') setBgTestStatus({ kind: 'sending', message: info || 'Sending web-push…' });
+        });
+      setBgTestStatus({
+        kind: result.ok ? 'success' : 'error',
+        message: result.message,
+      });
+      if (result.ok) {
+        showToast('Background test push delivered ✓');
+      }
+    } catch (e: any) {
+      setBgTestStatus({ kind: 'error', message: e?.message || 'Unexpected error' });
+    } finally {
+      setIsBackgroundTesting(false);
+    }
+  };
+
   const handleMasterToggle = async (next: boolean) => {
     if (!next) {
       onNotificationPrefsChange({ ...notificationPrefs, enabled: false });
@@ -317,17 +369,58 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* Top Banner Header */}
-      <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div
+        className={`relative overflow-hidden p-5 sm:p-6 rounded-3xl border shadow-lg ${
+          isDark
+            ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+            : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f]'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
+        }`}
+      >
+        {/* Topographic fragment in the top-right corner for backwoods theme;
+            wash gradient for everything else so settings still feel layered
+            without a hard rectangular shape. */}
+        {theme === 'backwoods' ? (
+          <PaperTexture
+            variant="leaflet"
+            opacity={0.32}
+            tone="#5a3a1f"
+            className="absolute -top-2 -right-6 w-44 h-32 opacity-80"
+          />
+        ) : (
+          <PaperTexture
+            variant="wash"
+            opacity={0.06}
+            blendMode="soft-light"
+            tone={isDark ? '#94a3b8' : '#94a3b8'}
+            className="absolute inset-x-0 top-0 h-12"
+          />
+        )}
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shadow-sm flex-shrink-0">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0 ${
+                theme === 'backwoods'
+                  ? 'bg-[#c44a17]/15 border border-[#5a3a1f]/40 text-[#c44a17]'
+                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500'
+              }`}
+            >
               <Settings className="w-6 h-6" />
             </div>
             <div>
-              <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h1
+                className={`text-xl sm:text-2xl font-black tracking-tight ${
+                  isDark ? 'text-white' : theme === 'backwoods' ? 'text-[#2a1d10]' : 'text-slate-900'
+                }`}
+              >
                 App Settings
               </h1>
-              <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              <p
+                className={`text-xs mt-0.5 ${
+                  isDark ? 'text-slate-400' : theme === 'backwoods' ? 'text-[#5a3a1f]' : 'text-slate-600'
+                }`}
+              >
                 Manage hunting grounds, default location, unit preferences, and weather alerts.
               </p>
             </div>
@@ -335,7 +428,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           <button
             onClick={onSwitchToDashboard}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto"
+            className={`px-4 py-2 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto ${
+              theme === 'backwoods'
+                ? 'bg-[#c44a17] hover:bg-[#a23d12]'
+                : 'bg-emerald-600 hover:bg-emerald-500'
+            }`}
           >
             <span>Back to Dashboard</span>
           </button>
@@ -724,7 +821,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </p>
             </div>
 
-            {/* Test button */}
+            {/* Foreground test button — fires immediately through the service
+                worker while LetsHunt is open. Cheap sanity check for the
+                permission + SW registration pipeline. */}
             <button
               onClick={async () => {
                 let sent = await sendTestNotification();
@@ -752,6 +851,112 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <BellRing className="w-4 h-4 text-emerald-500" />
               Send Test Notification
             </button>
+
+            {/* Background (closed-app) test button — drives the *server-side*
+                push pipeline. If this delivers while LetsHunt is closed, the
+                whole VAPID → subscription → browser vendor → service-worker
+                flow is wired up correctly. The button above does not test
+                that path. */}
+            <div className={`rounded-2xl border p-3.5 space-y-3 ${isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex items-start gap-2">
+                <Send className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDark ? 'text-sky-400' : 'text-sky-600'}`} />
+                <div className="flex-1">
+                  <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    Test Closed-App Notifications
+                  </div>
+                  <div className={`text-[10px] mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                    Sends a real <strong>web push from the Render server</strong> through your browser's
+                    push service. If LetsHunt is currently open you should see a notification within
+                    seconds, and the same OS pipeline delivers it when LetsHunt is closed — the
+                    browser's push service just routes pushes to the installed PWA service worker
+                    regardless of whether the app is in the foreground.
+                    {!notificationPrefs.enabled && (
+                      <>
+                        {' '}
+                        <strong>Heads-up:</strong> this also re-registers your subscription on the
+                        server, so weather alerts will continue to arrive even with the master toggle
+                        off until you disable them again.
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleBackgroundPushTest}
+                disabled={isBackgroundTesting || !supported || permissionState === 'denied'}
+                className={`w-full py-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all ${
+                  isDark
+                    ? 'bg-sky-950/40 border-sky-500/40 text-sky-200 hover:border-sky-400 hover:bg-sky-950/70'
+                    : 'bg-sky-50 border-sky-300 text-sky-800 hover:border-sky-500 hover:bg-sky-100'
+                } ${isBackgroundTesting || !supported || permissionState === 'denied' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                {isBackgroundTesting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {isBackgroundTesting ? 'Sending Background Test…' : 'Send Background Test (app closed)'}
+              </button>
+
+              {bgTestStatus.kind !== 'idle' && (
+                <div
+                  className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-[11px] leading-relaxed ${
+                    bgTestStatus.kind === 'success'
+                      ? isDark
+                        ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                        : 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                      : bgTestStatus.kind === 'error'
+                      ? isDark
+                        ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                        : 'bg-rose-50 border-rose-300 text-rose-900'
+                      : isDark
+                      ? 'bg-sky-950/40 border-sky-500/40 text-sky-200'
+                      : 'bg-sky-50 border-sky-300 text-sky-900'
+                  }`}
+                >
+                  {bgTestStatus.kind === 'waking' || bgTestStatus.kind === 'sending' ? (
+                    <Activity className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 animate-pulse" />
+                  ) : bgTestStatus.kind === 'success' ? (
+                    <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                  )}
+                  <span>{bgTestStatus.message}</span>
+                </div>
+              )}
+
+              {/* Render free-tier warning — only show if user is on the
+                  default server URL. Self-hosted users can ignore. */}
+              {(typeof window !== 'undefined'
+                ? (localStorage.getItem('letshunt_push_server_url') || getPushServerUrl())
+                : getPushServerUrl()) === DEFAULT_PUSH_SERVER_URL && (
+                <div
+                  className={`rounded-xl border px-3 py-2 text-[10px] leading-relaxed flex items-start gap-2 ${
+                    isDark
+                      ? 'bg-amber-950/30 border-amber-500/30 text-amber-200'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>Closed-app push is keeping the server awake.</strong>{' '}
+                    Render's free web service sleeps after ~15&nbsp;minutes of inactivity,
+                    which is the #1 reason background alerts go silent. Point any free
+                    external pinger at{' '}
+                    <code className="px-1 rounded bg-amber-500/10">{getPushServerUrl()}/health</code>
+                    {' '}every 10&nbsp;minutes — easy options:{' '}
+                    <a className="underline font-bold" href="https://cron-job.org" target="_blank" rel="noopener noreferrer">cron-job.org</a>
+                    {' '}(1‑min granularity, free) or{' '}
+                    <a className="underline font-bold" href="https://uptimerobot.com" target="_blank" rel="noopener noreferrer">UptimeRobot</a>
+                    {' '}(5‑min granularity, free).{' '}
+                    <a className="underline font-bold" href="https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onschedule" target="_blank" rel="noopener noreferrer">GitHub Actions</a>
+                    {' '}is another option if you don&apos;t want yet another account.
+                    Render also offers a managed cron job (~$1/month minimum).
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Unit System Card */}
@@ -875,98 +1080,165 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <button
-                onClick={() => {
-                  setTheme('dark');
-                  showToast('Dark Theme Activated');
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                  theme === 'dark'
-                    ? 'bg-emerald-950/50 border-emerald-500/60 ring-2 ring-emerald-500/30 text-white'
-                    : isDark
-                    ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <Moon className="w-4 h-4 text-amber-400" />
-                  {theme === 'dark' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
-                </div>
-                <div>
-                  <div className="font-black text-xs">Dark</div>
-                  <div className="text-[9px] text-slate-500">Night & Tactical</div>
-                </div>
-              </button>
+            {/* Variant picker — 4 orthogonal visual identities. Light/Dark
+                is handled by the toggle underneath, so cycling variants here
+                keeps your preferred brightness. */}
+            <div>
+              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Theme Variant
+              </label>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <button
+                  onClick={() => {
+                    setVariant('standard');
+                    showToast('Standard Theme Activated');
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    themeVariant === 'standard'
+                      ? themeMode === 'dark'
+                        ? 'bg-emerald-950/50 border-emerald-500/60 ring-2 ring-emerald-500/30 text-white'
+                        : 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 text-slate-900'
+                      : isDark
+                      ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex gap-1">
+                      <span className="w-3 h-3 rounded-sm bg-slate-900 border border-slate-700" />
+                      <span className="w-3 h-3 rounded-sm bg-white border border-slate-300" />
+                    </div>
+                    {themeVariant === 'standard' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                  </div>
+                  <div>
+                    <div className="font-black text-xs">Standard</div>
+                    <div className="text-[9px] text-slate-500">Clean &amp; Modern</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => {
-                  setTheme('light');
-                  showToast('Light Theme Activated');
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                  theme === 'light'
-                    ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 text-slate-900'
-                    : isDark
-                    ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <Sun className="w-4 h-4 text-amber-500" />
-                  {theme === 'light' && <Check className="w-3.5 h-3.5 text-emerald-500" />}
-                </div>
-                <div>
-                  <div className="font-black text-xs">Light</div>
-                  <div className="text-[9px] text-slate-500">Daylight Contrast</div>
-                </div>
-              </button>
+                <button
+                  onClick={() => {
+                    setVariant('olive');
+                    showToast('Olive Theme Activated');
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    themeVariant === 'olive'
+                      ? 'bg-[#556b2f]/20 border-[#556b2f] ring-2 ring-[#556b2f]/30 text-[#1e2e1b]'
+                      : isDark
+                      ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex gap-1">
+                      <span className="w-3 h-3 rounded-sm bg-[#1c2614] border border-[#556b2f]/60" />
+                      <span className="w-3 h-3 rounded-sm bg-[#efebd9] border border-[#d8d2c0]" />
+                    </div>
+                    {themeVariant === 'olive' && <Check className="w-3.5 h-3.5 text-[#556b2f]" />}
+                  </div>
+                  <div>
+                    <div className="font-black text-xs">Olive</div>
+                    <div className="text-[9px] text-[#556b2f]">Beige &amp; Earthy</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => {
-                  setTheme('olive');
-                  showToast('Olive Theme Activated');
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                  theme === 'olive'
-                    ? 'bg-[#556b2f]/20 border-[#556b2f] ring-2 ring-[#556b2f]/30 text-[#1e2e1b]'
-                    : isDark
-                    ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <Compass className="w-4 h-4 text-[#556b2f]" />
-                  {theme === 'olive' && <Check className="w-3.5 h-3.5 text-[#556b2f]" />}
-                </div>
-                <div>
-                  <div className="font-black text-xs">Olive</div>
-                  <div className="text-[9px] text-[#556b2f]">Beige & Earthy</div>
-                </div>
-              </button>
+                <button
+                  onClick={() => {
+                    setVariant('hunting');
+                    showToast('Hunter Theme Activated');
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    themeVariant === 'hunting'
+                      ? 'bg-[#c85a17]/20 border-[#c85a17] ring-2 ring-[#c85a17]/30 text-[#2c1810]'
+                      : isDark
+                      ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex gap-1">
+                      <span className="w-3 h-3 rounded-sm bg-[#221610] border border-[#5c4a32]/60" />
+                      <span className="w-3 h-3 rounded-sm bg-[#f5f0e8] border border-[#d4c5a9]" />
+                    </div>
+                    {themeVariant === 'hunting' && <Check className="w-3.5 h-3.5 text-[#c85a17]" />}
+                  </div>
+                  <div>
+                    <div className="font-black text-xs">Hunter</div>
+                    <div className="text-[9px] text-[#c85a17]">Rustic Autumn</div>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => {
-                  setTheme('hunting');
-                  showToast('Hunting Theme Activated');
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                  theme === 'hunting'
-                    ? 'bg-[#c85a17]/20 border-[#c85a17] ring-2 ring-[#c85a17]/30 text-[#2c1810]'
-                    : isDark
-                    ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <DeerIcon className="w-5 h-5 text-[#c85a17]" />
-                  {theme === 'hunting' && <Check className="w-3.5 h-3.5 text-[#c85a17]" />}
+                <button
+                  onClick={() => {
+                    setVariant('backwoods');
+                    showToast('Backwoods Theme Activated');
+                  }}
+                  className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                    themeVariant === 'backwoods'
+                      ? 'bg-[#c44a17]/20 border-[#5a3a1f] ring-2 ring-[#c44a17]/40 text-[#2a1d10]'
+                      : isDark
+                      ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <div className="flex gap-1">
+                      <span className="w-3 h-3 rounded-sm bg-[#1f1a10] border border-[#5a3a1f]/60" />
+                      <span className="w-3 h-3 rounded-sm bg-[#e6dcc1] border border-[#5a3a1f]/40" />
+                    </div>
+                    {themeVariant === 'backwoods' && <Check className="w-3.5 h-3.5 text-[#c44a17]" />}
+                  </div>
+                  <div>
+                    <div className="font-black text-xs">Backwoods</div>
+                    <div className="text-[9px] text-[#5a3a1f]">Aged Paper &amp; Topo</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Universal Light/Dark toggle — applies on top of whichever
+                variant is selected above. Two-Finger tap of an in-app variant
+                keeps its brightness preference. */}
+            <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+              isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  themeMode === 'dark'
+                    ? themeVariant === 'hunting'
+                      ? 'bg-[#c85a17]/15 text-[#c85a17]'
+                      : themeVariant === 'backwoods'
+                      ? 'bg-[#c44a17]/15 text-[#c44a17]'
+                      : themeVariant === 'olive'
+                      ? 'bg-[#556b2f]/20 text-[#556b2f]'
+                      : 'bg-emerald-500/15 text-emerald-400'
+                    : themeVariant === 'hunting'
+                    ? 'bg-[#c85a17]/15 text-[#c85a17]'
+                    : themeVariant === 'backwoods'
+                    ? 'bg-[#c44a17]/15 text-[#c44a17]'
+                    : themeVariant === 'olive'
+                    ? 'bg-[#556b2f]/20 text-[#556b2f]'
+                    : 'bg-amber-500/15 text-amber-500'
+                }`}>
+                  {themeMode === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 </div>
-                <div>
-                  <div className="font-black text-xs">Hunting</div>
-                  <div className="text-[9px] text-[#c85a17]">Rustic Autumn</div>
+                <div className="min-w-0">
+                  <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {themeMode === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                  </div>
+                  <div className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    Applies to <strong>{
+                      themeVariant === 'standard' ? 'Standard' :
+                      themeVariant === 'olive' ? 'Olive' :
+                      themeVariant === 'hunting' ? 'Hunter' : 'Backwoods'
+                    }</strong> — flip anytime.
+                  </div>
                 </div>
-              </button>
+              </div>
+              {renderToggle(themeMode === 'dark', (v) => {
+                setMode(v ? 'dark' : 'light');
+                showToast(v ? 'Dark mode on' : 'Light mode on');
+              })}
             </div>
 
             <div className="pt-2">

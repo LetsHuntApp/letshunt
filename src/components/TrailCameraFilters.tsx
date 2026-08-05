@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Filter, X, Search, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
-import { ThemeMode, TrailCameraFilterState, TrailCameraLocation, TrailCameraTarget } from '../types';
+import { ThemeMode, ThemeVariantMode, TrailCameraFilterState, TrailCameraLocation, TrailCameraTarget } from '../types';
 
 interface TrailCameraFiltersProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   filter: TrailCameraFilterState;
   onFilterChange: (filter: TrailCameraFilterState) => void;
   locations: TrailCameraLocation[];

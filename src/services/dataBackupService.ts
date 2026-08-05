@@ -4,7 +4,7 @@ import {
   SavedPath,
   SavedPin,
   SavedPolygon,
-  ThemeMode,
+  ThemeMode, ThemeVariant, ThemeVariantMode, combineVariantMode,
   TrailCameraLocation,
   TrailCameraPhoto,
   TrailCameraTarget,
@@ -69,7 +69,12 @@ export interface LetsHuntBackup {
   version: typeof BACKUP_VERSION;
   exportedAt: string;
   settings: {
-    theme: ThemeMode;
+    theme: ThemeVariantMode;
+    // Light/Dark mode split out so non-standard variants round-trip
+    // their original brightness across a backup↔restore. Older builds
+    // (pre Light/Dark split) only stored `theme` — restore falls back to
+    // that single composite when this field is absent.
+    themeMode?: 'light' | 'dark';
     units: UnitSystem;
     pressureUnit: PressureUnit;
     defaultLocation: Location | null;
@@ -164,7 +169,16 @@ export async function exportBackupData(): Promise<{ json: string; summary: Backu
     version: BACKUP_VERSION,
     exportedAt,
     settings: {
-      theme: (safeGet(LOCAL_STORAGE_KEYS.theme) as ThemeMode) || 'dark',
+      // Export the resolved composite (variant + mode) so any future
+      // variant introduced in the Settings UI round-trips through backup.
+      // Restoration re-hydrates BOTH the composite 'letshunt_theme' AND
+      // the new variant/mode pair so older builds that only read
+      // letshunt_theme still get a coherent theme on restore.
+      theme: (combineVariantMode(
+        ((safeGet('letshunt_theme_variant') as ThemeVariant | null) || 'standard'),
+        ((safeGet('letshunt_theme_mode') as ThemeMode | null) || 'dark')
+      )) as ThemeVariantMode,
+      themeMode: ((safeGet('letshunt_theme_mode') as ThemeMode | null) || 'dark'),
       units: (safeGet(LOCAL_STORAGE_KEYS.units) as UnitSystem) || 'imperial',
       pressureUnit: (safeGet(LOCAL_STORAGE_KEYS.pressureUnit) as PressureUnit) || 'inHg',
       defaultLocation: readJSON<Location | null>(LOCAL_STORAGE_KEYS.defaultLocation, null),
@@ -230,10 +244,35 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
   const settings = backup.settings || ({} as LetsHuntBackup['settings']);
 
   // Settings — validate enum values so a hand-edited backup can't corrupt state.
-  const validThemes: ThemeMode[] = ['dark', 'light', 'olive', 'hunting'];
+  const validThemes: ThemeVariantMode[] = ['dark', 'light', 'olive', 'hunting', 'backwoods'];
   const validUnits: UnitSystem[] = ['imperial', 'metric'];
   const validPressure: PressureUnit[] = ['inHg', 'hPa'];
-  if (validThemes.includes(settings.theme as ThemeMode)) safeSet(LOCAL_STORAGE_KEYS.theme, settings.theme);
+  // Restore theme as both the legacy composite key AND the new variant/mode
+  // pair so older LetsHunt builds still see the right theme on load.
+  if (validThemes.includes(settings.theme as ThemeVariantMode)) {
+    safeSet(LOCAL_STORAGE_KEYS.theme, settings.theme);
+    // Resolve variant: explicit composite wins, otherwise derive.
+    let variant: ThemeVariant = 'standard';
+    if (settings.theme === 'olive' || settings.theme === 'hunting' || settings.theme === 'backwoods') {
+      variant = settings.theme;
+    }
+    // Resolve mode: prefer the new explicit field from this build's export;
+    // fall back to deriving from the legacy composite ('light' -> light,
+    // everything else historically meant dark); lastly default to whatever
+    // the user already had before restore, so a backup exported with
+    // pre-Light/Dark split doesn't silently rebound their brightness.
+    let mode: ThemeMode;
+    if (settings.themeMode === 'light' || settings.themeMode === 'dark') {
+      mode = settings.themeMode;
+    } else if (settings.theme === 'light') {
+      mode = 'light';
+    } else {
+      const preExisting = safeGet('letshunt_theme_mode') as ThemeMode | null;
+      mode = preExisting === 'light' ? 'light' : 'dark';
+    }
+    safeSet('letshunt_theme_variant', variant);
+    safeSet('letshunt_theme_mode', mode);
+  }
   if (validUnits.includes(settings.units as UnitSystem)) safeSet(LOCAL_STORAGE_KEYS.units, settings.units);
   if (validPressure.includes(settings.pressureUnit as PressureUnit)) safeSet(LOCAL_STORAGE_KEYS.pressureUnit, settings.pressureUnit);
   if (settings.defaultLocation) safeSet(LOCAL_STORAGE_KEYS.defaultLocation, JSON.stringify(settings.defaultLocation));

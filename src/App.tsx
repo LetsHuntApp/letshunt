@@ -4,7 +4,19 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { DailyForecast, Location, UnitSystem, ThemeMode, PressureUnit } from './types';
+import {
+
+  DailyForecast,
+  Location,
+  UnitSystem,
+  ThemeMode,
+  ThemeVariant,
+  ThemeVariantMode,
+  combineVariantMode,
+
+  PressureUnit,
+
+} from './types';
 import { fetch5DayHuntingForecast } from './services/weatherService';
 import {
   NotificationPrefs,
@@ -49,10 +61,48 @@ export default function App() {
     return localStorage.getItem('letshunt_custom_background');
   });
 
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('letshunt_theme');
-    return (saved as ThemeMode) || 'dark';
+  // Theme: 4-variant × light/dark matrix. Two orthogonal state slots.
+  // Persistence: split into two localStorage keys. The old single-string
+  // `letshunt_theme` key was used by LetsHunt builds before this split,
+  // so both initializers also honour that legacy key — critical for users
+  // who had Olive / Hunter / Paperback + dark before the refactor
+  // (without this they'd silently land on Standard + Dark).
+  const [themeVariant, setThemeVariant] = useState<ThemeVariant>(() => {
+    const saved = localStorage.getItem('letshunt_theme_variant') as ThemeVariant | null;
+    if (saved && (saved === 'standard' || saved === 'olive' || saved === 'hunting' || saved === 'backwoods')) {
+      return saved;
+    }
+    // Legacy migration: the original composite key held the variant name
+    // directly for non-standard themes.
+    const legacy = localStorage.getItem('letshunt_theme');
+    if (legacy === 'olive' || legacy === 'hunting') return legacy;
+    // The first Paperback rename → Backwoods rename cycle.
+    if (legacy === 'paperback') return 'backwoods';
+    return 'standard';
   });
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const saved = localStorage.getItem('letshunt_theme_mode');
+    if (saved === 'light' || saved === 'dark') return saved;
+    // Legacy migration: pre-split builds only had the composite
+    // 'letshunt_theme' key. Treat 'light' as light; everything else
+    // (dark / olive / hunting / paperback / backwoods) was rendered dark.
+    const legacy = localStorage.getItem('letshunt_theme');
+    if (legacy === 'light') return 'light';
+    return 'dark';
+  });
+  // Composite (legacy-shaped) theme string handed to most child components
+  // so their inline ternaries `theme === 'olive'` etc. keep working
+  // unchanged. New code should write to variant + mode where possible.
+  const theme: ThemeVariantMode = combineVariantMode(themeVariant, themeMode);
+  const setTheme = (next: ThemeVariantMode) => {
+    if (next === 'dark' || next === 'light') {
+      setThemeMode(next);
+    } else {
+      setThemeVariant(next);
+    }
+  };
+  const setVariant = (next: ThemeVariant) => setThemeVariant(next);
+  const setMode = (next: ThemeMode) => setThemeMode(next);
 
   // Default starting location state
   const [defaultLocation, setDefaultLocation] = useState<Location>(() => {
@@ -118,7 +168,9 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
 
-  const isDark = theme === 'dark';
+  // Global light-vs-dark: applies to every variant (standard/olive/hunting/backwoods).
+  // Use `theme` (the composite) when branching on a specific variant.
+  const isDark = themeMode === 'dark';
 
   useEffect(() => {
     if (customBackground) {
@@ -147,17 +199,25 @@ export default function App() {
   }, [customBackgroundBlur]);
 
   // Persistence Effects
+  // Apply theme class names to <html>: one variant class (or none for
+  // standard) plus the global `dark` modifier when mode === 'dark'. The
+  // `:root.dark.olive` etc. selectors in index.css then style each
+  // variant × mode combination.
   useEffect(() => {
-    localStorage.setItem('letshunt_theme', theme);
-    document.documentElement.classList.remove('dark', 'olive', 'hunting');
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (theme === 'olive') {
-      document.documentElement.classList.add('olive');
-    } else if (theme === 'hunting') {
-      document.documentElement.classList.add('hunting');
-    }
-  }, [theme]);
+    document.documentElement.classList.remove('dark', 'olive', 'hunting', 'backwoods');
+    if (themeVariant === 'olive') document.documentElement.classList.add('olive');
+    if (themeVariant === 'hunting') document.documentElement.classList.add('hunting');
+    if (themeVariant === 'backwoods') document.documentElement.classList.add('backwoods');
+    if (themeMode === 'dark') document.documentElement.classList.add('dark');
+  }, [themeVariant, themeMode]);
+
+  useEffect(() => {
+    localStorage.setItem('letshunt_theme_variant', themeVariant);
+  }, [themeVariant]);
+
+  useEffect(() => {
+    localStorage.setItem('letshunt_theme_mode', themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     localStorage.setItem('letshunt_default_location', JSON.stringify(defaultLocation));
@@ -340,9 +400,20 @@ export default function App() {
   }, [notificationPrefs, currentLocation, units]);
 
   const handleToggleTheme = () => {
-    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : theme === 'light' ? 'olive' : (theme === 'olive' || theme === 'hunting') ? 'hunting' : 'dark';
-    setTheme(nextTheme);
-    showToast(`Switched to ${nextTheme === 'dark' ? 'Dark' : nextTheme === 'olive' ? 'Olive' : nextTheme === 'hunting' ? 'Hunting' : 'Light'} Theme`);
+    // Mobile cycle button only flips the variant — light/dark is handled
+    // by the always-visible toggle in Settings, so cycling is one tap per
+    // distinct visual identity instead of doubling up on near-twins.
+    const cycle: ThemeVariant[] = ['standard', 'olive', 'hunting', 'backwoods'];
+    const idx = cycle.indexOf(themeVariant);
+    const nextVariant = cycle[(idx < 0 ? 0 : idx + 1) % cycle.length];
+    setVariant(nextVariant);
+    const labelMap: Record<ThemeVariant, string> = {
+      standard: 'Standard',
+      olive: 'Olive',
+      hunting: 'Hunter',
+      backwoods: 'Backwoods',
+    };
+    showToast(`Switched to ${labelMap[nextVariant]} theme`);
   };
 
   const handleSetDefaultLocation = (loc: Location) => {
@@ -410,11 +481,19 @@ export default function App() {
           ? 'h-screen max-h-screen overflow-hidden'
           : 'min-h-screen pb-14 sm:pb-0'
       } ${
-        isDark
-          ? 'bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950'
-          : theme === 'hunting'
+        themeMode === 'dark'
+          ? themeVariant === 'hunting'
+            ? 'bg-[#221610] text-[#f5e9d6] selection:bg-[#c85a17] selection:text-white'
+            : themeVariant === 'backwoods'
+            ? 'bg-[#1f1a10] text-[#d9c8a1] selection:bg-[#c44a17] selection:text-[#f5f0e8]'
+            : themeVariant === 'olive'
+            ? 'bg-[#1c2614] text-[#dde6cb] selection:bg-[#556b2f] selection:text-white'
+            : 'bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950'
+          : themeVariant === 'hunting'
           ? 'bg-[#f5f0e8] text-[#2c1810] selection:bg-[#c85a17] selection:text-white'
-          : (theme === 'olive' || theme === 'hunting')
+          : themeVariant === 'backwoods'
+          ? 'bg-[#e6dcc1] text-[#2a1d10] selection:bg-[#c44a17] selection:text-[#f5f0e8]'
+          : themeVariant === 'olive'
           ? 'bg-[#efebd9] text-[#1e2e1b] selection:bg-[#556b2f] selection:text-white'
           : 'bg-slate-100 text-slate-900 selection:bg-emerald-600 selection:text-white'
       }`}
@@ -493,6 +572,10 @@ export default function App() {
             pressureUnit={pressureUnit}
             setPressureUnit={setPressureUnit}
             theme={theme}
+            themeVariant={themeVariant}
+            themeMode={themeMode}
+            setVariant={setVariant}
+            setMode={setMode}
         hasCustomBackground={!!customBackground}
             onToggleTheme={handleToggleTheme}
             setTheme={setTheme}
@@ -652,6 +735,8 @@ export default function App() {
               ? 'bg-slate-950/80 border-slate-800/50 text-slate-500'
               : theme === 'hunting'
               ? 'bg-[#ede5d5]/80 border-[#d4c5a9]/50 text-[#8b7355]'
+              : theme === 'backwoods'
+              ? 'bg-[#ddd0a9]/90 border-[#5a3a1f]/60 text-[#5a3a1f]'
               : (theme === 'olive')
               ? 'bg-[#e5e1d0]/80 border-[#d4cebc]/50 text-[#6b7a45]'
               : 'bg-white/80 border-slate-200/50 text-slate-500'
@@ -659,7 +744,7 @@ export default function App() {
         >
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className={`font-black ${isDark ? 'text-slate-200' : theme === 'hunting' ? 'text-[#2c1810]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>LetsHunt</span>
+              <span className={`font-black ${isDark ? 'text-slate-200' : theme === 'hunting' ? 'text-[#2c1810]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>LetsHunt</span>
               <span>• Deer Forecast Prediction Engine</span>
             </div>
 
@@ -672,7 +757,7 @@ export default function App() {
               </button>
               <span className="text-slate-400">•</span>
               <span className="text-[11px]">
-                Live weather by <span className={`font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2e4028]' : 'text-slate-700'}`}>Open-Meteo API</span>
+                Live weather by <span className={`font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : theme === 'olive' ? 'text-[#2e4028]' : 'text-slate-700'}`}>Open-Meteo API</span>
               </span>
             </div>
           </div>
@@ -684,6 +769,8 @@ export default function App() {
         className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors duration-200 ${
           isDark
             ? 'bg-slate-950/95 border-slate-800/60 text-slate-100'
+            : theme === 'backwoods'
+            ? 'bg-[#ddd0a9]/98 border-[#5a3a1f]/70 text-[#2a1d10]'
             : (theme === 'olive' || theme === 'hunting')
             ? 'bg-[#f7f5ed]/98 border-[#d8d2c0]/70 text-[#1e2e1b]'
             : 'bg-white/98 border-slate-200/70 text-slate-900'
@@ -698,11 +785,15 @@ export default function App() {
             activeTab === 'dashboard' || activeTab === 'details'
               ? isDark
                 ? 'text-emerald-400 bg-emerald-400/10 scale-105'
+                : theme === 'backwoods'
+                ? 'text-[#c44a17] bg-[#c44a17]/15 scale-105'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'text-[#556b2f] bg-[#556b2f]/10 scale-105'
                 : 'text-emerald-600 bg-emerald-50 scale-105'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : theme === 'backwoods'
+              ? 'text-[#5a3a1f] hover:text-[#c44a17] hover:bg-[#c44a17]/10 font-medium'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
@@ -719,11 +810,15 @@ export default function App() {
             activeTab === 'map'
               ? isDark
                 ? 'text-emerald-400 bg-emerald-400/10 scale-105'
+                : theme === 'backwoods'
+                ? 'text-[#c44a17] bg-[#c44a17]/15 scale-105'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'text-[#556b2f] bg-[#556b2f]/10 scale-105'
                 : 'text-emerald-600 bg-emerald-50 scale-105'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : theme === 'backwoods'
+              ? 'text-[#5a3a1f] hover:text-[#c44a17] hover:bg-[#c44a17]/10 font-medium'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
@@ -740,11 +835,15 @@ export default function App() {
             activeTab === 'logs'
               ? isDark
                 ? 'text-amber-400 bg-amber-400/10 scale-105'
+                : theme === 'backwoods'
+                ? 'text-[#a87838] bg-[#a87838]/15 scale-105'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'text-amber-600 bg-amber-100/60 scale-105'
                 : 'text-amber-600 bg-amber-50 scale-105'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : theme === 'backwoods'
+              ? 'text-[#5a3a1f] hover:text-[#a87838] hover:bg-[#a87838]/10 font-medium'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
@@ -761,11 +860,15 @@ export default function App() {
             activeTab === 'trailcams'
               ? isDark
                 ? 'text-sky-400 bg-sky-400/10 scale-105'
+                : theme === 'backwoods'
+                ? 'text-[#3d5a2a] bg-[#3d5a2a]/15 scale-105'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'text-sky-600 bg-sky-100/60 scale-105'
                 : 'text-sky-600 bg-sky-50 scale-105'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : theme === 'backwoods'
+              ? 'text-[#5a3a1f] hover:text-[#3d5a2a] hover:bg-[#3d5a2a]/10 font-medium'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
@@ -782,11 +885,15 @@ export default function App() {
             activeTab === 'settings'
               ? isDark
                 ? 'text-slate-200 bg-slate-700/40 scale-105'
+                : theme === 'backwoods'
+                ? 'text-[#2a1d10] bg-[#5a3a1f]/25 scale-105'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'text-[#3d4f21] bg-[#e0dcc8]/70 scale-105'
                 : 'text-slate-800 bg-slate-100 scale-105'
               : isDark
               ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : theme === 'backwoods'
+              ? 'text-[#5a3a1f] hover:text-[#2a1d10] hover:bg-[#5a3a1f]/10 font-medium'
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >

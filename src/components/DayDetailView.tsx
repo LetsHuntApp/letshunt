@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { DailyForecast, Location, UnitSystem, ThemeMode, PressureUnit } from '../types';
+import { DailyForecast, Location, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit } from '../types';
 import { WindCompass } from './WindCompass';
 import { PressureChart } from './PressureChart';
 import { DeerIcon } from './DeerIcon';
 import { RutStatusModal } from './RutStatusModal';
 import { RutPhaseIcon } from './RutPhaseIcon';
+import { PaperTexture } from './PaperTexture';
 import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, calculateHuntScore, getBestStandForWind, getDetailedConditionExplanation } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import {
@@ -43,7 +44,7 @@ interface DayDetailViewProps {
   location: Location;
   units: UnitSystem;
   pressureUnit: PressureUnit;
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   forecastCards?: React.ReactNode;
   selectedHour?: number;
   onSelectHour?: (hour: number) => void;
@@ -143,6 +144,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       ? (currentScore >= 90 ? '#1a6b3c' : currentScore >= 76 ? '#4a8c5e' : currentScore >= 46 ? '#c85a17' : '#8b3a3a')
       : (theme === 'olive' || theme === 'hunting')
       ? (currentScore >= 90 ? '#2d4a27' : currentScore >= 76 ? '#556b2f' : currentScore >= 46 ? '#b87333' : '#8b3a3a')
+      : theme === 'backwoods'
+      ? (currentScore >= 90 ? '#2f4a1f' : currentScore >= 76 ? '#3d5a2a' : currentScore >= 46 ? '#c44a17' : '#8a3424')
       : currentScore >= 90
       ? (isDark ? '#34d399' : '#047857') // emerald-400 (Vibrant Green) vs emerald-700 (Pine Forest Green)
       : currentScore >= 76
@@ -156,6 +159,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       ? (currentScore >= 90 ? 'text-[#1a6b3c]' : currentScore >= 76 ? 'text-[#4a8c5e]' : currentScore >= 46 ? 'text-[#c85a17]' : 'text-[#8b3a3a]')
       : (theme === 'olive' || theme === 'hunting')
       ? 'text-[#1e2e1b]'
+      : theme === 'backwoods'
+      ? (currentScore >= 90 ? 'text-[#2f4a1f]' : currentScore >= 76 ? 'text-[#3d5a2a]' : currentScore >= 46 ? 'text-[#c44a17]' : 'text-[#8a3424]')
       : currentScore >= 90
       ? 'text-emerald-800 dark:text-emerald-400'
       : currentScore >= 76
@@ -207,6 +212,28 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           }`}
         />
 
+        {/* Backwoods-only: ink wash + topographic fragment in the upper
+            right of the hero card so the field-guide vibe carries into the
+            most prominent surface of the app. */}
+        {theme === 'backwoods' && (
+          <>
+            <PaperTexture
+              variant="wash"
+              opacity={0.18}
+              blendMode="multiply"
+              tone="#5a3a1f"
+              className="absolute -top-4 -right-6 w-56 h-28"
+            />
+            <PaperTexture
+              variant="leaflet"
+              opacity={0.28}
+              blendMode="multiply"
+              tone="#5a3a1f"
+              className="absolute bottom-3 right-4 w-40 h-28"
+            />
+          </>
+        )}
+
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 relative z-10">
           {/* Left: Score Dial, Date, Badges & Verdict */}
           <div className="flex flex-col items-center sm:items-start gap-2 w-full lg:w-auto">
@@ -247,7 +274,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className="text-center z-10 flex flex-col items-center justify-center">
                   <DeerIcon 
                     className={`w-9 h-9 sm:w-11 sm:h-11 fill-current ${scoreTextColor} -mb-0.5`} 
-                    style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') ? scoreStrokeColor : undefined }}
+                    style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') || theme === 'backwoods' ? scoreStrokeColor : undefined }}
                   />
                   <div className={`font-black tracking-tight leading-none ${theme === 'hunting' ? 'text-3xl sm:text-4xl text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'text-3xl sm:text-4xl text-[#1e2e1b]' : 'text-2xl sm:text-3xl'}`}>
                     {currentScore}
@@ -256,7 +283,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     className={`text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1 ${
                       theme === 'hunting' ? 'text-[#2a1b0e]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : scoreTextColor
                     }`}
-                    style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') ? scoreStrokeColor : undefined }}
+                    style={{ color: isDark || theme === 'hunting' || (theme === 'olive' || theme === 'hunting') || theme === 'backwoods' ? scoreStrokeColor : undefined }}
                   >
                     {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-500 dark:text-amber-400" />}
                     <span>{getRatingFromScore(currentScore)}</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DailyForecast, Location, UnitSystem, ThemeMode, PressureUnit } from '../types';
+import { DailyForecast, Location, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit } from '../types';
 import { WindCompass } from './WindCompass';
 import { PressureChart } from './PressureChart';
 import { DeerIcon } from './DeerIcon';
@@ -31,7 +31,7 @@ interface DetailedPredictionViewProps {
   location: Location;
   units: UnitSystem;
   pressureUnit: PressureUnit;
-  theme?: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
   selectedHour: number;
   onSelectHour: (hour: number) => void;

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, Crosshair, Palette } from 'lucide-react';
-import { ThemeMode, TrailCameraTarget } from '../types';
+import { ThemeMode, ThemeVariantMode, TrailCameraTarget } from '../types';
 
 interface TargetManagerProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   targets: TrailCameraTarget[];
   onSave: (target: TrailCameraTarget) => void;
   onDelete: (id: string) => void;

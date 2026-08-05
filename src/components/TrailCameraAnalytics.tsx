@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { Wind, Thermometer, CloudRain, Gauge, Moon, Calendar, Clock, BarChart3, Crosshair } from 'lucide-react';
-import { ThemeMode, TrailCameraPhoto, TrailCameraTarget, TrailCameraFilterState } from '../types';
+import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraTarget, TrailCameraFilterState } from '../types';
 import { AnalyticsData, computeAnalytics } from '../services/trailCameraService';
 
 interface TrailCameraAnalyticsProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   analytics: AnalyticsData;
   photos?: TrailCameraPhoto[];
   targets?: TrailCameraTarget[];

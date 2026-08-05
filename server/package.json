@@ -6,6 +6,7 @@
   "description": "Push notification server for LetsHunt PWA — checks weather and sends Web Push alerts for cold fronts, baro shifts, rain breaks, and prime hunting days even when the app is closed.",
   "scripts": {
     "start": "node push-server.js",
+    "keep-alive": "node keep-alive.js",
     "generate-vapid": "node -e \"import('web-push').then(wp => { const k = wp.generateVAPIDKeys(); require('fs').writeFileSync('vapid.json', JSON.stringify(k, null, 2)); console.log('VAPID keys written to vapid.json'); })\""
   },
   "dependencies": {

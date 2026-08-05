@@ -1,11 +1,11 @@
 import React from 'react';
 import { X, Thermometer, Gauge, Wind, CloudRain, Clock, Sparkles, Crosshair, TrendingDown } from 'lucide-react';
-import { ThemeMode } from '../types';
+import { ThemeMode, ThemeVariantMode } from '../types';
 
 interface MeteorologyGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
-  theme?: ThemeMode;
+  theme?: ThemeVariantMode;
 }
 
 export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ isOpen, onClose, theme = 'dark' }) => {

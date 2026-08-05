@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Zap, RotateCcw, MapPin } from 'lucide-react';
 import { getHour12Label } from '../utils/huntingEngine';
-import { ThemeMode, HourlyForecast } from '../types';
+import { ThemeMode, ThemeVariantMode, HourlyForecast } from '../types';
 
 interface FloatingHourlySliderProps {
   selectedHour: number;
   onSelectHour: (hour: number) => void;
   onResetToToday?: () => void;
   hourly?: HourlyForecast[];
-  theme?: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
 }
 

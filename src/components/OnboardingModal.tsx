@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Location, ThemeMode } from '../types';
+import { Location, ThemeMode, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
 import { MapPin, Search, Compass, Check, X, Target, CloudSun, BellRing, ArrowRight, ChevronLeft } from 'lucide-react';
 import { DeerIcon } from './DeerIcon';
 
 interface OnboardingModalProps {
   isOpen: boolean;
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   onComplete: (loc: Location | null) => void;
 }
 

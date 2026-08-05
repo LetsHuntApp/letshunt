@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2 } from 'lucide-react';
-import { ThemeMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
+import { ThemeMode, ThemeVariantMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
 import { TrailCameraGallery } from './TrailCameraGallery';
@@ -25,7 +25,7 @@ import {
 import { searchLocations } from '../services/weatherService';
 
 interface TrailCameraViewProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   currentLocation: Location;
   units: string;
   pressureUnit: string;

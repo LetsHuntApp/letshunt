@@ -1,16 +1,16 @@
 import React from 'react';
 import { Compass, Sparkles, TrendingUp, AlertCircle, CheckCircle2, Award, Zap, ShieldCheck } from 'lucide-react';
-import { ThemeMode } from '../types';
+import { ThemeMode, ThemeVariantMode } from '../types';
 import { PatternInsight } from '../services/trailCameraService';
 
 interface TrailCameraInsightsProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   insights: PatternInsight[];
   totalPhotosCount: number;
   weatherMatchedCount: number;
 }
 
-const getThemeClasses = (theme: ThemeMode) => {
+const getThemeClasses = (theme?: ThemeVariantMode) => {
   const isDark = theme === 'dark';
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';

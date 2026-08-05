@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { HourlyForecast, UnitSystem, ThemeMode, PressureUnit } from '../types';
+import { HourlyForecast, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit } from '../types';
 import { Droplets, Activity } from 'lucide-react';
 
 interface PressureChartProps {
   hourly: HourlyForecast[];
   units: UnitSystem;
   pressureUnit: PressureUnit;
-  theme?: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
   selectedHour?: number;
   onSelectHour?: (hour: number) => void;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { RutPhase } from '../utils/rutEngine';
-import { Location, ThemeMode } from '../types';
+import { Location, ThemeMode, ThemeVariantMode } from '../types';
 import { X, Sparkles, Flame, ShieldAlert, Compass, Eye, Volume2, Target } from 'lucide-react';
 import { RutPhaseIcon } from './RutPhaseIcon';
 
@@ -10,7 +10,7 @@ interface RutStatusModalProps {
   rutInfo: RutPhase;
   location?: Location;
   dateFormatted?: string;
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
 }
 

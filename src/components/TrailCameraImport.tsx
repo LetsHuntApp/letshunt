@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Camera, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { ThemeMode } from '../types';
+import { ThemeMode, ThemeVariantMode } from '../types';
 
 interface TrailCameraImportProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   onImportComplete: () => void;
   importing: boolean;
   progress: { completed: number; total: number } | null;

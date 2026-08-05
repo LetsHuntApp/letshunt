@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemeMode } from '../types';
+import { ThemeMode, ThemeVariantMode } from '../types';
 import { Check, ArrowRight } from 'lucide-react';
 
 interface TeachingStep {
@@ -8,7 +8,7 @@ interface TeachingStep {
 }
 
 interface TeachingEmptyStateProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   icon: React.ReactNode;
   title: string;
   description: string;

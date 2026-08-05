@@ -323,3 +323,557 @@ rect:focus {
   letter-spacing: 0.05em;
 }
 
+/* ===== PAPERBACK THEME (AGED-PAPER FIELD-GUIDE VIBE) =====
+   Bold condensed sans (Oswald) + Roboto Condensed body + parchment
+   palette + canvas/paper textures + squared-off corners. The whole
+   "designed for the field" topographic-map aesthetic. */
+
+.backwoods {
+  --pb-bg: #e6dcc1;
+  --pb-bg-deep: #ddd0a9;
+  --pb-text: #2a1d10;
+  --pb-text-muted: #6c5938;
+  --pb-card: #d3c298;
+  --pb-card-deep: #bea878;
+  --pb-border: #5a3a1f;
+  --pb-border-strong: #3a2010;
+  --pb-accent: #c44a17;
+  --pb-accent-2: #3d5a2a;
+  --pb-shadow: 0 1px 0 rgba(58, 32, 16, 0.18), 0 2px 6px rgba(58, 32, 16, 0.08);
+
+  --pb-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/></svg>");
+  --pb-weave: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><g fill='none' stroke='%235a3a1f' stroke-width='0.6' opacity='0.08'><path d='M0 20 H80 M0 40 H80 M0 60 H80 M20 0 V80 M40 0 V80 M60 0 V80'/></g></svg>");
+}
+
+/* ===== BACKWOODS × DARK MODE — same field-guide identity but at night.
+   Used by the global Light/Dark toggle sitting on top of any variant, so
+   flipping the toggle from light→dark preserves the kraft colors while
+   moving the ink from walnut-on-cream to cream-on-walnut. The text/
+   background/hover/ring CSS that consumes var(--pb-*) cascades
+   automatically. We target both `<html>` (where App.tsx puts the
+   classes) and `.dark.backwoods` so either placement works. ===== */
+.dark.backwoods,
+html.dark.backwoods {
+  --pb-bg: #1f1a10;
+  --pb-bg-deep: #2a2218;
+  --pb-text: #d9c8a1;
+  --pb-text-muted: #8f7d56;
+  --pb-card: #2e2519;
+  --pb-card-deep: #241c12;
+  --pb-border: #8a7045;
+  --pb-border-strong: #b39260;
+  --pb-accent: #c44a17;
+  --pb-accent-2: #6a9b46;
+  --pb-shadow: 0 1px 0 rgba(217, 200, 161, 0.04), 0 2px 6px rgba(0, 0, 0, 0.45);
+  /* Re-tint weave overlay to a faint cream noise so it reads against
+     the near-black paper ground instead of the original brown lines. */
+  --pb-weave: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><g fill='none' stroke='%23d9c8a1' stroke-width='0.6' opacity='0.05'><path d='M0 20 H80 M0 40 H80 M0 60 H80 M20 0 V80 M40 0 V80 M60 0 V80'/></g></svg>");
+}
+
+/* Body + html get the parchment + canvas weave + paper-grain stack */
+html.backwoods, .backwoods {
+  background-color: var(--pb-bg);
+  color: var(--pb-text);
+  font-family: 'Roboto Condensed', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.005em;
+}
+.backwoods body,
+.backwoods .font-sans {
+  font-family: 'Roboto Condensed', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+.backwoods::before {
+  /* Canopy weave sits behind the app content but above the body color */
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--pb-weave);
+  background-repeat: repeat;
+  opacity: 0.7;
+  z-index: 0;
+  mix-blend-mode: multiply;
+  will-change: transform; /* hint to compositor */
+}
+.backwoods::after {
+  /* Paper grain overlay — gives every surface a tactile backwoods backwoods feel.
+     Lower opacity + will-change helps low-end Android GPUs stay smooth
+     while scrolling long forecast lists. */
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--pb-noise);
+  background-size: 240px 240px;
+  opacity: 0.32;
+  z-index: 1;
+  will-change: transform;
+}
+/* Respect user's motion preferences — kill the texture overlays entirely
+   for anyone who set prefers-reduced-motion (common on field wearables
+   and low-end Android). The kraft color and Oswald headings still apply,
+   so the theme identity carries through. */
+@media (prefers-reduced-motion: reduce) {
+  .backwoods::before,
+  .backwoods::after {
+    opacity: 0;
+  }
+}
+/* Make sure the app shell sits above the texture overlays */
+.backwoods > #root, .backwoods main, .backwoods nav, .backwoods footer, .backwoods header {
+  position: relative;
+  z-index: 2;
+}
+
+/* Headings — bold condensed sans, all caps + tight tracking = unmistakable
+   Topo/field-map vibe. We intentionally keep `.font-bold` and
+   `.font-extrabold` on Roboto Condensed (NOT Oswald+uppercase) so dense
+   data chips like "+10 PTS" or "Peak Dawn" stay legible instead of
+   getting shouted at the user. */
+.backwoods h1,
+.backwoods h2,
+.backwoods h3,
+.backwoods h4,
+.backwoods h5,
+.backwoods h6,
+.backwoods .font-brand-backwoods {
+  font-family: 'Oswald', 'Roboto Condensed', system-ui, sans-serif !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--pb-text);
+}
+.backwoods h1 { letter-spacing: 0.08em !important; font-weight: 700; }
+.backwoods h2 { letter-spacing: 0.07em !important; }
+
+/* Square corners on every card — OnX never rounded. We override Tailwind's
+   rounded-* utilities with .backwoods scoping (higher specificity than the
+   utility alone). */
+.backwoods .rounded-3xl,
+.backwoods .rounded-2xl,
+.backwoods .rounded-xl,
+.backwoods .rounded-lg,
+.backwoods .rounded-md,
+.backwoods .rounded-sm {
+  border-radius: 3px !important;
+}
+.backwoods .rounded-3xl { border-radius: 5px !important; }
+.backwoods .rounded-2xl { border-radius: 4px !important; }
+.backwoods .rounded-xl { border-radius: 3px !important; }
+.backwoods .rounded-lg { border-radius: 2px !important; }
+/* Keep round indicators (radio dots, switches, Toasts that are pill chips) */
+/* — those use rounded-full deliberately for shape semantics and would look
+   worse as squares. */
+
+/* Cards get a kraft-paper fill + heavier walnut border + inset shadow for
+   printed-on-paper feel.
+   IMPORTANT: backgrounds use rgba() with var(--card-opacity) so the
+   user-controlled opacity slider in Settings actually controls how much
+   parchment bleeds through — at low slider values cards fade to almost
+   transparent and the texture overlay dominates, matching the other
+   four themes' settings semantics. */
+.backwoods [class*="bg-slate-900/"],
+.backwoods [class*="bg-slate-950/"],
+.backwoods [class*="bg-white/"],
+.backwoods [class*="bg-slate-50/"] {
+  background-color: rgba(211, 194, 152, var(--card-opacity, 0.9)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: var(--pb-border) !important;
+  box-shadow: var(--pb-shadow);
+}
+.backwoods [class*="bg-[#f7f5ed]"],
+.backwoods [class*="bg-[#f4eee1]"],
+.backwoods [class*="bg-[#eae1cf]"],
+.backwoods [class*="bg-[#e0d6c0]"],
+.backwoods [class*="bg-[#f5f0e8]"],
+.backwoods [class*="bg-[#efebd9]"] {
+  background-color: rgba(211, 194, 152, var(--card-opacity, 0.9)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: var(--pb-border) !important;
+  box-shadow: var(--pb-shadow);
+}
+.backwoods [class*="bg-emerald-950"],
+.backwoods [class*="bg-emerald-50"] {
+  background-color: rgba(190, 168, 120, var(--card-opacity, 0.9)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: var(--pb-border-strong) !important;
+}
+.backwoods [class*="bg-amber-950"],
+.backwoods [class*="bg-amber-50"] {
+  background-color: rgba(224, 201, 133, var(--card-opacity, 0.9)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: var(--pb-border) !important;
+}
+.backwoods [class*="bg-rose-950"],
+.backwoods [class*="bg-rose-50"] {
+  background-color: rgba(217, 154, 130, var(--card-opacity, 0.9)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: #7a2f1a !important;
+}
+.backwoods [class*="bg-sky-950"],
+.backwoods [class*="bg-sky-50"] {
+  background-color: rgba(197, 205, 176, var(--card-opacity, 0.9)) !important;
+  background-image: var(--pb-noise) !important;
+  background-size: 240px 240px !important;
+  border-color: #4a6038 !important;
+}
+
+/* Text color overrides — coerce dim/grey text to warm brown */
+.backwoods .text-slate-100,
+.backwoods .text-slate-200 { color: var(--pb-text) !important; }
+/* NOTE: We deliberately do NOT remap `.backwoods .text-white` to kraft ink.
+   Score chips (Fair/Good/Poor/Excellent) and other badges use
+   `text-white` for high-contrast text on saturated backgrounds (hunter
+   orange, forest green, oxblood). A previous global override flattened
+   that to walnut, making the labels nearly invisible on their own chip. */
+.backwoods .text-slate-300 { color: #5a4128 !important; }
+.backwoods .text-slate-400 { color: var(--pb-text-muted) !important; }
+.backwoods .text-slate-500 { color: #7a6645 !important; }
+.backwoods .text-slate-600 { color: #6c5938 !important; }
+.backwoods .text-slate-700 { color: #4a3820 !important; }
+.backwoods .text-slate-800 { color: #3a2c1a !important; }
+.backwoods .text-slate-900,
+.backwoods .text-slate-950 { color: var(--pb-text) !important; }
+
+/* Accent (hunter orange + forest green) — force every emerald/shade to the
+   Backwoods palette */
+.backwoods .bg-emerald-500,
+.backwoods .bg-emerald-600 { background-color: var(--pb-accent) !important; }
+.backwoods .bg-emerald-700 { background-color: #a23d12 !important; }
+.backwoods .text-emerald-500,
+.backwoods .text-emerald-400 { color: var(--pb-accent) !important; }
+.backwoods .text-emerald-600 { color: var(--pb-accent) !important; }
+.backwoods .bg-emerald-950\\/\\[var\\(--card-opacity\\)\\] { background-color: var(--pb-card-deep) !important; }
+.backwoods .ring-emerald-500,
+.backwoods .ring-emerald-500\\/30 { --tw-ring-color: var(--pb-accent) !important; }
+.backwoods .from-emerald-500 { --tw-gradient-from: var(--pb-accent) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important; }
+.backwoods .from-emerald-600 { --tw-gradient-from: var(--pb-accent) !important; }
+.backwoods .to-emerald-600,
+.backwoods .to-emerald-500 { --tw-gradient-to: var(--pb-accent-2) !important; }
+
+/* Borders default to walnut / dark brown */
+.backwoods .border-slate-700,
+.backwoods .border-slate-800,
+.backwoods .border-slate-200,
+.backwoods .border-slate-300,
+.backwoods .border-slate-600,
+.backwoods .border-slate-700\\/60,
+.backwoods .border-slate-800\\/50,
+.backwoods .border-slate-800\\/70,
+.backwoods .border-slate-800\\/80,
+.backwoods .border-slate-200\\/70,
+.backwoods .border-slate-200\\/50,
+.backwoods .border-slate-800\\/60 {
+  border-color: var(--pb-border) !important;
+}
+.backwoods .border-emerald-500,
+.backwoods .border-emerald-500\\/40,
+.backwoods .border-emerald-500\\/60,
+.backwoods .border-emerald-500\\/30,
+.backwoods .border-emerald-300 { border-color: var(--pb-accent) !important; }
+.backwoods .border-amber-500,
+.backwoods .border-amber-500\\/30,
+.backwoods .border-amber-500\\/40,
+.backwoods .border-amber-300 { border-color: #a87838 !important; }
+.backwoods .border-sky-500,
+.backwoods .border-sky-300,
+.backwoods .border-sky-500\\/40,
+.backwoods .border-sky-400 { border-color: #4a6038 !important; }
+.backwoods .border-rose-500,
+.backwoods .border-rose-300,
+.backwoods .border-rose-500\\/40,
+.backwoods .border-rose-300 { border-color: #7a2f1a !important; }
+
+/* Selection */
+.backwoods ::selection { background: rgba(196, 74, 23, 0.35); color: var(--pb-text); }
+
+/* Tighter uppercase tracking on labels (e.g., one-shot forest chips) */
+.backwoods .uppercase { letter-spacing: 0.09em !important; font-weight: 600 !important; }
+
+/* Toast / banner — cream chip with brown text and accent border */
+.backwoods .bg-emerald-500 { background-color: var(--pb-card) !important; color: var(--pb-text) !important; border: 2px solid var(--pb-accent) !important; }
+.backwoods .bg-emerald-500.text-slate-950 { color: var(--pb-text) !important; }
+.backwoods .text-emerald-300 { color: var(--pb-accent) !important; }
+.backwoods .fill-slate-950 { fill: var(--pb-border-strong) !important; }
+/* Narrow text-white override: only flatten it inside cards/popovers that
+   would otherwise force a contrast-busting white. Avoid clobbering
+   legitimate white-on-emerald button glyphs in the other themes that
+   already opt back into white inside light backgrounds. */
+.backwoods .backdrop-blur [class*="text-white"],
+.backwoods .bg-emerald-500 [class*="text-white"] {
+  color: var(--pb-text) !important;
+}
+
+/* Buttons: chip-style squared corners in Backwoods */
+.backwoods button,
+.backwoods .cursor-pointer {
+  letter-spacing: 0.04em;
+}
+
+/* Range slider track + thumb */
+.backwoods input[type="range"]::-webkit-slider-thumb { background: var(--pb-accent); border-color: var(--pb-border-strong); }
+.backwoods input[type="range"] { background-color: var(--pb-border) !important; }
+
+/* Scrollbar */
+.backwoods ::-webkit-scrollbar-thumb { background: rgba(90, 58, 31, 0.5) !important; }
+.backwoods ::-webkit-scrollbar-thumb:hover { background: rgba(90, 58, 31, 0.8) !important; }
+
+/* Focus ring — match the Backwoods palette */
+.backwoods button:focus-visible,
+.backwoods a:focus-visible,
+.backwoods input:focus-visible,
+.backwoods select:focus-visible,
+.backwoods textarea:focus-visible,
+.backwoods [tabindex]:focus-visible {
+  outline-color: rgba(196, 74, 23, 0.7) !important;
+}
+
+/* Section header accent — swaps emerald gradient for hunter-orange/walnut */
+.backwoods .section-header-accent::before {
+  background: linear-gradient(to bottom, var(--pb-accent), var(--pb-border-strong)) !important;
+}
+
+/* Recharts on Backwoods */
+.backwoods .recharts-cartesian-axis-line,
+.backwoods .recharts-cartesian-axis-tick-line { stroke: var(--pb-border) !important; }
+.backwoods .recharts-cartesian-grid-horizontal line,
+.backwoods .recharts-cartesian-grid-vertical line { stroke: rgba(90, 58, 31, 0.18) !important; }
+.backwoods .recharts-text { fill: var(--pb-text) !important; font-family: 'Oswald', 'Roboto Condensed', sans-serif !important; letter-spacing: 0.05em; text-transform: uppercase; }
+.backwoods .recharts-rectangle.recharts-tooltip-cursor { fill: rgba(196, 74, 23, 0.12) !important; }
+
+/* Map view + map controls (kept legible on parchment) */
+.backwoods .leaflet-container { background: #c8b78a !important; }
+
+/* Modal / mobile-nav already use z-50; the texture underlay (z 0/1) sits
+   below root (z 2), so toasts and dialogs naturally render on top. No
+   override needed. */
+
+/* ===== PAPERBACK: COMPREHENSIVE UTILITY OVERRIDES =====
+   Sweeps up every Tailwind utility used across components so colors flow
+   through automatically without requiring an inline ternary patch.
+   Selectors use [class*=] and bare class names to avoid postcss strict
+   parsing issues with / and : in plain class selectors. */
+.backwoods .bg-slate-100, .backwoods .bg-slate-50, .backwoods .bg-slate-200, .backwoods .bg-slate-300 { background-color: rgba(211,194,152,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); box-shadow: var(--pb-shadow); }
+.backwoods .bg-emerald-50, .backwoods .bg-emerald-100 { background-color: rgba(190,168,120,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border-strong); box-shadow: var(--pb-shadow); }
+.backwoods .bg-amber-50, .backwoods .bg-amber-100 { background-color: rgba(224,201,133,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); box-shadow: var(--pb-shadow); }
+.backwoods .bg-orange-50 { background-color: rgba(228,184,138,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); box-shadow: var(--pb-shadow); }
+.backwoods .bg-rose-50 { background-color: rgba(217,154,130,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: #7a2f1a; box-shadow: var(--pb-shadow); }
+.backwoods .bg-sky-50 { background-color: rgba(197,205,176,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: #4a6038; box-shadow: var(--pb-shadow); }
+.backwoods .bg-purple-50 { background-color: rgba(196,168,188,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); }
+.backwoods .bg-lime-50 { background-color: rgba(196,200,142,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: #4a6038; }
+.backwoods [class*="bg-emerald-50/"], .backwoods [class*="bg-emerald-100/"], .backwoods [class*="bg-emerald-500/15"], .backwoods [class*="bg-emerald-500/20"], .backwoods [class*="bg-emerald-500/35"], .backwoods [class*="bg-emerald-950/30"], .backwoods [class*="bg-emerald-950/40"], .backwoods [class*="bg-emerald-950/50"], .backwoods [class*="bg-emerald-900/50"] { background-color: rgba(190,168,120,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border-strong); box-shadow: var(--pb-shadow); }
+.backwoods [class*="bg-amber-50/"], .backwoods [class*="bg-amber-100/"], .backwoods [class*="bg-amber-100/60"], .backwoods [class*="bg-amber-500/15"], .backwoods [class*="bg-amber-500/20"], .backwoods [class*="bg-amber-500/35"], .backwoods [class*="bg-amber-950/40"] { background-color: rgba(224,201,133,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); box-shadow: var(--pb-shadow); }
+.backwoods [class*="bg-orange-50/"], .backwoods [class*="bg-orange-500/15"], .backwoods [class*="bg-orange-500/20"], .backwoods [class*="bg-orange-900/90"] { background-color: rgba(228,184,138,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); box-shadow: var(--pb-shadow); }
+.backwoods [class*="bg-rose-50/"], .backwoods [class*="bg-rose-500/15"], .backwoods [class*="bg-rose-500/20"], .backwoods [class*="bg-rose-950/40"], .backwoods [class*="bg-rose-950/50"] { background-color: rgba(217,154,130,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: #7a2f1a; box-shadow: var(--pb-shadow); }
+.backwoods [class*="bg-sky-50/"], .backwoods [class*="bg-sky-500/15"], .backwoods [class*="bg-sky-500/20"], .backwoods [class*="bg-sky-900/90"], .backwoods [class*="bg-sky-950/50"] { background-color: rgba(197,205,176,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: #4a6038; box-shadow: var(--pb-shadow); }
+.backwoods [class*="bg-purple-50/"], .backwoods [class*="bg-purple-500/15"], .backwoods [class*="bg-purple-900/90"] { background-color: rgba(196,168,188,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); }
+.backwoods [class*="bg-lime-50/"], .backwoods [class*="bg-lime-500/15"], .backwoods [class*="bg-lime-900/90"] { background-color: rgba(196,200,142,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: #4a6038; }
+.backwoods [class*="bg-teal-500/15"], .backwoods [class*="bg-teal-950/50"] { background-color: rgba(173,197,172,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-accent-2); }
+.backwoods [class*="bg-blue-500/15"], .backwoods [class*="bg-blue-900/90"] { background-color: rgba(170,184,196,var(--card-opacity, 0.9)); background-image: var(--pb-noise); background-size: 240px 240px; border-color: var(--pb-border); }
+/* Gradients */
+.backwoods [class*="from-emerald-50/95"], .backwoods [class*="from-amber-50/90"], .backwoods [class*="from-rose-50/90"], .backwoods [class*="from-emerald-50/40"], .backwoods [class*="from-amber-50/30"], .backwoods [class*="from-rose-50/30"] { --tw-gradient-from: var(--pb-card); }
+.backwoods [class*="via-emerald-50/40"], .backwoods [class*="via-amber-50/30"], .backwoods [class*="via-rose-50/30"] { --tw-gradient-via: var(--pb-card-deep); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to); }
+.backwoods [class*="to-emerald-50/40"], .backwoods [class*="to-amber-50/30"], .backwoods [class*="to-rose-50/30"] { --tw-gradient-to: var(--pb-bg-deep); }
+.backwoods [class*="from-emerald-950/30"], .backwoods [class*="from-emerald-950/50"], .backwoods [class*="from-amber-950/40"], .backwoods [class*="from-rose-950/40"] { --tw-gradient-from: var(--pb-card-deep); }
+.backwoods [class*="via-emerald-950/30"], .backwoods [class*="via-amber-950/40"], .backwoods [class*="via-rose-950/40"] { --tw-gradient-via: var(--pb-card); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to); }
+.backwoods [class*="to-emerald-950/30"], .backwoods [class*="to-amber-950/40"], .backwoods [class*="to-rose-950/40"] { --tw-gradient-to: var(--pb-bg); }
+/* Text colors *//* Semantic text colors. We keep the four-level palette split
+   (emerald = good, sky = solunar/weather, amber = warm caution, rose =
+   warning, lime/teal = neutral accent) so users keep the visual cues.
+   Mid-tone hexes land cleanly on the parchment body. Status PILL chips
+   (text-X-700 inside bg-X-50/... etc.) need walnut text instead — see
+   the .chip-text override below. */
+.backwoods .text-emerald-700, .backwoods .text-emerald-800 {
+  color: var(--pb-accent-2);
+}
+.backwoods .text-emerald-900 {
+  color: var(--pb-border-strong);
+}
+.backwoods .text-amber-500 {
+  color: #a87838;
+}
+.backwoods .text-amber-600, .backwoods .text-amber-700, .backwoods .text-amber-800 {
+  color: #7c5a26;
+}
+.backwoods .text-amber-300, .backwoods .text-amber-400, .backwoods .text-amber-200 {
+  color: #c79447;
+}
+.backwoods .text-orange-500, .backwoods .text-orange-600 {
+  color: var(--pb-accent);
+}
+.backwoods .text-orange-300, .backwoods .text-orange-400 {
+  color: #d97642;
+}
+.backwoods .text-rose-500, .backwoods .text-rose-600 {
+  color: #8a3424;
+}
+.backwoods .text-rose-700, .backwoods .text-rose-800, .backwoods .text-rose-900 {
+  color: #6b2014;
+}
+.backwoods .text-rose-300, .backwoods .text-rose-400, .backwoods .text-rose-200 {
+  color: #b85a44;
+}
+.backwoods .text-rose-100 {
+  color: var(--pb-text);
+}
+.backwoods .text-sky-500, .backwoods .text-sky-700 {
+  color: #4a6038;
+}
+.backwoods .text-sky-300, .backwoods .text-sky-400 {
+  color: #6c7f54;
+}
+.backwoods .text-sky-200 {
+  color: #8a9d6e;
+}
+.backwoods .text-teal-300, .backwoods .text-teal-400, .backwoods .text-teal-500, .backwoods .text-teal-700 {
+  color: #3d5a2a;
+}
+.backwoods .text-purple-500, .backwoods .text-purple-600 {
+  color: #5e3d52;
+}
+.backwoods .text-purple-300, .backwoods .text-purple-200 {
+  color: #8a6a7d;
+}
+.backwoods .text-lime-500, .backwoods .text-lime-600 {
+  color: #4a6038;
+}
+.backwoods .text-lime-300, .backwoods .text-lime-200 {
+  color: #7c8e58;
+}
+
+/* Scoped chip-pill readability — flatten ANY dark semantic text colour
+   to walnut ink when it sits on a tinted card-surface chip we also
+   remap to kraft, REGARDLESS of hue mismatch between bg and text in
+   the source. Uses COMPOUND selectors (no descendant) because most
+   chip patterns put both bg and text on the same element. Outside
+   these patterns (icons, headings, captions) the semantic hue above
+   still applies — so users keep the color cue via the chip
+   BACKGROUND colour, while the text inside reads cleanly. */
+.backwoods [class~="bg-amber-50"][class*="text-amber-700"],
+.backwoods [class~="bg-amber-50"][class*="text-amber-800"],
+.backwoods [class~="bg-amber-100"][class*="text-amber-700"],
+.backwoods [class~="bg-amber-100"][class*="text-amber-800"],
+.backwoods [class~="bg-amber-500/20"][class*="text-amber-700"],
+.backwoods [class~="bg-amber-500/15"][class*="text-amber-700"],
+.backwoods [class~="bg-orange-50"][class*="text-orange-700"],
+.backwoods [class~="bg-orange-500/20"][class*="text-orange-700"],
+.backwoods [class~="bg-emerald-50"][class*="text-emerald-700"],
+.backwoods [class~="bg-emerald-50"][class*="text-emerald-800"],
+.backwoods [class~="bg-emerald-100"][class*="text-emerald-700"],
+.backwoods [class~="bg-emerald-100"][class*="text-emerald-800"],
+.backwoods [class~="bg-emerald-500/20"][class*="text-emerald-700"],
+.backwoods [class~="bg-emerald-500/15"][class*="text-emerald-700"],
+.backwoods [class~="bg-sky-50"][class*="text-sky-700"],
+.backwoods [class~="bg-sky-500/20"][class*="text-sky-700"],
+.backwoods [class~="bg-sky-500/15"][class*="text-sky-700"],
+.backwoods [class~="bg-rose-50"][class*="text-rose-700"],
+.backwoods [class~="bg-rose-100"][class*="text-rose-700"],
+.backwoods [class~="bg-rose-500/20"][class*="text-rose-700"],
+.backwoods [class~="bg-rose-500/15"][class*="text-rose-700"],
+.backwoods [class~="bg-rose-500/15"][class*="text-amber-700"],
+.backwoods [class~="bg-amber-500/15"][class*="text-rose-700"],
+.backwoods [class~="bg-emerald-500/15"][class*="text-amber-700"],
+.backwoods [class~="bg-sky-500/15"][class*="text-amber-700"],
+.backwoods [class~="bg-sky-500/15"][class*="text-emerald-700"],
+.backwoods [class~="bg-amber-500/15"][class*="text-emerald-700"],
+.backwoods [class~="bg-orange-500/15"][class*="text-amber-700"],
+.backwoods [class~="bg-orange-500/15"][class*="text-rose-700"] {
+  color: var(--pb-text) !important;
+}
+.backwoods .text-blue-500, .backwoods .text-blue-600 { color: #2e3e54; }
+/* Catch-all wildcards for the rest of the Tailwind palette so a stray
+   text-yellow-500 / bg-pink-200 / border-cyan-300 anywhere in the app gets
+   the kraft-paper treatment instead of bleeding through in saturated
+   color. Important: keeps the visual identity consistent across the UI
+   without us having to enumerate every component file. */
+.backwoods [class*="text-yellow"], .backwoods [class*="text-pink"], .backwoods [class*="text-fuchsia"], .backwoods [class*="text-cyan"], .backwoods [class*="text-indigo"], .backwoods [class*="text-violet"], .backwoods [class*="text-stone"], .backwoods [class*="text-neutral"], .backwoods [class*="text-gray"], .backwoods [class*="text-zinc"] { color: var(--pb-accent-2) !important; }
+.backwoods [class*="bg-yellow"], .backwoods [class*="bg-pink"], .backwoods [class*="bg-fuchsia"], .backwoods [class*="bg-cyan"], .backwoods [class*="bg-indigo"], .backwoods [class*="bg-violet"], .backwoods [class*="bg-stone"], .backwoods [class*="bg-neutral"], .backwoods [class*="bg-gray"], .backwoods [class*="bg-zinc"] { background-color: rgba(224, 201, 133, var(--card-opacity, 0.9)) !important; }
+.backwoods [class*="border-yellow"], .backwoods [class*="border-pink"], .backwoods [class*="border-fuchsia"], .backwoods [class*="border-cyan"], .backwoods [class*="border-indigo"], .backwoods [class*="border-violet"], .backwoods [class*="border-stone"], .backwoods [class*="border-neutral"], .backwoods [class*="border-gray"], .backwoods [class*="border-zinc"] { border-color: #a87838 !important; }
+/* Form input carets + native check/radio accent */
+.backwoods .caret-emerald-500, .backwoods .caret-emerald-600 { caret-color: var(--pb-accent) !important; }
+.backwoods .accent-emerald-500, .backwoods .accent-emerald-600 { accent-color: var(--pb-accent) !important; }
+/* Outline colour halos (focus rings repaint) */
+.backwoods [class*="outline-emerald"], .backwoods [class*="outline-amber"], .backwoods [class*="outline-rose"], .backwoods [class*="outline-sky"] { outline-color: var(--pb-accent) !important; }
+/* Placeholders */
+.backwoods input::placeholder, .backwoods textarea::placeholder, .backwoods [class*="placeholder-slate"]::placeholder { color: rgba(108,89,56,0.7); opacity: 1; }
+/* Dividers */
+.backwoods .divide-slate-100 > * + *, .backwoods .divide-slate-200 > * + *, .backwoods .divide-slate-700 > * + *, .backwoods .divide-slate-800 > * + * { border-color: var(--pb-border); }
+/* Hover backgrounds — match by class substring with pseudo-class */
+.backwoods [class*="hover:bg-slate"]:hover, .backwoods [class*="hover:bg-white"]:hover { background-color: rgba(190,168,120,0.75) !important; }
+.backwoods [class*="hover:bg-emerald"]:hover { background-color: rgba(154,140,96,0.85) !important; }
+.backwoods [class*="hover:bg-amber"]:hover { background-color: rgba(196,165,100,0.85) !important; }
+.backwoods [class*="hover:bg-rose"]:hover, .backwoods [class*="hover:bg-orange"]:hover { background-color: rgba(170,110,90,0.85) !important; }
+.backwoods [class*="hover:bg-sky"]:hover, .backwoods [class*="hover:bg-purple"]:hover { background-color: rgba(96,138,102,0.85) !important; }
+.backwoods [class*="hover:text-emerald"]:hover { color: var(--pb-accent) !important; }
+.backwoods [class*="hover:text-emerald-700"]:hover, .backwoods [class*="hover:text-emerald-800"]:hover { color: var(--pb-accent-2) !important; }
+.backwoods [class*="hover:text-amber"]:hover { color: #c79447 !important; }
+.backwoods [class*="hover:text-sky"]:hover { color: #6c7f54 !important; }
+.backwoods [class*="hover:text-slate-900"]:hover, .backwoods [class*="hover:text-slate-200"]:hover { color: var(--pb-text) !important; }
+.backwoods [class*="hover:border-slate"]:hover, .backwoods [class*="hover:border-emerald"]:hover { border-color: var(--pb-accent) !important; }
+/* Focus */
+.backwoods [class*="focus:border-emerald"]:focus, .backwoods [class*="focus-within:border-emerald"]:focus-within { border-color: var(--pb-accent) !important; box-shadow: 0 0 0 3px rgba(196,74,23,0.18) !important; }
+/* Borders */
+.backwoods [class*="border-emerald-2"], .backwoods [class*="border-emerald-3"], .backwoods [class*="border-emerald-5"], .backwoods [class*="border-emerald-7"], .backwoods [class*="border-emerald-8"] { border-color: var(--pb-accent) !important; }
+.backwoods [class*="border-amber-2"], .backwoods [class*="border-amber-3"], .backwoods [class*="border-amber-5"], .backwoods [class*="border-amber-6"], .backwoods [class*="border-amber-7"] { border-color: #a87838 !important; }
+.backwoods [class*="border-rose-2"], .backwoods [class*="border-rose-3"], .backwoods [class*="border-rose-5"], .backwoods [class*="border-rose-6"], .backwoods [class*="border-rose-7"], .backwoods [class*="border-rose-8"] { border-color: #8a3424 !important; }
+.backwoods [class*="border-sky-2"], .backwoods [class*="border-sky-3"], .backwoods [class*="border-sky-4"], .backwoods [class*="border-sky-5"], .backwoods [class*="border-sky-7"] { border-color: #4a6038 !important; }
+.backwoods [class*="border-purple-3"], .backwoods [class*="border-purple-5"] { border-color: #5e3d52 !important; }
+.backwoods [class*="border-lime-5"] { border-color: #4a6038 !important; }
+.backwoods [class*="border-slate-5"] { border-color: rgba(90,58,31,0.22) !important; }
+/* Rings */
+.backwoods [class*="ring-emerald"] { --tw-ring-color: var(--pb-accent); }
+.backwoods [class*="ring-amber"] { --tw-ring-color: #a87838; }
+.backwoods [class*="ring-rose"] { --tw-ring-color: #8a3424; }
+.backwoods .ring-amber-350, .backwoods .text-amber-350 { --tw-ring-color: #c79447; color: #c79447; }
+/* Shadows */
+.backwoods [class*="shadow-emerald"] { --tw-shadow-color: rgba(196,74,23,0.18); }
+.backwoods [class*="shadow-amber"] { --tw-shadow-color: rgba(168,120,56,0.22); }
+.backwoods [class*="shadow-rose"] { --tw-shadow-color: rgba(138,52,36,0.20); }
+.backwoods [class*="shadow-slate"], .backwoods [class*="shadow-gray"], .backwoods [class*="shadow-zinc"], .backwoods [class*="shadow-neutral"], .backwoods [class*="shadow-stone"], .backwoods [class*="shadow-purple"], .backwoods [class*="shadow-pink"], .backwoods [class*="shadow-cyan"], .backwoods [class*="shadow-yellow"], .backwoods [class*="shadow-lime"] { --tw-shadow-color: rgba(58, 32, 16, 0.22); }
+/* Score-grade badge tints */
+.backwoods .bg-emerald-800.text-white { background-color: var(--pb-accent); color: #f4ecd6; }
+.backwoods .bg-rose-500.text-white, .backwoods .bg-rose-600 { background-color: #8a3424; color: #f4ecd6; }
+
+/* ===== BACKWOODS × DARK MODE — card-surface rgba shift ======
+   The light-mode kraft rgba values above don't follow the .dark.backwoods
+   --pb-* token cascade (they're explicit), so we re-state the most
+   prominent card backgrounds here. Dark Backwoods reads as dimmed kraft
+   on near-black walnut, like a field guide under a lamp, instead of
+   leaving full-bright kraft cards "floating" on a dark page. */
+.dark.backwoods .bg-slate-100, .dark.backwoods .bg-slate-50, .dark.backwoods .bg-slate-200, .dark.backwoods .bg-slate-300 {
+  background-color: rgba(58, 46, 28, var(--card-opacity, 0.92));
+  border-color: rgba(138, 112, 69, 0.45);
+}
+.dark.backwoods .bg-emerald-50, .dark.backwoods .bg-emerald-100 {
+  background-color: rgba(46, 56, 32, var(--card-opacity, 0.92));
+  border-color: var(--pb-accent-2);
+}
+.dark.backwoods .bg-amber-50, .dark.backwoods .bg-amber-100,
+.dark.backwoods .bg-orange-50 {
+  background-color: rgba(72, 50, 22, var(--card-opacity, 0.92));
+  border-color: rgba(168, 120, 56, 0.5);
+}
+.dark.backwoods .bg-rose-50, .dark.backwoods .bg-rose-100 {
+  background-color: rgba(66, 32, 24, var(--card-opacity, 0.92));
+  border-color: rgba(138, 52, 36, 0.6);
+}
+.dark.backwoods .bg-sky-50, .dark.backwoods .bg-sky-100 {
+  background-color: rgba(34, 48, 28, var(--card-opacity, 0.92));
+  border-color: rgba(106, 155, 70, 0.5);
+}
+.dark.backwoods .bg-purple-50, .dark.backwoods .bg-purple-100 {
+  background-color: rgba(54, 38, 58, var(--card-opacity, 0.92));
+  border-color: rgba(94, 61, 82, 0.55);
+}
+.dark.backwoods .bg-lime-50, .dark.backwoods .bg-lime-100 {
+  background-color: rgba(58, 64, 28, var(--card-opacity, 0.92));
+  border-color: rgba(106, 142, 70, 0.55);
+}
+/* Slider dawn/dusk gradient */
+.backwoods [class*="from-amber-500"] { --tw-gradient-from: #c79447; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to); }
+.backwoods [class*="to-amber-600"] { --tw-gradient-to: #a87838; }
+.backwoods .text-amber-350 { color: #c79447; }

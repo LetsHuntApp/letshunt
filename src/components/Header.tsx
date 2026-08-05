@@ -10,7 +10,7 @@ import {              Compass,
               ScrollText,
               Camera,
             } from 'lucide-react';
-import { Location, UnitSystem, ThemeMode } from '../types';
+import { Location, UnitSystem, ThemeMode, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
 
 interface HeaderProps {
@@ -20,7 +20,7 @@ interface HeaderProps {
   onSetDefaultLocation: (loc: Location) => void;
   units: UnitSystem;
   onToggleUnits: () => void;
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
   onToggleTheme: () => void;
   favorites: Location[];
@@ -150,7 +150,15 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 {/* Deer icon — theme accent color */}
                 <g
-                  fill={theme === 'hunting' ? '#c85a17' : theme === 'olive' ? '#556b2f' : '#10b981'}
+                  fill={
+                    theme === 'backwoods'
+                      ? '#c44a17'
+                      : theme === 'hunting'
+                      ? '#c85a17'
+                      : theme === 'olive'
+                      ? '#556b2f'
+                      : '#10b981'
+                  }
                   fillOpacity="1"
                 >
                   <g transform="translate(7.546462, 23.999007)">
@@ -168,7 +176,17 @@ export const Header: React.FC<HeaderProps> = ({
                 </g>
                 {/* Text — theme-aware foreground */}
                 <g
-                  fill={isDark ? '#ffffff' : theme === 'hunting' ? '#2a1b0e' : theme === 'olive' ? '#1e2e1b' : '#0f172a'}
+                  fill={
+                    isDark
+                      ? '#ffffff'
+                      : theme === 'backwoods'
+                      ? '#3a2010'
+                      : theme === 'hunting'
+                      ? '#2a1b0e'
+                      : theme === 'olive'
+                      ? '#1e2e1b'
+                      : '#0f172a'
+                  }
                   fillOpacity="1"
                 >
                   <g transform="translate(34.575233, 27.001982)">

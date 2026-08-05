@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Compass, MapPin, Layers, ZoomIn, ZoomOut, RotateCcw, AlertCircle, Map, Crosshair, Wind } from 'lucide-react';
-import { ThemeMode, Location, UnitSystem } from '../types';
+import { ThemeMode, ThemeVariantMode, Location, UnitSystem } from '../types';
 
 interface WindCompassProps {
   deg: number;
@@ -8,7 +8,7 @@ interface WindCompassProps {
   speedKmh?: number;
   directionText: string;
   units?: UnitSystem;
-  theme?: ThemeMode;
+  theme?: ThemeVariantMode;
   hasCustomBackground?: boolean;
   location?: Location;
 }

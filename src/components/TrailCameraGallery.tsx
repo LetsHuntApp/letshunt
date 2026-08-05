@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, Square, FileText, ChevronLeft, ChevronRight, Crosshair, Save, ScanLine, AlertTriangle, Camera, SlidersHorizontal, Check } from 'lucide-react';
-import { ThemeMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
+import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
 import { TeachingEmptyState } from './TeachingEmptyState';
 
 interface TrailCameraGalleryProps {
-  theme: ThemeMode;
+  theme?: ThemeVariantMode;
   photos: TrailCameraPhoto[];
   onSelectPhoto: (photo: TrailCameraPhoto) => void;
   onToggleFavorite: (photo: TrailCameraPhoto) => void;
@@ -26,7 +26,7 @@ interface TrailCameraGalleryProps {
 const ITEMS_PER_PAGE = 36;
 const NO_DATE_BADGE = '— No Date — OCR Failed —';
 
-const getThemeClasses = (theme: ThemeMode) => {
+const getThemeClasses = (theme?: ThemeVariantMode) => {
   const isDark = theme === 'dark';
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';

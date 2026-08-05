@@ -407,16 +407,105 @@ app.post('/unsubscribe', (req, res) => {
   res.json({ ok: true, count: subs.length });
 });
 
-// GET /health — simple health check
+// GET /health — simple health check + warm-up ping target.
+// NOTE: Render's free-tier web services spin down after ~15 minutes of zero
+// HTTP traffic. Routers and the setInterval loop only run while the service
+// is awake. The companion render.yaml cron job (server/keep-alive.js) pings
+// this endpoint every 14 minutes so the service never sleeps — that is what
+// makes closed-app push delivery reliable on the free plan. Users can also
+// point UptimeRobot / cron-job.org at this URL as a dropping-in replacement.
 app.get('/health', (req, res) => {
   const subs = loadSubscriptions();
   res.json({ ok: true, subscriptions: subs.length, uptime: process.uptime() });
 });
 
-// POST /trigger — manual trigger for testing or cron
+// POST /trigger — manual trigger for testing or external cron
 app.post('/trigger', async (req, res) => {
   res.json({ ok: true, message: 'Check started' });
   await checkAndNotify();
+});
+
+/**
+ * POST /send-test — manually fire a web-push to a specific client
+ * subscription RIGHT NOW, bypassing the weather-check loop. This is the
+ * definitive test of the closed-app pipeline: if this delivers while the
+ * LetsHunt tab/app is closed, VAPID + subscription + push-service + service
+ * worker are all working end-to-end.
+ *
+ * Body: { subscription: { endpoint, keys: { p256dh, auth } },
+ *         location?: {...}, prefs?: {...}, units?: 'imperial'|'metric' }
+ *
+ * Tags: `letshunt-bg-test-<timestamp>` so every press shows a fresh
+ *       notification (the OS collapses repeats keyed on `tag`).
+ */
+app.post('/send-test', async (req, res) => {
+  const { subscription, location, prefs, units } = req.body || {};
+
+  if (!subscription || !subscription.endpoint || !subscription.keys || !subscription.keys.p256dh || !subscription.keys.auth) {
+    return res.status(400).json({
+      ok: false,
+      error: 'subscription_missing',
+      message: 'Send { subscription: { endpoint, keys: { p256dh, auth } } } — get it via pushManager.getSubscription().toJSON() in the browser.',
+    });
+  }
+
+  // Re-register this subscription on the server so the next weather check
+  // can also push to it (defensive sync — fixes wiped-filesystem edge cases
+  // when the user opened the app, lost power, then opened settings without
+  // changing prefs/location/units).
+  try {
+    if (location && location.latitude && location.longitude) {
+      const subs = loadSubscriptions();
+      const idx = subs.findIndex((s) => s.subscription.endpoint === subscription.endpoint);
+      const entry = {
+        subscription,
+        location,
+        prefs: prefs || { leadTimeHours: 48, coldFront: true, weatherFront: true, rainBreak: true, primeDay: true, severeWeather: true },
+        units: units || 'imperial',
+        createdAt: Date.now(),
+      };
+      if (idx >= 0) subs[idx] = entry;
+      else subs.push(entry);
+      saveSubscriptions(subs);
+    }
+  } catch (e) {
+    console.warn('[push-server] Test re-register failed (non-blocking):', e.message);
+  }
+
+  const tag = `letshunt-bg-test-${Date.now()}`;
+  const payload = {
+    title: '🔔 LetsHunt Background Test',
+    body: 'If you see this with LetsHunt closed, background push is wired up correctly. Alerts will arrive here when fronts shift and conditions prime up.',
+    tag,
+    url: '/LetsHunt/',
+  };
+
+  try {
+    const result = await sendPush(subscription, payload);
+    if (result === 'expired') {
+      console.warn(`[push-server] /send-test refused: subscription expired (endpoint ${subscription.endpoint.substring(0, 40)}…)`);
+      return res.status(410).json({
+        ok: false,
+        error: 'subscription_expired',
+        message: 'This browser subscription is no longer valid. Open LetsHunt and re-enable alerts.',
+      });
+    }
+    if (result === true) {
+      console.log(`[push-server] Test push delivered to ${subscription.endpoint.substring(0, 40)}…`);
+      return res.json({ ok: true, queued: true, delivered: 'browser_push_service', tag });
+    }
+    // result === false — most common cause is a VAPID-key mismatch after a
+    // server restart that regenerated vapid.json (free tier wipes FS).
+    console.warn(`[push-server] /send-test refused: web-push could not deliver to endpoint ${subscription.endpoint.substring(0, 40)}… — likely VAPID key rotation; user must re-subscribe in the browser.`);
+    return res.status(502).json({
+      ok: false,
+      error: 'push_send_failed',
+      message: 'Web-push library did not confirm delivery. The browser subscription is likely invalidated by a recent VAPID key rotation on the server — toggle alerts off and back on once.',
+    });
+  } catch (e) {
+    console.error('[push-server] /send-test crashed:', e);
+    return res.status(500).json({ ok: false, error: 'internal', message: e.message });
+  }
 });
 
 // Start server

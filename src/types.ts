@@ -1,4 +1,43 @@
-export type ThemeMode = 'dark' | 'light' | 'olive' | 'hunting';
+/**
+ * Variant: ONE of four visual themes. Orthogonal to light/dark — the same
+ * variant renders in either mode via the global `dark` html class.
+ *   - standard : clean Tailwind-aligned look (slate / emerald accents)
+ *   - olive    : hunter-green moss palette
+ *   - hunting  : rustic autumn autumn-paper palette
+ *   - backwoods: kraft-paper / OnX-style topographic field guide
+ */
+export type ThemeVariant = 'standard' | 'olive' | 'hunting' | 'backwoods';
+
+/**
+ * Mode: orthogonal to variant. App-wide light-vs-dark toggle.
+ */
+export type ThemeMode = 'light' | 'dark';
+
+/**
+ * Composite legacy string used by inline ternaries inside component files.
+ * Derive via combineVariantMode() so feature code can keep doing
+ * `theme === 'hunting'` etc. without caring about light/dark.
+ *
+ *   variant==='standard' + mode==='dark'  -> 'dark'
+ *   variant==='standard' + mode==='light' -> 'light'
+ *   variant==='olive'                     -> 'olive'
+ *   variant==='hunting'                   -> 'hunting'
+ *   variant==='backwoods'                 -> 'backwoods'
+ */
+export type ThemeVariantMode =
+  | 'dark'
+  | 'light'
+  | 'olive'
+  | 'hunting'
+  | 'backwoods';
+
+export function combineVariantMode(
+  variant: ThemeVariant,
+  mode: ThemeMode
+): ThemeVariantMode {
+  if (variant === 'standard') return mode === 'dark' ? 'dark' : 'light';
+  return variant;
+}
 
 export interface Location {
   id?: string;

@@ -232,3 +232,149 @@ export async function getCurrentSubscription(): Promise<PushSubscriptionJSON | n
     return null;
   }
 }
+
+/**
+ * Result of attempting to send a background-test push. The server
+ * acknowledgement only means the push was handed to the browser
+ * vendor's push service — delivery to the device is still asynchronous.
+ */
+export interface BackgroundTestResult {
+  ok: boolean;
+  reachedServer: boolean;
+  message: string;
+  status?: number;
+}
+
+/**
+ * Drive the *closed-app* push pipeline: ask the push server to fire a real
+ * web-push notification to the current browser subscription right now. This
+ * is what proves the VAPID keys, subscription, push-service handoff, and
+ * service-worker `push` handler are all wired up — even with LetsHunt closed.
+ *
+ * @param onStateChange optional callback for incremental feedback
+ *   ('waking' | 'sending')
+ */
+export async function sendTestClosedAppPush(
+  location?: { name: string; latitude: number; longitude: number },
+  prefs?: {
+    leadTimeHours: number;
+    coldFront: boolean;
+    weatherFront: boolean;
+    rainBreak: boolean;
+    primeDay: boolean;
+    severeWeather: boolean;
+  },
+  units: string = 'imperial',
+  onStateChange?: (state: 'waking' | 'sending', info?: string) => void
+): Promise<BackgroundTestResult> {
+  if (!isPushSupported()) {
+    return { ok: false, reachedServer: false, message: 'Push API not supported in this browser.' };
+  }
+
+  let subscription: PushSubscriptionJSON | null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    subscription = sub ? sub.toJSON() : null;
+  } catch {
+    subscription = null;
+  }
+
+  if (!subscription || !subscription.endpoint || !subscription.keys) {
+    return {
+      ok: false,
+      reachedServer: false,
+      message: "No active push subscription in this browser. Toggle 'Enable Push Notifications' on once, then try this test again.",
+    };
+  }
+
+  onStateChange?.('waking', 'Waking up push server (cold start on Render free plan can take ~30s)…');
+
+  // Generous timeout — Render free-tier cold starts regularly take 25-40s to
+  // boot, and a 10s timeout here would just look broken to the user.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60_000);
+  try {
+    onStateChange?.('sending', 'Sending web-push through your browser\'s push service…');
+    const url = `${getPushServerUrl()}/send-test`;
+    const body: Record<string, unknown> = { subscription };
+    if (location) body.location = location;
+    if (prefs) body.prefs = prefs;
+    if (units) body.units = units;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    // Try to parse JSON; some failure modes (proxies, 502s) return HTML.
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* non-JSON body */
+    }
+
+    if (res.ok && data && data.ok) {
+      return {
+        ok: true,
+        reachedServer: true,
+        status: res.status,
+        message:
+          'Test push sent! The browser push service has accepted it. The OS will deliver the notification within seconds — ' +
+          'it should appear even if LetsHunt is closed or the screen is locked.',
+      };
+    }
+
+    // Map common server errors to friendly copy
+    const reason = data?.message || data?.error || `Server responded ${res.status}`;
+    if (res.status === 410 || (data && data.error === 'subscription_expired')) {
+      return {
+        ok: false,
+        reachedServer: true,
+        status: res.status,
+        message:
+          'This browser subscription is no longer valid (server reported it as expired). Open LetsHunt, flip the master toggle off and back on to register a fresh subscription.',
+      };
+    }
+    if (data && data.error === 'push_send_failed') {
+      return {
+        ok: false,
+        reachedServer: true,
+        status: res.status,
+        message:
+          'Server reached, but web-push refused the send. The server likely has new VAPID keys while the browser still holds an old subscription — toggle alerts off then back on once.',
+      };
+    }
+    if (res.status === 0 || /failed to fetch|networkerror/i.test(String(data?.message || ''))) {
+      return {
+        ok: false,
+        reachedServer: false,
+        message:
+          "Couldn't reach the push server. On Render's free tier the service sleeps after 15 minutes — first request takes ~30s to cold-start.",
+      };
+    }
+    return { ok: false, reachedServer: true, status: res.status, message: reason };
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    const isAbort = err?.name === 'AbortError';
+    if (isAbort) {
+      return {
+        ok: false,
+        reachedServer: false,
+        message:
+          'Push server did not respond within 60s. Render free tier cold-starts take 25-40s — try again, or check the Render dashboard for the service status.',
+      };
+    }
+    return {
+      ok: false,
+      reachedServer: false,
+      message:
+        "Couldn't reach the push server (" +
+        (err?.message || 'network error') +
+        '). Is it deployed and reachable?',
+    };
+  }
+}

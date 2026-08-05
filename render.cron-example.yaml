@@ -1,0 +1,26 @@
+# Render Cron Job — optional paid keep-alive for letshunt-push.
+#
+# Render does NOT offer free cron jobs (the $0 plan is web services
+# only). This file adds a Render-managed cron job that pings the web
+# service every 14 minutes so it never sleeps. MINIMUM COST IS $1/MO.
+#
+# To use this in addition to render.yaml:
+#   1. Deploy render.yaml first so `letshunt-push` exists.
+#   2. In the Render dashboard → New → Blueprint → point at this repo
+#      with `render.yaml` REPLACED by `render.cron-example.yaml`.
+#      Rename the file to `render.yaml` so Render picks it up, OR use
+#      the dashboard "New Cron Job" form and paste this service.
+#
+# If you want a $0/month solution, skip this file and point any
+# free external pinger (cron-job.org, UptimeRobot, GitHub Actions on
+# a schedule) at https://letshunt-push.onrender.com/health.
+
+services:
+  - type: cron
+    name: letshunt-push-pinger
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node keep-alive.js
+    plan: starter
+    schedule: "*/14 * * * *"
