@@ -304,14 +304,18 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Active Location Badge */}
             <div className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-xl border max-w-[130px] md:max-w-[180px] lg:max-w-[220px] flex-shrink-0 ${
-              theme === 'hunting'
+              theme === 'backwoods'
+                ? isDark
+                  ? 'bg-[#5d4826]/40 border-[#d3c298]/25'
+                  : 'bg-[#c44a17]/10 border-[#5a3a1f]/25'
+                : theme === 'hunting'
                 ? 'bg-[#c85a17]/10 border-[#c85a17]/25'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'bg-[#556b2f]/10 border-[#556b2f]/25'
                 : 'bg-emerald-500/10 border-emerald-500/20'
             }`}>
-              <MapPin className={`w-3 h-3 flex-shrink-0 ${theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
-              <span className={`text-[11px] font-bold truncate ${(theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <MapPin className={`w-3 h-3 flex-shrink-0 ${theme === 'backwoods' ? (isDark ? 'text-[#d3c298]' : 'text-[#c44a17]') : theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
+              <span className={`text-[11px] font-bold truncate ${theme === 'backwoods' ? (isDark ? 'text-[#d3c298]' : 'text-[#5a3a1f]') : (theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {currentLocation.name}
               </span>
 

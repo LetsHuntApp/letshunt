@@ -223,7 +223,9 @@ const getScoreBadgeColor = (score: number) => {
     if (score >= 90) { // Excellent - Dark green
       if (isSelected) {
         return isDark
-          ? `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
+          ? theme === 'backwoods'
+            ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbExcellent}]/70 ring-2 ring-[${pbExcellent}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
+            : `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'backwoods'
           ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbExcellent}] ring-2 ring-[${pbExcellent}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
@@ -233,7 +235,9 @@ const getScoreBadgeColor = (score: number) => {
           : `bg-white/[var(--card-opacity)] border-emerald-600 ring-2 ring-emerald-600/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-700/30 hover:border-emerald-700/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
+        ? theme === 'backwoods'
+          ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbExcellent}]/40 hover:border-[${pbExcellent}]/70 shadow-md transition-all ${glass}`
+          : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-700/30 hover:border-emerald-700/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
         : theme === 'backwoods'
         ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbExcellent}]/35 hover:border-[${pbExcellent}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
         : theme === 'hunting'
@@ -246,7 +250,9 @@ const getScoreBadgeColor = (score: number) => {
     if (score >= 76) { // Good - Sage green
       if (isSelected) {
         return isDark
-          ? `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
+          ? theme === 'backwoods'
+            ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbGood}]/70 ring-2 ring-[${pbGood}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
+            : `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'backwoods'
           ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbGood}] ring-2 ring-[${pbGood}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
@@ -256,7 +262,9 @@ const getScoreBadgeColor = (score: number) => {
           : `bg-white/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/30 hover:border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
+        ? theme === 'backwoods'
+          ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbGood}]/40 hover:border-[${pbGood}]/70 shadow-md transition-all ${glass}`
+          : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/30 hover:border-emerald-500/60 shadow-md shadow-emerald-950/20 hover:shadow-emerald-500/5 transition-all ${glass}`
         : theme === 'backwoods'
         ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbGood}]/35 hover:border-[${pbGood}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
         : theme === 'hunting'
@@ -269,7 +277,9 @@ const getScoreBadgeColor = (score: number) => {
     if (score >= 46) { // Fair - Amber/Ochre
       if (isSelected) {
         return isDark
-          ? `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
+          ? theme === 'backwoods'
+            ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbFair}]/70 ring-2 ring-[${pbFair}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
+            : `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'backwoods'
           ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbFair}] ring-2 ring-[${pbFair}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
@@ -279,7 +289,9 @@ const getScoreBadgeColor = (score: number) => {
           : `bg-white/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-amber-500/30 hover:border-amber-500/60 shadow-md shadow-amber-950/20 hover:shadow-amber-500/5 transition-all ${glass}`
+        ? theme === 'backwoods'
+          ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbFair}]/40 hover:border-[${pbFair}]/70 shadow-md transition-all ${glass}`
+          : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-amber-500/30 hover:border-amber-500/60 shadow-md shadow-amber-950/20 hover:shadow-amber-500/5 transition-all ${glass}`
         : theme === 'backwoods'
         ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbFair}]/35 hover:border-[${pbFair}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
         : theme === 'hunting'
@@ -292,7 +304,9 @@ const getScoreBadgeColor = (score: number) => {
     // Poor (< 46) - Red
     if (isSelected) {
       return isDark
-        ? `bg-slate-900/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10 scale-[1.01] z-10 ${glass}`
+        ? theme === 'backwoods'
+          ? `bg-[#5d4826]/[var(--card-opacity)] border-[${pbPoor}]/70 ring-2 ring-[${pbPoor}]/40 shadow-lg scale-[1.01] z-10 ${glass}`
+          : `bg-slate-900/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10 scale-[1.01] z-10 ${glass}`
         : theme === 'backwoods'
         ? `bg-[#d3c298]/[var(--card-opacity)] border-[${pbPoor}] ring-2 ring-[${pbPoor}]/40 shadow-md text-[#2a1d10] scale-[1.01] z-10 ${glass}`
         : theme === 'hunting'
@@ -302,7 +316,9 @@ const getScoreBadgeColor = (score: number) => {
         : `bg-white/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/30 shadow-md shadow-rose-500/5 scale-[1.01] z-10 ${glass}`;
     }
     return isDark
-      ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-rose-500/30 hover:border-rose-500/60 shadow-md shadow-rose-950/20 hover:shadow-rose-500/5 transition-all ${glass}`
+      ? theme === 'backwoods'
+        ? `bg-[#5d4826]/[var(--card-opacity)] hover:bg-[#6b5232]/[calc(var(--card-opacity)*1.15)] border-[${pbPoor}]/40 hover:border-[${pbPoor}]/70 shadow-md transition-all ${glass}`
+        : `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-rose-500/30 hover:border-rose-500/60 shadow-md shadow-rose-950/20 hover:shadow-rose-500/5 transition-all ${glass}`
       : theme === 'backwoods'
       ? `bg-[#d3c298]/[var(--card-opacity)] hover:bg-[#bea878] border-[${pbPoor}]/35 hover:border-[${pbPoor}]/60 shadow-xs text-[#2a1d10] transition-all ${glass}`
       : theme === 'hunting'

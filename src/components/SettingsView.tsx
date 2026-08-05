@@ -444,16 +444,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Section 1: Location & Hunting Grounds Management */}
-        <div className={`p-5 sm:p-6 rounded-3xl border space-y-5 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+        <div className={`p-5 sm:p-6 rounded-3xl border space-y-5 ${
+          isDark
+            ? theme === 'backwoods'
+              ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+              : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+            : theme === 'backwoods'
+              ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+              : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'
+        }`}>
           <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
-            <MapPin className="w-5 h-5 text-emerald-500" />
-            <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <MapPin className={`w-5 h-5 ${theme === 'backwoods' ? 'text-[#c44a17]' : 'text-emerald-500'}`} />
+            <h2 className={`text-base font-black ${isDark ? 'text-white' : theme === 'backwoods' ? 'text-[#2a1d10]' : 'text-slate-900'}`}>
               Hunting Grounds & Default Location
             </h2>
           </div>
 
           {/* Active & Default Location Card */}
-          <div className={`p-4 rounded-2xl border space-y-3 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isDark
+              ? theme === 'backwoods'
+                ? 'bg-[#3a2a16]/60 border-[#d3c298]/30'
+                : 'bg-slate-950/60 border-slate-800'
+              : theme === 'backwoods'
+                ? 'bg-[#bea878]/60 border-[#5a3a1f]/30'
+                : 'bg-slate-50 border-slate-200'
+          }`}>
             <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
               <Home className="w-3.5 h-3.5 text-emerald-500" />
               Default Starting Ground
@@ -681,7 +697,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* Section 2: Preferences & Units */}
         <div className="space-y-6">
           {/* Push Notifications & Weather Alerts Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
+          ? theme === 'backwoods'
+            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <BellRing className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -963,7 +985,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {/* Unit System Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
+          ? theme === 'backwoods'
+            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Thermometer className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1019,7 +1047,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {/* Barometric Pressure Unit Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
+          ? theme === 'backwoods'
+            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Gauge className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1075,7 +1109,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {/* Appearance & Theme Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
+          ? theme === 'backwoods'
+            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Sun className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -1337,7 +1377,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {/* Quick Guides & Web App Tool Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-3 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-3 ${isDark
+          ? theme === 'backwoods'
+            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <h2 className={`text-xs font-extrabold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               Help & Resources
             </h2>
@@ -1366,7 +1412,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           {/* Backup & Restore (JSON) Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
+          ? theme === 'backwoods'
+            ? 'bg-[#5d4826]/[var(--card-opacity)] backdrop-blur-md border-[#d3c298]/30'
+            : 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] backdrop-blur-md border-[#5a3a1f] shadow-sm'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Database className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>

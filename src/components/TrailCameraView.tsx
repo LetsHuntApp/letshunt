@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Camera, LayoutGrid, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2 } from 'lucide-react';
+import { Camera, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2 } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -536,88 +536,89 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Top Header Card */}
-      <div className={`${cardBase} ${cardBg} flex items-center justify-between gap-2 sm:gap-4`}>
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className={`${cardBase} ${cardBg} flex flex-col gap-3`}>
+        {/* Title row — always on top */}
+        <div className="flex items-start gap-2 sm:gap-3">
           <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
             <Camera className="w-4 h-4 sm:w-6 sm:h-6" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h2 className="text-sm sm:text-lg font-black tracking-tight leading-tight">Trail Cam Photo Analyzer</h2>
-            <p className="hidden sm:block text-xs opacity-70">
-              Bulk photo import, automatic historical weather matching & deer movement analytics.
+            <p className="text-[10px] sm:text-xs opacity-70 mt-0.5">
+              Bulk photo import, automatic historical weather matching &amp; deer movement analytics.
             </p>
           </div>
         </div>
 
-        {/* Compact "Import Photos" button — shown once photos already exist, so the
-            big dropzone card doesn't crowd the page. Hidden while importing, when
-            the dropzone (with progress) is visible instead. */}
-        {photos.length > 0 && (
-          <>
-            <input
-              ref={importInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleCompactImportChange}
-              className="hidden"
-            />
+        {/* Button row — Import + tab nav, always on a second line */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Compact "Import Photos" button — shown once photos already exist. */}
+          {photos.length > 0 ? (
+            <>
+              <input
+                ref={importInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleCompactImportChange}
+                className="hidden"
+              />
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={importing}
+                className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 ${importing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                title="Import more trail camera photos"
+              >
+                {importing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                <span>Import</span>
+              </button>
+            </>
+          ) : null}
+
+          {/* Sub-Tab Navigation Buttons */}
+          <div className={`flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 ${
+            isDark
+              ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80'
+              : isHunting
+              ? 'bg-[#dccab8]/[var(--card-opacity)] border-[#c4b498]'
+              : isOlive
+              ? 'bg-[#e5dfcd]/[var(--card-opacity)] border-[#cbc5b0]'
+              : 'bg-slate-100/[var(--card-opacity)] border-slate-200'
+          }`}>
             <button
-              onClick={() => importInputRef.current?.click()}
-              disabled={importing}
-              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 ${importing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
-              title="Import more trail camera photos"
+              onClick={() => setActiveTab('gallery')}
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'gallery'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : isDark
+                  ? 'text-slate-400 hover:text-white'
+                  : isHunting
+                  ? 'text-[#8b7355] hover:text-[#2a1b0e]'
+                  : isOlive
+                  ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
             >
-              {importing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-              <span className="hidden sm:inline">Import Photos</span>
-              <span className="sm:hidden">Import</span>
+              <Camera className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Photos</span> ({photos.length})
             </button>
-          </>
-        )}
 
-        {/* Sub-Tab Navigation Buttons */}
-        <div className={`flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 ${
-          isDark
-            ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80'
-            : isHunting
-            ? 'bg-[#dccab8]/[var(--card-opacity)] border-[#c4b498]'
-            : isOlive
-            ? 'bg-[#e5dfcd]/[var(--card-opacity)] border-[#cbc5b0]'
-            : 'bg-slate-100/[var(--card-opacity)] border-slate-200'
-        }`}>
-          <button
-            onClick={() => setActiveTab('gallery')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'gallery'
-                ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : isDark
-                ? 'text-slate-400 hover:text-white'
-                : isHunting
-                ? 'text-[#8b7355] hover:text-[#2a1b0e]'
-                : isOlive
-                ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <LayoutGrid className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Photos</span> ({photos.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'analytics'
-                ? 'bg-emerald-500 text-slate-950 shadow-md'
-                : isDark
-                ? 'text-slate-400 hover:text-white'
-                : isHunting
-                ? 'text-[#8b7355] hover:text-[#2a1b0e]'
-                : isOlive
-                ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Analytics</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'analytics'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : isDark
+                  ? 'text-slate-400 hover:text-white'
+                  : isHunting
+                  ? 'text-[#8b7355] hover:text-[#2a1b0e]'
+                  : isOlive
+                  ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Analytics</span>
+            </button>
+          </div>
         </div>
       </div>
 
