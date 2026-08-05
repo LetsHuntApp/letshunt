@@ -737,27 +737,40 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </div>
           )}
 
-          {/* Location Management Strip — dropdown + Default toggle + Delete + Add */}
-          <div className={`${cardBase} ${cardBg} flex flex-col sm:flex-row sm:items-center gap-2 p-2 sm:p-3 text-xs`}>
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
-                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
-              </span>
-              <select
-                value={selectedSpotId}
-                onChange={(e) => setSelectedSpotId(e.target.value)}
-                title="Pick a spot — then use the buttons to set as default or delete it"
-                className={`flex-1 min-w-0 max-w-xs px-2 py-1.5 text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
-              >
-                <option value="">
-                  {allSpots.length === 0 ? '— No spots yet —' : '— Pick a spot —'}
+          {/* Location Management Strip — dropdown + Add + Default toggle + Delete.
+              Compact single row on every breakpoint so Add sits directly to
+              the right of the dropdown. */}
+          <div className={`${cardBase} ${cardBg} flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs flex-wrap`}>
+            <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
+              <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
+            </span>
+            <select
+              value={selectedSpotId}
+              onChange={(e) => setSelectedSpotId(e.target.value)}
+              title="Pick a spot — then use the buttons to set as default or delete it"
+              className={`flex-1 min-w-0 max-w-xs px-2 py-1 text-[11px] sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
+            >
+              <option value="">
+                {allSpots.length === 0 ? '— No spots yet —' : '— Pick a spot —'}
+              </option>
+              {allSpots.map((spot) => (
+                <option key={spot.id} value={spot.id}>
+                  {spot._isMapPin ? '🗺 ' : ''}{spot.name}{spot.id === defaultLocId ? '  ★ default' : ''}
                 </option>
-                {allSpots.map((spot) => (
-                  <option key={spot.id} value={spot.id}>
-                    {spot._isMapPin ? '🗺 ' : ''}{spot.name}{spot.id === defaultLocId ? '  ★ default' : ''}
-                  </option>
-                ))}
-              </select>
+              ))}
+            </select>
+
+            {/* Add Spot — sits directly to the right of the dropdown on every
+                breakpoint.  Compact: tiny padding + tiny text size, still has
+                a readable "Add" label next to the plus icon. */}
+            <button
+              onClick={() => setIsLocationModalOpen(true)}
+              title="Add a new camera spot"
+              className={`px-1.5 py-1 sm:px-2 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 shadow-sm flex-shrink-0 ${buttonPrimaryBg}`}
+            >
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Add</span>
+            </button>
 
               {/* Star / Default toggle on the selected spot. Works on any
                   spot, not just the current default — so you can promote or
@@ -806,8 +819,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               </button>
 
               {/* Delete — fully labeled, red on hover/focus, works on any
-                  non-map-pin spot. Always-visible text on sm+ to make the
-                  action discoverable. */}
+                  non-map-pin spot. Compact: tiny padding, readable label. */}
               <button
                 onClick={() => {
                   if (!selectedSpotId) {
@@ -829,7 +841,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                         ? 'Map pins can\u2019t be deleted here'
                         : 'Delete selected spot')
                 }
-                className={`px-2 py-1 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold transition-all border cursor-pointer flex items-center gap-1 ${
+                className={`px-1.5 py-1 sm:px-2 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 flex-shrink-0 ${
                   !selectedSpotId || allSpots.find((s) => s.id === selectedSpotId)?._isMapPin
                     ? isDark
                       ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed opacity-60'
@@ -846,59 +858,56 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>Delete</span>
               </button>
-            </div>
-
-            <button
-              onClick={() => setIsLocationModalOpen(true)}
-              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5`}
-            >
-              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Add </span>Spot
-            </button>
           </div>
 
-          {/* Target Management Strip — dropdown + Add (Manage) button */}
-          <div className={`${cardBase} ${cardBg} flex flex-col sm:flex-row sm:items-center gap-2 p-2 sm:p-3 text-xs`}>
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-              <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
-                <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
-              </span>
-              <select
-                value={selectedTargetId}
-                onChange={(e) => setSelectedTargetId(e.target.value)}
-                title="Quick-view a target — colour-swatch is shown for each option"
-                className={`flex-1 min-w-0 max-w-xs px-2 py-1.5 text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
-              >
-                <option value="">
-                  {targets.length === 0 ? '— No targets yet —' : `— All targets (${targets.length}) —`}
+          {/* Target Management Strip — dropdown + Add + colour swatch.
+              Compact single row on every breakpoint so Add sits directly to
+              the right of the dropdown. */}
+          <div className={`${cardBase} ${cardBg} flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs flex-wrap`}>
+            <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-[10px] sm:text-xs">
+              <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
+            </span>
+            <select
+              value={selectedTargetId}
+              onChange={(e) => setSelectedTargetId(e.target.value)}
+              title="Quick-view a target — colour-swatch is shown for each option"
+              className={`flex-1 min-w-0 max-w-xs px-2 py-1 text-[11px] sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
+            >
+              <option value="">
+                {targets.length === 0 ? '— No targets yet —' : `— All targets (${targets.length}) —`}
+              </option>
+              {targets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  ● {t.name}
                 </option>
-                {targets.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    ● {t.name}
-                  </option>
-                ))}
-              </select>
-              {/* Tiny colour swatch preview for the selected target */}
-              {selectedTargetId && (
-                <span
-                  className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-white/20 flex-shrink-0 shadow-inner"
-                  style={{
-                    backgroundColor:
-                      targets.find((t) => t.id === selectedTargetId)?.color || 'transparent',
-                  }}
-                  title={`${
-                    targets.find((t) => t.id === selectedTargetId)?.name || ''
-                  } colour swatch`}
-                />
-              )}
-            </div>
+              ))}
+            </select>
 
+            {/* Add (Manage) — sits directly to the right of the dropdown on
+                every breakpoint.  Compact: tiny padding + tiny text, still
+                readable. */}
             <button
               onClick={() => setIsTargetManagerOpen(true)}
               title="Open the target manager to add, edit, recolour, or remove targets"
-              className={`${buttonPrimary} ${buttonPrimaryBg} flex-shrink-0 shadow-md text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5`}
+              className={`px-1.5 py-1 sm:px-2 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 shadow-sm flex-shrink-0 ${buttonPrimaryBg}`}
             >
-              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Add </span>Targets
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Add</span>
             </button>
+
+            {/* Tiny colour swatch preview for the selected target */}
+            {selectedTargetId && (
+              <span
+                className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border border-white/20 flex-shrink-0 shadow-inner"
+                style={{
+                  backgroundColor:
+                    targets.find((t) => t.id === selectedTargetId)?.color || 'transparent',
+                }}
+                title={`${
+                  targets.find((t) => t.id === selectedTargetId)?.name || ''
+                } colour swatch`}
+              />
+            )}
           </div>
 
           {/* Filter Panel */}
