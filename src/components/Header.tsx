@@ -21,6 +21,7 @@ interface HeaderProps {
   units: UnitSystem;
   onToggleUnits: () => void;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
   onToggleTheme: () => void;
   favorites: Location[];
@@ -38,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSetDefaultLocation,
   units,
   theme,
+  isDark = theme === 'dark',
   hasCustomBackground = false,
   favorites,
   onToggleFavorite,
@@ -50,8 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  const isDark = theme === 'dark';
 
   // Handle location search debounced
   useEffect(() => {
@@ -122,12 +122,12 @@ export const Header: React.FC<HeaderProps> = ({
     <header
       className={`sticky top-0 z-50 px-3 sm:px-6 py-1.5 transition-colors duration-200 border-b ${
         isDark
-          ? 'bg-slate-950/90 backdrop-blur-md border-slate-800/80 shadow-lg text-slate-100'
+          ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800/80 shadow-lg text-slate-100'
           : theme === 'hunting'
-          ? 'bg-[#f4eee1]/95 backdrop-blur-md border-[#d4c4a8] shadow-xs text-[#2a1b0e]'
+          ? 'bg-[#f4eee1]/[var(--card-opacity)] backdrop-blur-md border-[#d4c4a8] shadow-xs text-[#2a1b0e]'
           : (theme === 'olive' || theme === 'hunting')
-          ? 'bg-[#f7f5ed]/95 backdrop-blur-md border-[#d8d2c0] shadow-xs text-[#1e2e1b]'
-          : 'bg-white/95 backdrop-blur-md border-slate-200 shadow-sm text-slate-900'
+          ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-md border-[#d8d2c0] shadow-xs text-[#1e2e1b]'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm text-slate-900'
       }`}
     >
       <div className="max-w-7xl mx-auto">
@@ -228,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div
                 className={`flex items-center border rounded-xl px-2 py-1 sm:py-1.5 transition-all ${
                   isDark
-                    ? 'bg-slate-900/90 border-slate-800 focus-within:border-emerald-500'
+                    ? 'bg-slate-900/[var(--card-opacity)] border-slate-800 focus-within:border-emerald-500'
 : theme === 'hunting'
 ? 'bg-[#eae1cf] border-[#d4c4a8] focus-within:border-[#c85a17]'
                     : (theme === 'olive' || theme === 'hunting')
@@ -355,7 +355,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden md:flex items-center gap-1 flex-shrink-0 min-w-0">
             <nav className={`flex items-center gap-1 p-0.5 rounded-2xl border flex-shrink-0 ${
               isDark
-                ? 'bg-slate-900/90 border-slate-800'
+                ? 'bg-slate-900/[var(--card-opacity)] border-slate-800'
                 : (theme === 'olive' || theme === 'hunting')
                 ? 'bg-[#e8e4d5] border-[#d4cebc]'
                 : 'bg-slate-100 border-slate-200'

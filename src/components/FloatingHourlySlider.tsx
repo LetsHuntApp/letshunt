@@ -9,6 +9,7 @@ interface FloatingHourlySliderProps {
   onResetToToday?: () => void;
   hourly?: HourlyForecast[];
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
 }
 
@@ -18,10 +19,9 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   onResetToToday,
   hourly,
   theme = 'dark',
+  isDark = theme === 'dark',
   hasCustomBackground = false,
 }) => {
-  const isDark = theme === 'dark';
-
   // Instant local state for lag-free 60fps scrubbing
   const [localHour, setLocalHour] = useState(selectedHour);
   const [isDragging, setIsDragging] = useState(false);

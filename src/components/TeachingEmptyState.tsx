@@ -9,6 +9,7 @@ interface TeachingStep {
 
 interface TeachingEmptyStateProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   icon: React.ReactNode;
   title: string;
   description: string;
@@ -27,6 +28,7 @@ interface TeachingEmptyStateProps {
  */
 export const TeachingEmptyState: React.FC<TeachingEmptyStateProps> = ({
   theme,
+  isDark = theme === 'dark',
   icon,
   title,
   description,
@@ -37,7 +39,6 @@ export const TeachingEmptyState: React.FC<TeachingEmptyStateProps> = ({
   onSecondary,
   compact = false,
 }) => {
-  const isDark = theme === 'dark';
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';
 
@@ -92,7 +93,7 @@ export const TeachingEmptyState: React.FC<TeachingEmptyStateProps> = ({
           <div
             key={idx}
             className={`flex items-start gap-3 p-2.5 rounded-xl border ${
-              isDark ? 'bg-slate-950/50 border-slate-800' : isHunting ? 'bg-[#e0d6c0]/40 border-[#d4c4a8]/50' : isOlive ? 'bg-[#e8e4d5]/40 border-[#d8d2c0]/50' : 'bg-slate-50 border-slate-200'
+              isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : isHunting ? 'bg-[#e0d6c0]/40 border-[#d4c4a8]/50' : isOlive ? 'bg-[#e8e4d5]/40 border-[#d8d2c0]/50' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
             }`}
           >
             <span
@@ -130,12 +131,12 @@ export const TeachingEmptyState: React.FC<TeachingEmptyStateProps> = ({
               onClick={onSecondary}
               className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${
                 isDark
-                  ? 'bg-slate-900/60 border-slate-700 text-slate-300 hover:bg-slate-800'
+                  ? 'bg-slate-900/[var(--card-opacity)] border-slate-700 text-slate-300 hover:bg-slate-800'
                   : isHunting
-                  ? 'bg-[#eee6d6]/60 border-[#d4c4a8] text-[#2a1b0e] hover:bg-[#e0d6c0]'
+                  ? 'bg-[#eee6d6]/[var(--card-opacity)] border-[#d4c4a8] text-[#2a1b0e] hover:bg-[#e0d6c0]'
                   : isOlive
-                  ? 'bg-[#f7f5ed]/60 border-[#d8d2c0] text-[#1e2e1b] hover:bg-[#e8e4d5]'
-                  : 'bg-white/70 border-slate-300 text-slate-700 hover:bg-slate-100'
+                  ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-[#d8d2c0] text-[#1e2e1b] hover:bg-[#e8e4d5]'
+                  : 'bg-white/[var(--card-opacity)] border-slate-300 text-slate-700 hover:bg-slate-100'
               }`}
             >
               {secondaryLabel}

@@ -6,6 +6,7 @@ import { TeachingEmptyState } from './TeachingEmptyState';
 
 interface TrailCameraGalleryProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   photos: TrailCameraPhoto[];
   onSelectPhoto: (photo: TrailCameraPhoto) => void;
   onToggleFavorite: (photo: TrailCameraPhoto) => void;
@@ -26,14 +27,13 @@ interface TrailCameraGalleryProps {
 const ITEMS_PER_PAGE = 36;
 const NO_DATE_BADGE = '— No Date — OCR Failed —';
 
-const getThemeClasses = (theme?: ThemeVariantMode) => {
-  const isDark = theme === 'dark';
+const getThemeClasses = (theme?: ThemeVariantMode, isDark = theme === 'dark') => {
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';
 
   return {
     cardBg: isDark
-      ? 'bg-slate-900/40 backdrop-blur-md border border-slate-700/50'
+      ? 'bg-slate-900/[calc(var(--card-opacity)*0.5)] backdrop-blur-md border border-slate-700/50'
       : isHunting
       ? 'bg-[#eae1cf]/80 border-[#d4c4a8]'
       : isOlive
@@ -67,7 +67,7 @@ const getThemeClasses = (theme?: ThemeVariantMode) => {
       : 'bg-white border-slate-200 hover:border-slate-400',
     loadingBg: isDark ? 'bg-slate-800' : isHunting ? 'bg-[#d4c4a8]' : isOlive ? 'bg-[#e8e4d5]' : 'bg-slate-200',
     paginationBg: isDark
-      ? 'bg-slate-900/40 backdrop-blur-md border border-slate-700/50'
+      ? 'bg-slate-900/[calc(var(--card-opacity)*0.5)] backdrop-blur-md border border-slate-700/50'
       : isHunting
       ? 'bg-[#eae1cf]/80 border-[#d4c4a8]'
       : isOlive
@@ -93,6 +93,7 @@ const getThemeClasses = (theme?: ThemeVariantMode) => {
 
 export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   theme,
+  isDark = theme === 'dark',
   photos,
   onSelectPhoto,
   onToggleFavorite,
@@ -140,7 +141,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
   const displayPhotos = showTimeDefaultedOnly ? photos.filter(p => p.timeDefaulted) : photos;
   const paginatedPhotos = displayPhotos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  const tc = getThemeClasses(theme);
+  const tc = getThemeClasses(theme, isDark);
 
   // Close tag popup on click outside
   useEffect(() => {
@@ -405,6 +406,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
           /* Photos exist but the active filters hide them all */
           <TeachingEmptyState
             theme={theme}
+            isDark={isDark}
             icon={<SlidersHorizontal className="w-6 h-6" />}
             title="No Photos Match Your Filters"
             description="You have photos imported, but the current filter combination (or the 'Time Missing' toggle) doesn't match any of them."
@@ -421,6 +423,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
           /* No photos imported yet at all */
           <TeachingEmptyState
             theme={theme}
+            isDark={isDark}
             icon={<Camera className="w-6 h-6" />}
             title="Import Your First Trail Cam Photos"
             description="Turn raw camera captures into hunting intelligence — dates and times are read automatically from each photo's timestamp bar, no EXIF needed."
@@ -712,7 +715,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             className="px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
-            style={{ backgroundColor: theme === 'dark' ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: theme === 'dark' ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
+            style={{ backgroundColor: isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: isDark ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
           >
             <ChevronLeft className="w-4 h-4" /> Previous
           </button>
@@ -725,7 +728,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             className="px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
-            style={{ backgroundColor: theme === 'dark' ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: theme === 'dark' ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
+            style={{ backgroundColor: isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: isDark ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>

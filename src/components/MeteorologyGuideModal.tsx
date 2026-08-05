@@ -6,18 +6,17 @@ interface MeteorologyGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
 }
 
-export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ isOpen, onClose, theme = 'dark' }) => {
+export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ isOpen, onClose, theme = 'dark', isDark = theme === 'dark' }) => {
   if (!isOpen) return null;
-
-  const isDark = theme === 'dark';
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
       <div
         className={`border rounded-3xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl space-y-4 my-8 max-h-[90vh] overflow-y-auto ${
-          isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+          isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-700 text-slate-100' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 text-slate-900'
         }`}
       >
         {/* Modal Header */}
@@ -49,7 +48,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
         {/* 7 Core Science Factors */}
         <div className="space-y-3 text-xs">
           {/* Factor 1: Temperature */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-blue-500 dark:text-blue-400 text-sm">
               <Thermometer className="w-4 h-4" />
               <span>1. Temperature Level</span>
@@ -61,7 +60,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           </div>
 
           {/* Factor 2: Temperature Trend */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-cyan-500 dark:text-cyan-400 text-sm">
               <TrendingDown className="w-4 h-4" />
               <span>2. Temperature Trend (24h Change)</span>
@@ -73,7 +72,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           </div>
 
           {/* Factor 3: Wind Speed */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-sky-500 dark:text-sky-400 text-sm">
               <Wind className="w-4 h-4" />
               <span>3. Wind Speed</span>
@@ -85,7 +84,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           </div>
 
           {/* Factor 4: Barometric Pressure */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-amber-500 dark:text-amber-400 text-sm">
               <Gauge className="w-4 h-4" />
               <span>4. Barometric Pressure</span>
@@ -97,7 +96,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           </div>
 
           {/* Factor 5: Precipitation */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-teal-500 dark:text-teal-400 text-sm">
               <CloudRain className="w-4 h-4" />
               <span>5. Precipitation & Rain Breaks</span>
@@ -109,7 +108,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           </div>
 
           {/* Factor 6: Time of Day */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-indigo-500 dark:text-indigo-400 text-sm">
               <Clock className="w-4 h-4" />
               <span>6. Time of Day</span>
@@ -121,7 +120,7 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           </div>
 
           {/* Factor 7: Rut Phase */}
-          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-purple-500 dark:text-purple-400 text-sm">
               <Sparkles className="w-4 h-4" />
               <span>7. Rut Phase</span>

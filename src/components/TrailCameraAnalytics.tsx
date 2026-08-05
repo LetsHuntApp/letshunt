@@ -6,6 +6,7 @@ import { AnalyticsData, computeAnalytics } from '../services/trailCameraService'
 
 interface TrailCameraAnalyticsProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   analytics: AnalyticsData;
   photos?: TrailCameraPhoto[];
   targets?: TrailCameraTarget[];
@@ -19,6 +20,7 @@ const BAR_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b
 
 export const TrailCameraAnalytics: React.FC<TrailCameraAnalyticsProps> = ({
   theme,
+  isDark = theme === 'dark',
   analytics: initialAnalytics,
   photos,
   targets = [],
@@ -27,8 +29,6 @@ export const TrailCameraAnalytics: React.FC<TrailCameraAnalyticsProps> = ({
   units = 'imperial',
   pressureUnit = 'inHg',
 }) => {
-  const isDark = theme === 'dark';
-
   const targetId = filter?.targetId;
 
   const currentPhotos = useMemo(() => {
@@ -48,7 +48,7 @@ export const TrailCameraAnalytics: React.FC<TrailCameraAnalyticsProps> = ({
 
   const cardStyle = `rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3 ${
     isDark
-      ? 'bg-slate-900/80 border-slate-800 text-slate-100'
+      ? 'bg-slate-900/[var(--card-opacity)] border-slate-800 text-slate-100'
       : theme === 'hunting'
       ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
       : (theme === 'olive' || theme === 'hunting')

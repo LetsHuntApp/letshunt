@@ -133,7 +133,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const isDark = theme === 'dark';
+  // isDark comes from the orthogonal themeMode prop (not the composite
+  // `theme` string, which collapses to the variant name for olive/hunting/
+  // backwoods) so the whole Settings view flips correctly in dark mode.
+  const isDark = themeMode === 'dark';
 
   // Search debounced
   useEffect(() => {

@@ -11,6 +11,7 @@ interface RutStatusModalProps {
   location?: Location;
   dateFormatted?: string;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
 }
 
@@ -21,11 +22,10 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
   location,
   dateFormatted,
   theme,
+  isDark = theme === 'dark',
   hasCustomBackground = false,
 }) => {
   if (!isOpen) return null;
-
-  const isDark = theme === 'dark';
 
   // Specific tactical highlights depending on rut phase
   const getPhaseTactics = (phaseId: RutPhase['phaseId']) => {
@@ -96,14 +96,14 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
       <div
         className={`relative w-full max-w-lg rounded-3xl border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col transition-all ${
           isDark
-            ? 'bg-slate-900 border-slate-800 text-slate-100'
-            : 'bg-white border-slate-200 text-slate-900'
+            ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800 text-slate-100'
+            : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 text-slate-900'
         }`}
       >
         {/* Modal Header */}
         <div
           className={`p-4 sm:p-5 border-b flex items-center justify-between gap-3 ${
-            isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50/90 border-slate-200'
+            isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
           }`}
         >
           <div className="flex items-center gap-2.5">
@@ -145,7 +145,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
           {/* Phase Summary Banner */}
           <div
             className={`p-4 rounded-2xl border text-xs leading-relaxed ${
-              isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-emerald-50/70 border-emerald-200/80 shadow-xs'
+              isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-emerald-50/[var(--card-opacity)] border-emerald-200/80 shadow-xs'
             }`}
           >
             <div className="font-extrabold text-xs uppercase tracking-wide text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
@@ -160,7 +160,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
           {/* Regional Context Tag */}
           {location && (
             <div className={`text-[11px] font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl border ${
-              isDark ? 'bg-slate-950/40 border-slate-800/80 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
+              isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80 text-slate-400' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-600'
             }`}>
               <Compass className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span>
@@ -181,7 +181,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div
                 className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                  isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-xs'
+                  isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
                 }`}
               >
                 <Eye className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -195,7 +195,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
 
               <div
                 className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                  isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-xs'
+                  isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
                 }`}
               >
                 <Volume2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -209,7 +209,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
 
               <div
                 className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                  isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-xs'
+                  isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
                 }`}
               >
                 <Flame className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -223,7 +223,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
 
               <div
                 className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                  isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200 shadow-xs'
+                  isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
                 }`}
               >
                 <ShieldAlert className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -241,7 +241,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
         {/* Modal Footer */}
         <div
           className={`p-4 border-t flex justify-end ${
-            isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'
+            isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
           }`}
         >
           <button

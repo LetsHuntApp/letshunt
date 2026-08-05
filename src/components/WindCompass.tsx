@@ -9,6 +9,7 @@ interface WindCompassProps {
   directionText: string;
   units?: UnitSystem;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
   location?: Location;
 }
@@ -63,11 +64,10 @@ export const WindCompass: React.FC<WindCompassProps> = ({
   directionText,
   units = 'imperial',
   theme = 'dark',
+  isDark = theme === 'dark',
   hasCustomBackground = false,
   location,
 }) => {
-  const isDark = theme === 'dark';
-
   const speedVal = units === 'metric'
     ? (speedKmh !== undefined ? Math.round(speedKmh) : Math.round(speedMph * 1.60934))
     : Math.round(speedMph);
@@ -254,7 +254,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
     >
       {/* Tab Selector & Header */}
       <div className={`p-3 sm:p-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
-        isDark ? 'border-slate-800 bg-slate-950/40' : theme === 'hunting' ? 'border-[#d4c4a8] bg-[#eae1cf]' : (theme === 'olive' || theme === 'hunting') ? 'border-[#d8d2c0] bg-[#efebd9]' : 'border-slate-100 bg-slate-50'
+        isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)]' : theme === 'hunting' ? 'border-[#d4c4a8] bg-[#eae1cf]/[var(--card-opacity)]' : (theme === 'olive' || theme === 'hunting') ? 'border-[#d8d2c0] bg-[#efebd9]/[var(--card-opacity)]' : 'border-slate-100 bg-slate-50/[var(--card-opacity)]'
       }`}>
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-black tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">
@@ -264,7 +264,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
         {/* Dynamic Tab Toggle Button */}
         <div className={`flex p-0.5 rounded-lg border text-[10px] font-black uppercase tracking-wider self-start sm:self-auto ${
-          isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-200/60 border-slate-200'
+          isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-200/[var(--card-opacity)] border-slate-200'
         }`}>
           <button
             onClick={() => setActiveTab('map')}
@@ -495,7 +495,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
           {/* Map Stand GPS Readout Metadata Row */}
           <div className={`w-full px-3.5 py-2.5 border-t flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-bold ${
-            isDark ? 'border-slate-800 bg-slate-950/30 text-slate-400' : 'border-slate-100 bg-slate-50 text-slate-500'
+            isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)] text-slate-400' : 'border-slate-100 bg-slate-50/[var(--card-opacity)] text-slate-500'
           }`}>
             <span>Stand coordinates:</span>
             <span className={`font-mono text-[11px] font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
@@ -510,7 +510,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
             {/* Outer Ring */}
             <div
               className={`absolute inset-0 rounded-full border-2 shadow-inner flex items-center justify-center ${
-                isDark ? 'border-slate-700 bg-slate-950/80' : 'border-slate-300 bg-slate-50'
+                isDark ? 'border-slate-700 bg-slate-950/[var(--card-opacity)]' : 'border-slate-300 bg-slate-50/[var(--card-opacity)]'
               }`}
             >
               {/* Cardinal Labels */}
@@ -547,7 +547,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
             {/* Center Hunter Stand Marker */}
             <div
               className={`z-10 w-8 h-8 rounded-full border flex items-center justify-center shadow-lg text-xs font-bold ${
-                isDark ? 'bg-slate-800 border-emerald-500/80 text-emerald-400' : 'bg-white border-emerald-500 text-emerald-700'
+                isDark ? 'bg-slate-800/[var(--card-opacity)] border-emerald-500/80 text-emerald-400' : 'bg-white/[var(--card-opacity)] border-emerald-500 text-emerald-700'
               }`}
             >
               <Crosshair className="w-4 h-4" />
@@ -568,7 +568,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
       )}
 
       {/* FOOTER: WIND SPEED & DIRECTION DATA MATRIX */}
-      <div className={`p-4 border-t text-center ${isDark ? 'border-slate-800/80 bg-slate-950/20' : 'border-slate-100 bg-slate-50/50'}`}>
+      <div className={`p-4 border-t text-center ${isDark ? 'border-slate-800/80 bg-slate-950/[var(--card-opacity)]' : 'border-slate-100 bg-slate-50/[var(--card-opacity)]'}`}>
         <div className={`text-base sm:text-lg font-extrabold flex items-center justify-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
           <Compass className="w-4.5 h-4.5 text-emerald-500 animate-pulse" />
           <span>{directionText}</span>
@@ -584,7 +584,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
         {/* Tactical Hunter Alert message */}
         <div className={`mt-3.5 p-2 rounded-xl flex items-start gap-1.5 text-[10px] leading-relaxed text-left border ${
-          isDark ? 'bg-slate-950/60 border-slate-800/80 text-slate-300' : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-md' : 'bg-white'} border-slate-200/80 text-slate-600`
+          isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80 text-slate-300' : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-md' : 'bg-white/[var(--card-opacity)]'} border-slate-200/80 text-slate-600`
         }`}>
           <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
           <p>

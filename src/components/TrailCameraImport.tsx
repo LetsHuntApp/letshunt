@@ -4,6 +4,7 @@ import { ThemeMode, ThemeVariantMode } from '../types';
 
 interface TrailCameraImportProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   onImportComplete: () => void;
   importing: boolean;
   progress: { completed: number; total: number } | null;
@@ -12,11 +13,11 @@ interface TrailCameraImportProps {
 
 export const TrailCameraImport: React.FC<TrailCameraImportProps> = ({
   theme,
+  isDark = theme === 'dark',
   importing,
   progress,
   onStartImport,
 }) => {
-  const isDark = theme === 'dark';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -61,7 +62,7 @@ export const TrailCameraImport: React.FC<TrailCameraImportProps> = ({
         <div
           className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center backdrop-blur-md shadow-xl transition-all ${
             isDark
-              ? 'bg-slate-900/80 border-emerald-500/50 text-slate-100'
+              ? 'bg-slate-900/[var(--card-opacity)] border-emerald-500/50 text-slate-100'
               : theme === 'hunting'
               ? 'bg-[#eae1cf] border-[#c85a17] text-[#2a1b0e]'
               : (theme === 'olive' || theme === 'hunting')
@@ -103,7 +104,7 @@ export const TrailCameraImport: React.FC<TrailCameraImportProps> = ({
             isDragging
               ? 'border-emerald-500 bg-emerald-500/10 scale-[1.01]'
               : isDark
-              ? 'bg-slate-900/60 border-slate-700 hover:border-emerald-500/60 hover:bg-slate-900/80'
+              ? 'bg-slate-900/[calc(var(--card-opacity)*0.7)] border-slate-700 hover:border-emerald-500/60 hover:bg-slate-900/[var(--card-opacity)]'
               : theme === 'hunting'
               ? 'bg-[#eae1cf]/80 border-[#d4c4a8] hover:border-[#c85a17] text-[#2a1b0e]'
               : (theme === 'olive' || theme === 'hunting')

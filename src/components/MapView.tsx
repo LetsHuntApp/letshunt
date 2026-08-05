@@ -79,6 +79,7 @@ interface MapViewProps {
   units: UnitSystem;
   pressureUnit: PressureUnit;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
   dailyForecast: DailyForecast[];
   onSelectLocation?: (loc: Location) => void;
@@ -110,18 +111,19 @@ function getTileUrls(z: number, ty: number, tx: number, style: string): string[]
   const wrappedTx = ((tx % maxTile) + maxTile) % maxTile;
   const clampedTy = Math.max(0, Math.min(maxTile - 1, ty));
 
+  // Provider order matters: the first URL is the primary and the MapTile
+  // fallback chain cycles back to it on retry. Google's /vt/ tile servers
+  // 403 outside Google contexts, so they were removed — a 403 used to burn
+  // the fallback slot and leave black holes wherever the chain ran out.
   if (style === 'satellite') {
-    const googleSub = Math.abs(tx + ty) % 4;
     return [
       `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${clampedTy}/${wrappedTx}`,
-      `https://mt${googleSub}.google.com/vt/lyrs=s&x=${wrappedTx}&y=${clampedTy}&z=${z}`,
       `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${clampedTy}/${wrappedTx}`,
     ];
   } else if (style === 'topo') {
-    const googleSub = Math.abs(tx + ty) % 4;
     return [
       `https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${clampedTy}/${wrappedTx}`,
-      `https://mt${googleSub}.google.com/vt/lyrs=p&x=${wrappedTx}&y=${clampedTy}&z=${z}`,
+      `https://tile.opentopomap.org/${z}/${wrappedTx}/${clampedTy}.png`,
       `https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/${z}/${clampedTy}/${wrappedTx}`,
     ];
   } else {
@@ -129,12 +131,10 @@ function getTileUrls(z: number, ty: number, tx: number, style: string): string[]
     return [
       `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${clampedTy}/${wrappedTx}`,
       `https://${sub}.tile.openstreetmap.org/${z}/${wrappedTx}/${clampedTy}.png`,
-      `https://mt0.google.com/vt/lyrs=m&x=${wrappedTx}&y=${clampedTy}&z=${z}`,
+      `https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${clampedTy}/${wrappedTx}`,
     ];
   }
 }
-
-const loadedTileCache = new Set<string>();
 
 interface MapTileProps {
   tileKey: string;
@@ -151,38 +151,40 @@ interface MapTileProps {
 }
 
 const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx, ty, mapStyle, onTileLoaded }: MapTileProps) => {
-  const [urlIndex, setUrlIndex] = useState(0);
-  const [retryCount, setRetryCount] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  const [loaded, setLoaded] = useState(false);
 
-  const primaryUrl = urls[0];
-  useEffect(() => {
-    setUrlIndex(0);
-    setRetryCount(0);
-  }, [primaryUrl]);
+  // Cycle through EVERY fallback URL — a failure never leaves the chain stuck
+  // on the last provider. Each full cycle appends a cache-buster so transient
+  // network hiccups recover by re-trying from the primary URL again.
+  const urlIndex = attempt % urls.length;
+  const cycle = Math.floor(attempt / urls.length);
+  const currentUrl = urls[urlIndex] || urls[0];
+  const src = cycle > 0 ? `${currentUrl}${currentUrl.includes('?') ? '&' : '?'}_r=${cycle}` : currentUrl;
 
   const handleError = () => {
-    if (urlIndex + 1 < urls.length) {
-      setUrlIndex((prev) => prev + 1);
-    } else if (retryCount < 2) {
-      setRetryCount((prev) => prev + 1);
+    if (attempt + 1 < urls.length * 3) {
+      setAttempt((prev) => prev + 1);
     }
   };
-
-  const currentUrl = urls[urlIndex] || urls[0];
-  const finalSrc = retryCount > 0 ? `${currentUrl}?_r=${retryCount}` : currentUrl;
 
   const handleLoad = () => {
-    loadedTileCache.add(finalSrc);
+    setLoaded(true);
     if (onTileLoaded) {
-      onTileLoaded(tileKey, finalSrc, z, tx, ty, mapStyle);
+      onTileLoaded(tileKey, src, z, tx, ty, mapStyle);
     }
   };
 
+  // opacity 0 until the tile actually decodes: a tile that exhausts its URL
+  // attempts stays invisible so the scaled overview/cache tiers show through
+  // instead of painting a black hole, and successful tiles cross-fade in for
+  // a smooth professional zoom feel.
   return (
     <img
-      src={finalSrc}
+      src={src}
       alt=""
       draggable={false}
+      decoding="async"
       onLoad={handleLoad}
       onError={handleError}
       className="absolute object-cover border-none select-none pointer-events-none"
@@ -192,6 +194,8 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx,
         width: `${Math.ceil(size + 2.5)}px`,
         height: `${Math.ceil(size + 2.5)}px`,
         zIndex,
+        opacity: loaded ? 1 : 0,
+        transition: 'opacity 0.25s ease',
       }}
     />
   );
@@ -721,13 +725,13 @@ export const MapView: React.FC<MapViewProps> = ({
   units,
   pressureUnit,
   theme,
+  isDark = theme === 'dark',
   hasCustomBackground = false,
   dailyForecast,
   onSelectLocation,
   selectedHour: propSelectedHour,
   onSelectHour: propOnSelectHour,
 }) => {
-  const isDark = theme === 'dark';
 
   // State: Saved Pins loaded from localStorage
   const [pins, setPins] = useState<SavedPin[]>(() => {
@@ -814,15 +818,41 @@ export const MapView: React.FC<MapViewProps> = ({
   // Quick Wind Check: thin full-width hourly slider overlay
   const [showWindSlider, setShowWindSlider] = useState(false);
 
-  // Persistent tile cache across zoom levels
+  // Persistent tile cache across zoom levels. Bounded so a long session never
+  // accumulates hundreds of <img> layers; eviction drops the oldest entries
+  // (Map preserves insertion order) beyond the cap.
   const cachedTilesRef = useRef<Map<string, { z: number; tx: number; ty: number; src: string; style: string }>>(new Map());
   const [, setTileCacheVersion] = useState(0);
+  const tileCacheRafRef = useRef<number | null>(null);
+  const MAX_CACHED_TILES = 500;
 
   const handleTileLoaded = useCallback((key: string, src: string, z: number, tx: number, ty: number, style: string) => {
     if (!cachedTilesRef.current.has(key)) {
       cachedTilesRef.current.set(key, { z, tx, ty, src, style });
-      setTileCacheVersion((v) => v + 1);
+      while (cachedTilesRef.current.size > MAX_CACHED_TILES) {
+        const oldestKey = cachedTilesRef.current.keys().next().value;
+        if (oldestKey === undefined) break;
+        cachedTilesRef.current.delete(oldestKey);
+      }
     }
+    // Batch cache-driven re-renders to one per animation frame. A full MapView
+    // re-render on every single tile load is what made zoom/pan feel janky.
+    if (tileCacheRafRef.current !== null) return;
+    tileCacheRafRef.current = requestAnimationFrame(() => {
+      tileCacheRafRef.current = null;
+      setTileCacheVersion((v) => v + 1);
+    });
+  }, []);
+
+  // Cancel any pending cache-batch frame if the map unmounts (tab switch away
+  // from Map) — never touch state after unmount.
+  useEffect(() => {
+    return () => {
+      if (tileCacheRafRef.current !== null) {
+        cancelAnimationFrame(tileCacheRafRef.current);
+        tileCacheRafRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -1978,8 +2008,12 @@ export const MapView: React.FC<MapViewProps> = ({
   const allTileElements: React.ReactNode[] = [];
 
   // Tier 1: Low-zoom regional overview layer (zIndex: 1)
-  // Guarantees 100% background satellite coverage for the entire region
-  const overviewZoom = Math.min(12, Math.max(2, baseZoom - 3));
+  // Guarantees 100% background satellite coverage for the entire region. The
+  // zoom is capped relative to the current level so the scaled tiles never
+  // exceed ~2.9k CSS px — the old fixed z12 cap blew up to 32k px at z19,
+  // which iOS Safari drops (black areas on mobile) and every device rasterizes
+  // as a giant blur.
+  const overviewZoom = Math.max(2, Math.min(baseZoom - 3, Math.floor(zoom) - 3));
   if (overviewZoom < baseZoom) {
     const ovScale = Math.pow(2, zoom - overviewZoom);
     const ovTileSize = 256 * ovScale;
@@ -2020,7 +2054,9 @@ export const MapView: React.FC<MapViewProps> = ({
   // Tier 2: Persistent cached loaded satellite tiles from memory (zIndex: 2)
   // Scaled smoothly to match the current viewport so zero space appears while zooming/panning
   cachedTilesRef.current.forEach((cached, key) => {
-    if (cached.style === mapStyle) {
+    // Only tiles within one zoom level of the current view make useful
+    // zoom-transition filler; distant-zoom leftovers are pure DOM weight.
+    if (cached.style === mapStyle && Math.abs(cached.z - baseZoom) <= 1) {
       const scale = Math.pow(2, zoom - cached.z);
       const tileSize = 256 * scale;
       const tileCoords = latLngToTileCoords(centerLat, centerLng, cached.z);
@@ -2039,6 +2075,13 @@ export const MapView: React.FC<MapViewProps> = ({
             src={cached.src}
             alt=""
             draggable={false}
+            decoding="async"
+            onError={(e) => {
+              // A cached tile re-request can fail if the browser evicted its
+              // entry mid-session; hide it so the overview tier shows through
+              // instead of a broken-image icon.
+              e.currentTarget.style.opacity = '0';
+            }}
             className="absolute object-cover border-none select-none pointer-events-none"
             style={{
               left: `${tileLeft}px`,
@@ -3068,6 +3111,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   {pins.length === 0 ? (
                     <TeachingEmptyState
                       theme={theme}
+                      isDark={isDark}
                       icon={<MapPin className="w-5 h-5" />}
                       title="No Stand Pins Yet"
                       description="Pins mark the exact spots that matter — stands, trail cameras, bedding, food plots & scrapes."
@@ -3141,6 +3185,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   {paths.length === 0 ? (
                     <TeachingEmptyState
                       theme={theme}
+                      isDark={isDark}
                       icon={<GitBranch className="w-5 h-5" />}
                       title="No Paths or Trails Yet"
                       description="Paths map the routes deer actually travel — trails, travel corridors, fence lines & creeks."
@@ -3213,6 +3258,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   {polygons.length === 0 ? (
                     <TeachingEmptyState
                       theme={theme}
+                      isDark={isDark}
                       icon={<Shapes className="w-5 h-5" />}
                       title="No Zones or Boundaries Yet"
                       description="Zones outline your food plots, bedding sanctuaries, water sources, timber & property lines."

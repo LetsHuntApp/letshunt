@@ -418,8 +418,15 @@ html.backwoods, .backwoods {
     opacity: 0;
   }
 }
-/* Make sure the app shell sits above the texture overlays */
-.backwoods > #root, .backwoods main, .backwoods nav, .backwoods footer, .backwoods header {
+/* Make sure the app shell sits above the texture overlays. NOTE: nav and
+   header are deliberately excluded — both are already positioned
+   (mobile nav = `fixed bottom-0`, top header = `sticky top-0`, both
+   z-50). Forcing `position: relative` on them here overrides Tailwind's
+   `fixed`/`sticky` and makes the bottom navbar scroll away with the page
+   instead of staying pinned to the bottom of the screen. */
+.backwoods > #root,
+.backwoods main,
+.backwoods footer {
   position: relative;
   z-index: 2;
 }
@@ -877,3 +884,126 @@ html.backwoods, .backwoods {
 .backwoods [class*="from-amber-500"] { --tw-gradient-from: #c79447; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to); }
 .backwoods [class*="to-amber-600"] { --tw-gradient-to: #a87838; }
 .backwoods .text-amber-350 { color: #c79447; }
+
+/* ===== OLIVE × DARK MODE — dim moss-green cards =====
+   The global Light/Dark toggle now correctly drives `isDark` inside every
+   component, so dark-mode cards emit the standard dark slate utilities
+   (bg-slate-900/950/[var(--card-opacity)] etc.). These rules re-tint those
+   surfaces to Olive's moss palette so Olive stays Olive at night instead
+   of collapsing into generic dark. The :not([class*="hover:"]) guard keeps
+   hover:bg-* states alive so buttons still visibly react. */
+.dark.olive [class*="bg-slate-900/"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-950/"]:not([class*="hover:"]),
+.dark.olive [class*="bg-white/"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-50/"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-100"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-200"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-300"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#f7f5ed]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#efebd9]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#eae1cf]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#eee6d6]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#f4eee1]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#f5f0e8]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#e5e1d0]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#ddd0a9]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#ede5d5]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#e0d6c0]"]:not([class*="hover:"]),
+.dark.olive [class*="bg-[#e8e4d5]"]:not([class*="hover:"]) {
+  background-color: rgba(28, 40, 21, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(85, 107, 47, 0.45) !important;
+}
+
+/* ===== HUNTING × DARK MODE — dim walnut cards ===== */
+.dark.hunting [class*="bg-slate-900/"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-950/"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-white/"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-50/"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-100"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-200"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-300"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#f7f5ed]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#efebd9]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#eae1cf]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#eee6d6]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#f4eee1]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#f5f0e8]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#e5e1d0]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#ddd0a9]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#ede5d5]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#e0d6c0]"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-[#e8e4d5]"]:not([class*="hover:"]) {
+  background-color: rgba(46, 30, 15, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(200, 90, 23, 0.35) !important;
+}
+
+/* ===== BACKWOODS × DARK MODE — arbitrary-value dark kraft =====
+   The light-mode kraft remap above (`.backwoods [class*=...]`) would keep
+   bright parchment cards even when the toggle is dark. Re-state the most
+   common card surfaces the components actually emit (including the
+   /[var(--card-opacity)] arbitrary values) as dimmed kraft-on-walnut. */
+.dark.backwoods [class*="bg-slate-900/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-slate-950/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-white/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-slate-50/"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-slate-100"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-slate-200"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-slate-300"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#f7f5ed]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#efebd9]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#eae1cf]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#eee6d6]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#f4eee1]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#f5f0e8]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#e5e1d0]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#ddd0a9]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#ede5d5]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#e0d6c0]"]:not([class*="hover:"]),
+.dark.backwoods [class*="bg-[#e8e4d5]"]:not([class*="hover:"]) {
+  background-color: rgba(58, 46, 28, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.45) !important;
+}
+
+/* Extra card-opacity fallbacks for the olive/hunting/backwoods chrome
+   colors used by the footer + mobile nav (now /[var(--card-opacity)]). */
+[class*="bg-[#ddd0a9]/[var(--card-opacity)]"] {
+  background-color: rgb(221 208 169 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-[#ede5d5]/[var(--card-opacity)]"] {
+  background-color: rgb(237 229 213 / var(--card-opacity, 0.9)) !important;
+}
+[class*="bg-[#e5e1d0]/[var(--card-opacity)]"] {
+  background-color: rgb(229 225 208 / var(--card-opacity, 0.9)) !important;
+}
+
+/* Nested-card depth fallbacks — /40- and /60-style cards now render as
+   calc(var(--card-opacity)*0.5) / *0.7 so the Settings slider scales every
+   card proportionally instead of being ignored in the standard theme. */
+[class*="bg-slate-900/[calc(var(--card-opacity)*0.5)]"] {
+  background-color: rgb(15 23 42 / calc(var(--card-opacity, 0.9) * 0.5)) !important;
+}
+[class*="bg-slate-900/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(15 23 42 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+[class*="bg-slate-950/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(2 6 23 / calc(var(--card-opacity, 0.9) * 0.7)) !important;
+}
+
+/* Hover-state overrides for the dark variant palettes. The
+   :not([class*="hover:"]) guard above keeps hover:bg-* states alive, but it
+   also excludes the base state of any card that carries a hover class (e.g.
+   ForecastCards' hover:bg-slate-900/[calc(var(--card-opacity)*1.15)]), so
+   those cards would skip the olive/hunting/backwoods tint entirely. These
+   rules repaint the hover surfaces with the matching theme tint + lift. */
+.dark.olive [class*="hover:bg-slate-900/"]:hover,
+.dark.olive [class*="hover:bg-slate-950/"]:hover {
+  background-color: rgb(38 54 28 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}
+.dark.hunting [class*="hover:bg-slate-900/"]:hover,
+.dark.hunting [class*="hover:bg-slate-950/"]:hover {
+  background-color: rgb(58 38 20 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}
+.dark.backwoods [class*="hover:bg-slate-900/"]:hover,
+.dark.backwoods [class*="hover:bg-slate-950/"]:hover {
+  background-color: rgb(70 56 34 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}

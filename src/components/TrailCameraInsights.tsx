@@ -5,13 +5,13 @@ import { PatternInsight } from '../services/trailCameraService';
 
 interface TrailCameraInsightsProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   insights: PatternInsight[];
   totalPhotosCount: number;
   weatherMatchedCount: number;
 }
 
-const getThemeClasses = (theme?: ThemeVariantMode) => {
-  const isDark = theme === 'dark';
+const getThemeClasses = (theme?: ThemeVariantMode, isDark = theme === 'dark') => {
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';
 
@@ -35,11 +35,12 @@ const getThemeClasses = (theme?: ThemeVariantMode) => {
 
 export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
   theme,
+  isDark = theme === 'dark',
   insights,
   totalPhotosCount,
   weatherMatchedCount,
 }) => {
-  const tc = getThemeClasses(theme);
+  const tc = getThemeClasses(theme, isDark);
 
   return (
     <div className="space-y-6">

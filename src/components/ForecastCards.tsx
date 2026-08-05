@@ -51,6 +51,7 @@ interface ForecastCardsProps {
   units: UnitSystem;
   pressureUnit?: PressureUnit;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   selectedHour?: number;
   onOpenDetails?: (dateStr: string) => void;
   location?: Location;
@@ -65,6 +66,7 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   units,
   pressureUnit = 'inHg',
   theme,
+  isDark = theme === 'dark',
   selectedHour,
   onOpenDetails,
   location,
@@ -76,8 +78,6 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   const [autoExpandedDate, setAutoExpandedDate] = useState<string | null>(null);
 
   if (!daily || daily.length === 0) return null;
-
-  const isDark = theme === 'dark';
 
   // Heading text color is always theme-driven so it pops against the heading's
   // theme-aware card: dark theme → light text, light/olive/hunting → dark ink.
@@ -653,7 +653,7 @@ const getScoreBadgeColor = (score: number) => {
                   <div className="flex items-center gap-3.5 my-3">
                     <div
                       className={`p-2.5 rounded-xl border ${
-                        isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100 border-slate-200'
+                        isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-100/[var(--card-opacity)] border-slate-200'
                       }`}
                     >
                       {renderWeatherIcon(cardWeatherIcon)}

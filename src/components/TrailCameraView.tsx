@@ -26,6 +26,7 @@ import { searchLocations } from '../services/weatherService';
 
 interface TrailCameraViewProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   currentLocation: Location;
   units: string;
   pressureUnit: string;
@@ -34,12 +35,12 @@ interface TrailCameraViewProps {
 
 export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   theme,
+  isDark = theme === 'dark',
   currentLocation,
   units,
   pressureUnit,
   showToast,
 }) => {
-  const isDark = theme === 'dark';
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive' || theme === 'hunting';
 
@@ -490,12 +491,12 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // Theme-aware class helpers
   const cardBase = 'rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3';
   const cardBg = isDark
-    ? 'bg-slate-900/80 border-slate-800 text-slate-100'
+    ? 'bg-slate-900/[var(--card-opacity)] border-slate-800 text-slate-100'
     : isHunting
-    ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+    ? 'bg-[#eae1cf]/[var(--card-opacity)] border-[#d4c4a8] text-[#2a1b0e]'
     : isOlive
-    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
-    : 'bg-white border-slate-200 text-slate-900';
+    ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-white/[var(--card-opacity)] border-slate-200 text-slate-900';
 
   const inputBase = 'w-full p-2 text-sm rounded-xl border outline-none';
   const inputBg = isDark
@@ -523,12 +524,12 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const buttonSkyBg = 'bg-sky-600 hover:bg-sky-500 text-white border-sky-500/30 shadow-md';
 
   const modalBg = isDark
-    ? 'bg-slate-900 border-slate-700 text-slate-100'
+    ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-xl border-slate-700 text-slate-100'
     : isHunting
-    ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
+    ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-xl border-[#d4c4a8] text-[#2a1b0e]'
     : isOlive
-    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
-    : 'bg-white border-slate-200 text-slate-900';
+    ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-xl border-[#d8d2c0] text-[#1e2e1b]'
+    : 'bg-white/[var(--card-opacity)] backdrop-blur-xl border-slate-200 text-slate-900';
 
   const modalInputBg = isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900';
 
@@ -577,12 +578,12 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
         {/* Sub-Tab Navigation Buttons */}
         <div className={`flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 ${
           isDark
-            ? 'bg-slate-950/60 border-slate-800/80'
+            ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80'
             : isHunting
-            ? 'bg-[#dccab8]/60 border-[#c4b498]'
+            ? 'bg-[#dccab8]/[var(--card-opacity)] border-[#c4b498]'
             : isOlive
-            ? 'bg-[#e5dfcd]/60 border-[#cbc5b0]'
-            : 'bg-slate-100/80 border-slate-200'
+            ? 'bg-[#e5dfcd]/[var(--card-opacity)] border-[#cbc5b0]'
+            : 'bg-slate-100/[var(--card-opacity)] border-slate-200'
         }`}>
           <button
             onClick={() => setActiveTab('gallery')}
@@ -630,6 +631,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <div ref={importPanelRef}>
               <TrailCameraImport
                 theme={theme}
+                isDark={isDark}
                 importing={importing}
                 progress={importProgress}
                 onStartImport={handleStartImport}
@@ -733,6 +735,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           {/* Filter Panel */}
           <TrailCameraFilters
             theme={theme}
+            isDark={isDark}
             filter={filter}
             onFilterChange={setFilter}
             locations={allSpots}
@@ -744,6 +747,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           {/* Photo Gallery Grid */}
           <TrailCameraGallery
             theme={theme}
+            isDark={isDark}
             photos={filteredPhotos}
             totalPhotosCount={photos.length}
             onGoToImport={() => importPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -770,6 +774,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       {activeTab === 'analytics' && (
         <TrailCameraAnalytics
           theme={theme}
+          isDark={isDark}
           analytics={analytics}
           photos={photos}
           targets={targets}
@@ -784,6 +789,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       {selectedPhoto && (
         <TrailCameraDetail
           theme={theme}
+          isDark={isDark}
           photo={selectedPhoto}
           photos={filteredPhotos}
           onClose={() => setSelectedPhoto(null)}
@@ -806,6 +812,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       {isTargetManagerOpen && (
         <TrailCameraTargetManager
           theme={theme}
+          isDark={isDark}
           targets={targets}
           onSave={async (t) => {
             await saveTarget(t);

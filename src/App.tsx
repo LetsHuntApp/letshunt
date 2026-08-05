@@ -542,6 +542,7 @@ export default function App() {
         units={units}
         onToggleUnits={() => setUnits(units === 'imperial' ? 'metric' : 'imperial')}
         theme={theme}
+        isDark={isDark}
         hasCustomBackground={!!customBackground}
         onToggleTheme={handleToggleTheme}
         favorites={favorites}
@@ -572,6 +573,7 @@ export default function App() {
             pressureUnit={pressureUnit}
             setPressureUnit={setPressureUnit}
             theme={theme}
+            isDark={isDark}
             themeVariant={themeVariant}
             themeMode={themeMode}
             setVariant={setVariant}
@@ -600,6 +602,7 @@ export default function App() {
             units={units}
             pressureUnit={pressureUnit}
             theme={theme}
+            isDark={isDark}
         hasCustomBackground={!!customBackground}
             dailyForecast={dailyForecast}
             onSelectLocation={(loc) => setCurrentLocation(loc)}
@@ -609,6 +612,7 @@ export default function App() {
         ) : activeTab === 'logs' ? (
           <LogsAndStatsView
             theme={theme}
+            isDark={isDark}
             units={units}
             showToast={showToast}
             hasCustomBackground={!!customBackground}
@@ -617,6 +621,7 @@ export default function App() {
         ) : activeTab === 'trailcams' ? (
           <TrailCameraView
             theme={theme}
+            isDark={isDark}
             currentLocation={currentLocation}
             units={units}
             pressureUnit={pressureUnit}
@@ -663,6 +668,7 @@ export default function App() {
                 units={units}
                 pressureUnit={pressureUnit}
                 theme={theme}
+                isDark={isDark}
         hasCustomBackground={!!customBackground}
                 selectedHour={selectedHour}
                 onSelectHour={setSelectedHour}
@@ -676,6 +682,7 @@ export default function App() {
                   units={units}
                   pressureUnit={pressureUnit}
                   theme={theme}
+                  isDark={isDark}
         hasCustomBackground={!!customBackground}
                   selectedHour={selectedHour}
                   onSelectHour={setSelectedHour}
@@ -695,6 +702,7 @@ export default function App() {
                       units={units}
                       pressureUnit={pressureUnit}
                       theme={theme}
+                      isDark={isDark}
         hasCustomBackground={!!customBackground}
                       location={currentLocation}
                       lastRefreshed={lastRefreshed}
@@ -722,6 +730,7 @@ export default function App() {
             }}
             hourly={activeDay.hourly}
             theme={theme}
+            isDark={isDark}
             hasCustomBackground={!!customBackground}
           />
         )}
@@ -732,14 +741,14 @@ export default function App() {
         <footer
           className={`border-t py-3 px-4 text-center text-xs transition-colors mt-auto backdrop-blur-sm ${
             isDark
-              ? 'bg-slate-950/80 border-slate-800/50 text-slate-500'
+              ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/50 text-slate-500'
               : theme === 'hunting'
-              ? 'bg-[#ede5d5]/80 border-[#d4c5a9]/50 text-[#8b7355]'
+              ? 'bg-[#ede5d5]/[var(--card-opacity)] border-[#d4c5a9]/50 text-[#8b7355]'
               : theme === 'backwoods'
-              ? 'bg-[#ddd0a9]/90 border-[#5a3a1f]/60 text-[#5a3a1f]'
+              ? 'bg-[#ddd0a9]/[var(--card-opacity)] border-[#5a3a1f]/60 text-[#5a3a1f]'
               : (theme === 'olive')
-              ? 'bg-[#e5e1d0]/80 border-[#d4cebc]/50 text-[#6b7a45]'
-              : 'bg-white/80 border-slate-200/50 text-slate-500'
+              ? 'bg-[#e5e1d0]/[var(--card-opacity)] border-[#d4cebc]/50 text-[#6b7a45]'
+              : 'bg-white/[var(--card-opacity)] border-slate-200/50 text-slate-500'
           }`}
         >
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -768,12 +777,12 @@ export default function App() {
       <nav
         className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors duration-200 ${
           isDark
-            ? 'bg-slate-950/95 border-slate-800/60 text-slate-100'
+            ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/60 text-slate-100'
             : theme === 'backwoods'
-            ? 'bg-[#ddd0a9]/98 border-[#5a3a1f]/70 text-[#2a1d10]'
+            ? 'bg-[#ddd0a9]/[var(--card-opacity)] border-[#5a3a1f]/70 text-[#2a1d10]'
             : (theme === 'olive' || theme === 'hunting')
-            ? 'bg-[#f7f5ed]/98 border-[#d8d2c0]/70 text-[#1e2e1b]'
-            : 'bg-white/98 border-slate-200/70 text-slate-900'
+            ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-[#d8d2c0]/70 text-[#1e2e1b]'
+            : 'bg-white/[var(--card-opacity)] border-slate-200/70 text-slate-900'
         }`}
       >
         <button
@@ -906,11 +915,12 @@ export default function App() {
       <OnboardingModal
         isOpen={isOnboardingOpen}
         theme={theme}
+        isDark={isDark}
         onComplete={handleOnboardingComplete}
       />
 
       {/* Guide Modal */}
-      <MeteorologyGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} theme={theme}
+      <MeteorologyGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} theme={theme} isDark={isDark}
         hasCustomBackground={!!customBackground} />
 
       {/* PWA / Web App Installation Instructions Modal */}

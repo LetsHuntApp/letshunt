@@ -4,6 +4,7 @@ import { ThemeMode, ThemeVariantMode, TrailCameraFilterState, TrailCameraLocatio
 
 interface TrailCameraFiltersProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   filter: TrailCameraFilterState;
   onFilterChange: (filter: TrailCameraFilterState) => void;
   locations: TrailCameraLocation[];
@@ -18,6 +19,7 @@ const WEATHER_DESCS = ['Clear', 'Mostly Clear', 'Partly Cloudy', 'Overcast', 'Fo
 
 export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   theme,
+  isDark = theme === 'dark',
   filter,
   onFilterChange,
   locations,
@@ -25,7 +27,6 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   totalPhotosCount,
   filteredPhotosCount,
 }) => {
-  const isDark = theme === 'dark';
   const [isExpanded, setIsExpanded] = useState(false);
 
   const activeFilterCount = [
@@ -49,7 +50,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
     <div
       className={`rounded-2xl border p-3 sm:p-4 backdrop-blur-xl shadow-xl transition-all ${
         isDark
-          ? 'bg-slate-900/80 border-slate-800 text-slate-100'
+          ? 'bg-slate-900/[var(--card-opacity)] border-slate-800 text-slate-100'
           : theme === 'hunting'
           ? 'bg-[#eae1cf] border-[#d4c4a8] text-[#2a1b0e]'
           : (theme === 'olive' || theme === 'hunting')
@@ -69,7 +70,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
               onChange={(e) => onFilterChange({ ...filter, searchQuery: e.target.value || undefined })}
               className={`w-full pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors outline-none ${
                 isDark
-                  ? 'bg-slate-950/60 border-slate-700 focus:border-emerald-500 text-white'
+                  ? 'bg-slate-950/[calc(var(--card-opacity)*0.7)] border-slate-700 focus:border-emerald-500 text-white'
                   : 'bg-slate-50 border-slate-300 focus:border-emerald-600 text-slate-900'
               }`}
             />

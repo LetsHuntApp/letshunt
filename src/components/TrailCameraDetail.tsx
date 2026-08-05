@@ -5,6 +5,7 @@ import { getFullImageBlob, getThumbnailUrl, updatePhoto, matchWeatherForPhoto } 
 
 interface TrailCameraDetailProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   photo: TrailCameraPhoto;
   photos: TrailCameraPhoto[];
   onClose: () => void;
@@ -21,6 +22,7 @@ interface TrailCameraDetailProps {
 
 export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   theme,
+  isDark = theme === 'dark',
   photo,
   photos,
   onClose,
@@ -34,7 +36,6 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   units = 'imperial',
   pressureUnit = 'inHg',
 }) => {
-  const isDark = theme === 'dark';
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [notes, setNotes] = useState(photo.notes || '');
@@ -51,12 +52,12 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
 
   // Theme-aware card background
   const cardBg = isDark
-    ? 'bg-slate-900/40 border border-slate-800'
+    ? 'bg-slate-900/[calc(var(--card-opacity)*0.5)] border border-slate-800'
     : theme === 'hunting'
-    ? 'bg-[#eae1cf]/80 border border-[#d4c4a8]'
+    ? 'bg-[#eae1cf]/[var(--card-opacity)] border border-[#d4c4a8]'
     : theme === 'olive'
-    ? 'bg-[#f7f5ed]/80 border border-[#d8d2c0]'
-    : 'bg-white/80 border border-slate-200';
+    ? 'bg-[#f7f5ed]/[var(--card-opacity)] border border-[#d8d2c0]'
+    : 'bg-white/[var(--card-opacity)] border border-slate-200';
 
   const inputBg = isDark
     ? 'bg-slate-900 border-slate-700 text-white'
@@ -67,7 +68,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
     : 'bg-white border-slate-300 text-slate-900';
 
   const selectBg = isDark
-    ? 'bg-slate-900/60 border-slate-700/80 text-white'
+    ? 'bg-slate-900/[calc(var(--card-opacity)*0.7)] border-slate-700/80 text-white'
     : theme === 'hunting'
     ? 'bg-[#f4eee1] border-[#d4c4a8] text-[#2a1b0e]'
     : theme === 'olive'

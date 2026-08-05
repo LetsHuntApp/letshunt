@@ -32,6 +32,7 @@ interface DetailedPredictionViewProps {
   units: UnitSystem;
   pressureUnit: PressureUnit;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
   selectedHour: number;
   onSelectHour: (hour: number) => void;
@@ -44,6 +45,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   units,
   pressureUnit,
   theme = 'dark',
+  isDark = theme === 'dark',
   hasCustomBackground = false,
   selectedHour,
   onSelectHour,
@@ -56,8 +58,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  const isDark = theme === 'dark';
 
   // Extract hour-specific weather data for the selected hour
   const hourData = day.hourly[selectedHour] || day.hourly[0] || null;
@@ -269,16 +269,16 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           </p>
 
           <div className="flex flex-wrap gap-2.5 pt-1">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'}`}>
               <Sunrise className="w-3.5 h-3.5" /> Sunrise: {day.solunar?.sunrise || '6:30 AM'}
             </span>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'}`}>
               <Sunset className="w-3.5 h-3.5" /> Sunset: {day.solunar?.sunset || '6:45 PM'}
             </span>
           </div>
 
           <div className={`w-full p-3.5 rounded-2xl border text-xs leading-relaxed flex items-start gap-3 ${
-            isDark ? 'bg-slate-950/50 border-slate-800/85 text-slate-100' : 'bg-slate-50/80 border-slate-200 shadow-xs'
+            isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/85 text-slate-100' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
           }`}>
             <RutPhaseIcon iconName={rutInfo.iconName} className="w-7 h-7 mt-0.5 flex-shrink-0" />
             <div>
@@ -497,7 +497,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             {activePoint && (
               <div
                 className={`mt-4 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-fadeIn ${
-                  isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -545,6 +545,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             units={units}
             pressureUnit={pressureUnit}
             theme={theme}
+            isDark={isDark}
             hasCustomBackground={hasCustomBackground}
             selectedHour={selectedHour}
             onSelectHour={onSelectHour}
@@ -619,7 +620,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         <div className="space-y-6">
           {/* Active Day Scent Vector Label */}
           <div className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 px-3 py-2.5 rounded-2xl border ${
-            isDark ? 'bg-slate-950/40 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700 shadow-xs'
+            isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 text-slate-700 shadow-xs'
           }`}>
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
             <span className="leading-normal">
@@ -635,6 +636,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             directionText={currentWindText}
             units={units}
             theme={theme}
+            isDark={isDark}
           hasCustomBackground={hasCustomBackground}
             location={location}
           />
@@ -692,6 +694,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         location={location}
         dateFormatted={`${day.dayName}, ${day.dateFormatted}`}
         theme={theme}
+        isDark={isDark}
           hasCustomBackground={hasCustomBackground}
       />
     </div>

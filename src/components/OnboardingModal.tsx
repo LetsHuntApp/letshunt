@@ -7,6 +7,7 @@ import { DeerIcon } from './DeerIcon';
 interface OnboardingModalProps {
   isOpen: boolean;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   onComplete: (loc: Location | null) => void;
 }
 
@@ -15,6 +16,7 @@ const STEPS = ['Welcome', 'Your Grounds', 'Done'];
 export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   isOpen,
   theme,
+  isDark = theme === 'dark',
   onComplete,
 }) => {
   const [step, setStep] = useState(0);
@@ -25,8 +27,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [isLocating, setIsLocating] = useState(false);
   const [selectedLoc, setSelectedLoc] = useState<Location | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  const isDark = theme === 'dark';
 
   // Reset the wizard whenever it's (re)opened
   useEffect(() => {
@@ -164,7 +164,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           {/* STEP 1: Welcome */}
           {step === 0 && (
             <div className="space-y-3">
-              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
                 <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
                   <CloudSun className="w-4.5 h-4.5 text-amber-500" />
                 </div>
@@ -176,7 +176,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
               </div>
 
-              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
                   <Target className="w-4.5 h-4.5 text-emerald-500" />
                 </div>
@@ -188,7 +188,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
               </div>
 
-              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
                 <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center shrink-0">
                   <BellRing className="w-4.5 h-4.5 text-sky-500" />
                 </div>
@@ -270,8 +270,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 disabled={isLocating}
                 className={`w-full py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 ${
                   isDark
-                    ? 'bg-slate-950/60 border-slate-700 text-slate-200 hover:border-emerald-500/60'
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-emerald-500/60'
+                    ? 'bg-slate-950/[var(--card-opacity)] border-slate-700 text-slate-200 hover:border-emerald-500/60'
+                    : 'bg-slate-50/[var(--card-opacity)] border-slate-200 text-slate-700 hover:border-emerald-500/60'
                 }`}
               >
                 <Compass className={`w-4 h-4 text-emerald-500 ${isLocating ? 'animate-spin' : ''}`} />

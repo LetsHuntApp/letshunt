@@ -7,6 +7,7 @@ interface PressureChartProps {
   units: UnitSystem;
   pressureUnit: PressureUnit;
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   hasCustomBackground?: boolean;
   selectedHour?: number;
   onSelectHour?: (hour: number) => void;
@@ -19,6 +20,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   units,
   pressureUnit,
   theme = 'dark',
+  isDark = theme === 'dark',
   hasCustomBackground = false,
   selectedHour,
   onSelectHour,
@@ -28,8 +30,6 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   if (!hourly || hourly.length === 0) return null;
-
-  const isDark = theme === 'dark';
 
   // Extract pressure and precipitation series
   const pressures = hourly.map((h) => (pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa));
@@ -142,7 +142,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
             {selectedDayName && (
               <span
                 className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider border ${
-                  isDark ? 'bg-slate-950/60 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+                  isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'
                 }`}
               >
                 {selectedDayName} ({selectedDateFormatted})
@@ -380,7 +380,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
       {activePoint ? (
         <div
           className={`mt-4 p-3.5 sm:p-4 rounded-xl border flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm animate-fadeIn ${
-            isDark ? 'bg-slate-950/85 border-slate-700/80 text-slate-100' : 'bg-slate-50 border-slate-200 text-slate-900'
+            isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-700/80 text-slate-100' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 text-slate-900'
           }`}
         >
           <div className="flex items-center gap-2.5">

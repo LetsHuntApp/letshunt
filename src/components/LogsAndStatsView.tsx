@@ -53,6 +53,7 @@ import { TeachingEmptyState } from './TeachingEmptyState';
 
 interface LogsAndStatsViewProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   units: UnitSystem;
   showToast: (msg: string) => void;
   onNavigateToMap?: () => void;
@@ -91,12 +92,12 @@ const WEIGHT_OPTIONS_KG = Array.from({ length: 61 }, (_, i) => 20 + i * 2); // 2
 
 export const LogsAndStatsView: React.FC<LogsAndStatsViewProps> = ({
   theme,
+  isDark = theme === 'dark',
   units,
   showToast,
   onNavigateToMap,
   hasCustomBackground = false,
 }) => {
-  const isDark = theme === 'dark';
 const cardBg = hasCustomBackground
   ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md'
   : 'bg-slate-900/90';
@@ -754,14 +755,14 @@ const cardBgLight = hasCustomBackground
 
         {/* Quick Summary Stat Chips */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-200 dark:border-slate-800">
-          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Total Harvests
             </span>
             <div className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5">{totalHarvests}</div>
           </div>
 
-          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Bucks / Does Ratio
             </span>
@@ -770,14 +771,14 @@ const cardBgLight = hasCustomBackground
             </div>
           </div>
 
-          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Peak Kill Hour
             </span>
             <div className="text-base sm:text-lg font-black text-emerald-500 mt-1">{peakTimeInfo.timeStr}</div>
           </div>
 
-          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               #1 Stand Spot
             </span>
@@ -793,8 +794,8 @@ const cardBgLight = hasCustomBackground
               activeTab === 'analytics'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : isDark
-                ? 'bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                ? 'bg-slate-950/[var(--card-opacity)] text-slate-400 hover:text-slate-200 border border-slate-800'
+                : 'bg-slate-100/[var(--card-opacity)] text-slate-600 hover:text-slate-900 border border-slate-200'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
@@ -807,8 +808,8 @@ const cardBgLight = hasCustomBackground
               activeTab === 'logs'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : isDark
-                ? 'bg-slate-950/60 text-slate-400 hover:text-slate-200 border border-slate-800'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
+                ? 'bg-slate-950/[var(--card-opacity)] text-slate-400 hover:text-slate-200 border border-slate-800'
+                : 'bg-slate-100/[var(--card-opacity)] text-slate-600 hover:text-slate-900 border border-slate-200'
             }`}
           >
             <Trophy className="w-3.5 h-3.5" />
@@ -823,6 +824,7 @@ const cardBgLight = hasCustomBackground
         <div className="max-w-xl mx-auto my-8">
           <TeachingEmptyState
             theme={theme}
+            isDark={isDark}
             icon={<Trophy className="w-8 h-8" />}
             title="Log Your First Harvest"
             description="Every deer you log turns into a data point. Over a season, these logs reveal your best stands, peak times, and the weather that moved deer."

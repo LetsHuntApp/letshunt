@@ -4,6 +4,7 @@ import { ThemeMode, ThemeVariantMode, TrailCameraTarget } from '../types';
 
 interface TargetManagerProps {
   theme?: ThemeVariantMode;
+  isDark?: boolean;
   targets: TrailCameraTarget[];
   onSave: (target: TrailCameraTarget) => void;
   onDelete: (id: string) => void;
@@ -14,12 +15,12 @@ const PRESET_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#
 
 export const TrailCameraTargetManager: React.FC<TargetManagerProps> = ({
   theme,
+  isDark = theme === 'dark',
   targets,
   onSave,
   onDelete,
   onClose,
 }) => {
-  const isDark = theme === 'dark';
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';
 
