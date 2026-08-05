@@ -182,42 +182,16 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       <div
         className={`rounded-3xl p-3 sm:p-4 border shadow-xl relative overflow-hidden transition-colors backdrop-blur-xl ${
           isDark
-            ? isExcellentDay
-              ? 'bg-gradient-to-br from-emerald-950/50 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-600/50 text-slate-100'
-              : isGoodDay
-              ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-emerald-500/35 text-slate-100'
-              : isModerateDay
-              ? 'bg-gradient-to-br from-amber-950/40 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-amber-500/40 text-slate-100'
-              : 'bg-gradient-to-br from-rose-950/40 via-slate-900/[var(--card-opacity)] to-slate-950/[var(--card-opacity)] border-rose-500/40 text-slate-100'
+            ? 'bg-slate-900/[var(--card-opacity)] border-slate-700/70 text-slate-100'
             : theme === 'hunting'
-            ? 'bg-gradient-to-br from-[#f4eee1]/[var(--card-opacity)] via-[#eae1cf]/[var(--card-opacity)] to-[#e0d6c0]/[var(--card-opacity)] border-2 border-[#c85a17]/40 text-[#2a1b0e] shadow-lg ring-1 ring-[#c85a17]/20'
+            ? 'bg-[#eae1cf]/[var(--card-opacity)] border-2 border-[#c85a17]/40 text-[#2a1b0e] shadow-lg ring-1 ring-[#c85a17]/20'
             : theme === 'olive'
-            ? 'bg-gradient-to-br from-[#f7f5ed]/[var(--card-opacity)] via-[#efebd9]/[var(--card-opacity)] to-[#e8e4d5]/[var(--card-opacity)] border-2 border-[#556b2f]/40 text-[#1e2e1b] shadow-lg ring-1 ring-[#556b2f]/20'
-            : isExcellentDay
-            ? 'bg-gradient-to-br from-emerald-50/95 via-white/[var(--card-opacity)] to-emerald-50/45 border-emerald-300 text-slate-900 shadow-sm'
-            : isGoodDay
-            ? 'bg-gradient-to-br from-emerald-50/80 via-white/[var(--card-opacity)] to-emerald-50/30 border-emerald-200 text-slate-900 shadow-sm'
-            : isModerateDay
-            ? 'bg-gradient-to-br from-amber-50/80 via-white/[var(--card-opacity)] to-amber-50/50 border-amber-200 text-slate-900 shadow-sm'
-            : 'bg-gradient-to-br from-rose-50/80 via-white/[var(--card-opacity)] to-rose-50/50 border-rose-200 text-slate-900 shadow-sm'
+            ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-2 border-[#556b2f]/40 text-[#1e2e1b] shadow-lg ring-1 ring-[#556b2f]/20'
+            : theme === 'backwoods'
+            ? 'bg-[#d3c298]/[var(--card-opacity)] border-2 border-[#5a3a1f]/60 text-[#2a1d10] shadow-lg ring-1 ring-[#5a3a1f]/20'
+            : 'bg-white/[var(--card-opacity)] border-slate-200 text-slate-900 shadow-sm'
         }`}
       >
-        {/* Glow backdrop */}
-        <div
-          className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl pointer-events-none ${
-            theme === 'hunting'
-              ? 'bg-[#c85a17]/15'
-              : (theme === 'olive' || theme === 'hunting')
-              ? 'bg-[#556b2f]/15'
-              : isExcellentDay
-              ? 'bg-emerald-700/10'
-              : isGoodDay
-              ? 'bg-emerald-500/10'
-              : isModerateDay
-              ? 'bg-amber-500/10'
-              : 'bg-rose-500/10'
-          }`}
-        />
 
         {/* Backwoods-only: ink wash + topographic fragment in the upper
             right of the hero card so the field-guide vibe carries into the

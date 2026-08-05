@@ -1301,6 +1301,24 @@ html.backwoods, .backwoods {
   color: var(--pb-text) !important;
 }
 
+/* Expanded forecast details stay visually continuous with their selected
+   card: no hidden gradient or opaque white layer can bleed through, and the
+   text inherits the active theme's readable card foreground. */
+.theme-expanded-content {
+  background-color: transparent;
+  background-image: none !important;
+  color: inherit;
+}
+
+/* The Backwoods hero uses the same flat card token as forecast cards in
+   light mode. In dark mode, explicitly replace that light-mode utility so
+   the hero cannot fall back to parchment while the rest of the dashboard is
+   walnut. */
+.dark.backwoods .backwoods-dashboard [class*="bg-[#d3c298]"] {
+  background-color: rgba(58, 46, 28, var(--card-opacity, 0.92)) !important;
+  border-color: rgba(138, 112, 69, 0.6) !important;
+}
+
 /* ===== BACKWOODS DARK DASHBOARD BADGES =====
    Dashboard subcards and status badges are intentionally brown-on-brown at
    night. Keep their paper texture and opacity controls, but use the same

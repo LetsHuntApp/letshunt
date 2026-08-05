@@ -574,7 +574,7 @@ const getScoreBadgeColor = (score: number) => {
                 }}
                 className="overflow-hidden"
               >
-                <div className="px-4 pb-4 sm:px-5 sm:pb-5 border-t border-slate-500/15">
+                <div className="theme-expanded-content px-4 pb-4 sm:px-5 sm:pb-5 border-t border-slate-500/15">
                   {/* Highlight & Status Badges */}
                   <div className="flex flex-wrap gap-1.5 mt-3.5 mb-3.5">
                     {/* Semi-rectangular Pill Style Badge for Rut Status */}
