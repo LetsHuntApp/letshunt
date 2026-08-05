@@ -5,6 +5,7 @@ import {
   celsiusToFahrenheit,
   format12HourTime,
   formatTimeRange12h,
+  getRatingFromScore,
   getSolunarRating,
   getWeatherDetails,
   getWindDirectionText,
@@ -75,14 +76,32 @@ export async function fetch5DayHuntingForecast(
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,winddirection_10m&timezone=auto`;
 
   let rawData;
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error('Weather API request failed');
+  let lastErr: unknown;
+  // Retry transient network failures before falling back to synthetic data:
+  // a single dropped request (cold start, flaky mobile signal) should not
+  // leave users looking at non-real forecasts until the 5-minute refresh.
+  const maxAttempts = typeof navigator !== 'undefined' && navigator.onLine === false ? 1 : 3;
+  // Abort hung requests (stalled mobile connections) so a dead network can't
+  // multiply the retry latency; degrades to no timeout on old browsers.
+  const hasTimeout = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function';
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url, hasTimeout ? { signal: AbortSignal.timeout(10000) } : undefined);
+      if (!response.ok) {
+        throw new Error('Weather API request failed');
+      }
+      rawData = await response.json();
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        // Backoff between retries: 0.7s, then 1.4s.
+        await new Promise((resolve) => setTimeout(resolve, 700 * attempt));
+      }
     }
-    rawData = await response.json();
-  } catch (err) {
-    console.warn('Weather API fetch failed, using robust fallback forecast data:', err);
+  }
+  if (!rawData) {
+    console.warn('Weather API fetch failed, using robust fallback forecast data:', lastErr);
     return generateFallbackForecast(location, units);
   }
 
@@ -214,7 +233,7 @@ export async function fetch5DayHuntingForecast(
       windMph: scoringWindMph,
       weatherCode,
       isPostStorm,
-      hasRainBreak: isPostStorm,
+      hasRainBreak,
       solunar,
       units,
       pressureUnit,
@@ -426,7 +445,9 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
     const { desc: weatherDesc, icon: weatherIcon } = getWeatherDetails(dayCode);
 
     const score = Math.max(40, Math.min(95, 75 + (d % 3) * 7 - (d % 2) * 10));
-    const rating: 'Poor' | 'Fair' | 'Good' | 'Excellent' = score >= 85 ? 'Excellent' : score >= 70 ? 'Good' : score >= 50 ? 'Fair' : 'Poor';
+    // Use the app-wide rating thresholds so the offline fallback stays
+    // consistent with getRatingFromScore used by the dial and cards.
+    const rating: 'Poor' | 'Fair' | 'Good' | 'Excellent' = getRatingFromScore(score);
     const verdict = score >= 80 ? 'Prime hunting conditions with optimal wind and barometric pressure.' : 'Moderate conditions. Focus on transition areas.';
 
     const hourly: HourlyForecast[] = [];

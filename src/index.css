@@ -585,9 +585,9 @@ html.backwoods, .backwoods {
 .backwoods .text-emerald-500,
 .backwoods .text-emerald-400 { color: var(--pb-accent) !important; }
 .backwoods .text-emerald-600 { color: var(--pb-accent) !important; }
-.backwoods .bg-emerald-950\\/\\[var\\(--card-opacity\\)\\] { background-color: var(--pb-card-deep) !important; }
+.backwoods [class*="bg-emerald-950/[var(--card-opacity)]"] { background-color: var(--pb-card-deep) !important; }
 .backwoods .ring-emerald-500,
-.backwoods .ring-emerald-500\\/30 { --tw-ring-color: var(--pb-accent) !important; }
+.backwoods [class*="ring-emerald-500/30"] { --tw-ring-color: var(--pb-accent) !important; }
 .backwoods .from-emerald-500 { --tw-gradient-from: var(--pb-accent) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important; }
 .backwoods .from-emerald-600 { --tw-gradient-from: var(--pb-accent) !important; }
 .backwoods .to-emerald-600,
@@ -599,31 +599,31 @@ html.backwoods, .backwoods {
 .backwoods .border-slate-200,
 .backwoods .border-slate-300,
 .backwoods .border-slate-600,
-.backwoods .border-slate-700\\/60,
-.backwoods .border-slate-800\\/50,
-.backwoods .border-slate-800\\/70,
-.backwoods .border-slate-800\\/80,
-.backwoods .border-slate-200\\/70,
-.backwoods .border-slate-200\\/50,
-.backwoods .border-slate-800\\/60 {
+.backwoods [class*="border-slate-700/60"],
+.backwoods [class*="border-slate-800/50"],
+.backwoods [class*="border-slate-800/70"],
+.backwoods [class*="border-slate-800/80"],
+.backwoods [class*="border-slate-200/70"],
+.backwoods [class*="border-slate-200/50"],
+.backwoods [class*="border-slate-800/60"] {
   border-color: var(--pb-border) !important;
 }
 .backwoods .border-emerald-500,
-.backwoods .border-emerald-500\\/40,
-.backwoods .border-emerald-500\\/60,
-.backwoods .border-emerald-500\\/30,
+.backwoods [class*="border-emerald-500/40"],
+.backwoods [class*="border-emerald-500/60"],
+.backwoods [class*="border-emerald-500/30"],
 .backwoods .border-emerald-300 { border-color: var(--pb-accent) !important; }
 .backwoods .border-amber-500,
-.backwoods .border-amber-500\\/30,
-.backwoods .border-amber-500\\/40,
+.backwoods [class*="border-amber-500/30"],
+.backwoods [class*="border-amber-500/40"],
 .backwoods .border-amber-300 { border-color: #a87838 !important; }
 .backwoods .border-sky-500,
 .backwoods .border-sky-300,
-.backwoods .border-sky-500\\/40,
+.backwoods [class*="border-sky-500/40"],
 .backwoods .border-sky-400 { border-color: #4a6038 !important; }
 .backwoods .border-rose-500,
 .backwoods .border-rose-300,
-.backwoods .border-rose-500\\/40,
+.backwoods [class*="border-rose-500/40"],
 .backwoods .border-rose-300 { border-color: #7a2f1a !important; }
 
 /* Selection */

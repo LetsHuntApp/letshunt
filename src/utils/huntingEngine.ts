@@ -89,6 +89,24 @@ export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'E
   return 'Poor';
 }
 
+/**
+ * True when a specific hour represents a break in the rain / post-storm
+ * clearing: a dry hour on a day that had rain (day.hasRainBreak), or clear
+ * skies on a day whose forecast called for rain. Mirrors the rain-break
+ * signal weatherService applies to hourly scores so display-side factor
+ * breakdowns stay consistent with the scores they explain.
+ */
+export function isHourlyRainBreak(day: DailyForecast, weatherCode: number): boolean {
+  const precipitating =
+    weatherCode === 51 || weatherCode === 53 || weatherCode === 55 ||
+    weatherCode === 61 || weatherCode === 63 || weatherCode === 65 ||
+    (weatherCode >= 71 && weatherCode <= 75) ||
+    (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95;
+  if (!precipitating && day.hasRainBreak) return true;
+  return (weatherCode === 1 || weatherCode === 2 || weatherCode === 3) &&
+    (day.weatherCode === 61 || day.weatherCode === 63 || day.weatherCode === 65 || day.isPostStorm);
+}
+
 export function formatTimeRange12h(start: Date | string, end: Date | string): string {
   return `${format12HourTime(start)} - ${format12HourTime(end)}`;
 }
@@ -581,9 +599,7 @@ export function getDetailedConditionExplanation(
   const tempDrop = day.tempDrop24h;
 
   // Check if current hour or day represents a break in the rain
-  const hasRainBreak = hourData
-    ? (day.hasRainBreak && !isPrecipitating) || ((hourData.weatherCode === 1 || hourData.weatherCode === 2 || hourData.weatherCode === 3) && (day.weatherCode === 61 || day.weatherCode === 63 || day.weatherCode === 65 || day.isPostStorm))
-    : day.hasRainBreak;
+  const hasRainBreak = hourData ? isHourlyRainBreak(day, hourData.weatherCode) : day.hasRainBreak;
 
   // 1. Heavy Rain & Storms (Codes 65, 95, 96, 99)
   if (weatherCode === 65 || weatherCode >= 95) {
