@@ -315,7 +315,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* Top Banner Header */}
       <div className={`p-5 sm:p-6 rounded-3xl border shadow-lg ${isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'}`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

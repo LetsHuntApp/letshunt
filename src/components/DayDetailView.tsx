@@ -396,10 +396,15 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowWeatherExplanation((prev) => !prev)}
-                  className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold hover:bg-emerald-500/20 active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
+                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer shadow-sm ${
+                    showWeatherExplanation
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
+                  } active:scale-95`}
                   title="Click to view weather factors driving this score"
                 >
-                  <span>{showWeatherExplanation ? 'Hide weather info ▲' : 'Why this score? ▼'}</span>
+                  <Info className="w-3.5 h-3.5" />
+                  <span>{showWeatherExplanation ? 'Hide weather analysis ▲' : 'What drives this score? ▼'}</span>
                 </button>
               </div>
 
@@ -421,8 +426,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               )}
 
               {/* Current Weather Metrics Badges */}
-              <div className="w-full grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2 mt-2 pt-2 border-t border-slate-700/30">
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
+              <div className="w-full grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2 mt-2 pt-2 border-t border-slate-500/20">
+                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
                   {getWeatherIconComponent(currentIconName)}
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Condition</div>
@@ -430,8 +435,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
-                  <Thermometer className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
+                  <Thermometer className="w-4 h-4 text-rose-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Temperature</div>
                     <div className="text-xs font-black truncate">
@@ -440,8 +445,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
-                  <Wind className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
+                  <Wind className="w-4 h-4 text-sky-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Wind</div>
                     <div className="text-xs font-black truncate">
@@ -452,8 +457,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
-                  <Gauge className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
+                  <Gauge className="w-4 h-4 text-purple-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Barometer</div>
                     <div className="text-xs font-black truncate">
@@ -465,7 +470,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
+                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
                   <Sunrise className="w-4 h-4 text-amber-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Sunrise</div>
@@ -475,7 +480,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
+                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-white/80 border-slate-200 shadow-xs'}`}>
                   <Sunset className="w-4 h-4 text-orange-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Sunset</div>

@@ -1,10 +1,150 @@
 @import "tailwindcss";
 
+/* ===== GLOBAL UI POLISH ===== */
+
 /* Wind flow animation — used by the map wind streak overlay.
    Travel distance is set per element via the CSS custom property --travel */
 @keyframes windFlow {
   from { transform: translateX(0px); }
   to   { transform: translateX(var(--travel)); }
+}
+
+/* Toast slide-in */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 10px -6px rgba(0, 0, 0, 0.1);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4), 0 4px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+/* Button press micro-interaction */
+.btn-press:active {
+  transform: scale(0.96);
+  transition: transform 0.1s ease;
+}
+
+/* Focus ring refinement — scoped to interactive elements only */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth theme transitions for all interactive elements */
+button, a, input, select, textarea {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Scrollbar refinement */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+/* Dark scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.7);
+}
+
+/* ===== CARD SECTION HEADER ACCENT ===== */
+/* Consistent left-accent style for card section headers */
+.section-header-accent {
+  position: relative;
+  padding-left: 14px;
+}
+.section-header-accent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #10b981, #059669);
+}
+
+/* Selection color consistency */
+::selection {
+  background: rgba(16, 185, 129, 0.3);
+  color: inherit;
+}
+
+/* Smooth page entrance — extends Tailwind's built-in animate-fadeIn */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Improve range slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Smooth underline animation for links */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+.link-underline:hover::after {
+  transform: scaleX(1);
 }
 
 /* Fallback card background colors using rgb slash notation to ensure opacity setting works flawlessly in all browsers */

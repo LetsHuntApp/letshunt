@@ -30,8 +30,7 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
-import { WatchView } from './components/WatchView';
-import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, Tv } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
   name: 'Madison',
@@ -42,8 +41,8 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
 };
 
 export default function App() {
-  // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', 'trailcams', or 'watch'
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams' | 'watch'>('dashboard');
+  // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
 
   // Theme state: dark or light
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
@@ -449,7 +448,7 @@ export default function App() {
 
       {/* Toast Banner Notification */}
       {toastMessage && (
-        <div className="fixed bottom-[52px] sm:bottom-5 right-5 z-50 bg-emerald-500 text-slate-950 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-2xl border border-emerald-300 flex items-center gap-2 animate-bounce">
+        <div className="fixed bottom-[56px] sm:bottom-5 right-5 z-50 bg-emerald-500 text-slate-950 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-2xl border border-emerald-300/60 flex items-center gap-2" style={{animation: 'toastIn 0.3s ease-out'}}>
           <CheckCircle className="w-4 h-4 fill-slate-950 text-emerald-300" />
           <span>{toastMessage}</span>
         </div>
@@ -539,10 +538,6 @@ export default function App() {
             units={units}
             pressureUnit={pressureUnit}
             showToast={showToast}
-          />
-        ) : activeTab === 'watch' ? (
-          <WatchView
-            theme={theme}
           />
         ) : loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
@@ -652,16 +647,14 @@ export default function App() {
       {/* Footer (Hidden on Map Plotter tab for true full-screen map) */}
       {activeTab !== 'map' && (
         <footer
-          className={`border-t py-4 px-4 text-center text-xs transition-colors mt-auto ${
+          className={`border-t py-3 px-4 text-center text-xs transition-colors mt-auto backdrop-blur-sm ${
             isDark
-              ? 'bg-slate-950 border-slate-800/80 text-slate-500'
+              ? 'bg-slate-950/80 border-slate-800/50 text-slate-500'
               : theme === 'hunting'
-              ? 'bg-[#ede5d5] border-[#d4c5a9] text-[#8b7355]'
-            : theme === 'hunting'
-            ? 'bg-[#f5f0e8]/95 border-[#d4c5a9] text-[#2c1810]'
-            : (theme === 'olive' || theme === 'hunting')
-              ? 'bg-[#e5e1d0] border-[#d4cebc] text-[#556b2f]'
-              : 'bg-white border-slate-200 text-slate-600'
+              ? 'bg-[#ede5d5]/80 border-[#d4c5a9]/50 text-[#8b7355]'
+              : (theme === 'olive')
+              ? 'bg-[#e5e1d0]/80 border-[#d4cebc]/50 text-[#6b7a45]'
+              : 'bg-white/80 border-slate-200/50 text-slate-500'
           }`}
         >
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -688,12 +681,12 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
-        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-1 px-1 py-1 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md transition-colors duration-200 ${
+        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md transition-colors duration-200 ${
           isDark
-            ? 'bg-slate-950/90 border-slate-800 text-slate-100'
+            ? 'bg-slate-950/95 border-slate-800/60 text-slate-100'
             : (theme === 'olive' || theme === 'hunting')
-            ? 'bg-[#f7f5ed]/95 border-[#d8d2c0] text-[#1e2e1b]'
-            : 'bg-white/95 border-slate-200 text-slate-900'
+            ? 'bg-[#f7f5ed]/98 border-[#d8d2c0]/70 text-[#1e2e1b]'
+            : 'bg-white/98 border-slate-200/70 text-slate-900'
         }`}
       >
         <button
@@ -701,16 +694,20 @@ export default function App() {
             setActiveTab('dashboard');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'dashboard' || activeTab === 'details'
-              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
+              ? isDark
+                ? 'text-emerald-400 bg-emerald-400/10 scale-105'
+                : (theme === 'olive' || theme === 'hunting')
+                ? 'text-[#556b2f] bg-[#556b2f]/10 scale-105'
+                : 'text-emerald-600 bg-emerald-50 scale-105'
               : isDark
-              ? 'text-slate-400 hover:text-slate-200 font-semibold'
-              : 'text-slate-500 hover:text-slate-900 font-semibold'
+              ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <LayoutDashboard className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Dashboard</span>
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Dashboard</span>
         </button>
 
         <button
@@ -718,16 +715,20 @@ export default function App() {
             setActiveTab('map');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'map'
-              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
+              ? isDark
+                ? 'text-emerald-400 bg-emerald-400/10 scale-105'
+                : (theme === 'olive' || theme === 'hunting')
+                ? 'text-[#556b2f] bg-[#556b2f]/10 scale-105'
+                : 'text-emerald-600 bg-emerald-50 scale-105'
               : isDark
-              ? 'text-slate-400 hover:text-slate-200 font-semibold'
-              : 'text-slate-500 hover:text-slate-900 font-semibold'
+              ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <Map className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Map</span>
+          <Map className="w-5 h-5" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Map</span>
         </button>
 
         <button
@@ -735,16 +736,20 @@ export default function App() {
             setActiveTab('logs');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'logs'
-              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
+              ? isDark
+                ? 'text-amber-400 bg-amber-400/10 scale-105'
+                : (theme === 'olive' || theme === 'hunting')
+                ? 'text-amber-600 bg-amber-100/60 scale-105'
+                : 'text-amber-600 bg-amber-50 scale-105'
               : isDark
-              ? 'text-slate-400 hover:text-slate-200 font-semibold'
-              : 'text-slate-500 hover:text-slate-900 font-semibold'
+              ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <ScrollText className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Logs</span>
+          <ScrollText className="w-5 h-5" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Logs</span>
         </button>
 
         <button
@@ -752,33 +757,20 @@ export default function App() {
             setActiveTab('trailcams');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'trailcams'
-              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
+              ? isDark
+                ? 'text-sky-400 bg-sky-400/10 scale-105'
+                : (theme === 'olive' || theme === 'hunting')
+                ? 'text-sky-600 bg-sky-100/60 scale-105'
+                : 'text-sky-600 bg-sky-50 scale-105'
               : isDark
-              ? 'text-slate-400 hover:text-slate-200 font-semibold'
-              : 'text-slate-500 hover:text-slate-900 font-semibold'
+              ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <Camera className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Trail Cams</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('watch');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
-            activeTab === 'watch'
-              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
-              : isDark
-              ? 'text-slate-400 hover:text-slate-200 font-semibold'
-              : 'text-slate-500 hover:text-slate-900 font-semibold'
-          }`}
-        >
-          <Tv className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Watch</span>
+          <Camera className="w-5 h-5" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Trail Cams</span>
         </button>
 
         <button
@@ -786,16 +778,20 @@ export default function App() {
             setActiveTab('settings');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-w-0 transition-all cursor-pointer ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'settings'
-              ? 'text-emerald-500 font-extrabold -translate-y-0.5'
+              ? isDark
+                ? 'text-slate-200 bg-slate-700/40 scale-105'
+                : (theme === 'olive' || theme === 'hunting')
+                ? 'text-[#3d4f21] bg-[#e0dcc8]/70 scale-105'
+                : 'text-slate-800 bg-slate-100 scale-105'
               : isDark
-              ? 'text-slate-400 hover:text-slate-200 font-semibold'
-              : 'text-slate-500 hover:text-slate-900 font-semibold'
+              ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 font-medium'
+              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <Settings className="w-4.5 h-4.5" />
-          <span className="text-[9px] tracking-wider uppercase whitespace-nowrap">Settings</span>
+          <Settings className="w-5 h-5" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Settings</span>
         </button>
       </nav>
 
