@@ -147,6 +147,37 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
     }
   };
 
+  // 16px, muted slate icon — used in the bottom-of-card "Now" chip so the
+  // glance signal defers visually to the big amber icon in the card header.
+  // Mirrors renderWeatherIcon's icon registry; size & color are the only diffs.
+  const renderSmallWeatherIcon = (iconName: string) => {
+    const cls = 'w-4 h-4 text-slate-400 dark:text-slate-500';
+    switch (iconName) {
+      case 'Sun':
+        return <Sun className={cls} />;
+      case 'SunMedium':
+        return <SunMedium className={cls} />;
+      case 'CloudSun':
+        return <CloudSun className={cls} />;
+      case 'Cloud':
+        return <Cloud className={cls} />;
+      case 'CloudFog':
+        return <CloudFog className={cls} />;
+      case 'CloudDrizzle':
+        return <CloudDrizzle className={cls} />;
+      case 'CloudRain':
+        return <CloudRain className={cls} />;
+      case 'CloudRainWind':
+        return <CloudRainWind className={cls} />;
+      case 'Snowflake':
+        return <Snowflake className={cls} />;
+      case 'CloudLightning':
+        return <CloudLightning className={cls} />;
+      default:
+        return <CloudSun className={cls} />;
+    }
+  };
+
   const getPressureTrendIcon = (trend: DailyForecast['pressureTrend']) => {
     switch (trend) {
       case 'rapid_drop':
@@ -528,6 +559,61 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
                 </div>
               </div>
+
+              {/* HOUR "NOW" CHIP — small, hour-driven weather glance that updates
+                  with the hourly slider. Always reserves its row so cards don't
+                  reflow when the chip toggles. Hide-when-matches uses BOTH icon
+                  AND desc so "Heavy Rain" vs "Light Showers" (both CloudRain)
+                  still surfaces. Kept non-interactive (pointer-events none) so it
+                  never intercepts the card's tap target. */}
+              {hourData && selectedHour !== undefined && (() => {
+                // Bind the hour index for clean narrowing — avoids `selectedHour!`.
+                const hrDetails = getWeatherDetails(hourData.weatherCode);
+                const differsFromDay =
+                  hrDetails.icon !== day.weatherIcon || hrDetails.desc !== day.weatherDesc;
+                const hourIndex = selectedHour;
+                return (
+                  <div
+                    data-testid="hour-now-chip"
+                    aria-live="polite"
+                    className={`px-3.5 sm:px-4 min-h-[30px] sm:min-h-[34px] flex items-center gap-2 text-[10px] sm:text-xs font-bold select-none border-t pointer-events-none ${
+                      isDark ? 'border-slate-700/40 text-slate-400' : 'border-slate-200/80 text-slate-500'
+                    }`}
+                  >
+                    {differsFromDay ? (
+                      <>
+                        <span
+                          className={`uppercase tracking-wider text-[9px] sm:text-[10px] font-extrabold shrink-0 ${
+                            isDark ? 'text-emerald-400' : 'text-emerald-600'
+                          }`}
+                        >
+                          Now&nbsp;·&nbsp;{getHour12Label(hourIndex)}
+                        </span>
+                        <motion.span
+                          // Key on icon+desc so the crossfade fires for either change.
+                          key={`${day.date}-${hrDetails.icon}-${hrDetails.desc}`}
+                          initial={{ opacity: 0.35 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.18 }}
+                          className="inline-flex shrink-0"
+                          aria-hidden="true"
+                        >
+                          {renderSmallWeatherIcon(hrDetails.icon)}
+                        </motion.span>
+                        <span className="opacity-90 truncate">{hrDetails.desc}</span>
+                      </>
+                    ) : (
+                      <span
+                        className={`uppercase tracking-wider text-[9px] sm:text-[10px] font-extrabold opacity-60 ${
+                          isDark ? 'text-slate-500' : 'text-slate-400'
+                        }`}
+                      >
+                        Conditions steady · {getHour12Label(hourIndex)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* EXPANDED CONTENT AREA WITH SLIDE DOWN ANIMATION */}
               <motion.div
