@@ -1,4 +1,4 @@
-const CACHE_NAME = 'letshunt-v11';
+const CACHE_NAME = 'letshunt-v13';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -85,6 +85,35 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Cross-origin requests (map tiles, Open-Meteo weather, RainViewer radar
+  // frames) are NETWORK-ONLY: caching them risks serving stale weather/radar
+  // responses and bloats the cache with URLs that never change names.
+  if (new URL(event.request.url).origin !== self.location.origin) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Page navigations are NETWORK-FIRST: the app shell (index.html) must always
+  // come from the server so users never get stuck on a stale cached build
+  // (e.g. missing the latest feature). Only offline falls back to cache.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+          }
+          return networkResponse;
+        })
+        .catch(() =>
+          caches.match('./index.html').then((cached) => cached || caches.match('./') || Response.error())
+        )
+    );
+    return;
+  }
+
+  // Everything else (hashed assets, tiles, API JSON): stale-while-revalidate.
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -103,10 +132,6 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         }
         return networkResponse;
-      }).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html') || caches.match('./');
-        }
       });
     })
   );
