@@ -112,13 +112,22 @@ button, a, input, select, textarea {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Improve range slider styling */
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 3px;
-  outline: none;
+/* Improve range slider styling. Native appearance is stripped below, so the
+   track must be painted explicitly — otherwise Chrome/Edge draw only the thumb
+   (the radar-opacity and Check-Wind sliders showed a floating dot with no
+   track) and Firefox draws nothing at all. The default track color lives in
+   @layer base so Tailwind's bg-* utilities still win where components set an
+   explicit track color (e.g. the scent-panel sliders' bg-slate-800), and h-*
+   height utilities still win over the 6px default. */
+@layer base {
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    background-color: rgba(148, 163, 184, 0.4);
+  }
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -134,6 +143,27 @@ input[type="range"]::-webkit-slider-thumb {
 }
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.15);
+}
+/* Firefox renders appearance:none ranges with NO visible parts unless both
+   the track and thumb pseudo-elements are styled — mirror the WebKit look. */
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background-color: rgba(148, 163, 184, 0.4);
+}
+input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background-color: #10b981;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Smooth underline animation for links */

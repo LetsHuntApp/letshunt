@@ -249,43 +249,76 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   const host = frameCache?.host || 'https://tilecache.rainviewer.com';
   const hasFrame = Boolean(activeFrame);
 
+  const frameTimeLabel = activeFrame
+    ? new Date(activeFrame.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : '';
+
   return (
-    <div
-      aria-hidden="true"
-      className="absolute inset-0 z-[6] pointer-events-none"
-      style={{ opacity: loadError ? 0 : clamp(opacity, 0, 1) }}
-    >
-      {hasFrame && activeFrame &&
-        tiles.map((t) => (
-          <img
-            key={`radar-${activeIndex}-${t.tx}-${t.ty}`}
-            src={`${host}${activeFrame.path}/256/${baseZoom}/${wrapTileX(t.tx, baseZoom)}/${clampTileY(t.ty, baseZoom)}/${colorScheme}/1_1.png`}
-            alt=""
-            draggable={false}
-            loading="eager"
-            decoding="async"
-            style={{
-              position: 'absolute',
-              left: `${t.left}px`,
-              top: `${t.top}px`,
-              width: `${Math.ceil(actTileSize + 1)}px`,
-              height: `${Math.ceil(actTileSize + 1)}px`,
-              pointerEvents: 'none',
-              userSelect: 'none',
-            }}
-            onError={(e) => {
-              // Silent miss — a single broken tile shouldn't crash the overlay.
-              (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-            }}
-          />
-        ))}
-      {/* Quiet error badge: visible only when fetch failed, never blocks input. */}
-      {loadError && (
-        <div className="absolute top-3 right-3 rounded-md bg-slate-900/70 text-slate-300 text-[10px] font-bold px-2 py-1 pointer-events-auto">
-          Radar unavailable
+    <>
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 z-[6] pointer-events-none"
+        style={{ opacity: loadError ? 0 : clamp(opacity, 0, 1) }}
+      >
+        {hasFrame && activeFrame &&
+          tiles.map((t) => (
+            <img
+              key={`radar-${activeIndex}-${t.tx}-${t.ty}`}
+              src={`${host}${activeFrame.path}/256/${baseZoom}/${wrapTileX(t.tx, baseZoom)}/${clampTileY(t.ty, baseZoom)}/${colorScheme}/1_1.png`}
+              alt=""
+              draggable={false}
+              loading="eager"
+              decoding="async"
+              style={{
+                position: 'absolute',
+                left: `${t.left}px`,
+                top: `${t.top}px`,
+                width: `${Math.ceil(actTileSize + 1)}px`,
+                height: `${Math.ceil(actTileSize + 1)}px`,
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+              onError={(e) => {
+                // Silent miss — a single broken tile shouldn't crash the overlay.
+                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+              }}
+            />
+          ))}
+      </div>
+
+      {/* Live / unavailable status chip — top-center, below the app header.
+          The old badge sat at top-right where the LAYERS button sits on top of
+          it, so a failed fetch looked like a silently-broken overlay. The chip
+          also proves the overlay is running even when the region is dry
+          (tiles are transparent when there's no precipitation to draw), which
+          is the usual reason a radar toggle appears to "show nothing". */}
+      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[40] pointer-events-none">
+        <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 shadow-2xl backdrop-blur-md text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
+          loadError
+            ? 'bg-slate-900/85 border-rose-500/50 text-rose-300'
+            : !hasFrame
+            ? 'bg-slate-900/85 border-slate-600/60 text-slate-300'
+            : 'bg-slate-900/85 border-sky-500/50 text-sky-300'
+        }`}>
+          {loadError ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+              Radar unavailable
+            </>
+          ) : !hasFrame ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+              Radar loading…
+            </>
+          ) : (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+              Radar live · {frameTimeLabel} · frame {activeIndex + 1}/{frames.length}
+            </>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
 

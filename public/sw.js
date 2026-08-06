@@ -1,4 +1,4 @@
-const CACHE_NAME = 'letshunt-v12';
+const CACHE_NAME = 'letshunt-v13';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -84,6 +84,14 @@ self.addEventListener('notificationclick', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // Cross-origin requests (map tiles, Open-Meteo weather, RainViewer radar
+  // frames) are NETWORK-ONLY: caching them risks serving stale weather/radar
+  // responses and bloats the cache with URLs that never change names.
+  if (new URL(event.request.url).origin !== self.location.origin) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   // Page navigations are NETWORK-FIRST: the app shell (index.html) must always
   // come from the server so users never get stuck on a stale cached build
