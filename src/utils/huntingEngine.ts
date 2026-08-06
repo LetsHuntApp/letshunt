@@ -1,5 +1,6 @@
 import { DailyForecast, HourlyForecast, PressureTrend, ScoreFactor, SolunarInfo, UnitSystem, PressureUnit, Location, SavedPin } from '../types';
 import { getRutPhase } from './rutEngine';
+import { calculateMoonTimes } from './solunar';
 
 // Convert hPa to inHg
 export function hpaToInHg(hpa: number): number {
@@ -112,59 +113,82 @@ export function formatTimeRange12h(start: Date | string, end: Date | string): st
 }
 
 /**
- * Calculates Solunar times & moon phase for a given date and location
+ * Calculates Solunar times & moon phase for a given date and location.
+ *
+ * Batch 2: now uses real lunar astronomy (transit, rise/set) via
+ * astronomy-engine. Falls back to the legacy sunrise/sunset-offset
+ * heuristic whenever the real calculation produces null values or the
+ * astronomy library throws, so solunar never disappears from the
+ * dashboard.
  */
 export function calculateSolunar(dateStr: string, lat: number, lon: number, sunriseStr: string, sunsetStr: string): SolunarInfo {
   const date = new Date(dateStr);
-  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000);
-  
-  // Approximate moon phase (synodic month = 29.530588 days)
-  // Known reference new moon: Jan 11, 2024
-  const refDate = new Date('2024-01-11').getTime();
-  const diffDays = (date.getTime() - refDate) / (1000 * 60 * 60 * 24);
-  const moonCycle = (diffDays % 29.530588 + 29.530588) % 29.530588;
-  const moonPhase = moonCycle / 29.530588; // 0.0 to 1.0
-
-  let moonPhaseName = 'New Moon';
-  if (moonPhase > 0.03 && moonPhase < 0.22) moonPhaseName = 'Waxing Crescent';
-  else if (moonPhase >= 0.22 && moonPhase <= 0.28) moonPhaseName = 'First Quarter';
-  else if (moonPhase > 0.28 && moonPhase < 0.47) moonPhaseName = 'Waxing Gibbous';
-  else if (moonPhase >= 0.47 && moonPhase <= 0.53) moonPhaseName = 'Full Moon';
-  else if (moonPhase > 0.53 && moonPhase < 0.72) moonPhaseName = 'Waning Gibbous';
-  else if (moonPhase >= 0.72 && moonPhase <= 0.78) moonPhaseName = 'Last Quarter';
-  else if (moonPhase > 0.78 && moonPhase < 0.97) moonPhaseName = 'Waning Crescent';
-
-  const illumination = Math.round((1 - Math.cos(moonPhase * 2 * Math.PI)) / 2 * 100);
 
   // Parse sunrise & sunset
   const sunriseTime = sunriseStr ? format12HourTime(sunriseStr) : '6:30 AM';
   const sunsetTime = sunsetStr ? format12HourTime(sunsetStr) : '6:45 PM';
 
-  // Solunar Major Periods: Approx 12 hours apart, centered on moon transit / underfoot
-  // Offset relative to sunrise/sunset
-  const srDate = sunriseStr ? new Date(sunriseStr) : new Date(date.setHours(6, 30));
-  const ssDate = sunsetStr ? new Date(sunsetStr) : new Date(date.setHours(18, 45));
+  // --- Real astronomy (preferred path) ---
+  const moonTimes = calculateMoonTimes(date, lat, lon);
 
-  const major1Start = new Date(srDate.getTime() + (moonPhase * 2 - 1) * 3600000 - 3600000);
-  const major1End = new Date(major1Start.getTime() + 7200000);
+  // Major periods: moon overhead (upper transit) and underfoot (lower transit).
+  // Each is a 2-hour window centered on the transit time.
+  const major1Start = moonTimes.upperTransit ? new Date(moonTimes.upperTransit.getTime() - 3600000) : null;
+  const major1End = moonTimes.upperTransit ? new Date(moonTimes.upperTransit.getTime() + 3600000) : null;
 
-  const major2Start = new Date(ssDate.getTime() + (moonPhase * 2 - 1) * 3600000 - 3600000);
-  const major2End = new Date(major2Start.getTime() + 7200000);
+  const major2Start = moonTimes.lowerTransit ? new Date(moonTimes.lowerTransit.getTime() - 3600000) : null;
+  const major2End = moonTimes.lowerTransit ? new Date(moonTimes.lowerTransit.getTime() + 3600000) : null;
 
-  const minor1Start = new Date(srDate.getTime() - 7200000);
-  const minor1End = new Date(minor1Start.getTime() + 3600000);
+  // Minor periods: moonrise and moonset, each ±1h.
+  const minor1Start = moonTimes.moonrise ? new Date(moonTimes.moonrise.getTime() - 3600000) : null;
+  const minor1End = moonTimes.moonrise ? new Date(moonTimes.moonrise.getTime() + 3600000) : null;
 
-  const minor2Start = new Date(ssDate.getTime() + 5400000);
-  const minor2End = new Date(minor2Start.getTime() + 3600000);
+  const minor2Start = moonTimes.moonset ? new Date(moonTimes.moonset.getTime() - 3600000) : null;
+  const minor2End = moonTimes.moonset ? new Date(moonTimes.moonset.getTime() + 3600000) : null;
+
+  // --- Legacy phase / window fallback ---
+  // Phase is computed from a fixed reference new moon (Jan 11, 2024)
+  // and the synodic month — same formula the real calculator uses
+  // underneath, so we keep it as a guaranteed fallback for when
+  // astronomy throws.
+  const refDate = new Date('2024-01-11').getTime();
+  const diffDays = (date.getTime() - refDate) / (1000 * 60 * 60 * 24);
+  const moonCycle = (diffDays % 29.530588 + 29.530588) % 29.530588;
+  const fallbackPhase = moonCycle / 29.530588;
+  const fallbackIllumination = Math.round((1 - Math.cos(fallbackPhase * 2 * Math.PI)) / 2 * 100);
+
+  let fallbackPhaseName = 'New Moon';
+  if (fallbackPhase > 0.03 && fallbackPhase < 0.22) fallbackPhaseName = 'Waxing Crescent';
+  else if (fallbackPhase >= 0.22 && fallbackPhase <= 0.28) fallbackPhaseName = 'First Quarter';
+  else if (fallbackPhase > 0.28 && fallbackPhase < 0.47) fallbackPhaseName = 'Waxing Gibbous';
+  else if (fallbackPhase >= 0.47 && fallbackPhase <= 0.53) fallbackPhaseName = 'Full Moon';
+  else if (fallbackPhase > 0.53 && fallbackPhase < 0.72) fallbackPhaseName = 'Waning Gibbous';
+  else if (fallbackPhase >= 0.72 && fallbackPhase <= 0.78) fallbackPhaseName = 'Last Quarter';
+  else if (fallbackPhase > 0.78 && fallbackPhase < 0.97) fallbackPhaseName = 'Waning Crescent';
+
+  const srDate = sunriseStr ? new Date(sunriseStr) : new Date(new Date(dateStr).setHours(6, 30));
+  const ssDate = sunsetStr ? new Date(sunsetStr) : new Date(new Date(dateStr).setHours(18, 45));
+
+  const fallbackMajor1Start = new Date(srDate.getTime() + (fallbackPhase * 2 - 1) * 3600000 - 3600000);
+  const fallbackMajor1End = new Date(fallbackMajor1Start.getTime() + 7200000);
+  const fallbackMajor2Start = new Date(ssDate.getTime() + (fallbackPhase * 2 - 1) * 3600000 - 3600000);
+  const fallbackMajor2End = new Date(fallbackMajor2Start.getTime() + 7200000);
+  const fallbackMinor1Start = new Date(srDate.getTime() - 7200000);
+  const fallbackMinor1End = new Date(fallbackMinor1Start.getTime() + 3600000);
+  const fallbackMinor2Start = new Date(ssDate.getTime() + 5400000);
+  const fallbackMinor2End = new Date(fallbackMinor2Start.getTime() + 3600000);
 
   return {
-    moonPhase,
-    moonPhaseName,
-    moonIllumination: illumination,
-    major1: formatTimeRange12h(major1Start, major1End),
-    major2: formatTimeRange12h(major2Start, major2End),
-    minor1: formatTimeRange12h(minor1Start, minor1End),
-    minor2: formatTimeRange12h(minor2Start, minor2End),
+    // Nullish coalescing (??) on purpose — a real new moon has phase 0
+    // and 0% illumination, so the || operator would falsely fall back to
+    // the heuristic.
+    moonPhase: moonTimes.moonPhase ?? fallbackPhase,
+    moonPhaseName: moonTimes.moonPhaseName ?? fallbackPhaseName,
+    moonIllumination: moonTimes.moonIllumination ?? fallbackIllumination,
+    major1: major1Start && major1End ? formatTimeRange12h(major1Start, major1End) : formatTimeRange12h(fallbackMajor1Start, fallbackMajor1End),
+    major2: major2Start && major2End ? formatTimeRange12h(major2Start, major2End) : formatTimeRange12h(fallbackMajor2Start, fallbackMajor2End),
+    minor1: minor1Start && minor1End ? formatTimeRange12h(minor1Start, minor1End) : formatTimeRange12h(fallbackMinor1Start, fallbackMinor1End),
+    minor2: minor2Start && minor2End ? formatTimeRange12h(minor2Start, minor2End) : formatTimeRange12h(fallbackMinor2Start, fallbackMinor2End),
     sunrise: sunriseTime,
     sunset: sunsetTime,
   };
@@ -172,6 +196,17 @@ export function calculateSolunar(dateStr: string, lat: number, lon: number, sunr
 
 /**
  * Calculates deer movement hunt score (0-100) and breakdown factors
+ *
+ * Batch 1 (season-aware scoring + humidity + gusts):
+ *   - `tempDeltaF` (optional): the day's max temperature deviation from a
+ *     rolling 30-day climatological normal for the location. When
+ *     provided, the Temperature factor scores against deviation bands
+ *     instead of absolute thresholds. When null/undefined, the legacy
+ *     absolute thresholds are used so existing callers keep working.
+ *   - `humidity` (optional): relative humidity 0-100. Powers the new
+ *     Scent & Humidity factor.
+ *   - `windGustMph` (optional): 10m wind gust. Adds a swirling-scent
+ *     penalty to the Wind Speed factor when gust - sustained > 15 mph.
  */
 export function calculateHuntScore(params: {
   tempDrop24h: number; // in °F or °C drop (positive if drop/cooling)
@@ -190,6 +225,10 @@ export function calculateHuntScore(params: {
   pressureUnit?: PressureUnit;
   dateStr?: string;
   location?: Location;
+  // Batch 1 additions:
+  tempDeltaF?: number | null;
+  humidity?: number | null;
+  windGustMph?: number | null;
 }): { score: number; rating: DailyForecast['rating']; verdict: string; factors: ScoreFactor[] } {
   // Start at an intentionally neutral midpoint. Forecast conditions can help
   // choose *when* to hunt, but they cannot reliably predict animal movement
@@ -219,28 +258,62 @@ export function calculateHuntScore(params: {
   const windUnitStr = isMetric ? 'km/h' : 'mph';
   const windDisp = isMetric ? Math.round(params.windMph * 1.60934) : params.windMph;
 
-  // Factor 1: Temperature (Cooler vs Hot)
+  // Factor 1: Temperature (Cooler vs Hot, season-relative when tempDeltaF provided)
   let tempScore = 0;
   let tempDesc = '';
   let tempStatus: ScoreFactor['status'] = 'neutral';
 
-  if (maxTempCheckF >= 78) {
-    tempScore = -20;
-    tempStatus = 'poor';
-    tempDesc = `Unseasonably warm (${maxTempDisp}${tempUnitStr}). High heat suppresses daytime travel; deer remain bedded in shaded cover.`;
-  } else if (maxTempCheckF >= 73) {
-    tempScore = -10;
-    tempStatus = 'poor';
-    tempDesc = `Warm temperature (${maxTempDisp}${tempUnitStr}). Slightly limits open daylight movement.`;
-  } else if (maxTempCheckF >= 66) {
-    tempScore = 5;
-    tempStatus = 'good';
-    tempDesc = `Moderate temperature (${maxTempDisp}${tempUnitStr}). Normal seasonal activity expected.`;
+  const useSeasonRelative = typeof params.tempDeltaF === 'number' && Number.isFinite(params.tempDeltaF);
+  if (useSeasonRelative) {
+    // Deviation from the location's 30-day rolling normal (Batch 1).
+    // Deer movement tracks deviation, not absolute degrees — a 72°F day in
+    // December and a 72°F day in September should not score identically.
+    const deltaF = params.tempDeltaF as number;
+    const roundingPositive = (n: number) => Math.round(Math.abs(n));
+    if (deltaF >= 12) {
+      tempScore = -20;
+      tempStatus = 'poor';
+      tempDesc = `Unseasonably warm (+${roundingPositive(deltaF)}${tempUnitStr} above recent normal). High heat suppresses daylight travel.`;
+    } else if (deltaF >= 6) {
+      tempScore = -10;
+      tempStatus = 'poor';
+      tempDesc = `Warmer than normal (+${roundingPositive(deltaF)}${tempUnitStr}). Slightly limits open daylight movement.`;
+    } else if (deltaF > -6) {
+      // within ±6°F of normal
+      tempScore = 5;
+      tempStatus = 'good';
+      tempDesc = `Near seasonal normal (${deltaF >= 0 ? '+' : ''}${Math.round(deltaF)}${tempUnitStr}). Typical activity expected.`;
+    } else if (deltaF > -14) {
+      tempScore = 10;
+      tempStatus = 'optimal';
+      tempDesc = `Below seasonal normal (-${roundingPositive(deltaF)}${tempUnitStr}). Cooler air drives active feeding.`;
+    } else {
+      // Very cold anomaly — movement bonus still applies but cap strength so
+      // extreme cold doesn't fake a perfect score.
+      tempScore = 5;
+      tempStatus = 'good';
+      tempDesc = `Far below seasonal normal (-${roundingPositive(deltaF)}${tempUnitStr}). Cold-front surge, but extreme cold can also suppress travel.`;
+    }
   } else {
-    // <= 65°F (18°C)
-    tempScore = 15;
-    tempStatus = 'optimal';
-    tempDesc = `Cool crisp temperature (${maxTempDisp}${tempUnitStr}). Ideal thermal range for active daylight movement.`;
+    // Legacy absolute thresholds (Batch 1 fallback when no climate normal).
+    if (maxTempCheckF >= 78) {
+      tempScore = -20;
+      tempStatus = 'poor';
+      tempDesc = `Unseasonably warm (${maxTempDisp}${tempUnitStr}). High heat suppresses daytime travel; deer remain bedded in shaded cover.`;
+    } else if (maxTempCheckF >= 73) {
+      tempScore = -10;
+      tempStatus = 'poor';
+      tempDesc = `Warm temperature (${maxTempDisp}${tempUnitStr}). Slightly limits open daylight movement.`;
+    } else if (maxTempCheckF >= 66) {
+      tempScore = 5;
+      tempStatus = 'good';
+      tempDesc = `Moderate temperature (${maxTempDisp}${tempUnitStr}). Normal seasonal activity expected.`;
+    } else {
+      // <= 65°F (18°C)
+      tempScore = 15;
+      tempStatus = 'optimal';
+      tempDesc = `Cool crisp temperature (${maxTempDisp}${tempUnitStr}). Ideal thermal range for active daylight movement.`;
+    }
   }
 
   totalScore += tempScore;
@@ -295,6 +368,8 @@ export function calculateHuntScore(params: {
   });
 
   // Factor 3: Wind Speed (Light to moderate 8-20 km/h vs Dead calm <5 km/h or Strong >30 km/h)
+  // Batch 1: also penalizes gusty conditions (gust - sustained > 15 mph),
+  // which spook deer via swirling scent even when sustained winds are calm.
   let windScore = 0;
   let windDesc = '';
   let windStatus: ScoreFactor['status'] = 'neutral';
@@ -321,6 +396,23 @@ export function calculateHuntScore(params: {
     windScore = -3;
     windStatus = 'neutral';
     windDesc = `Breezy conditions (${windDisp} ${windUnitStr}). Focus on lee-sides of ridges and sheltered oak thickets.`;
+  }
+
+  // Gust penalty (Batch 1). Apply only when the sustained wind itself is
+  // not already penalised as "strong" — strong sustained + gusts would
+  // double-count. Cap the penalty at -4 so a gust spike can't outweigh a
+  // calm-wind penalty.
+  if (typeof params.windGustMph === 'number' && Number.isFinite(params.windGustMph)) {
+    const gustMph = params.windGustMph as number;
+    const gustDelta = Math.round(gustMph - params.windMph);
+    if (gustDelta > 15 && windKmh <= 30) {
+      const gustPenalty = -4;
+      windScore += gustPenalty;
+      windDesc = windDesc
+        ? `${windDesc} Gusts to ${Math.round(gustMph)} mph (-${Math.abs(gustPenalty)}).`
+        : `Gusty conditions: sustained ${Math.round(params.windMph)} mph, gusts ${Math.round(gustMph)} mph.`;
+      if (windStatus === 'optimal') windStatus = 'good';
+    }
   }
 
   totalScore += windScore;
@@ -544,6 +636,59 @@ export function calculateHuntScore(params: {
     maxScore: 5,
     description: solunarDesc,
     status: solunarStatus,
+  });
+
+  // Factor 9 (Batch 1): Scent & Humidity. Humidity is already fetched from
+  // Open-Meteo (relativehumidity_2m) but was previously discarded; this
+  // makes it a small but meaningful driver of deer scent-detection
+  // conditions. Wet ground silences footsteps, high humidity holds scent
+  // in thermals; very dry air means crunchy leaves and sinking scent.
+  let scentScore = 0;
+  let scentDesc = '';
+  let scentStatus: ScoreFactor['status'] = 'neutral';
+
+  if (typeof params.humidity === 'number' && Number.isFinite(params.humidity)) {
+    const humidity = params.humidity as number;
+    const fogCode = params.weatherCode === 45 || params.weatherCode === 48;
+    if (humidity >= 75 && humidity <= 95) {
+      scentScore = 6;
+      scentStatus = 'optimal';
+      scentDesc = `High humidity (${Math.round(humidity)}%) holds scent in thermals and dampens ground noise.`;
+    } else if (humidity >= 60 && humidity < 75) {
+      scentScore = 3;
+      scentStatus = 'good';
+      scentDesc = `Moderate humidity (${Math.round(humidity)}%) keeps scent workable.`;
+    } else if (humidity > 95 && fogCode) {
+      scentScore = 3;
+      scentStatus = 'good';
+      scentDesc = `Foggy and very humid (${Math.round(humidity)}%) — woods stay still but visibility drops.`;
+    } else if (humidity > 95) {
+      scentScore = 0;
+      scentStatus = 'neutral';
+      scentDesc = `Very humid (${Math.round(humidity)}%) without fog. Scent holds but conditions feel heavy.`;
+    } else if (humidity < 35) {
+      scentScore = -3;
+      scentStatus = 'poor';
+      scentDesc = `Dry air (${Math.round(humidity)}%) — crunchy leaves and sinking scent work against you.`;
+    } else {
+      scentScore = 0;
+      scentStatus = 'neutral';
+      scentDesc = `Average humidity (${Math.round(humidity)}%). No strong scent signal either way.`;
+    }
+  } else {
+    // No humidity supplied by caller (legacy callers / fallback forecast).
+    scentScore = 0;
+    scentStatus = 'neutral';
+    scentDesc = 'Humidity data unavailable.';
+  }
+
+  totalScore += scentScore;
+  factors.push({
+    name: 'Scent & Humidity',
+    score: scentScore,
+    maxScore: 6,
+    description: scentDesc,
+    status: scentStatus,
   });
 
   // Clamp final score between 15 and 99

@@ -81,10 +81,13 @@ export interface HourlyForecast {
   pressureInHg: number;
   windSpeedMph: number;
   windSpeedKmh: number;
+  windGustMph?: number; // 10m wind gust (optional, Batch 1)
+  windGustKmh?: number; // 10m wind gust in km/h (optional, Batch 1)
   windDirectionDeg: number;
   windDirectionText: string;
   precipProbability: number;
   precipMm: number;
+  humidity?: number; // 0-100 (optional, Batch 1)
   weatherCode: number;
   weatherDesc: string;
   huntScore: number; // 0-100
@@ -113,6 +116,7 @@ export interface DailyForecast {
   weatherIcon: string;
   isPostStorm: boolean;
   hasRainBreak?: boolean;
+  humidityAvg?: number; // Average relative humidity 0-100 (optional, Batch 1)
   
   // Hunting forecast metrics
   huntScore: number; // 0 - 100

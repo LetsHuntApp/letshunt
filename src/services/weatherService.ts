@@ -73,7 +73,15 @@ export async function fetch5DayHuntingForecast(
 ): Promise<DailyForecast[]> {
   const { latitude: lat, longitude: lon } = location;
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,winddirection_10m&timezone=auto`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,windgusts_10m,winddirection_10m&timezone=auto`;
+
+  // Batch 1: rolling 30-day climate normal for the location, fetched from
+  // the Open-Meteo Archive API (free, no API key). Used to score the
+  // Temperature factor against deviation (`tempDeltaF`) instead of fixed
+  // absolute thresholds. Cached ~24h per location to avoid hitting the
+  // archive endpoint on every forecast refresh. Always returned in °F;
+  // the caller converts if needed when the user has metric units.
+  const normalMaxF = await fetchClimateNormal(lat, lon);
 
   let rawData;
   let lastErr: unknown;
@@ -155,10 +163,12 @@ export async function fetch5DayHuntingForecast(
     const tempArr = hourlyRaw.temperature_2m || [];
     const pressArr = hourlyRaw.pressure_msl || hourlyRaw.surface_pressure || [];
     const windSpeedArr = hourlyRaw.windspeed_10m || [];
+    const windGustArr = hourlyRaw.windgusts_10m || []; // Batch 1: optional gust
     const windDirArr = hourlyRaw.winddirection_10m || [];
     const precipProbArr = hourlyRaw.precipitation_probability || [];
     const precipArr = hourlyRaw.precipitation || [];
     const weatherCodeArr = hourlyRaw.weathercode || [];
+    const humidityArr = hourlyRaw.relativehumidity_2m || []; // Batch 1: previously discarded
 
     const dayStartIdx = d * 24;
     const dayEndIdx = Math.min(dayStartIdx + 24, timeArr.length || 24);
@@ -168,10 +178,12 @@ export async function fetch5DayHuntingForecast(
       temp: tempArr.slice(dayStartIdx, dayEndIdx),
       pressure: pressArr.slice(dayStartIdx, dayEndIdx),
       windSpeed: windSpeedArr.slice(dayStartIdx, dayEndIdx),
+      gust: windGustArr.slice(dayStartIdx, dayEndIdx),
       windDir: windDirArr.slice(dayStartIdx, dayEndIdx),
       precipProb: precipProbArr.slice(dayStartIdx, dayEndIdx),
       precip: precipArr.slice(dayStartIdx, dayEndIdx),
       weatherCode: weatherCodeArr.slice(dayStartIdx, dayEndIdx),
+      humidity: humidityArr.slice(dayStartIdx, dayEndIdx),
     };
 
     // Calculate average pressure and pressure trend
@@ -183,6 +195,22 @@ export async function fetch5DayHuntingForecast(
     // Use a smoothed late-afternoon trend for the daily summary. Hourly scores
     // below calculate their own local trend instead of inheriting this value.
     const pressureTrend = getPressureTrend(dayHourlyRaw.pressure, 18);
+
+    // Batch 1: day's average relative humidity (0-100) and peak wind gust
+    // (mph) — both feed the new Scent & Humidity factor and the wind gust
+    // penalty respectively. clamp finite values only; if Open-Meteo
+    // omits the field, we fall through to zero and let the factor take
+    // its "unavailable" branch.
+    const humidityValid = dayHourlyRaw.humidity.filter((v: any) => typeof v === 'number' && Number.isFinite(v));
+    const humidityAvg = humidityValid.length > 0
+      ? Math.round(humidityValid.reduce((a: number, b: number) => a + b, 0) / humidityValid.length)
+      : null;
+    const gustValid = dayHourlyRaw.gust.filter((v: any) => typeof v === 'number' && Number.isFinite(v));
+    const gustMaxKmh = gustValid.length > 0 ? Math.max(...gustValid) : null;
+    const gustMaxMph = gustMaxKmh !== null ? kmhToMph(gustMaxKmh) : null;
+
+    // Day-level temperature deviation (only meaningful when the cache hit).
+    const tempDeltaF = normalMaxF !== null ? rawMaxTempF - normalMaxF : null;
 
     // Check post-storm effect & rain break (any rainy day with a break/stop in rain)
     const rainyCodes = [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99];
@@ -239,6 +267,11 @@ export async function fetch5DayHuntingForecast(
       pressureUnit,
       dateStr,
       location,
+      // Batch 1: deviation-based temperature scoring (falls back gracefully
+      // when the climate normal is unavailable), humidity factor, gust penalty.
+      tempDeltaF,
+      humidity: humidityAvg,
+      windGustMph: gustMaxMph,
     });
 
     // Build Prime Time windows (Morning 30m before sunrise to +2.5h; Evening 2.5h before sunset to dusk)
@@ -255,7 +288,12 @@ export async function fetch5DayHuntingForecast(
       const hPressInHg = hpaToInHg(hPressHpa);
       const hWindKmh = dayHourlyRaw.windSpeed[idx];
       const hWindMph = kmhToMph(hWindKmh);
+      const hGustKmhRaw = dayHourlyRaw.gust[idx];
+      const hGustMph = typeof hGustKmhRaw === 'number' && Number.isFinite(hGustKmhRaw) ? kmhToMph(hGustKmhRaw) : undefined;
+      const hGustKmh = typeof hGustKmhRaw === 'number' && Number.isFinite(hGustKmhRaw) ? Math.round(hGustKmhRaw) : undefined;
       const hWindDeg = dayHourlyRaw.windDir[idx];
+      const hHumidityRaw = dayHourlyRaw.humidity[idx];
+      const hHumidity = typeof hHumidityRaw === 'number' && Number.isFinite(hHumidityRaw) ? Math.round(hHumidityRaw) : undefined;
 
       // Calculate hourly 24h temperature drop
       const globalHourIdx = d * 24 + idx;
@@ -269,6 +307,10 @@ export async function fetch5DayHuntingForecast(
       }
       const hTempDrop24h = units === 'imperial' ? hTempDrop24hF : Math.round((hTempDrop24hF * 5) / 9);
 
+      // Hour-level deviation from the rolling normal lets a cool morning
+      // score appropriately even when the day's peak is at/near normal.
+      const hTempDeltaF = normalMaxF !== null ? hTempF - normalMaxF : null;
+
       const isPrimeWindow = isPrimeTimestamp(hDate.getTime());
       // A dry hour only earns a rain-break signal when rain occurred in the
       // immediately preceding three hours; a dry afternoon after dawn rain is
@@ -277,7 +319,7 @@ export async function fetch5DayHuntingForecast(
       const isRainBreakHour = recentRain && (dayHourlyRaw.precip[idx] || 0) < 0.1;
       const hourlyPressureTrend = getPressureTrend(dayHourlyRaw.pressure, idx);
 
-      // Calculate exact hourly hunt score using 7-factor model
+      // Calculate exact hourly hunt score using 9-factor model (Batch 1: humidity + gusts)
       const { score: hScore } = calculateHuntScore({
         tempDrop24h: hTempDrop24h,
         maxTempF: units === 'imperial' ? hTempF : Math.round(hTempC),
@@ -295,6 +337,9 @@ export async function fetch5DayHuntingForecast(
         pressureUnit,
         dateStr,
         location,
+        tempDeltaF: hTempDeltaF,
+        humidity: hHumidity ?? null,
+        windGustMph: hGustMph ?? null,
       });
 
       return {
@@ -306,10 +351,13 @@ export async function fetch5DayHuntingForecast(
         pressureInHg: hPressInHg,
         windSpeedMph: hWindMph,
         windSpeedKmh: Math.round(hWindKmh),
+        windGustMph: hGustMph,
+        windGustKmh: hGustKmh,
         windDirectionDeg: hWindDeg,
         windDirectionText: getWindDirectionText(hWindDeg),
         precipProbability: dayHourlyRaw.precipProb[idx] || 0,
         precipMm: dayHourlyRaw.precip[idx] || 0,
+        humidity: hHumidity,
         weatherCode: dayHourlyRaw.weatherCode[idx] || 0,
         weatherDesc: isRainBreakHour ? 'Rain Break (Dry Window)' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
         huntScore: hScore,
@@ -339,6 +387,7 @@ export async function fetch5DayHuntingForecast(
       weatherIcon,
       isPostStorm,
       hasRainBreak,
+      humidityAvg: humidityAvg ?? undefined, // Batch 1: undefined => unavailable
       huntScore: score,
       rating,
       verdict,
@@ -422,6 +471,71 @@ export async function fetchHistoricalWeather(
   }
 }
 
+/**
+ * Fetch a rolling 30-day climatological normal max temperature for a
+ * location from Open-Meteo's free Archive API (no API key required).
+ * Backed by a 24-hour localStorage cache keyed by lat/lon so we don't
+ * hit the archive endpoint on every forecast refresh.
+ *
+ * Returns the normal in °F (imperial) regardless of caller unit; the
+ * temperature scoring engine compares °F deviations internally.
+ * Returns null on any failure (network, bad JSON, missing fields) — the
+ * caller should fall back to the legacy absolute-threshold scoring.
+ */
+async function fetchClimateNormal(lat: number, lon: number): Promise<number | null> {
+  const cacheKey = `letshunt_climate_normal_${lat.toFixed(2)}_${lon.toFixed(2)}`;
+  const TTL_MS = 24 * 3600 * 1000;
+  try {
+    const raw = localStorage.getItem(cacheKey);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (
+        typeof parsed?.normalMaxF === 'number' &&
+        Number.isFinite(parsed.normalMaxF) &&
+        typeof parsed?.fetchedAt === 'number' &&
+        Date.now() - parsed.fetchedAt < TTL_MS
+      ) {
+        return parsed.normalMaxF;
+      }
+    }
+  } catch {
+    /* storage unavailable, treat as cache miss */
+  }
+
+  // 30-day window ending yesterday so we never include today (which has
+  // a partial forecast). ISO date strings (YYYY-MM-DD) keep the URL tidy.
+  const end = new Date();
+  end.setDate(end.getDate() - 1);
+  const start = new Date(end);
+  start.setDate(start.getDate() - 30);
+  const startStr = start.toISOString().slice(0, 10);
+  const endStr = end.toISOString().slice(0, 10);
+
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startStr}&end_date=${endStr}&daily=temperature_2m_max&timezone=auto`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout?.(10000) });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const arr: number[] | undefined = data?.daily?.temperature_2m_max;
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const valid = arr.filter((v) => typeof v === 'number' && Number.isFinite(v));
+    if (valid.length === 0) return null;
+    const avgC = valid.reduce((a, b) => a + b, 0) / valid.length;
+    const normalMaxF = celsiusToFahrenheit(avgC);
+    try {
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ normalMaxF, fetchedAt: Date.now() })
+      );
+    } catch {
+      /* storage full or unavailable, just skip caching */
+    }
+    return normalMaxF;
+  } catch {
+    return null;
+  }
+}
+
 function generateFallbackForecast(location: Location, units: UnitSystem): DailyForecast[] {
   const forecasts: DailyForecast[] = [];
   const today = new Date();
@@ -461,6 +575,14 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       const hPressureHpa = Math.round(1013 + 5 * Math.sin(((h + d * 3) / 24) * 2 * Math.PI));
       const hPressureInHg = hpaToInHg(hPressureHpa);
 
+      // Batch 1 fallback placeholders — keep the scoring engine happy
+      // when it can't reach the real Open-Meteo endpoints. Linear humidity
+      // swing between 75% morning / 55% evening crudely mimics diurnal
+      // drying, and a small gust bump above sustained wind gives the
+      // Wind Speed factor a representative sample.
+      const hHumidity = 55 + Math.round(20 * Math.sin((h / 24) * Math.PI));
+      const hGustMph = windSpeedMaxMph + 6;
+
       hourly.push({
         time: format12HourTime(hDate),
         timestamp: hDate.getTime(),
@@ -470,10 +592,13 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
         pressureInHg: hPressureInHg,
         windSpeedMph: windSpeedMaxMph,
         windSpeedKmh: Math.round(windSpeedMaxMph * 1.60934),
+        windGustMph: hGustMph,
+        windGustKmh: Math.round(hGustMph * 1.60934),
         windDirectionDeg,
         windDirectionText,
         precipProbability: hourlyCode >= 51 ? 60 : h % 3 === 0 ? 10 : 0,
         precipMm: hourlyCode >= 51 ? 1.5 : 0,
+        humidity: hHumidity,
         weatherCode: hourlyCode,
         weatherDesc: hourlyDetails.desc,
         huntScore: isPrimeWindow ? score + 10 : score - 5,
@@ -505,6 +630,9 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       weatherDesc,
       weatherIcon,
       isPostStorm: false,
+      // Batch 1: dry period => humidity stays around 65%, no temp deviation
+      // (no climate normal available in offline mode).
+      humidityAvg: 65,
       huntScore: score,
       rating,
       verdict,
