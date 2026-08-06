@@ -358,6 +358,7 @@ export async function fetch5DayHuntingForecast(
         precipProbability: dayHourlyRaw.precipProb[idx] || 0,
         precipMm: dayHourlyRaw.precip[idx] || 0,
         humidity: hHumidity,
+        pressureTrend: hourlyPressureTrend,
         weatherCode: dayHourlyRaw.weatherCode[idx] || 0,
         weatherDesc: isRainBreakHour ? 'Rain Break (Dry Window)' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
         huntScore: hScore,

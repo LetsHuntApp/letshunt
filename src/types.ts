@@ -88,6 +88,7 @@ export interface HourlyForecast {
   precipProbability: number;
   precipMm: number;
   humidity?: number; // 0-100 (optional, Batch 1)
+  pressureTrend?: PressureTrend; // per-hour pressure trend used in the hourly score
   weatherCode: number;
   weatherDesc: string;
   huntScore: number; // 0-100

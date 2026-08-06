@@ -78,10 +78,11 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       maxTempF: hourData.temp,
       minTempF: day.minTemp,
       pressureInHg: hourData.pressureInHg,
-      pressureTrend: day.pressureTrend,
+      pressureTrend: hourData.pressureTrend ?? day.pressureTrend,
       windMph: hourData.windSpeedMph,
       weatherCode: hourData.weatherCode,
       isPostStorm: day.isPostStorm,
+      humidity: hourData.humidity ?? null,
       // Use the exact per-hour rain-break signal weatherService stamped on
       // the hour so the factor panel always agrees with the dial's score.
       hasRainBreak: hourData.weatherDesc === 'Rain Break (Dry Window)',
