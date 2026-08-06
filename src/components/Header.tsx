@@ -9,6 +9,7 @@ import {              Compass,
               Map,
               ScrollText,
               Camera,
+              Sun,
             } from 'lucide-react';
 import { Location, UnitSystem, ThemeMode, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
@@ -38,9 +39,11 @@ export const Header: React.FC<HeaderProps> = ({
   defaultLocation,
   onSetDefaultLocation,
   units,
+  onToggleUnits,
   theme,
   isDark = theme === 'dark',
   hasCustomBackground = false,
+  onToggleTheme,
   favorites,
   onToggleFavorite,
   activeTab,
@@ -217,6 +220,40 @@ export const Header: React.FC<HeaderProps> = ({
               title="Locate via GPS"
             >
               <Compass className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLocating ? 'animate-spin' : ''}`} />
+            </button>
+
+            {/* Quick Units Toggle */}
+            <button
+              onClick={onToggleUnits}
+              title="Toggle units (°F/°C)"
+              className={`px-2 py-1.5 rounded-xl text-[11px] font-black border flex items-center gap-0.5 flex-shrink-0 transition-colors ${
+                isDark
+                  ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-emerald-400'
+                  : theme === 'hunting'
+                  ? 'bg-[#eae1cf] border-[#d4c4a8] hover:bg-[#e0d6c0] text-[#c85a17]'
+                  : (theme === 'olive' || theme === 'hunting')
+                  ? 'bg-[#efebd9] border-[#d8d2c0] hover:bg-[#e8e4d2] text-[#556b2f]'
+                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-emerald-600'
+              }`}
+            >
+              {units === 'imperial' ? '°F' : '°C'}
+            </button>
+
+            {/* Quick Theme Cycle */}
+            <button
+              onClick={onToggleTheme}
+              title="Cycle theme (Standard / Olive / Hunter)"
+              className={`p-1.5 sm:p-2 rounded-xl flex items-center justify-center border flex-shrink-0 transition-colors ${
+                isDark
+                  ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-amber-400'
+                  : theme === 'hunting'
+                  ? 'bg-[#eae1cf] border-[#d4c4a8] hover:bg-[#e0d6c0] text-[#c85a17]'
+                  : (theme === 'olive' || theme === 'hunting')
+                  ? 'bg-[#efebd9] border-[#d8d2c0] hover:bg-[#e8e4d2] text-[#556b2f]'
+                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-amber-600'
+              }`}
+            >
+              <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             {/* Quick Search Box */}
