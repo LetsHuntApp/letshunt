@@ -646,8 +646,8 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       eveningPrime: '4:45 PM - 7:15 PM',
       solunar: {
         moonPhase: 0.5,
-        moonPhaseName: 'First Quarter',
-        moonIllumination: 50,
+        moonPhaseName: 'Full Moon',
+        moonIllumination: 100,
         major1: '6:30 AM - 8:30 AM',
         major2: '7:00 PM - 9:00 PM',
         minor1: '12:15 AM - 1:15 AM',
