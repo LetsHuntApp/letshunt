@@ -1,16 +1,18 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import ErrorBoundary from './components/ErrorBoundary';
+import {safeGetString, safeSet} from './utils/storage';
 import './index.css';
 
 // APP_VERSION: increment on each deploy to force PWA cache refresh
 const APP_VERSION = '38';
 
 if (typeof window !== 'undefined') {
-  const stored = localStorage.getItem('letsHuntVersion');
+  const stored = safeGetString('letsHuntVersion');
   if (stored !== APP_VERSION) {
-    localStorage.setItem('letsHuntVersion', APP_VERSION);
-    if (stored !== null) {
+    const wrote = safeSet('letsHuntVersion', APP_VERSION);
+    if (stored !== null && wrote) {
       // Hard reload to bust all caches
       window.location.reload();
     }
@@ -31,6 +33,8 @@ if (typeof window !== 'undefined') {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
