@@ -1,6 +1,7 @@
 import { DailyForecast, HourlyForecast, PressureTrend, ScoreFactor, SolunarInfo, UnitSystem, PressureUnit, Location, SavedPin } from '../types';
 import { getRutPhase } from './rutEngine';
 import { calculateMoonTimes } from './solunar';
+import { safeGetJSON } from './storage';
 
 // Convert hPa to inHg
 export function hpaToInHg(hpa: number): number {
@@ -373,7 +374,7 @@ export function calculateHuntScore(params: {
   } else {
     trendScore = 0;
     trendStatus = 'neutral';
-    trendDesc = `Stable 24h temperature trend (${tempDropVal >= 0 ? '-' : '+'}${Math.abs(tempDropVal)}${tempUnitStr}).`;
+    trendDesc = `Stable 24h temperature trend (${tempDropVal === 0 ? '0' : tempDropVal > 0 ? `-${tempDropVal}` : `+${Math.abs(tempDropVal)}`}${tempUnitStr}).`;
   }
 
   totalScore += trendScore;
@@ -1002,9 +1003,8 @@ const DIRECTION_DEGREES: Record<string, number> = {
 
 export function getBestStandForWind(windDeg: number): { name: string; type: string; idealWind: string } | null {
   try {
-    const saved = localStorage.getItem('letshunt_saved_pins');
-    if (!saved) return null;
-    const pins: SavedPin[] = JSON.parse(saved);
+    const pins: SavedPin[] = safeGetJSON<SavedPin[]>('letshunt_saved_pins', []);
+    if (pins.length === 0) return null;
     // Home / Cabin is a starting point, not a hunting location, so it can never
     // be recommended as the best stand for the current wind direction.
     const standsWithWind = pins.filter(p => p.type !== 'home' && ((p.preferredWindDeg !== undefined) || (p.preferredWind && p.preferredWind.length > 0)));

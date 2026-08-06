@@ -49,6 +49,51 @@ import { DeerIcon } from './DeerIcon';
 import { exportBackupData, importBackupData, downloadJson, defaultBackupFilename } from '../services/dataBackupService';
 import { PaperTexture } from './PaperTexture';
 
+// Downscale a user-provided background photo before persisting as a base64
+// data URL. The raw 4-MP+ photo would otherwise blow past the ~5 MB
+// localStorage quota on save. Returns a Promise resolving to a JPEG
+// data URL — iteratively halving until it fits under `hardMaxBytes`. Rejects
+// only if the source image itself can't be decoded.
+async function compressImage(file: File, hardMaxBytes = 4 * 1024 * 1024): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to decode image'));
+      img.src = url;
+    });
+    // Cover all reasonable source sizes: 4 K screenshot → phone photo → panorama.
+    const attempts: Array<[number, number]> = [
+      [1920, 0.85],
+      [1280, 0.8],
+      [960, 0.75],
+      [720, 0.7],
+    ];
+    let bestDataUrl = '';
+    for (const [maxDim, quality] of attempts) {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas 2D context unavailable');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      bestDataUrl = dataUrl;
+      // Base64 length × 0.75 approximates the underlying JPEG byte count.
+      if (dataUrl.length * 0.75 < hardMaxBytes) return dataUrl;
+    }
+    // Even the smallest attempt didn't fit; surface the best we have.
+    // Caller's `safeSet` will silently drop it if it still exceeds the quota.
+    return bestDataUrl;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 interface SettingsViewProps {
   currentLocation: Location;
   onSelectLocation: (loc: Location) => void;
@@ -1224,17 +1269,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   accept="image/*"
                   id="custom-bg-upload"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (event) => {
-                        if (event.target?.result) {
-                          onSetCustomBackground(event.target.result as string);
-                          showToast('Custom background set');
-                        }
-                      };
-                      reader.readAsDataURL(file);
+                    if (!file) return;
+                    // Reset the input so the same file can be re-selected later.
+                    e.target.value = '';
+                    try {
+                      const compressed = await compressImage(file);
+                      onSetCustomBackground(compressed);
+                      if (compressed.length * 0.75 < 4 * 1024 * 1024) {
+                        showToast('Custom background set');
+                      } else {
+                        showToast('Background compressed to ~720px — may not persist after reload');
+                      }
+                    } catch (err) {
+                      console.error('Failed to process background photo:', err);
+                      showToast('Could not load that photo. Try JPG or PNG under ~10 MB.');
                     }
                   }}
                 />

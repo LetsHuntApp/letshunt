@@ -18,6 +18,7 @@ import {
 
 } from './types';
 import { fetch5DayHuntingForecast } from './services/weatherService';
+import { safeGetString, safeGetJSON, safeSet, safeSetJSON, safeRemove } from './utils/storage';
 import {
   NotificationPrefs,
   getNotificationPrefs,
@@ -58,7 +59,7 @@ export default function App() {
 
   // Theme state: dark or light
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
-    return localStorage.getItem('letshunt_custom_background');
+    return safeGetString('letshunt_custom_background');
   });
 
   // Theme: 4-variant × light/dark matrix. Two orthogonal state slots.
@@ -68,24 +69,24 @@ export default function App() {
   // who had Olive / Hunter / Paperback + dark before the refactor
   // (without this they'd silently land on Standard + Dark).
   const [themeVariant, setThemeVariant] = useState<ThemeVariant>(() => {
-    const saved = localStorage.getItem('letshunt_theme_variant') as ThemeVariant | null;
+    const saved = safeGetString('letshunt_theme_variant') as ThemeVariant | null;
     if (saved && (saved === 'standard' || saved === 'olive' || saved === 'hunting')) {
       return saved;
     }
     // Legacy migration: the original composite key held the variant name
     // directly for non-standard themes.
-    const legacy = localStorage.getItem('letshunt_theme');
+    const legacy = safeGetString('letshunt_theme');
     if (legacy === 'olive' || legacy === 'hunting') return legacy;
     // Legacy: original 'paperback' theme name dropped — fall through to standard.
     return 'standard';
   });
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('letshunt_theme_mode');
+    const saved = safeGetString('letshunt_theme_mode');
     if (saved === 'light' || saved === 'dark') return saved;
     // Legacy migration: pre-split builds only had the composite
     // 'letshunt_theme' key. Treat 'light' as light; everything else
     // (dark / olive / hunting) was rendered dark.
-    const legacy = localStorage.getItem('letshunt_theme');
+    const legacy = safeGetString('letshunt_theme');
     if (legacy === 'light') return 'light';
     return 'dark';
   });
@@ -105,32 +106,30 @@ export default function App() {
 
   // Default starting location state
   const [defaultLocation, setDefaultLocation] = useState<Location>(() => {
-    const saved = localStorage.getItem('letshunt_default_location');
-    return saved ? JSON.parse(saved) : FALLBACK_DEFAULT_LOCATION;
+    return safeGetJSON<Location>('letshunt_default_location', FALLBACK_DEFAULT_LOCATION);
   });
 
   // Active viewed location state
   const [currentLocation, setCurrentLocation] = useState<Location>(() => {
-    const savedLoc = localStorage.getItem('letshunt_location');
-    if (savedLoc) return JSON.parse(savedLoc);
-    const savedDefault = localStorage.getItem('letshunt_default_location');
-    if (savedDefault) return JSON.parse(savedDefault);
+    const fromLocation = safeGetJSON<Location | null>('letshunt_location', null);
+    if (fromLocation) return fromLocation;
+    const fromDefault = safeGetJSON<Location | null>('letshunt_default_location', null);
+    if (fromDefault) return fromDefault;
     return FALLBACK_DEFAULT_LOCATION;
   });
 
   const [units, setUnits] = useState<UnitSystem>(() => {
-    const saved = localStorage.getItem('letshunt_units');
+    const saved = safeGetString('letshunt_units');
     return (saved as UnitSystem) || 'imperial';
   });
 
   const [pressureUnit, setPressureUnit] = useState<PressureUnit>(() => {
-    const saved = localStorage.getItem('letshunt_pressure_unit');
+    const saved = safeGetString('letshunt_pressure_unit');
     return (saved as PressureUnit) || 'inHg';
   });
 
   const [favorites, setFavorites] = useState<Location[]>(() => {
-    const saved = localStorage.getItem('letshunt_favorites');
-    return saved ? JSON.parse(saved) : [FALLBACK_DEFAULT_LOCATION];
+    return safeGetJSON<Location[]>('letshunt_favorites', [FALLBACK_DEFAULT_LOCATION]);
   });
 
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(() => getNotificationPrefs());
@@ -152,8 +151,8 @@ export default function App() {
 
   // First-run onboarding: show for brand-new visitors who have never saved a location.
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
-    if (localStorage.getItem('letshunt_onboarded')) return false;
-    const savedLoc = localStorage.getItem('letshunt_location') || localStorage.getItem('letshunt_default_location');
+    if (safeGetString('letshunt_onboarded')) return false;
+    const savedLoc = safeGetString('letshunt_location') || safeGetString('letshunt_default_location');
     return !savedLoc;
   });
 
@@ -173,28 +172,33 @@ export default function App() {
 
   useEffect(() => {
     if (customBackground) {
-      localStorage.setItem('letshunt_custom_background', customBackground);
+      // Base64 data URLs of large photos can blow past the 5 MB localStorage
+      // quota — SettingsView compresses to 1920px JPEG @ 0.85 quality before
+      // calling setCustomBackground, and we swallow any residual failure.
+      safeSet('letshunt_custom_background', customBackground);
     } else {
-      localStorage.removeItem('letshunt_custom_background');
+      safeRemove('letshunt_custom_background');
     }
   }, [customBackground]);
 
   const [customBackgroundOpacity, setCustomBackgroundOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('letshunt_bg_opacity');
-    return saved ? parseInt(saved, 10) : 90;
+    const saved = safeGetString('letshunt_bg_opacity');
+    const n = saved ? parseInt(saved, 10) : NaN;
+    return Number.isFinite(n) ? n : 90;
   });
 
   useEffect(() => {
-    localStorage.setItem('letshunt_bg_opacity', customBackgroundOpacity.toString());
+    safeSet('letshunt_bg_opacity', customBackgroundOpacity.toString());
   }, [customBackgroundOpacity]);
 
   const [customBackgroundBlur, setCustomBackgroundBlur] = useState<number>(() => {
-    const saved = localStorage.getItem('letshunt_bg_blur');
-    return saved ? parseInt(saved, 10) : 12;
+    const saved = safeGetString('letshunt_bg_blur');
+    const n = saved ? parseInt(saved, 10) : NaN;
+    return Number.isFinite(n) ? n : 12;
   });
 
   useEffect(() => {
-    localStorage.setItem('letshunt_bg_blur', customBackgroundBlur.toString());
+    safeSet('letshunt_bg_blur', customBackgroundBlur.toString());
   }, [customBackgroundBlur]);
 
   // Persistence Effects
@@ -210,31 +214,31 @@ export default function App() {
   }, [themeVariant, themeMode]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_theme_variant', themeVariant);
+    safeSet('letshunt_theme_variant', themeVariant);
   }, [themeVariant]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_theme_mode', themeMode);
+    safeSet('letshunt_theme_mode', themeMode);
   }, [themeMode]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_default_location', JSON.stringify(defaultLocation));
+    safeSetJSON('letshunt_default_location', defaultLocation);
   }, [defaultLocation]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_location', JSON.stringify(currentLocation));
+    safeSetJSON('letshunt_location', currentLocation);
   }, [currentLocation]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_units', units);
+    safeSet('letshunt_units', units);
   }, [units]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_pressure_unit', pressureUnit);
+    safeSet('letshunt_pressure_unit', pressureUnit);
   }, [pressureUnit]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_favorites', JSON.stringify(favorites));
+    safeSetJSON('letshunt_favorites', favorites);
   }, [favorites]);
 
   // Weather alert notifications: fire one separate system notification per
@@ -442,7 +446,7 @@ export default function App() {
 
   const handleOnboardingComplete = (loc: Location | null) => {
     setIsOnboardingOpen(false);
-    localStorage.setItem('letshunt_onboarded', 'true');
+    safeSet('letshunt_onboarded', 'true');
     if (loc) {
       setCurrentLocation(loc);
       setDefaultLocation(loc);

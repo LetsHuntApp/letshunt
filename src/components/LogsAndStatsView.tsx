@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { safeGetJSON, safeSetJSON } from '../utils/storage';
 import {
   Trophy,
   Plus,
@@ -47,7 +48,7 @@ import {
   Area,
   Legend
 } from 'recharts';
-import { ThemeMode, ThemeVariantMode, UnitSystem, DeerKillLog, DeerGender, SavedPin } from '../types';
+import { ThemeMode, ThemeVariantMode, UnitSystem, DeerKillLog, DeerGender, SavedPin, Location } from '../types';
 import { fetchHistoricalWeather } from '../services/weatherService';
 import { TeachingEmptyState } from './TeachingEmptyState';
 
@@ -107,36 +108,22 @@ const cardBgLight = hasCustomBackground
 
   // State: Saved logs (filters out any old demo- logs)
   const [logs, setLogs] = useState<DeerKillLog[]>(() => {
-    const saved = localStorage.getItem('letshunt_deer_kill_logs');
-    if (saved) {
-      try {
-        const parsed: DeerKillLog[] = JSON.parse(saved);
-        return parsed.filter((l) => !l.id.startsWith('demo-'));
-      } catch (err) {
-        console.error('Error parsing saved logs:', err);
-      }
-    }
-    return [];
+    const parsed = safeGetJSON<DeerKillLog[]>('letshunt_deer_kill_logs', []);
+    return Array.isArray(parsed) ? parsed.filter((l) => !l.id.startsWith('demo-')) : [];
   });
 
   // State: Map Pins from map page
   const [mapPins, setMapPins] = useState<SavedPin[]>([]);
 
   useEffect(() => {
-    const savedPins = localStorage.getItem('letshunt_saved_pins');
-    if (savedPins) {
-      try {
-        setMapPins(JSON.parse(savedPins));
-      } catch (err) {
-        console.error('Error loading map pins:', err);
-      }
-    }
+    const parsed = safeGetJSON<SavedPin[]>('letshunt_saved_pins', []);
+    setMapPins(parsed);
   }, []);
 
   // Save logs to localStorage
   const saveLogsToStorage = (updatedLogs: DeerKillLog[]) => {
     setLogs(updatedLogs);
-    localStorage.setItem('letshunt_deer_kill_logs', JSON.stringify(updatedLogs));
+    safeSetJSON('letshunt_deer_kill_logs', updatedLogs);
   };
 
   // Form Modal state
@@ -182,17 +169,13 @@ const cardBgLight = hasCustomBackground
     }
 
     if (lat === 43.0731 && lon === -89.4012) {
-      const savedLocStr = localStorage.getItem('letshunt_location') || localStorage.getItem('letshunt_default_location');
-      if (savedLocStr) {
-        try {
-          const parsedLoc = JSON.parse(savedLocStr);
-          if (parsedLoc.latitude && parsedLoc.longitude) {
-            lat = parsedLoc.latitude;
-            lon = parsedLoc.longitude;
-          }
-        } catch (err) {
-          console.error('Error parsing stored location:', err);
-        }
+      // safeGetJSON validates type and never throws — corrupt storage degrades to default.
+      const parsedLoc =
+        safeGetJSON<Location | null>('letshunt_location', null) ||
+        safeGetJSON<Location | null>('letshunt_default_location', null);
+      if (parsedLoc && parsedLoc.latitude && parsedLoc.longitude) {
+        lat = parsedLoc.latitude;
+        lon = parsedLoc.longitude;
       }
     }
 

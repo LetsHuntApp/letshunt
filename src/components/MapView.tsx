@@ -61,6 +61,7 @@ import { fetch5DayHuntingForecast, searchLocations } from '../services/weatherSe
 import { getBestStandForWind } from '../utils/huntingEngine';
 import { TeachingEmptyState } from './TeachingEmptyState';
 import { RadarOverlay } from './RadarOverlay';
+import { safeGetString, safeGetJSON, safeSet, safeSetJSON } from '../utils/storage';
 
 // Builds an elongated teardrop path pointing in the +x direction: a rounded head
 // at the leading (downwind) edge that tapers to a point at the trailing end.
@@ -816,20 +817,17 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // State: Saved Pins loaded from localStorage
   const [pins, setPins] = useState<SavedPin[]>(() => {
-    const saved = localStorage.getItem('letshunt_saved_pins');
-    return saved ? JSON.parse(saved) : [];
+    return safeGetJSON<SavedPin[]>('letshunt_saved_pins', []);
   });
 
   // State: Saved Polygons loaded from localStorage
   const [polygons, setPolygons] = useState<SavedPolygon[]>(() => {
-    const saved = localStorage.getItem('letshunt_saved_polygons');
-    return saved ? JSON.parse(saved) : [];
+    return safeGetJSON<SavedPolygon[]>('letshunt_saved_polygons', []);
   });
 
   // State: Saved Paths (polylines / routes) loaded from localStorage
   const [paths, setPaths] = useState<SavedPath[]>(() => {
-    const saved = localStorage.getItem('letshunt_saved_paths');
-    return saved ? JSON.parse(saved) : [];
+    return safeGetJSON<SavedPath[]>('letshunt_saved_paths', []);
   });
 
   // Floating Dropdown Controls on Map
@@ -842,25 +840,25 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Preferred Wind Overlay toggle
   const [showPreferredWind, setShowPreferredWind] = useState(() => {
-    const saved = localStorage.getItem('letshunt_show_preferred_wind');
+    const saved = safeGetString('letshunt_show_preferred_wind');
     return saved ? saved === 'true' : true;
   });
   const [showScentCone, setShowScentCone] = useState(() => {
-    const saved = localStorage.getItem('letshunt_show_scent_cone');
+    const saved = safeGetString('letshunt_show_scent_cone');
     return saved ? saved === 'true' : true;
   });
   // Live precipitation radar (RainViewer) — persists on/off, opacity, and palette.
   const [showRadar, setShowRadar] = useState(() => {
-    const saved = localStorage.getItem('letshunt_show_radar');
+    const saved = safeGetString('letshunt_show_radar');
     return saved ? saved === 'true' : false;
   });
   const [radarOpacity, setRadarOpacity] = useState<number>(() => {
-    const saved = localStorage.getItem('letshunt_radar_opacity');
+    const saved = safeGetString('letshunt_radar_opacity');
     const n = saved ? parseFloat(saved) : NaN;
     return Number.isFinite(n) ? clamp(n, 0.05, 1) : 0.65;
   });
   const [radarColorScheme, setRadarColorScheme] = useState<number>(() => {
-    const saved = localStorage.getItem('letshunt_radar_scheme');
+    const saved = safeGetString('letshunt_radar_scheme');
     const n = saved ? parseInt(saved, 10) : NaN;
     return Number.isFinite(n) ? n : 3;
   });
@@ -904,7 +902,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Map view parameters
   const [zoom, setZoom] = useState(16);
   const [mapStyle, setMapStyle] = useState<'satellite' | 'topo' | 'street'>(() => {
-    const saved = localStorage.getItem('letshunt_map_style');
+    const saved = safeGetString('letshunt_map_style');
     return (saved as 'satellite' | 'topo' | 'street') || 'satellite';
   });
   const [scentSpread, setScentSpread] = useState<15 | 45 | 75>(45);
@@ -952,27 +950,27 @@ export const MapView: React.FC<MapViewProps> = ({
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_preferred_wind', showPreferredWind.toString());
+    safeSet('letshunt_show_preferred_wind', showPreferredWind.toString());
   }, [showPreferredWind]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_scent_cone', showScentCone.toString());
+    safeSet('letshunt_show_scent_cone', showScentCone.toString());
   }, [showScentCone]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_radar', showRadar.toString());
+    safeSet('letshunt_show_radar', showRadar.toString());
   }, [showRadar]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_radar_opacity', radarOpacity.toString());
+    safeSet('letshunt_radar_opacity', radarOpacity.toString());
   }, [radarOpacity]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_radar_scheme', String(radarColorScheme));
+    safeSet('letshunt_radar_scheme', String(radarColorScheme));
   }, [radarColorScheme]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_map_style', mapStyle);
+    safeSet('letshunt_map_style', mapStyle);
   }, [mapStyle]);
 
   const defaultLat = location.latitude;
@@ -1110,19 +1108,19 @@ export const MapView: React.FC<MapViewProps> = ({
   // Save pins to localStorage
   const savePinsToStorage = (updatedPins: SavedPin[]) => {
     setPins(updatedPins);
-    localStorage.setItem('letshunt_saved_pins', JSON.stringify(updatedPins));
+    safeSetJSON('letshunt_saved_pins', updatedPins);
   };
 
   // Save polygons to localStorage
   const savePolygonsToStorage = (updatedPolygons: SavedPolygon[]) => {
     setPolygons(updatedPolygons);
-    localStorage.setItem('letshunt_saved_polygons', JSON.stringify(updatedPolygons));
+    safeSetJSON('letshunt_saved_polygons', updatedPolygons);
   };
 
   // Save paths to localStorage
   const savePathsToStorage = (updatedPaths: SavedPath[]) => {
     setPaths(updatedPaths);
-    localStorage.setItem('letshunt_saved_paths', JSON.stringify(updatedPaths));
+    safeSetJSON('letshunt_saved_paths', updatedPaths);
   };
 
   // Layer & Element Visibility Toggles
@@ -1145,19 +1143,19 @@ export const MapView: React.FC<MapViewProps> = ({
   const [hiddenPinIds, setHiddenPinIds] = useState<string[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_property_boundaries', showPropertyBoundaries.toString());
+    safeSet('letshunt_show_property_boundaries', showPropertyBoundaries.toString());
   }, [showPropertyBoundaries]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_zones', showZones.toString());
+    safeSet('letshunt_show_zones', showZones.toString());
   }, [showZones]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_paths', showPaths.toString());
+    safeSet('letshunt_show_paths', showPaths.toString());
   }, [showPaths]);
 
   useEffect(() => {
-    localStorage.setItem('letshunt_show_pins', showPins.toString());
+    safeSet('letshunt_show_pins', showPins.toString());
   }, [showPins]);
   const [hiddenPolygonIds, setHiddenPolygonIds] = useState<string[]>([]);
   const [hiddenPathIds, setHiddenPathIds] = useState<string[]>([]);

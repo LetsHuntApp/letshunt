@@ -169,8 +169,8 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         description: 'Brush Lockdown Phase',
         hunterTip: "Mature bucks are locked down with receptive does in dense sendero brush. Hunt the edges of extremely thick bedding cover where a buck might stand up to herd his doe."
       };
-    } else if (md >= 1231 && md <= 115) {
-      // Dec 31 to Jan 15
+    } else if (md >= 1231 || md <= 115) {
+      // Dec 31 to Jan 15 (year-spanning window — needs OR, not AND, or it never matches)
       return {
         name: 'Post-Rut',
         phaseId: 'post_rut',
