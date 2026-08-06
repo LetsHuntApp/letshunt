@@ -23,24 +23,14 @@
       "sizes": "192x192",
       "purpose": "any maskable"
     },
-    {
-      "src": "/LetsHunt/icon-192-v7.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any maskable"
-    },
+
     {
       "src": "./icon-512-v7.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     },
-    {
-      "src": "/LetsHunt/icon-512-v7.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
-    },
+
     {
       "src": "./apple-touch-icon-v7.png",
       "type": "image/png",
