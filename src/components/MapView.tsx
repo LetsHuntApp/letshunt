@@ -909,8 +909,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [isScentPanelCollapsed, setIsScentPanelCollapsed] = useState(true);
   const [activeForecasterTab, setActiveForecasterTab] = useState<'hourly' | 'details'>('hourly');
 
-  // Quick Wind Check: thin full-width hourly slider overlay
-  const [showWindSlider, setShowWindSlider] = useState(false);
+  // One shared hourly weather control for wind + forecast precipitation.
+  const [showHourlyWeather, setShowHourlyWeather] = useState(false);
 
   // Persistent tile cache across zoom levels. Bounded so a long session never
   // accumulates hundreds of <img> layers; eviction drops the oldest entries
@@ -1000,7 +1000,7 @@ export const MapView: React.FC<MapViewProps> = ({
         } else {
           setShowLayersDropdown(false);
           setShowAddDropdown(false);
-          setShowWindSlider(false);
+          setShowHourlyWeather(false);
         }
       }
     };
@@ -1326,6 +1326,13 @@ export const MapView: React.FC<MapViewProps> = ({
     return `${windMph} mph`;
   }, [units, currentHourForecast, windMph]);
 
+  const displayPrecipAmount = currentHourForecast
+    ? units === 'imperial'
+      ? `${(currentHourForecast.precipMm * 0.0393701).toFixed(2)} in`
+      : `${currentHourForecast.precipMm.toFixed(1)} mm`
+    : units === 'imperial' ? '0.00 in' : '0.0 mm';
+  const precipProbability = currentHourForecast?.precipProbability ?? 0;
+
   const downwindDeg = (windDeg + 180) % 360;
   const downwindDirText = getWindDirectionText(downwindDeg);
 
@@ -1527,7 +1534,7 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!bestPathActive) {
       setBestRouteGeometry(null);
       setBestPathError(null);
-      // Keep the standalone Check Wind slider open while its hour changes.
+      // Keep the shared hourly weather slider open while its hour changes.
       // Explicit close actions and Best Path toggle-off still hide it.
       return;
     }
@@ -1538,7 +1545,7 @@ export const MapView: React.FC<MapViewProps> = ({
     // is always the least-scent-risk connected option available for this hour;
     // an error is reserved for genuinely disconnected/off-path anchors.
     setBestPathError(route ? null : 'Home and this stand must both touch connected drawn paths.');
-    setShowWindSlider(true);
+    setShowHourlyWeather(true);
   }, [bestPathActive, computeBestPathsToStand]);
 
   // Polygon drawing handlers
@@ -1736,14 +1743,14 @@ export const MapView: React.FC<MapViewProps> = ({
     setSelectedPinId(pin.id);
     setSelectedPolygonId(null);
     setSelectedPathId(null);
-    setShowWindSlider(false);
+    setShowHourlyWeather(false);
   };
 
   const selectPolygon = (poly: SavedPolygon) => {
     setSelectedPolygonId(poly.id);
     setSelectedPinId(null);
     setSelectedPathId(null);
-    setShowWindSlider(false);
+    setShowHourlyWeather(false);
   };
 
   const selectPolygonAndCenter = (poly: SavedPolygon) => {
@@ -1753,14 +1760,14 @@ export const MapView: React.FC<MapViewProps> = ({
     setSelectedPolygonId(poly.id);
     setSelectedPinId(null);
     setSelectedPathId(null);
-    setShowWindSlider(false);
+    setShowHourlyWeather(false);
   };
 
   const selectPath = (path: SavedPath) => {
     setSelectedPathId(path.id);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
-    setShowWindSlider(false);
+    setShowHourlyWeather(false);
   };
 
   const selectPathAndCenter = (path: SavedPath) => {
@@ -1770,7 +1777,7 @@ export const MapView: React.FC<MapViewProps> = ({
     setSelectedPathId(path.id);
     setSelectedPinId(null);
     setSelectedPolygonId(null);
-    setShowWindSlider(false);
+    setShowHourlyWeather(false);
   };
 
   // Handle map canvas clicks
@@ -1806,7 +1813,7 @@ export const MapView: React.FC<MapViewProps> = ({
       setSelectedPinId(newId);
       setSelectedPolygonId(null);
       setSelectedPathId(null);
-      setShowWindSlider(false);
+      setShowHourlyWeather(false);
       setEditingPinId(newId);
       setEditName(newPin.name);
       setEditType(newPin.type);
@@ -1823,7 +1830,7 @@ export const MapView: React.FC<MapViewProps> = ({
       setSelectedPinId(clickedPin.id);
       setSelectedPolygonId(null);
       setSelectedPathId(null);
-      setShowWindSlider(false);
+      setShowHourlyWeather(false);
       setEditingPinId(null);
       return;
     }
@@ -2289,7 +2296,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Wind flow animation streaks: deterministic positions so streaks don't jump on hour change;
   // rotation + speed derive from the currently selected hour's wind (downwindDeg / windMph).
   const windStreaks = useMemo(() => {
-    if (!showWindSlider && !bestPathActive) return [];
+    if (!showHourlyWeather && !bestPathActive) return [];
     const w = Math.max(dimensions.width, 320);
     const h = Math.max(dimensions.height, 320);
     const margin = 220;
@@ -2317,7 +2324,7 @@ export const MapView: React.FC<MapViewProps> = ({
       });
     }
     return streaks;
-  }, [showWindSlider, bestPathActive, windMph, dimensions.width, dimensions.height]);
+  }, [showHourlyWeather, bestPathActive, windMph, dimensions.width, dimensions.height]);
 
   return (
     <>
@@ -2662,7 +2669,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             {/* Animated Wind Flow Streaks — intentionally above route/polygon layers
                 so wind direction remains readable over dark satellite imagery. */}
-            {(showWindSlider || bestPathActive) && windStreaks.length > 0 && (
+            {(showHourlyWeather || bestPathActive) && windStreaks.length > 0 && (
               <g className="pointer-events-none">
                 {windStreaks.map((s, i) => (
                   <g
@@ -2760,7 +2767,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     if (hasMovedRef.current || isDrawingPolygon || isDrawingPath || (Date.now() - lastPinchTimeRef.current < 400)) return;
                     setSelectedPinId(pin.id);
                     setSelectedPolygonId(null);
-                    setShowWindSlider(false);
+                    setShowHourlyWeather(false);
                   }}
                   className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 ${
                     isDrawingPolygon || isDrawingPath ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
@@ -3623,64 +3630,103 @@ export const MapView: React.FC<MapViewProps> = ({
           </button>
         </div>
 
-        {/* CHECK WIND FLOATING BUTTON (Bottom Center) */}
-        {!showWindSlider && !selectedPin && !selectedPolygon && !selectedPath && (
+        {/* HOURLY WEATHER FLOATING BUTTON (Bottom Center) */}
+        {!showHourlyWeather && !selectedPin && !selectedPolygon && !selectedPath && (
           <div className="absolute bottom-16 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-auto">
             <button
               onClick={() => {
                 setSelectedHour(new Date().getHours());
-                setShowWindSlider(true);
+                setShowHourlyWeather(true);
               }}
               className={`px-4 py-2 rounded-full border shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-105 active:scale-95 ${
                 isDark
                   ? 'bg-slate-950/90 border-emerald-500/50 text-emerald-300 shadow-emerald-950/50 hover:bg-slate-800'
                   : 'bg-white/95 border-emerald-500/60 text-emerald-700 shadow-emerald-500/20 hover:bg-emerald-50'
               }`}
-              title="Check live wind direction hour by hour"
+              title="Inspect forecast wind and precipitation hour by hour"
+              aria-expanded={showHourlyWeather}
+              aria-controls="map-hourly-weather-control"
             >
-              <Wind className="w-4 h-4 text-emerald-400 animate-pulse" />
-              <span>Check Wind</span>
+              <span className="relative flex items-center">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                <Droplets className="w-2.5 h-2.5 text-sky-400 absolute -right-1.5 -bottom-1" />
+              </span>
+              <span>Hourly Weather</span>
             </button>
           </div>
         )}
 
-        {/* VERY THIN FULL-WIDTH HOURLY WIND SLIDER */}
-        {showWindSlider && (
-          <div className="absolute bottom-16 sm:bottom-3 left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn">
+        {/* ONE SHARED HOURLY WEATHER SLIDER: wind + precipitation forecast */}
+        {showHourlyWeather && (
+          <div
+            id="map-hourly-weather-control"
+            className={`absolute ${selectedPin ? 'bottom-52 sm:bottom-3' : 'bottom-16 sm:bottom-3'} left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn`}
+            role="region"
+            aria-label="Hourly weather forecast"
+          >
             <div
-              className={`rounded-2xl border shadow-2xl backdrop-blur-md px-3 py-2 flex items-center gap-2 sm:gap-3 ${
+              className={`rounded-2xl border shadow-2xl backdrop-blur-md px-3 py-2 ${
                 isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
               }`}
             >
-              <Wind className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span className="text-xs font-black whitespace-nowrap">
-                {windDirText} <span className="text-emerald-400">@ {displayWindSpeed}</span>
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="23"
-                value={selectedHour}
-                onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
-                className="flex-1 min-w-0 accent-emerald-500 cursor-pointer h-1.5"
-                aria-label="Hourly wind direction slider"
-              />
-              <span className="text-[10px] font-black whitespace-nowrap text-slate-400">
-                {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
-              </span>
-              <button
-                onClick={() => setShowWindSlider(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
-                title="Close wind slider"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Clock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span className="text-xs font-black whitespace-nowrap">
+                  {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="23"
+                  value={selectedHour}
+                  onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
+                  className={`flex-1 min-w-0 accent-emerald-500 cursor-pointer h-1.5 border rounded-lg ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-300 border-slate-400'}`}
+                  style={{ backgroundColor: isDark ? '#334155' : '#cbd5e1', borderColor: isDark ? '#475569' : '#94a3b8' }}
+                  aria-label="Hourly weather slider"
+                />
+                <button
+                  onClick={() => setShowHourlyWeather(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
+                  title="Close hourly weather slider"
+                  aria-label="Close hourly weather forecast"
+                  aria-expanded={showHourlyWeather}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pt-2 border-t border-slate-700/30 pb-0.5" aria-label="Forecast day">
+                {activeForecasts.slice(0, 7).map((day, index) => (
+                  <button
+                    key={day.date}
+                    type="button"
+                    onClick={() => setSelectedDayIndex(index)}
+                    aria-pressed={selectedDayIndex === index}
+                    className={`px-2 py-1 rounded-lg border text-[10px] font-black whitespace-nowrap transition-colors ${
+                      selectedDayIndex === index
+                        ? 'bg-emerald-600 border-emerald-500 text-white'
+                        : isDark
+                        ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+                        : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {day.dayName}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5 mt-2 text-[10px] font-bold">
+                <span className="flex items-center gap-1.5"><Wind className="w-3 h-3 text-emerald-400" /> {windDirText} @ {displayWindSpeed}</span>
+                <span className="flex items-center gap-1.5"><Droplets className="w-3 h-3 text-sky-400" /> {precipProbability}% chance</span>
+                <span className="flex items-center gap-1.5 text-sky-500"><Droplets className="w-3 h-3" /> {displayPrecipAmount}</span>
+                <span className={`flex items-center gap-1.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
+                  <Sparkles className="w-3 h-3" /> {currentHourForecast?.isPrimeWindow ? 'Prime hunt window' : `${currentHourForecast?.temp ?? '--'}°`}
+                </span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* WIND FLOW DIRECTION CHIP — top center, only while the Check Wind slider is open */}
-        {showWindSlider && (
+        {/* WIND FLOW DIRECTION CHIP — top center, only while the hourly weather slider is open */}
+        {showHourlyWeather && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 hidden sm:flex items-center gap-1.5 pointer-events-none animate-fadeIn max-w-[calc(100%-170px)]">
             <div
               className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 backdrop-blur-md shadow-2xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
@@ -3739,13 +3785,13 @@ export const MapView: React.FC<MapViewProps> = ({
                       setBestPathActive(false);
                       setBestPathError(null);
                       setBestRouteGeometry(null);
-                      setShowWindSlider(false);
+                      setShowHourlyWeather(false);
                     } else {
                       const route = computeBestPathsToStand();
                       setBestRouteGeometry(route);
                       setBestPathActive(true);
                       setBestPathError(route ? null : 'Home and this stand must both touch connected drawn paths.');
-                      setShowWindSlider(true);
+                      setShowHourlyWeather(true);
                     }
                   }}
                   className={`p-1 rounded-lg text-xs font-bold flex items-center gap-1 px-2 cursor-pointer transition-all shadow-sm text-white ${
@@ -3780,25 +3826,20 @@ export const MapView: React.FC<MapViewProps> = ({
                   <span className="truncate">Downwind: {downwindDirText} ({Math.round(downwindDeg)}°)</span>
                 </div>
 
-                {/* Compact Hourly Range Slider */}
-                <div className="pt-1 border-t border-slate-800/40">
-                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 mb-1">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                      <span>{selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}</span>
-                    </span>
-                    <span className="text-emerald-400 font-extrabold truncate">
-                      {windDirText} @ {displayWindSpeed}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="23"
-                    value={selectedHour}
-                    onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
-                    className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                  />
+                {/* Shared hourly control trigger — the map owns the one timeline slider. */}
+                <div className="pt-1 border-t border-slate-800/40 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-slate-400">
+                    {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
+                    <span className="text-sky-400 ml-1">· {precipProbability}% rain</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => { setIsScentPanelCollapsed(true); setShowHourlyWeather(true); }}
+                    className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-400 text-[10px] font-black uppercase tracking-wide hover:bg-sky-500/25 transition-colors"
+                    aria-expanded={showHourlyWeather}
+                  >
+                    Open hourly
+                  </button>
                 </div>
               </div>
             ) : (
@@ -3855,27 +3896,28 @@ export const MapView: React.FC<MapViewProps> = ({
                       ))}
                     </div>
 
-                    {/* 24-Hour Range Slider */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2 gap-2">
-                        <span className={`text-sm font-black flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${
-                          isDark ? 'text-slate-100 bg-slate-950/40 border-slate-800/50' : 'text-slate-800 bg-slate-100/80 border-slate-200'
-                        }`}>
-                          <Clock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          <span>Time: {selectedHour === 0 ? '12:00 AM' : selectedHour === 12 ? '12:00 PM' : selectedHour > 12 ? `${selectedHour - 12}:00 PM` : `${selectedHour}:00 AM`}</span>
+                    {/* The shared map timeline is the only hourly slider. Keep this panel focused on the selected hour's readout. */}
+                    <div className={`rounded-xl border p-2.5 ${
+                      isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-black flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-emerald-400" />
+                          {selectedHour === 0 ? '12:00 AM' : selectedHour === 12 ? '12:00 PM' : selectedHour > 12 ? `${selectedHour - 12}:00 PM` : `${selectedHour}:00 AM`}
                         </span>
-                        <span className="text-[11px] text-emerald-400 font-black bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20 whitespace-nowrap">
-                          Wind: {windDirText} @ {displayWindSpeed}
-                        </span>
+                        <span className="text-sky-400 font-black">{precipProbability}% rain · {displayPrecipAmount}</span>
                       </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="23"
-                        value={selectedHour}
-                        onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
-                        className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
-                      />
+                      <div className="flex items-center justify-between gap-2 mt-1.5 text-[10px] font-bold text-slate-400">
+                        <span>{windDirText} @ {displayWindSpeed}</span>
+                        <button
+                          type="button"
+                          onClick={() => { setIsScentPanelCollapsed(true); setShowHourlyWeather(true); }}
+                          className="text-emerald-400 hover:text-emerald-300 font-black uppercase tracking-wide"
+                          aria-expanded={showHourlyWeather}
+                        >
+                          Adjust hour →
+                        </button>
+                      </div>
                     </div>
 
                     {/* Wind & Scent Cone Description Card */}
