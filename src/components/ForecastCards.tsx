@@ -330,8 +330,8 @@ const getScoreBadgeColor = (score: number) => {
               </div>
               <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {bestDayPeak
-                  ? `${bestDayPeak.score}% chance of deer movement at ${bestDayPeak.label}`
-                  : `${bestDay.huntScore}% chance of deer movement`}
+                  ? `Peak movement window: ${bestDayPeak.score}/100 at ${bestDayPeak.label}`
+                  : `Movement score: ${bestDay.huntScore}/100`}
               </div>
             </div>
           </div>
@@ -372,18 +372,22 @@ const getScoreBadgeColor = (score: number) => {
         {daily.map((day) => {
           const isSelected = day.date === selectedDate;
           const isExpanded = isSelected || day.date === autoExpandedDate;
+          // selectedHour only affects the expanded body — the collapsed card header
+          // must show the DAY's summary so all seven cards agree with themselves
+          // and with the day's dial. Previously the hourly slider controlled every
+          // card, which produced "1.35″ rain" day cards that still read "Clear Skies".
           const hourData = selectedHour !== undefined && day.hourly && day.hourly[selectedHour] ? day.hourly[selectedHour] : null;
-          const cardScore = hourData ? hourData.huntScore : day.huntScore;
-          const cardRating = hourData ? getRatingFromScore(hourData.huntScore) : day.rating;
-          const cardWeatherIcon = hourData ? getWeatherDetails(hourData.weatherCode).icon : day.weatherIcon;
-          const cardWeatherDesc = hourData ? hourData.weatherDesc : day.weatherDesc;
-          const cardWindDirText = hourData ? hourData.windDirectionText : day.windDirectionText;
-          const cardWindSpeed = hourData
-            ? (units === 'metric' ? `${hourData.windSpeedKmh} km/h` : `${hourData.windSpeedMph} mph`)
-            : (units === 'metric' ? `${day.windSpeedMaxKmh} km/h` : `${day.windSpeedMaxMph} mph`);
-          const cardPressure = hourData
-            ? (pressureUnit === 'hPa' ? `${hourData.pressureHpa} hPa` : `${hourData.pressureInHg} inHg`)
-            : (pressureUnit === 'hPa' ? `${day.pressureAvgHpa} hPa` : `${day.pressureAvgInHg} inHg`);
+          const cardScore = day.huntScore;
+          const cardRating = day.rating;
+          const cardWeatherIcon = day.weatherIcon;
+          const cardWeatherDesc = day.weatherDesc;
+          const cardWindDirText = day.windDirectionText;
+          const cardWindSpeed = units === 'metric'
+            ? `${day.windSpeedMaxKmh} km/h`
+            : `${day.windSpeedMaxMph} mph`;
+          const cardPressure = pressureUnit === 'hPa'
+            ? `${day.pressureAvgHpa} hPa`
+            : `${day.pressureAvgInHg} inHg`;
           const isTopDay = cardScore === maxScore && maxScore >= 66;
           const dayRut = getRutPhase(day.date, location);
 
@@ -620,7 +624,7 @@ const getScoreBadgeColor = (score: number) => {
                         isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-100/[var(--card-opacity)] border-slate-200'
                       }`}
                     >
-                      {renderWeatherIcon(cardWeatherIcon)}
+                      {renderWeatherIcon(hourData ? getWeatherDetails(hourData.weatherCode).icon : day.weatherIcon)}
                     </div>
                     <div>
                       <div className={`text-xl sm:text-2xl font-black flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
@@ -641,7 +645,7 @@ const getScoreBadgeColor = (score: number) => {
                         )}
                       </div>
                       <p className={`text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                        {cardWeatherDesc}
+                        {hourData ? hourData.weatherDesc : day.weatherDesc}
                       </p>
                     </div>
                   </div>
