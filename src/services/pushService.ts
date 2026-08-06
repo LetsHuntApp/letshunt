@@ -46,6 +46,17 @@ function setStoredVapidKey(key: string): void {
 }
 
 /**
+ * Resolve the service-worker registration only if one actually exists.
+ * Unlike `navigator.serviceWorker.ready`, this never hangs when no SW is
+ * registered (e.g. local development, where we intentionally skip SW
+ * registration) — it resolves to null instead.
+ */
+async function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null;
+  return (await navigator.serviceWorker.getRegistration()) ?? null;
+}
+
+/**
  * Convert a base64url-encoded VAPID public key to a Uint8Array for
  * PushManager.subscribe().
  */
@@ -108,8 +119,12 @@ export async function subscribeUserToPush(
       return false;
     }
 
-    // Get the service worker registration
-    const reg = await navigator.serviceWorker.ready;
+    // Get the service worker registration (null when none exists, e.g. dev)
+    const reg = await getSwRegistration();
+    if (!reg) {
+      console.warn('[pushService] No service worker registered.');
+      return false;
+    }
 
     // Check existing subscription
     let subscription = await reg.pushManager.getSubscription();
@@ -184,7 +199,8 @@ export async function unsubscribeUserFromPush(): Promise<boolean> {
   }
 
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await getSwRegistration();
+    if (!reg) return true;
     const subscription = await reg.pushManager.getSubscription();
 
     if (subscription) {
@@ -225,7 +241,8 @@ export function isPushSupported(): boolean {
 export async function getCurrentSubscription(): Promise<PushSubscriptionJSON | null> {
   if (!isPushSupported()) return null;
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await getSwRegistration();
+    if (!reg) return null;
     const sub = await reg.pushManager.getSubscription();
     return sub ? sub.toJSON() : null;
   } catch {
@@ -273,8 +290,8 @@ export async function sendTestClosedAppPush(
 
   let subscription: PushSubscriptionJSON | null;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
+    const reg = await getSwRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
     subscription = sub ? sub.toJSON() : null;
   } catch {
     subscription = null;

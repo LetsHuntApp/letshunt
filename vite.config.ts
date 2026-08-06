@@ -22,7 +22,24 @@ base: '/LetsHunt/',
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      watch: {
+        // Ignore non-source directories. The Freebuff desktop client writes
+        // SQLite WAL files under .freebuff/ every few seconds; without these
+        // ignores Vite treats each write as a file change and hard-reloads
+        // the page, kicking users out of the Map view (and hiding overlays
+        // like the radar) before they can even render. Applied regardless of
+        // the HMR toggle — the reload loop is a full page reload, not an
+        // HMR-specific behavior.
+        ignored: [
+          '**/.freebuff/**',
+          '**/.scratch/**',
+          '**/.git/**',
+          '**/fixes/**',
+          '**/scripts/**',
+          '**/forecast-batches/**',
+          '**/dist/**',
+        ],
+      },
     },
   };
 });

@@ -137,6 +137,53 @@ function getTileUrls(z: number, ty: number, tx: number, style: string): string[]
   }
 }
 
+// World_Imagery and World_Topo_Map max out at zoom 18: at zoom 19 Esri answers
+// every request with an HTTP 200 "Zoom Level Not Supported" error image. Pin
+// the map below that so the watermark can never appear.
+const MAX_ZOOM = 18;
+
+// Esri's ArcGIS tile services occasionally respond to *valid* tile URLs with an
+// HTTP 200 error image instead of real imagery — either a solid light-gray
+// no-data tile or the "Zoom Level Not Supported" watermark (near-uniform
+// rgb(204,204,204) with faint text). These never trigger onError because the
+// response is a successful image. Drawing the tile into a tiny canvas and
+// flagging images that are overwhelmingly one light color catches them;
+// genuine imagery has texture, so false positives are rare, and a false
+// positive only advances the existing fallback chain (re-requesting from a
+// mirror) rather than painting anything wrong.
+function isEsriErrorTile(img: HTMLImageElement | null): boolean {
+  if (!img || !img.complete || !img.naturalWidth || !/arcgisonline\.com/.test(img.currentSrc || img.src)) {
+    return false;
+  }
+  const w = Math.min(32, img.naturalWidth);
+  const h = Math.min(32, img.naturalHeight);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return false;
+  ctx.drawImage(img, 0, 0, w, h);
+  let data: Uint8ClampedArray;
+  try {
+    data = ctx.getImageData(0, 0, w, h).data;
+  } catch {
+    return false; // tainted canvas (no CORS) — leave the tile alone
+  }
+  const n = w * h;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    sum += (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 3;
+  }
+  const mean = sum / n;
+  if (mean < 170) return false; // error tiles are light gray; real imagery varies
+  let near = 0;
+  for (let i = 0; i < n; i++) {
+    const lum = (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 3;
+    if (Math.abs(lum - mean) < 12) near++;
+  }
+  return near / n > 0.95;
+}
+
 interface MapTileProps {
   tileKey: string;
   urls: string[];
@@ -154,6 +201,7 @@ interface MapTileProps {
 const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx, ty, mapStyle, onTileLoaded }: MapTileProps) => {
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Cycle through EVERY fallback URL — a failure never leaves the chain stuck
   // on the last provider. Each full cycle appends a cache-buster so transient
@@ -170,6 +218,15 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx,
   };
 
   const handleLoad = () => {
+    // Esri's ArcGIS services intermittently answer valid tile URLs with an
+    // HTTP 200 *error* image (the flat light-gray "Zoom Level Not Supported"
+    // watermark, or a solid no-data tile) that never fires onError because the
+    // response is a successful image. Detect those and advance the fallback
+    // chain instead of painting a bright box over the map.
+    if (isEsriErrorTile(imgRef.current)) {
+      handleError();
+      return;
+    }
     setLoaded(true);
     if (onTileLoaded) {
       onTileLoaded(tileKey, src, z, tx, ty, mapStyle);
@@ -186,6 +243,8 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx,
       alt=""
       draggable={false}
       decoding="async"
+      crossOrigin="anonymous"
+      ref={imgRef}
       onLoad={handleLoad}
       onError={handleError}
       className="absolute object-cover border-none select-none pointer-events-none"
@@ -1912,7 +1971,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     if (e.deltaY < 0) {
-      setZoom((prev) => Math.min(19, prev + 0.5));
+      setZoom((prev) => Math.min(MAX_ZOOM, prev + 0.5));
     } else {
       setZoom((prev) => Math.max(3, prev - 0.5));
     }
@@ -1945,7 +2004,7 @@ export const MapView: React.FC<MapViewProps> = ({
         const touch2 = e.touches[1];
         const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         const zoomFactor = currentDist / pinchDistRef.current;
-        const newZoom = Math.min(19, Math.max(3, initialZoomRef.current + Math.log2(zoomFactor)));
+        const newZoom = Math.min(MAX_ZOOM, Math.max(3, initialZoomRef.current + Math.log2(zoomFactor)));
         setZoom(newZoom);
       }
     };
@@ -1958,7 +2017,7 @@ export const MapView: React.FC<MapViewProps> = ({
         isPinchingRef.current = false;
         pinchDistRef.current = null;
         initialZoomRef.current = null;
-        setZoom((prev) => Math.min(19, Math.max(3, Math.round(prev * 2) / 2)));
+        setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round(prev * 2) / 2)));
       }
     };
 
@@ -1991,7 +2050,7 @@ export const MapView: React.FC<MapViewProps> = ({
       isPinchingRef.current = false;
       const now = Date.now();
       if (now - lastTouchTimeRef.current < 300) {
-        setZoom((prev) => Math.min(19, prev + 1));
+        setZoom((prev) => Math.min(MAX_ZOOM, prev + 1));
       }
       lastTouchTimeRef.current = now;
 
@@ -2007,7 +2066,7 @@ export const MapView: React.FC<MapViewProps> = ({
       const touch2 = e.touches[1];
       const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
       const zoomFactor = currentDist / pinchDistRef.current;
-      const newZoom = Math.min(19, Math.max(3, initialZoomRef.current + Math.log2(zoomFactor)));
+      const newZoom = Math.min(MAX_ZOOM, Math.max(3, initialZoomRef.current + Math.log2(zoomFactor)));
       setZoom(newZoom);
       return;
     }
@@ -2036,7 +2095,7 @@ export const MapView: React.FC<MapViewProps> = ({
       isPinchingRef.current = false;
       pinchDistRef.current = null;
       initialZoomRef.current = null;
-      setZoom((prev) => Math.min(19, Math.max(3, Math.round(prev * 2) / 2)));
+      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round(prev * 2) / 2)));
       return;
     }
 
@@ -2050,7 +2109,7 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   // Map Tile Calculations
-  const baseZoom = Math.min(19, Math.max(2, Math.round(zoom)));
+  const baseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
   const halfWidth = dimensions.width / 2;
   const halfHeight = dimensions.height / 2;
 
@@ -2184,7 +2243,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // Convert lat/lng to map container pixel coordinates
   const latLngToPixel = useCallback(
     (lat: number, lng: number) => {
-      const currentTileZoom = Math.min(19, Math.max(2, Math.round(zoom)));
+      const currentTileZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
       const zoomScale = Math.pow(2, zoom - currentTileZoom);
       const scaledTileSize = 256 * zoomScale;
 

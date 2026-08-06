@@ -157,7 +157,9 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
 
     const shouldUseCache =
       frameCache &&
-      Date.now() - frameCache.fetchedAt < refreshIntervalMs;      const ingest = (entry: FrameCacheEntry) => {
+      Date.now() - frameCache.fetchedAt < refreshIntervalMs;
+
+    const ingest = (entry: FrameCacheEntry) => {
       if (cancelled) return;
       // Oldest → newest so the loop ends on real-time.
       const past = [...entry.past].sort((a, b) => a.time - b.time);
