@@ -431,9 +431,20 @@ const getScoreBadgeColor = (score: number) => {
             <div
               key={day.date}
               id={`forecast-card-${day.date}`}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isExpanded}
+              aria-label={`${day.dayName} ${day.dateFormatted} forecast — tap to expand`}
               onClick={() => {
                 setAutoExpandedDate(null);
                 onSelectDate(isSelected ? '' : day.date);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setAutoExpandedDate(null);
+                  onSelectDate(isSelected ? '' : day.date);
+                }
               }}
               className={`relative w-full rounded-2xl border transition-all hover:scale-[1.002] cursor-pointer flex flex-col overflow-hidden ${getCardHueClasses(
                 cardScore,

@@ -446,16 +446,27 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               <Crosshair className="w-4.5 h-4.5" />
             </div>
 
-            {/* 4. Rotating Wind Direction Arrow (sitting at wind source, pointing inward to center stand) */}
+            {/* 4. Rotating Scent Direction Arrow — points DOWNWIND (where scent blows), not where wind comes from. Rotated +180° from wind source so the arrow visually aims toward the scent plume. */}
             <div
               className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center"
             >
               <div
                 className="flex flex-col items-center transition-all duration-700 ease-out"
-                style={{ transform: `rotate(${deg}deg) translateY(-${halfH - 25}px)` }}
+                style={{ transform: `rotate(${windToDeg}deg) translateY(-${halfH - 25}px)` }}
               >
-                <div className="w-1.5 h-8 bg-amber-500 rounded-full shadow-md" />
-                <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[14px] border-t-amber-500 drop-shadow-lg" />
+                {/* Pulsing glow aura behind the arrow to draw the eye */}
+                <div className="absolute -inset-2 rounded-full bg-amber-500/30 animate-pulse blur-md" />
+                <div className="w-2 h-9 bg-amber-500 rounded-full shadow-lg shadow-amber-500/40" />
+                <div className="w-0 h-0 border-l-[9px] border-l-transparent border-r-[9px] border-r-transparent border-t-[15px] border-t-amber-500 drop-shadow-lg" />
+              </div>
+              {/* Floating label: tells the hunter exactly which way scent blows */}
+              <div
+                className="absolute flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 backdrop-blur-sm"
+                style={{ transform: `rotate(${windToDeg}deg) translateY(-${halfH - 60}px)` }}
+              >
+                <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 whitespace-nowrap">
+                  Scent → {getWindDirectionText(windToDeg)}
+                </span>
               </div>
             </div>
 
@@ -553,14 +564,27 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               <Crosshair className="w-4 h-4" />
             </div>
 
-            {/* Wind Direction Arrow */}
+            {/* Wind Direction Arrow — points DOWNWIND (where scent blows), not where wind comes from */}
             <div
               className="absolute z-20 w-full h-full pointer-events-none flex items-center justify-center transition-transform duration-700 ease-out"
-              style={{ transform: `rotate(${deg}deg)` }}
+              style={{ transform: `rotate(${windToDeg}deg)` }}
             >
               <div className="flex flex-col items-center -translate-y-[56px]">
-                <div className="w-1 h-7 bg-amber-500 rounded-full" />
-                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[12px] border-t-amber-500 drop-shadow-md" />
+                {/* Pulsing glow aura */}
+                <div className="absolute -inset-2 rounded-full bg-amber-500/30 animate-pulse blur-md" />
+                <div className="w-1.5 h-8 bg-amber-500 rounded-full shadow-lg shadow-amber-500/40" />
+                <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[13px] border-t-amber-500 drop-shadow-md" />
+              </div>
+            </div>
+            {/* Scent direction label below the arrow tip */}
+            <div
+              className="absolute z-20 w-full h-full pointer-events-none flex items-center justify-center transition-transform duration-700 ease-out"
+              style={{ transform: `rotate(${windToDeg}deg)` }}
+            >
+              <div className="flex flex-col items-center -translate-y-[90px]">
+                <span className="text-[8px] font-black uppercase tracking-wider text-amber-400 whitespace-nowrap bg-slate-950/70 px-1.5 py-0.5 rounded-full">
+                  → Scent
+                </span>
               </div>
             </div>
           </div>
