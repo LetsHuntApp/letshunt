@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DailyForecast, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit, Location } from '../types';
 import { DeerIcon } from './DeerIcon';
-import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind } from '../utils/huntingEngine';
+import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import { motion } from 'motion/react';
 import { PaperTexture } from './PaperTexture';
@@ -185,19 +185,19 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
 
 const getScoreBadgeColor = (score: number) => {
     if (theme === 'hunting') {
-      if (score >= 90) return 'bg-[#1a6b3c] text-white border-[#1a6b3c] shadow-sm';
-      if (score >= 76) return 'bg-[#4a8c5e] text-white border-[#4a8c5e] shadow-sm';
-      if (score >= 46) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
+      if (score >= RATING_THRESHOLDS.excellent) return 'bg-[#1a6b3c] text-white border-[#1a6b3c] shadow-sm';
+      if (score >= RATING_THRESHOLDS.good) return 'bg-[#4a8c5e] text-white border-[#4a8c5e] shadow-sm';
+      if (score >= RATING_THRESHOLDS.fair) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
     } else if ((theme === 'olive' || theme === 'hunting')) {
-      if (score >= 90) return 'bg-[#2d4a27] text-white border-[#556b2f] shadow-sm';
-      if (score >= 76) return 'bg-[#556b2f] text-white border-[#8a9a5b] shadow-sm';
-      if (score >= 46) return 'bg-[#b87333] text-white border-[#d4a373] shadow-sm';
+      if (score >= RATING_THRESHOLDS.excellent) return 'bg-[#2d4a27] text-white border-[#556b2f] shadow-sm';
+      if (score >= RATING_THRESHOLDS.good) return 'bg-[#556b2f] text-white border-[#8a9a5b] shadow-sm';
+      if (score >= RATING_THRESHOLDS.fair) return 'bg-[#b87333] text-white border-[#d4a373] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
     }
-    if (score >= 90) return 'bg-emerald-800 text-white border-emerald-600 shadow-emerald-950/30';
-    if (score >= 76) return 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-emerald-900/10';
-    if (score >= 46) return 'bg-amber-500 text-slate-950 border-amber-300 shadow-amber-900/20';
+    if (score >= RATING_THRESHOLDS.excellent) return 'bg-emerald-800 text-white border-emerald-600 shadow-emerald-950/30';
+    if (score >= RATING_THRESHOLDS.good) return 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-emerald-900/10';
+    if (score >= RATING_THRESHOLDS.fair) return 'bg-amber-500 text-slate-950 border-amber-300 shadow-amber-900/20';
     return 'bg-rose-500 text-white border-rose-400 shadow-rose-900/20';
   };
 
@@ -212,7 +212,7 @@ const getScoreBadgeColor = (score: number) => {
     const pbFair = '#c44a17';
     const pbPoor = '#7a2f1a';
 
-    if (score >= 90) { // Excellent - Dark green
+    if (score >= RATING_THRESHOLDS.excellent) { // Excellent - Dark green
       if (isSelected) {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
@@ -231,7 +231,7 @@ const getScoreBadgeColor = (score: number) => {
         : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-600/25 hover:border-emerald-600/50 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all ${glass}`;
     }
 
-    if (score >= 76) { // Good - Sage green
+    if (score >= RATING_THRESHOLDS.good) { // Good - Sage green
       if (isSelected) {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
@@ -250,7 +250,7 @@ const getScoreBadgeColor = (score: number) => {
         : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-500/25 hover:border-emerald-500/50 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all ${glass}`;
     }
 
-    if (score >= 46) { // Fair - Amber/Ochre
+    if (score >= RATING_THRESHOLDS.fair) { // Fair - Amber/Ochre
       if (isSelected) {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
@@ -508,7 +508,7 @@ const getScoreBadgeColor = (score: number) => {
                       )}`}
                     >
                       <DeerIcon className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
-                      {cardScore >= 90 && <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current text-amber-350 shrink-0" />}
+                      {cardScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current text-amber-350 shrink-0" />}
                       <span className="text-sm sm:text-base leading-none font-black">{cardScore}</span>
                       <span className="text-[10px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
                     </div>

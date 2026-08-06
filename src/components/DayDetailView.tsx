@@ -6,7 +6,7 @@ import { DeerIcon } from './DeerIcon';
 import { RutStatusModal } from './RutStatusModal';
 import { RutPhaseIcon } from './RutPhaseIcon';
 import { PaperTexture } from './PaperTexture';
-import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, calculateHuntScore, getBestStandForWind, getDetailedConditionExplanation } from '../utils/huntingEngine';
+import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, calculateHuntScore, getBestStandForWind, getDetailedConditionExplanation, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import {
   Sunrise,
@@ -111,9 +111,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
   const condExplanation = getDetailedConditionExplanation(day, hourData, units, pressureUnit);
 
-  const isExcellentDay = currentScore >= 90;
-  const isGoodDay = currentScore >= 76 && currentScore < 90;
-  const isModerateDay = currentScore >= 46 && currentScore < 76;
+  const isExcellentDay = currentScore >= RATING_THRESHOLDS.excellent;
+  const isGoodDay = currentScore >= RATING_THRESHOLDS.good && currentScore < RATING_THRESHOLDS.excellent;
+  const isModerateDay = currentScore >= RATING_THRESHOLDS.fair && currentScore < RATING_THRESHOLDS.good;
   const isPoorDay = currentScore < 46;
 
   const activeFactors = React.useMemo(() => {
@@ -144,16 +144,16 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   }, [selectedHour, day, units, pressureUnit, location]);
 
   const scoreStrokeColor = isDark
-    ? (currentScore >= 90 ? '#34d399' : currentScore >= 76 ? '#10b981' : currentScore >= 46 ? '#d97706' : '#f43f5e')
+    ? (currentScore >= RATING_THRESHOLDS.excellent ? '#34d399' : currentScore >= RATING_THRESHOLDS.good ? '#10b981' : currentScore >= RATING_THRESHOLDS.fair ? '#d97706' : '#f43f5e')
     : theme === 'hunting'
-    ? (currentScore >= 90 ? '#1a6b3c' : currentScore >= 76 ? '#4a8c5e' : currentScore >= 46 ? '#c85a17' : '#8b3a3a')
+    ? (currentScore >= RATING_THRESHOLDS.excellent ? '#1a6b3c' : currentScore >= RATING_THRESHOLDS.good ? '#4a8c5e' : currentScore >= RATING_THRESHOLDS.fair ? '#c85a17' : '#8b3a3a')
     : (theme === 'olive' || theme === 'hunting')
-    ? (currentScore >= 90 ? '#2d4a27' : currentScore >= 76 ? '#556b2f' : currentScore >= 46 ? '#b87333' : '#8b3a3a')
-    : currentScore >= 90
+    ? (currentScore >= RATING_THRESHOLDS.excellent ? '#2d4a27' : currentScore >= RATING_THRESHOLDS.good ? '#556b2f' : currentScore >= RATING_THRESHOLDS.fair ? '#b87333' : '#8b3a3a')
+    : currentScore >= RATING_THRESHOLDS.excellent
     ? '#047857' // emerald-700 (Pine Forest Green)
-    : currentScore >= 76
+    : currentScore >= RATING_THRESHOLDS.good
     ? '#059669' // emerald-600
-    : currentScore >= 46
+    : currentScore >= RATING_THRESHOLDS.fair
     ? '#d97706' // amber-600 (Warm Amber)
     : '#f43f5e'; // rose-500 (Terracotta)
 

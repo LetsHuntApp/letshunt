@@ -5,7 +5,7 @@ import { PressureChart } from './PressureChart';
 import { DeerIcon } from './DeerIcon';
 import { RutStatusModal } from './RutStatusModal';
 import { RutPhaseIcon } from './RutPhaseIcon';
-import { getHour12Label, getRatingFromScore, getWeatherDetails, calculateHuntScore, celsiusToFahrenheit, getBestStandForWind } from '../utils/huntingEngine';
+import { getHour12Label, getRatingFromScore, getWeatherDetails, calculateHuntScore, celsiusToFahrenheit, getBestStandForWind, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import { motion } from 'motion/react';
 import {
@@ -63,9 +63,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const hourData = day.hourly[selectedHour] || day.hourly[0] || null;
 
   const activeScore = hourData ? hourData.huntScore : day.huntScore;
-  const isExcellentDay = activeScore >= 90;
-  const isGoodDay = activeScore >= 76 && activeScore < 90;
-  const isModerateDay = activeScore >= 46 && activeScore < 76;
+  const isExcellentDay = activeScore >= RATING_THRESHOLDS.excellent;
+  const isGoodDay = activeScore >= RATING_THRESHOLDS.good && activeScore < RATING_THRESHOLDS.excellent;
+  const isModerateDay = activeScore >= RATING_THRESHOLDS.fair && activeScore < RATING_THRESHOLDS.good;
   const isPoorDay = activeScore < 46;
 
   // Compute active factors dynamically
@@ -116,21 +116,21 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   // color per theme × mode. Center elements use the returned stroke hex
   // directly, avoiding theme utility overrides that could break the match.
   const getScoreColorClasses = (score: number) => {
-    if (score >= 90) { // Excellent - Deep Pine Green (emerald-800)
+    if (score >= RATING_THRESHOLDS.excellent) { // Excellent - Deep Pine Green (emerald-800)
       return {
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-800/10 dark:ring-emerald-500/10',
         stroke: isDark ? '#34d399' : '#047857', // emerald-400 vs emerald-700
       };
-    } else if (score >= 76) { // Good - Sage Green (emerald-500/600)
+    } else if (score >= RATING_THRESHOLDS.good) { // Good - Sage Green (emerald-500/600)
       return {
         bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
         border: 'border-emerald-500/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
         stroke: isDark ? '#10b981' : '#059669', // emerald-500 vs emerald-600
       };
-    } else if (score >= 46) { // Fair - Warm Amber/Ochre (amber-500/600)
+    } else if (score >= RATING_THRESHOLDS.fair) { // Fair - Warm Amber/Ochre (amber-500/600)
       return {
         bg: 'bg-amber-500/10 dark:bg-amber-500/15',
         border: 'border-amber-500/20 dark:border-amber-500/30',

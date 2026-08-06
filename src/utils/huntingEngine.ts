@@ -83,10 +83,28 @@ export function getHour12Label(hour: number): string {
   return `${displayHour}:00 ${ampm}`;
 }
 
+/**
+ * Batch 3 — single source of truth for the hunt-score rating scale.
+ *
+ * Chosen to keep the code's existing 90 / 76 / 46 thresholds rather than
+ * the older 90 / 66 / 40 documented in `changes.md` (we've reconciled
+ * `changes.md` separately). Every score-band branch in the app reads
+ * from this constant: the verdict block in `calculateHuntScore`, the
+ * `Excellent / Good / Fair / Poor` rating returned by `getRatingFromScore`,
+ * the score-based headline fallback in `getDetailedConditionExplanation`,
+ * and the dial / card colour tables in `DayDetailView`,
+ * `ForecastCards` and `DetailedPredictionView`.
+ */
+export const RATING_THRESHOLDS = {
+  excellent: 90,
+  good: 76,
+  fair: 46,
+} as const;
+
 export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'Excellent' {
-  if (score >= 90) return 'Excellent';
-  if (score >= 76) return 'Good';
-  if (score >= 46) return 'Fair';
+  if (score >= RATING_THRESHOLDS.excellent) return 'Excellent';
+  if (score >= RATING_THRESHOLDS.good) return 'Good';
+  if (score >= RATING_THRESHOLDS.fair) return 'Fair';
   return 'Poor';
 }
 
@@ -697,13 +715,13 @@ export function calculateHuntScore(params: {
   let rating: DailyForecast['rating'] = 'Fair';
   let verdict = '';
 
-  if (finalScore >= 90) {
+  if (finalScore >= RATING_THRESHOLDS.excellent) {
     rating = 'Excellent';
     verdict = 'GO HUNTING! Cold front, pressure shift, or post-storm clearing creates top-tier buck movement.';
-  } else if (finalScore >= 76) {
+  } else if (finalScore >= RATING_THRESHOLDS.good) {
     rating = 'Good';
     verdict = 'High-probability hunt day. Key movement expected during early morning and late afternoon hunt shifts.';
-  } else if (finalScore >= 46) {
+  } else if (finalScore >= RATING_THRESHOLDS.fair) {
     rating = 'Fair';
     verdict = 'Moderate activity expected. Pay close attention to Solunar major/minor feeding periods.';
   } else {
@@ -885,13 +903,21 @@ export function getDetailedConditionExplanation(
   }
 
   // 10. Default Score-Based Explanations
-  if (score >= 70) {
+  // Batch 3: aligned to the centralised RATING_THRESHOLDS so the headline
+  // copy never contradicts the dial rating.
+  if (score >= RATING_THRESHOLDS.excellent) {
+    return {
+      headline: 'Excellent time to hunt - Top-Tier Conditions',
+      detail: 'Almost every factor lines up. A cold front, post-storm clearing, or ideal seasonal conditions are converging for a top-tier window.',
+      badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    };
+  } else if (score >= RATING_THRESHOLDS.good) {
     return {
       headline: 'Great time to hunt - Ideal Weather Alignment',
       detail: 'Cool temperatures, favorable barometric pressure, and steady wind vectors align to create optimal atmospheric conditions for daylight deer travel.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
-  } else if (score >= 45) {
+  } else if (score >= RATING_THRESHOLDS.fair) {
     return {
       headline: 'Good time to hunt - Moderate Weather Conditions',
       detail: 'Steady weather parameters. Focus on key twilight transition hours when temperatures cool and thermal winds stabilize.',

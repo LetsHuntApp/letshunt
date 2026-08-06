@@ -1,12 +1,43 @@
-# Changes Log - Rating Scale & Terminology Updates
+# Changes Log
+
+## Batch 3 — Consistency & Housekeeping
+
+- **Single source of truth for the hunt-score rating scale.** The
+  thresholds now live in `RATING_THRESHOLDS` exported from
+  `src/utils/huntingEngine.ts`:
+  - `>= excellent` (≥ 90) · Excellent
+  - `>= good`      (≥ 76) · Good
+  - `>= fair`      (≥ 46) · Fair
+  - else · Poor
+  Every score band reads from this constant — `getRatingFromScore`,
+  the verdict block in `calculateHuntScore`, the
+  `getDetailedConditionExplanation` score fallback, and the dial /
+  card colour tables in `DayDetailView`, `ForecastCards`,
+  `DetailedPredictionView`. To retune the scale, change exactly three
+  numbers in `huntingEngine.ts`.
+- **Reconciled the documented rating scale with the code.** The
+  earlier log entry listed 90 / 66 / 40 bands, but the actual engine
+  has been using 90 / 76 / 46. We chose to keep the engine's scale
+  (slightly stricter "Good" cutoff, more conservative "Fair") and
+  updated the changelog below to reflect the now-truthful numbers.
+  This closes the inconsistency flagged in the review.
+- **Package rename.** `package.json` name changed from `react-example`
+  to `letshunt` so Vite / DevTools / build output reflect the actual
+  product.
+- **README rewritten** with a real LetsHunt description (features,
+  tech stack, dev workflow, push server, link to `forecast-batches/`).
+
+## Earlier round — Rating Scale & Terminology Updates
 
 ## Features Added & UI Refinements
-- **New Rating Scale Adjustment**:
-  - `0 - 39`: **Poor** (Red/Rose theme)
-  - `40 - 65`: **Fair** (Amber theme)
-  - `66 - 89`: **Good** (Emerald/Green theme)
+- **Hunt-score rating scale** (now backed by `RATING_THRESHOLDS`):
+  - `0 - 45`: **Poor** (Red/Rose theme)
+  - `46 - 75`: **Fair** (Amber theme)
+  - `76 - 89`: **Good** (Emerald/Green theme)
   - `90+`: **Excellent** (Emerald/Green top-tier theme)
-  - Applied across score calculation functions (`calculateDailyHuntScore`, `getRatingFromScore`), 5-Day Forecast cards, and the main condition gauge dial.
+  Applied across score calculation functions (`calculateHuntScore`,
+  `getRatingFromScore`), 5-Day Forecast cards, and the main condition
+  gauge dial.
 
 - **Terminology Standardization ("Hunt" vs "Stand")**:
   - Replaced all instances of "a.m. Stand" / "p.m. Stand" / "Prime Stand" with **"Morning Hunt"**, **"Evening Hunt"**, **"AM Hunt"**, **"PM Hunt"**, and **"Prime Hunt"**.
