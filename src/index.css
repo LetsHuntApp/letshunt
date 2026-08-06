@@ -166,6 +166,15 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
+/* Keep the custom hourly slider's track contrast stable even when a theme
+   utility override or a translucent page backdrop changes the surrounding
+   card. The component supplies the exact theme color inline; this rule only
+   ensures the track remains a real painted surface. */
+.hourly-slider-track {
+  min-height: 10px;
+  isolation: isolate;
+}
+
 /* Smooth underline animation for links */
 .link-underline {
   position: relative;

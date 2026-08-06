@@ -3143,7 +3143,13 @@ export const MapView: React.FC<MapViewProps> = ({
                       step={0.05}
                       value={radarOpacity}
                       onChange={(e) => setRadarOpacity(clamp(parseFloat(e.target.value), 0.1, 1))}
-                      className="w-full accent-sky-500 cursor-pointer ui-control"
+                      className={`w-full h-1.5 rounded-lg accent-sky-500 cursor-pointer ui-control border ${
+                        isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-300 border-slate-400'
+                      }`}
+                      style={{
+                        backgroundColor: isDark ? '#334155' : '#cbd5e1',
+                        borderColor: isDark ? '#475569' : '#94a3b8',
+                      }}
                     />
                     {/* Palette */}
                     <label className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">

@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 /**
- * Animated precipitation-radar overlay.
+ * Latest-frame precipitation-radar overlay with optional throttled playback.
  *
  * - Tile coordinates use the SAME Mercator math as MapView (clamped lat to
- *   ±85.0511, integer-zoom snap with smooth sub-zoom scaling). Tiles align
- *   pixel-for-pixel over the base-map tiles.
+ *   ±85.0511, integer-zoom snap with smooth sub-zoom scaling). Radar tiles are
+ *   capped at RainViewer's documented maximum z7 and scaled to align with the
+ *   higher-resolution base map.
  * - Frames are pulled from RainViewer's public API
  *   (https://api.rainviewer.com/public/weather-maps.json — no key, CORS-open,
  *   verified live). Each frame's `path` field is already a fully-qualified
@@ -23,8 +24,20 @@ import React, { useEffect, useRef, useState } from 'react';
 export interface RadarFrame {
   /** Wall-clock time of the frame, ms since epoch. */
   time: number;
-  /** Tile-path prefix returned by RainViewer ("/v2/radar/<hash>/..."). */
+  /** Tile-path prefix returned by RainViewer ("/v2/radar/<hash>"). */
   path: string;
+}
+
+function normalizeFrame(raw: { time?: unknown; path?: unknown }): RadarFrame | null {
+  const seconds = Number(raw.time);
+  const path = String(raw.path ?? '');
+  if (!Number.isFinite(seconds) || !path.startsWith('/v2/radar/')) return null;
+  return {
+    // RainViewer's index uses Unix seconds; the component exposes milliseconds
+    // so Date and any parent timestamp display remain correct.
+    time: seconds * 1000,
+    path,
+  };
 }
 
 interface RadarOverlayProps {
@@ -40,7 +53,7 @@ interface RadarOverlayProps {
   colorScheme: number;
   /** Master toggle. When false we render nothing and stop fetching. */
   enabled: boolean;
-  /** Auto-play through frames; when false the parent can step manually via onFrameChange. */
+  /** Auto-play through frames; disabled by default to avoid rate-limiting tile providers. */
   playing?: boolean;
   /** Called whenever the active frame changes (for time-stamp UI in the parent). */
   onFrameChange?: (frame: RadarFrame | null, index: number, total: number) => void;
@@ -49,6 +62,13 @@ interface RadarOverlayProps {
   /** Frame-step interval in ms. Default 500. */
   frameStepMs?: number;
 }
+
+// RainViewer's documented radar tile service supports z0–z7 only. The base
+// satellite map can be much closer (usually z16), so radar tiles must be
+// requested at this capped zoom and scaled over the base map. Requesting the
+// map zoom directly produces out-of-range radar URLs and an apparently empty
+// overlay even when the <img> request itself completes.
+const MAX_RADAR_ZOOM = 7;
 
 // --- Tile math (mirrors src/components/MapView.tsx exactly) -------------------
 
@@ -79,7 +99,7 @@ function computeVisibleTiles(
   width: number,
   height: number
 ): { baseZoom: number; actTileSize: number; tiles: TileCoord[] } {
-  const baseZoom = clamp(Math.round(zoom), 2, 19);
+  const baseZoom = clamp(Math.round(zoom), 2, MAX_RADAR_ZOOM);
   const actTileSize = 256 * Math.pow(2, zoom - baseZoom);
   const halfW = width / 2;
   const halfH = height / 2;
@@ -136,7 +156,7 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   opacity,
   colorScheme,
   enabled,
-  playing = true,
+  playing = false,
   onFrameChange,
   refreshIntervalMs = 10 * 60 * 1000,
   frameStepMs = 500,
@@ -144,7 +164,7 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   const [frames, setFrames] = useState<RadarFrame[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const fetchedAtRef = useRef<number>(0);
+  const [tileStats, setTileStats] = useState({ frameKey: '', failed: 0 });
 
   // Fetch (or refresh) the RainViewer frame index when enabled.
   useEffect(() => {
@@ -166,11 +186,11 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
       const forecast = [...entry.forecast].sort((a, b) => a.time - b.time);
       const all = [...past, ...forecast];
       setFrames(all);
-      // Start at the oldest frame so autoplay walks forward through the storm,
-      // landing on "now" before wrapping back to the beginning. Starting at the
-      // newest frame would make the very first interval tick wrap around to
-      // the oldest frame, producing a jarring backward jump after enable.
-      setActiveIndex(0);
+      // Show the newest available observation immediately. The map used to
+      // start at the oldest frame and advance every 500ms, which remounted all
+      // visible tile images dozens of times per minute and quickly exhausted
+      // RainViewer's public tile quota before the current frame could render.
+      setActiveIndex(Math.max(0, all.length - 1));
       setLoadError(null);
     };
 
@@ -193,16 +213,16 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         const host: string = json?.host || 'https://tilecache.rainviewer.com';
-        const past: RadarFrame[] = (json?.radar?.past ?? []).map((f: any) => ({
-          time: Number(f.time),
-          path: String(f.path),
-        }));
-        const forecast: RadarFrame[] = (json?.radar?.nowcast ?? []).map((f: any) => ({
-          time: Number(f.time),
-          path: String(f.path),
-        }));
-        frameCache = { host, past, forecast, fetchedAt: Date.now() };
-        fetchedAtRef.current = Date.now();
+        const past: RadarFrame[] = (json?.radar?.past ?? [])
+          .map((f: unknown) => normalizeFrame(f as { time?: unknown; path?: unknown }))
+          .filter((frame: RadarFrame | null): frame is RadarFrame => frame !== null);
+        const forecast: RadarFrame[] = (json?.radar?.nowcast ?? [])
+          .map((f: unknown) => normalizeFrame(f as { time?: unknown; path?: unknown }))
+          .filter((frame: RadarFrame | null): frame is RadarFrame => frame !== null);
+        const normalizedHost = typeof host === 'string' && /^https?:\/\//.test(host)
+          ? host.replace(/\/$/, '')
+          : 'https://tilecache.rainviewer.com';
+        frameCache = { host: normalizedHost, past, forecast, fetchedAt: Date.now() };
         ingest(frameCache);
       } catch (err) {
         if (cancelled) return;
@@ -218,12 +238,15 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
     // refreshIntervalMs intentionally participates — a parent slider can change it
   }, [enabled, refreshIntervalMs]);
 
-  // Auto-advance frames.
+  // Optional animation. It is intentionally opt-in: one visible frame is the
+  // reliable default for the public RainViewer endpoint. Animating 30+ tiles
+  // every 500ms can make a browser request hundreds of uncached images per
+  // minute, causing the entire layer to look blank after HTTP 429 responses.
   useEffect(() => {
     if (!enabled || !playing || frames.length <= 1) return;
     const id = setInterval(() => {
       setActiveIndex((i) => (i + 1) % frames.length);
-    }, frameStepMs);
+    }, Math.max(2000, frameStepMs));
     return () => clearInterval(id);
   }, [enabled, playing, frames.length, frameStepMs]);
 
@@ -237,33 +260,39 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
     onFrameChange(frames[activeIndex] ?? null, activeIndex, frames.length);
   }, [activeIndex, frames, onFrameChange]);
 
-  if (!enabled) return null;
-
   const { baseZoom, actTileSize, tiles } = computeVisibleTiles(
     centerLat, centerLon, zoom, width, height
   );
 
   const activeFrame = frames[activeIndex];
 
-  // Build host/prefix once we have a frame.
+  // Build host/prefix once we have a frame. The API's host is authoritative;
+  // keep the fallback only for older/offline responses that omitted it.
   const host = frameCache?.host || 'https://tilecache.rainviewer.com';
   const hasFrame = Boolean(activeFrame);
+  const frameKey = activeFrame ? `${activeFrame.time}-${baseZoom}-${colorScheme}` : '';
+
+  useEffect(() => {
+    setTileStats({ frameKey, failed: 0 });
+  }, [frameKey]);
 
   const frameTimeLabel = activeFrame
     ? new Date(activeFrame.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : '';
 
+  if (!enabled) return null;
+
   return (
     <>
       <div
         aria-hidden="true"
-        className="absolute inset-0 z-[6] pointer-events-none"
+        className="absolute inset-0 z-[6] pointer-events-none overflow-hidden"
         style={{ opacity: loadError ? 0 : clamp(opacity, 0, 1) }}
       >
         {hasFrame && activeFrame &&
           tiles.map((t) => (
             <img
-              key={`radar-${activeIndex}-${t.tx}-${t.ty}`}
+              key={`radar-${t.tx}-${t.ty}`}
               src={`${host}${activeFrame.path}/256/${baseZoom}/${wrapTileX(t.tx, baseZoom)}/${clampTileY(t.ty, baseZoom)}/${colorScheme}/1_1.png`}
               alt=""
               draggable={false}
@@ -278,9 +307,20 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
                 pointerEvents: 'none',
                 userSelect: 'none',
               }}
+              onLoad={(e) => {
+                (e.currentTarget as HTMLImageElement).style.visibility = 'visible';
+                // A successful frame tile is visible; no state update is needed.
+                // Keeping this handler explicit also restores a tile that may
+                // have been hidden after a transient provider error.
+              }}
               onError={(e) => {
-                // Silent miss — a single broken tile shouldn't crash the overlay.
+                // Hide only the failed tile, but keep enough state to explain a
+                // provider outage instead of presenting an apparently empty map.
                 (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                setTileStats((previous) => previous.frameKey === frameKey
+                  ? { ...previous, failed: previous.failed + 1 }
+                  : previous
+                );
               }}
             />
           ))}
@@ -294,16 +334,23 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
           is the usual reason a radar toggle appears to "show nothing". */}
       <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[40] pointer-events-none">
         <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 shadow-2xl backdrop-blur-md text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
-          loadError
+          loadError || (hasFrame && tileStats.frameKey === frameKey && tileStats.failed >= tiles.length && tiles.length > 0)
             ? 'bg-slate-900/85 border-rose-500/50 text-rose-300'
             : !hasFrame
             ? 'bg-slate-900/85 border-slate-600/60 text-slate-300'
+            : hasFrame && tileStats.frameKey === frameKey && tileStats.failed > 0
+            ? 'bg-slate-900/85 border-amber-400/50 text-amber-200'
             : 'bg-slate-900/85 border-sky-500/50 text-sky-300'
         }`}>
-          {loadError ? (
+          {loadError || (hasFrame && tileStats.frameKey === frameKey && tileStats.failed >= tiles.length && tiles.length > 0) ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
               Radar unavailable
+            </>
+          ) : hasFrame && tileStats.frameKey === frameKey && tileStats.failed > 0 ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
+              Radar partial · {tileStats.failed} tile{tileStats.failed === 1 ? '' : 's'} unavailable
             </>
           ) : !hasFrame ? (
             <>

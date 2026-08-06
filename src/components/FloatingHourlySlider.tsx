@@ -77,9 +77,21 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
     ? theme === 'hunting' ? 'bg-[#3b2418] border-[#6b4228]'
     : theme === 'olive' ? 'bg-[#26351b] border-[#465b2d]'
     : 'bg-slate-800 border-slate-700'
-    : theme === 'hunting' ? 'bg-[#ead8bd] border-[#c8a982]'
-    : theme === 'olive' ? 'bg-[#e0e5c9] border-[#aeb88c]'
-    : 'bg-slate-50 border-slate-300';
+    : theme === 'hunting' ? 'bg-[#d6b98f] border-[#a47b4e]'
+    : theme === 'olive' ? 'bg-[#cbd5a8] border-[#7d8d55]'
+    : 'bg-slate-200 border-slate-400';
+
+  const sliderTrackStyle = isDark
+    ? theme === 'hunting'
+      ? { backgroundColor: '#3b2418', borderColor: '#6b4228' }
+      : theme === 'olive'
+      ? { backgroundColor: '#26351b', borderColor: '#465b2d' }
+      : { backgroundColor: '#1e293b', borderColor: '#475569' }
+    : theme === 'hunting'
+    ? { backgroundColor: '#d6b98f', borderColor: '#a47b4e' }
+    : theme === 'olive'
+    ? { backgroundColor: '#cbd5a8', borderColor: '#7d8d55' }
+    : { backgroundColor: '#e2e8f0', borderColor: '#94a3b8' };
 
   const sliderProgressClass = isNow
     ? isDark
@@ -171,7 +183,10 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
           {/* Track Bar & Thumb Wrapper */}
           <div className="relative w-full h-7 sm:h-7">
             {/* Visual Track Line */}
-            <div className={`w-full h-full ${sliderTrackClass} rounded-full shadow-inner overflow-hidden border flex items-center`}>
+            <div
+              className={`hourly-slider-track w-full h-full ${sliderTrackClass} rounded-full shadow-inner overflow-hidden border flex items-center`}
+              style={sliderTrackStyle}
+            >
               {/* Progress Highlight */}
               <div
                 className={`h-full ${sliderProgressClass}`}
@@ -232,7 +247,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
                 setIsDragging(false);
               }}
               onChange={(e) => handleHourChange(parseInt(e.target.value, 10))}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+              className="absolute inset-0 w-full h-full appearance-none opacity-0 cursor-pointer z-20"
               aria-label="Hourly time slider"
             />
           </div>
