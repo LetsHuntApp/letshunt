@@ -60,7 +60,6 @@ import {
 import { fetch5DayHuntingForecast, searchLocations } from '../services/weatherService';
 import { getBestStandForWind } from '../utils/huntingEngine';
 import { TeachingEmptyState } from './TeachingEmptyState';
-import { RadarOverlay } from './RadarOverlay';
 import { safeGetString, safeGetJSON, safeSet, safeSetJSON } from '../utils/storage';
 
 // Builds an elongated teardrop path pointing in the +x direction: a rounded head
@@ -463,26 +462,10 @@ function getPolygonAreaAndPerimeter(points: PolygonPoint[], unitSystem: UnitSyst
 // Metadata for Marker Types
 // Renders the icon stored in PIN/POLYGON/PATH metadata, with a safe fallback.
 
-// Shared helper for clamping a number into a [lo, hi] range (used by radar state).
+// Shared helper for clamping a number into a [lo, hi] range.
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
-
-// RainViewer palette catalogue — kept in module scope so JSX doesn't have to
-// inline object literals (and so the dropdown and tooltip stay in lockstep).
-// Source: https://www.rainviewer.com/api/weather-maps-api.html
-const RADAR_SCHEMES: number[] = [3, 4, 2, 1, 5, 6, 7, 8, 0];
-const RADAR_SCHEME_NAMES: Record<number, string> = {
-  0: 'Black & White',
-  1: 'Meteored',
-  2: 'The Weather Channel',
-  3: 'Universal Blue',
-  4: 'TITAN',
-  5: 'NEXRAD Level III',
-  6: 'Rainbow',
-  7: 'Dark Sky',
-  8: 'Satellite IR',
-};
 const MetaIcon = ({ icon, fallback, className }: { icon?: LucideIcon; fallback: LucideIcon; className?: string }) => {
   const Icon = icon ?? fallback;
   return <Icon className={className} />;
@@ -847,28 +830,6 @@ export const MapView: React.FC<MapViewProps> = ({
     const saved = safeGetString('letshunt_show_scent_cone');
     return saved ? saved === 'true' : true;
   });
-  // Live precipitation radar (RainViewer) — persists on/off, opacity, and palette.
-  const [showRadar, setShowRadar] = useState(() => {
-    const saved = safeGetString('letshunt_show_radar');
-    return saved ? saved === 'true' : false;
-  });
-  const [radarOpacity, setRadarOpacity] = useState<number>(() => {
-    const saved = safeGetString('letshunt_radar_opacity');
-    const n = saved ? parseFloat(saved) : NaN;
-    return Number.isFinite(n) ? clamp(n, 0.05, 1) : 0.65;
-  });
-  const [radarColorScheme, setRadarColorScheme] = useState<number>(() => {
-    const saved = safeGetString('letshunt_radar_scheme');
-    const n = saved ? parseInt(saved, 10) : NaN;
-    return Number.isFinite(n) ? n : 3;
-  });
-  // Live vs. 5-Day Forecast mode — persisted, defaults to live to keep
-  // existing user behaviour intact on first paint.
-  const [radarMode, setRadarMode] = useState<'live' | 'forecast'>(() => {
-    const saved = safeGetString('letshunt_radar_mode');
-    return saved === 'forecast' ? 'forecast' : 'live';
-  });
-
   // Currently selected pin / polygon
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [selectedPolygonId, setSelectedPolygonId] = useState<string | null>(null);
@@ -962,22 +923,6 @@ export const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     safeSet('letshunt_show_scent_cone', showScentCone.toString());
   }, [showScentCone]);
-
-  useEffect(() => {
-    safeSet('letshunt_show_radar', showRadar.toString());
-  }, [showRadar]);
-
-  useEffect(() => {
-    safeSet('letshunt_radar_opacity', radarOpacity.toString());
-  }, [radarOpacity]);
-
-  useEffect(() => {
-    safeSet('letshunt_radar_scheme', String(radarColorScheme));
-  }, [radarColorScheme]);
-
-  useEffect(() => {
-    safeSet('letshunt_radar_mode', radarMode);
-  }, [radarMode]);
 
   useEffect(() => {
     safeSet('letshunt_map_style', mapStyle);
@@ -2372,29 +2317,6 @@ export const MapView: React.FC<MapViewProps> = ({
         >
           {allTileElements}
 
-          {/* Live Precipitation Radar (RainViewer) — sits between base tiles and
-              the SVG scent/path layer so pins still read clearly. */}
-          <RadarOverlay
-            centerLat={centerLat}
-            centerLon={centerLng}
-            zoom={zoom}
-            width={dimensions.width}
-            height={dimensions.height}
-            opacity={radarOpacity}
-            colorScheme={radarColorScheme}
-            enabled={showRadar}
-            mode={radarMode}
-            onModeChange={setRadarMode}
-            selectedHour={selectedHour}
-            selectedDayIndex={selectedDayIndex}
-            selectedDayDate={activeDayForecast?.date}
-            selectedDayName={activeDayForecast?.dayName}
-            isToday={selectedDayIndex === 0}
-            precipProbability={precipProbability}
-            precipMm={currentHourForecast?.precipMm ?? 0}
-            windDirectionDeg={windDeg}
-          />
-
           {/* SVG Overlay: Polygons, Scent Cones & Routes */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 overflow-visible">
             <defs>
@@ -3146,78 +3068,6 @@ export const MapView: React.FC<MapViewProps> = ({
                   </span>
                 </button>
 
-                {/* Precipitation Radar (RainViewer) Toggle + Controls */}
-                <button
-                  type="button"
-                  onClick={() => setShowRadar((prev) => !prev)}
-                  className={`w-full flex items-center justify-between p-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                    showRadar
-                      ? 'bg-sky-500/15 border-sky-500/50 text-sky-400'
-                      : isDark ? 'bg-slate-950/60 border-slate-800 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Droplets className="w-4 h-4 text-sky-400" />
-                    <span>Live Precipitation Radar</span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
-                    showRadar ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {showRadar ? 'ON' : 'OFF'}
-                  </span>
-                </button>
-
-                {/* Radar sub-controls appear only when the layer is enabled. */}
-                {showRadar && (
-                  <div className={`rounded-xl border p-2 space-y-2 ${
-                    isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100 border-slate-200'
-                  }`}>
-                    {/* Opacity */}
-                    <label className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <span>Opacity</span>
-                      <span>{Math.round(radarOpacity * 100)}%</span>
-                    </label>
-                    <input
-                      type="range"
-                      min={0.1}
-                      max={1}
-                      step={0.05}
-                      value={radarOpacity}
-                      onChange={(e) => setRadarOpacity(clamp(parseFloat(e.target.value), 0.1, 1))}
-                      className={`w-full h-1.5 rounded-lg accent-sky-500 cursor-pointer ui-control border ${
-                        isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-300 border-slate-400'
-                      }`}
-                      style={{
-                        backgroundColor: isDark ? '#334155' : '#cbd5e1',
-                        borderColor: isDark ? '#475569' : '#94a3b8',
-                      }}
-                    />
-                    {/* Palette */}
-                    <label className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <span>Palette</span>
-                      <span className="text-sky-400 normal-case tracking-normal">{RADAR_SCHEME_NAMES[radarColorScheme] ?? 'Universal Blue'}</span>
-                    </label>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {RADAR_SCHEMES.map((scheme) => (
-                        <button
-                          key={scheme}
-                          type="button"
-                          onClick={() => setRadarColorScheme(scheme)}
-                          className={`px-1.5 py-0.5 rounded-md text-[9px] font-black border transition-colors cursor-pointer ${
-                            radarColorScheme === scheme
-                              ? 'bg-sky-500 text-white border-sky-400'
-                              : isDark ? 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                          }`}
-                          aria-label={`Use palette ${RADAR_SCHEME_NAMES[scheme] ?? scheme}`}
-                          title={RADAR_SCHEME_NAMES[scheme] ?? `Scheme ${scheme}`}
-                        >
-                          {scheme}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Markers Toggle */}
                 <button
                   type="button"
@@ -3760,8 +3610,7 @@ export const MapView: React.FC<MapViewProps> = ({
         )}
 
         {/* WIND FLOW DIRECTION CHIP — moved from top-3 (where it clashed with
-            the search container at top-3 left-3 ALSO with the radar status
-            pill at top-14 left-1/2) onto the bottom-right column, stacked
+            the search container at top-3 left-3) onto the bottom-right column, stacked
             directly above the GPS recenter button. Shows only while the
             hourly weather slider is open. */}
         {showHourlyWeather && (
