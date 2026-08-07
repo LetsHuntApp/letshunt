@@ -202,7 +202,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
 
       {/* Hero Header Area: Overall Day Score */}
       <div
-        className={`rounded-3xl border p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 shadow-xl relative overflow-hidden transition-all duration-300 ${
+        className={`rounded-3xl border p-6 sm:p-8 flex flex-col items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden transition-all duration-300 ${
           isExcellentDay
             ? isDark
               ? 'bg-gradient-to-br from-emerald-950/50 via-slate-900 to-slate-950 border-emerald-600/40 text-slate-100'
@@ -233,7 +233,65 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           }`}
         />
 
-        <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-4 max-w-xl z-10">
+        {/* Keep the primary score immediately at the top of the hero, matching the dashboard hierarchy. */}
+        <div className="flex flex-col items-center justify-center space-y-2 shrink-0 z-10">
+          <div className="relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">
+            <svg
+              className="absolute w-full h-full transform -rotate-90"
+              viewBox="0 0 100 100"
+              role="img"
+              aria-label={`Hunt score ${activeScore} out of 100, rated ${getRatingFromScore(activeScore)}`}
+            >
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke={isDark ? '#1e293b' : '#e2e8f0'}
+                strokeWidth="8"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                fill="transparent"
+                stroke={colors.stroke}
+                strokeWidth="8"
+                strokeDasharray={`${2 * Math.PI * 40}`}
+                strokeDashoffset={`${2 * Math.PI * 40 * (1 - activeScore / 100)}`}
+                strokeLinecap="round"
+                className="transition-all duration-300 ease-out"
+              />
+            </svg>
+            <div className="text-center z-10 flex flex-col items-center justify-center">
+              <DeerIcon
+                className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
+                style={{ color: colors.stroke, fill: colors.stroke }}
+              />
+              <div
+                className="text-3xl sm:text-4xl font-black tracking-tight leading-none"
+                style={{ color: colors.stroke }}
+              >
+                {activeScore}
+              </div>
+              <div
+                className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                style={{ color: colors.stroke }}
+              >
+                {isExcellentDay && <Star className="w-3.5 h-3.5" style={{ color: colors.stroke, fill: colors.stroke }} />}
+                <span>{getRatingFromScore(activeScore)}</span>
+              </div>
+              <div
+                className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
+                style={{ color: colors.stroke }}
+              >
+                SCORE
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full flex flex-col items-center text-center space-y-4 max-w-3xl z-10">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
@@ -295,61 +353,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           </div>
         </div>
 
-        {/* Circular Gauge Score */}
-        <div className="flex flex-col items-center justify-center space-y-2 shrink-0 z-10">
-          <div className="relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">
-            {/* SVG Circle Track */}
-            <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              {/* Background Track */}
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke={isDark ? '#1e293b' : '#e2e8f0'}
-                strokeWidth="8"
-              />
-              {/* Colored Indicator */}
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke={colors.stroke}
-                strokeWidth="8"
-                strokeDasharray={`${2 * Math.PI * 40}`}
-                strokeDashoffset={`${2 * Math.PI * 40 * (1 - activeScore / 100)}`}
-                strokeLinecap="round"
-                className="transition-all duration-300 ease-out"
-              />
-            </svg>
-            <div className="text-center z-10 flex flex-col items-center justify-center">
-              <DeerIcon
-                className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
-                style={{ color: colors.stroke, fill: colors.stroke }}
-              />
-              <div
-                className="text-3xl sm:text-4xl font-black tracking-tight leading-none"
-                style={{ color: colors.stroke }}
-              >
-                {activeScore}
-              </div>
-              <div
-                className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
-                style={{ color: colors.stroke }}
-              >
-                {isExcellentDay && <Star className="w-3.5 h-3.5" style={{ color: colors.stroke, fill: colors.stroke }} />}
-                <span>{getRatingFromScore(activeScore)}</span>
-              </div>
-              <div
-                className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
-                style={{ color: colors.stroke }}
-              >
-                SCORE
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Grid Section */}
