@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { ForecastRadarOverlay } from './ForecastRadarOverlay';
 
 /**
  * Interactive precipitation-radar overlay tied to the hourly weather slider
@@ -47,8 +48,18 @@ interface RadarOverlayProps {
   colorScheme: number;
   /** Master toggle — renders nothing and stops fetching when false. */
   enabled: boolean;
+  /** Live = real-time RainViewer tiles; Forecast = Open-Meteo 5-day precipitation
+   *  grid painted at each cell's actual lat/lng. Defaults to 'live' which keeps
+   *  the historical behaviour intact when callers haven't upgraded yet. */
+  mode?: 'live' | 'forecast';
+  /** Notify parent when the user toggles between Live Radar and 5-Day Forecast
+   *  so the choice can be persisted to localStorage. */
+  onModeChange?: (next: 'live' | 'forecast') => void;
   /** Hour selected on the 0–23 hourly slider. */
   selectedHour: number;
+  /** 0..4 — currently-selected 5-day forecast day index (0 = today). Passed to
+   *  the forecast overlay so scrubbing the day buttons advances frame index. */
+  selectedDayIndex?: number;
   /** Date string of the selected forecast day (YYYY-MM-DD). */
   selectedDayDate?: string;
   /** Human label of the selected day ("Today", "Tomorrow", "Tue", …). */
@@ -217,7 +228,10 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   opacity,
   colorScheme,
   enabled,
+  mode = 'live',
+  onModeChange,
   selectedHour,
+  selectedDayIndex = 0,
   selectedDayDate,
   selectedDayName,
   isToday,
@@ -232,6 +246,11 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [autoPlayIdx, setAutoPlayIdx] = useState(0);
+
+  // The forecast overlay keeps its own painted UI, so when in forecast mode
+  // we don't need RainViewer tiles or the synthesized drift-blob layer.
+  const isForecast = mode === 'forecast';
+  const liveEnabled = enabled && !isForecast;
 
   // The exact moment selected by the slider + day buttons.
   const selectedDateTime = useMemo(() => {
@@ -319,16 +338,16 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
     })();
 
     return () => { cancelled = true; };
-  }, [enabled, refreshIntervalMs]);
+  }, [liveEnabled, refreshIntervalMs]);
 
   // Auto-play: advance through frames at frameStepMs.
   useEffect(() => {
-    if (!enabled || !isAutoPlaying || frames.length <= 1) return;
+    if (!liveEnabled || !isAutoPlaying || frames.length <= 1) return;
     const id = setInterval(() => {
       setAutoPlayIdx((i) => (i + 1) % frames.length);
     }, Math.max(1500, frameStepMs));
     return () => clearInterval(id);
-  }, [enabled, isAutoPlaying, frames.length, frameStepMs]);
+  }, [liveEnabled, isAutoPlaying, frames.length, frameStepMs]);
 
   // Stop auto-play when the user manually moves the slider or switches days.
   useEffect(() => {
@@ -378,7 +397,12 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
     1
   );
   const forecastLayerOpacity = forecastScale * baseOpacity;
-  const showForecastRain = inForecastMode && forecastLayerOpacity > 0.01;
+  // The drift-blob synthesis only belongs on the LIVE branch — when the user
+  // explicitly switches to "5-Day Forecast" mode, the proper
+  // <ForecastRadarOverlay> canvas takes over and we hide the synthesised
+  // preview so the two layers don't stack on top of each other.
+  const showForecastRain =
+    inForecastMode && !isForecast && forecastLayerOpacity > 0.01;
   // Blob coverage grows with forecast intensity (radar-like bands appearing).
   // Blobs are sorted nearest-first, so light rain shows as a small core near
   // the location that spreads outward as the hour's chance/amount increases.
@@ -400,10 +424,30 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   const coverageStart = frames.length ? formatTime(frames[0].time) : '';
   const coverageEnd = frames.length ? formatTime(frames[frames.length - 1].time) : '';
 
-  const canAnimate = isToday && frames.length > 1;
+  const canAnimate = isToday && frames.length > 1 && !isForecast;
 
   return (
     <>
+      {/* 5-Day Precipitation Forecast overlay — paints a real precipitation
+          canvas at each grid cell's actual lat/lng when the user has switched
+          modes. Drives its own play/pause/loop UI and status pill; the
+          RainViewer tiles and synthesised drift-blobs stay hidden in this
+          mode so the two overlays never stack on top of each other. */}
+      {isForecast && enabled && (
+        <ForecastRadarOverlay
+          centerLat={centerLat}
+          centerLon={centerLon}
+          zoom={zoom}
+          width={width}
+          height={height}
+          opacity={baseOpacity}
+          enabled={enabled}
+          selectedHour={selectedHour}
+          selectedDayIndex={selectedDayIndex}
+          selectedDayName={selectedDayName}
+        />
+      )}
+
       {/* Animated forecast-rain layer — used whenever the selected day + hour
           has no observed radar (any future hour, or a different day). Driven by
           the Open-Meteo 5-day hourly forecast: blob coverage and opacity follow
@@ -575,6 +619,52 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
           )}
         </div>
       </div>
+
+      {/* Live / 5-Day Forecast mode toggle pill — sits just under the radar
+          status chip on the bottom-center column. Hidden when the master
+          radar switch is off. */}
+      {enabled && onModeChange && (
+        <div
+          role="tablist"
+          aria-label="Radar mode"
+          className="absolute bottom-16 sm:bottom-4 left-1/2 -translate-x-1/2 z-[41] flex items-center gap-1 px-1.5 py-1 rounded-full bg-slate-900/85 border border-slate-700/70 shadow-2xl backdrop-blur-md pointer-events-auto"
+          title="Switch between live radar tiles and the Open-Meteo 5-day precipitation forecast."
+        >
+          <button
+            role="tab"
+            aria-selected={mode === 'live'}
+            onClick={() => onModeChange('live')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+              mode === 'live'
+                ? 'bg-sky-500/35 text-sky-100 ring-1 ring-sky-400/60'
+                : 'text-slate-400 hover:text-sky-300 hover:bg-sky-500/15'
+            }`}
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <circle cx="6" cy="6" r="4.4" />
+              <circle cx="6" cy="6" r="1.6" fill="currentColor" />
+              <path d="M6 1 v1.4 M6 9.6 V11 M1 6 h1.4 M9.6 6 H11" strokeLinecap="round" />
+            </svg>
+            Live Radar
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === 'forecast'}
+            onClick={() => onModeChange('forecast')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+              mode === 'forecast'
+                ? 'bg-violet-500/35 text-violet-100 ring-1 ring-violet-400/60'
+                : 'text-slate-400 hover:text-violet-300 hover:bg-violet-500/15'
+            }`}
+          >
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+              <path d="M3.5 4 a1.6 1.6 0 0 1 3.2 0 c1 0 1.7 0.7 1.7 1.6 c0 0.9 -0.7 1.5 -1.7 1.5 H3.4 c-0.8 0 -1.5 -0.6 -1.5 -1.4 c0 -0.8 0.7 -1.4 1.6 -1.7 z" />
+              <path d="M4 9 l1 1.6 M6.5 9 l1 1.6 M9 9 l1 1.6" strokeLinecap="round" />
+            </svg>
+            5-Day Forecast
+          </button>
+        </div>
+      )}
     </>
   );
 };

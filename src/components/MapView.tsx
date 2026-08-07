@@ -862,6 +862,12 @@ export const MapView: React.FC<MapViewProps> = ({
     const n = saved ? parseInt(saved, 10) : NaN;
     return Number.isFinite(n) ? n : 3;
   });
+  // Live vs. 5-Day Forecast mode — persisted, defaults to live to keep
+  // existing user behaviour intact on first paint.
+  const [radarMode, setRadarMode] = useState<'live' | 'forecast'>(() => {
+    const saved = safeGetString('letshunt_radar_mode');
+    return saved === 'forecast' ? 'forecast' : 'live';
+  });
 
   // Currently selected pin / polygon
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
@@ -968,6 +974,10 @@ export const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     safeSet('letshunt_radar_scheme', String(radarColorScheme));
   }, [radarColorScheme]);
+
+  useEffect(() => {
+    safeSet('letshunt_radar_mode', radarMode);
+  }, [radarMode]);
 
   useEffect(() => {
     safeSet('letshunt_map_style', mapStyle);
@@ -2373,7 +2383,10 @@ export const MapView: React.FC<MapViewProps> = ({
             opacity={radarOpacity}
             colorScheme={radarColorScheme}
             enabled={showRadar}
+            mode={radarMode}
+            onModeChange={setRadarMode}
             selectedHour={selectedHour}
+            selectedDayIndex={selectedDayIndex}
             selectedDayDate={activeDayForecast?.date}
             selectedDayName={activeDayForecast?.dayName}
             isToday={selectedDayIndex === 0}
