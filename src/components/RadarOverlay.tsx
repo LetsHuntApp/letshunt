@@ -487,9 +487,16 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
         </div>
       )}
 
-      {/* Status chip — top-center: live radar info, or the exact forecast for
-          the selected day + hour. Play/pause animates the frames. */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[40] pointer-events-auto">
+      {/* Status chip — moved off the top-strip into the bottom-center
+          column, just above the HOURLY WEATHER toggle / floating slider.
+          Reason: the top-center lane is shared with the search container
+          (top-3) and the wind flow chip (top-3 left-1/2), and the resulting
+          preciptation status pill ("FORECAST · SUN · 43% RAIN · 2.2 MM…")
+          was clipping behind the "Jump to location…" search popdown on
+          narrow viewports. Sinking it to bottom-12 left-1/2 puts it on its
+          own clean vertical column beside the bottom-center HOURLY WEATHER
+          button, with `sm:bottom-3` keeping the layout generous on phones. */}
+      <div className="absolute bottom-28 sm:bottom-14 left-1/2 -translate-x-1/2 z-[40] pointer-events-auto">
         <div
           role="status"
           aria-live="polite"

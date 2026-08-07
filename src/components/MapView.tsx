@@ -3732,9 +3732,13 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
 
-        {/* WIND FLOW DIRECTION CHIP — top center, only while the hourly weather slider is open */}
+        {/* WIND FLOW DIRECTION CHIP — moved from top-3 (where it clashed with
+            the search container at top-3 left-3 ALSO with the radar status
+            pill at top-14 left-1/2) onto the bottom-right column, stacked
+            directly above the GPS recenter button. Shows only while the
+            hourly weather slider is open. */}
         {showHourlyWeather && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 hidden sm:flex items-center gap-1.5 pointer-events-none animate-fadeIn max-w-[calc(100%-170px)]">
+          <div className="absolute bottom-16 sm:bottom-12 right-4 z-[32] hidden sm:flex items-center gap-1.5 pointer-events-none animate-fadeIn max-w-[calc(100%-170px)]">
             <div
               className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 backdrop-blur-md shadow-2xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
                 isDark ? 'bg-slate-950/90 border-sky-500/40 text-sky-200' : 'bg-white/95 border-sky-500/40 text-sky-800'
