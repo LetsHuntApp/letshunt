@@ -32,11 +32,10 @@ function average(values: number[]): number {
  * showers (code 80) makes the entire day show "Passing Showers" even when
  * 23 out of 24 hours are clear.
  *
- * Strategy: count how many hours fall into each severity tier. If precipitation
- * only occurs in a small minority of hours (< 4 h), we describe the day by
- * its dominant *non-precipitating* condition instead. This makes the daily
- * card representative of what the user will actually experience for most of
- * the day.
+ * Strategy:
+ * 1. Count hours by category (rain, fog, clear, cloudy).
+ * 2. Detect rain patterns: single block vs scattered on-and-off.
+ * 3. Pick the most representative description based on the pattern.
  */
 function computeRepresentativeDailyWeather(
   hourlyCodes: number[],
@@ -46,39 +45,63 @@ function computeRepresentativeDailyWeather(
     return { code: fallbackCode, ...getWeatherDetails(fallbackCode) };
   }
 
-  // Weather-code severity tiers (higher = more significant)
   const isRain = (c: number) =>
     (c >= 51 && c <= 65) || (c >= 80 && c <= 82) || c >= 95;
   const isFog = (c: number) => c === 45 || c === 48;
   const isClear = (c: number) => c <= 1;
   const isCloudy = (c: number) => c === 2 || c === 3;
+  const isHeavyRain = (c: number) => c === 63 || c === 65 || c >= 95;
+  const isLightRain = (c: number) => (c >= 51 && c <= 55) || c === 61 || (c >= 80 && c <= 82);
 
   let rainHours = 0;
   let fogHours = 0;
   let clearHours = 0;
   let cloudyHours = 0;
+  let heavyRainHours = 0;
+  let lightRainHours = 0;
   const total = hourlyCodes.length;
 
-  // Track the heaviest rain code seen (for days where rain is dominant)
+  // Track rain blocks: count transitions from non-rain → rain → non-rain
+  let rainBlocks = 0;
+  let wasRaining = false;
   let worstRainCode = 0;
+  // Track longest dry gap between rain blocks
+  let maxDryGap = 0;
+  let currentDryGap = 0;
+  let inRainBlock = false;
+  let firstRainIdx = -1;
+  let lastRainIdx = -1;
 
-  for (const c of hourlyCodes) {
+  for (let i = 0; i < total; i++) {
+    const c = hourlyCodes[i];
     if (isRain(c)) {
       rainHours++;
+      if (isHeavyRain(c)) heavyRainHours++;
+      else lightRainHours++;
       if (c > worstRainCode) worstRainCode = c;
-    } else if (isFog(c)) {
-      fogHours++;
-    } else if (isClear(c)) {
-      clearHours++;
-    } else if (isCloudy(c)) {
-      cloudyHours++;
+      if (firstRainIdx === -1) firstRainIdx = i;
+      lastRainIdx = i;
+      if (!wasRaining) rainBlocks++;
+      wasRaining = true;
+      currentDryGap = 0;
+      inRainBlock = true;
+    } else {
+      if (isFog(c)) fogHours++;
+      else if (isClear(c)) clearHours++;
+      else if (isCloudy(c)) cloudyHours++;
+      wasRaining = false;
+      if (inRainBlock) {
+        currentDryGap++;
+        if (currentDryGap > maxDryGap) maxDryGap = currentDryGap;
+      }
+      if (currentDryGap >= 2) inRainBlock = false; // gap is long enough to be a break
     }
   }
 
   const rainPct = rainHours / total;
+  const dryHours = total - rainHours;
 
-  // If rain occupies less than ~17% of the day (< 4 h), the day is mostly
-  // fair — describe it by the dominant non-precipitating condition.
+  // --- Pattern 1: Minimal rain (< 4 h) — mostly fair ---
   if (rainPct < 4 / 24) {
     if (fogHours >= clearHours && fogHours >= cloudyHours && fogHours > 0) {
       return { code: 45, ...getWeatherDetails(45) };
@@ -86,19 +109,47 @@ function computeRepresentativeDailyWeather(
     if (clearHours >= cloudyHours) {
       return { code: clearHours > total / 2 ? 0 : 1, ...getWeatherDetails(clearHours > total / 2 ? 0 : 1) };
     }
-    // Mostly cloudy
     return { code: 3, ...getWeatherDetails(3) };
   }
 
-  // Rain is a meaningful part of the day — use the worst rain code, but
-  // soften very brief heavy bursts (e.g. 1 h of code 80) to a gentler label
-  // when the rain fraction is still modest.
-  if (rainPct < 0.25 && worstRainCode >= 80 && worstRainCode <= 82) {
-    // Brief showers — label as "Partly Cloudy, brief showers" by picking the
-    // underlying cloud code (2 = partly cloudy) so the icon isn't alarming.
+  // --- Pattern 2: On-and-off rain with clear breaks (scattered showers) ---
+  // Rain occurs in 2+ separate blocks with meaningful dry gaps between them.
+  if (rainBlocks >= 2 && maxDryGap >= 2) {
+    if (heavyRainHours > 0) {
+      return { code: worstRainCode, desc: 'Rainy with clear breaks', icon: 'CloudRain' };
+    }
+    return { code: 80, desc: 'Showers with sunny intervals', icon: 'CloudRain' };
+  }
+
+  // --- Pattern 3: Rain is the dominant condition ---
+  if (rainPct >= 0.5) {
+    // More than half the day is rainy
+    if (heavyRainHours > rainHours * 0.3) {
+      return { code: worstRainCode, ...getWeatherDetails(worstRainCode) };
+    }
+    // Mostly light rain/drizzle
+    if (clearHours >= 2) {
+      return { code: 61, desc: 'Rainy with clear breaks', icon: 'CloudRain' };
+    }
+    return { code: worstRainCode, ...getWeatherDetails(worstRainCode) };
+  }
+
+  // --- Pattern 4: Moderate rain (4-50% of day) with clear breaks ---
+  if (clearHours >= 3 && rainHours >= 4) {
+    // Significant dry windows exist between rain
+    if (heavyRainHours > 0) {
+      return { code: worstRainCode, desc: 'Rainy with clear breaks', icon: 'CloudRain' };
+    }
+    return { code: 80, desc: 'Showers with sunny intervals', icon: 'CloudRain' };
+  }
+
+  // --- Pattern 5: Brief light showers (< 25% of day) ---
+  if (rainPct < 0.25 && lightRainHours === rainHours) {
+    // All rain is light — soften to partly cloudy
     return { code: 2, ...getWeatherDetails(2) };
   }
 
+  // --- Fallback: use the worst rain code ---
   return { code: worstRainCode, ...getWeatherDetails(worstRainCode) };
 }
 
