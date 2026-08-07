@@ -83,6 +83,20 @@ button, a, input, select, textarea {
   background: rgba(71, 85, 105, 0.7);
 }
 
+/* Hide scrollbars for the inline weather-stat strip in the hourly slider.
+   The strip is a tiny single-line row of pills and a visible scrollbar
+   would just look broken — but it still needs to be scrollable on phones
+   when the row is wider than the card. */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* ===== CARD SECTION HEADER ACCENT ===== */
 /* Consistent left-accent style for card section headers */
 .section-header-accent {

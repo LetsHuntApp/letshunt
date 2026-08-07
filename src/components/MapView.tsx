@@ -1000,6 +1000,16 @@ export const MapView: React.FC<MapViewProps> = ({
   const rotationRef = useRef<number>(0);
   const [rotationDisplay, setRotationDisplay] = useState(0);
   const initialPinchAngleRef = useRef<number | null>(null);
+  // Track the last frame's angle between the two fingers so rotation can
+  // accumulate in small normalized deltas instead of diffing against the
+  // gesture-start angle — atan2 wraps discontinuously at +/-180° and fingers
+  // can swap order mid-gesture, both of which produced embarrassing 360°
+  // jumps that snapped the map to a wildly wrong orientation.
+  const lastRotationAngleRef = useRef<number | null>(null);
+  // Marker Pins overlay lives inside the same transformed container as the
+  // tiles; we update its inverse transform from applyMapTransform rather than
+  // via React state, so pin sizing is frame-perfect during the gesture.
+  const pinOverlayRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 640,
     height: typeof window !== 'undefined' ? window.innerHeight : 480,
@@ -1967,6 +1977,27 @@ export const MapView: React.FC<MapViewProps> = ({
     if (mapContainerRef.current) {
       mapContainerRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale}) rotate(${rotation}deg)`;
     }
+    // Counter-scale and counter-rotate the pin/overlay layer in lockstep with
+    // the map. Doing it from the DOM here (instead of via JSX inline style)
+    // means the inverse is applied on EVERY animation frame during the
+    // gesture — pins stay perfectly constant-sized and upright instead of
+    // re-asserting their size only after React re-renders when the gesture
+    // ends.
+    const overlay = pinOverlayRef.current;
+    if (overlay) {
+      // Visual origin of the overlay needs to match the map container so
+      // rotate() doesn't swing the pins off into the corner when the user
+      // rotates. The pins were rendered with transformOrigin at the top-left
+      // (per-element for each pin); the overlay itself doesn't need its own
+      // transform-origin since the inner pin coordinates are absolute pixels
+      // — wrap them in a rotation around (0, 0) and CSS handles the rest
+      // because each pin sits in pre-rotation coordinates.
+      const invScale = 1 / scale;
+      const transform = (scale !== 1 || rotation !== 0)
+        ? `scale(${invScale}) rotate(${-rotation}deg)`
+        : '';
+      overlay.style.transform = transform;
+    }
   };
 
   // Wheel zoom — debounced state update for smoothness.
@@ -2007,6 +2038,7 @@ export const MapView: React.FC<MapViewProps> = ({
           touch2.clientY - touch1.clientY,
           touch2.clientX - touch1.clientX
         ) * (180 / Math.PI);
+        lastRotationAngleRef.current = initialPinchAngleRef.current;
       }
     };
 
@@ -2026,17 +2058,27 @@ export const MapView: React.FC<MapViewProps> = ({
         zoomScaleRef.current = newScale;
         // --- Two-finger rotation ---
         if (initialPinchAngleRef.current !== null) {
-          const currentAngle = Math.atan2(
-            touch2.clientY - touch1.clientY,
-            touch2.clientX - touch1.clientX
-          ) * (180 / Math.PI);
-          // Apply 0.5x damping so rotation is less twitchy
-          rotationRef.current = (currentAngle - initialPinchAngleRef.current) * 0.5;
-        }
-        // Apply combined scale + rotation as CSS transform — no React re-render.
-        applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
-      }
-    };
+          const currentAngle = Math.atan2(             touch2.clientY - touch1.clientY,
+             touch2.clientX - touch1.clientX
+           ) * (180 / Math.PI);
+           // Accumulate rotation as an incremental delta vs the previous
+           // frame's angle, normalized into (-180°, 180°]. This naturally
+           // wraps past atan2's +/-180° discontinuity and survives finger
+           // swaps — both of which used to produce a sudden 360° snap.
+           if (lastRotationAngleRef.current !== null) {
+             let delta = currentAngle - lastRotationAngleRef.current;
+             if (delta > 180) delta -= 360;
+             if (delta < -180) delta += 360;
+             // 0.5x damping keeps rotation slightly under finger speed so the
+             // map feels controllable instead of twitchy.
+             rotationRef.current += delta * 0.5;
+           }
+           lastRotationAngleRef.current = currentAngle;
+         }
+         // Apply combined scale + rotation as CSS transform — no React re-render.
+         applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+       }
+     };
 
     const handleNativeTouchEnd = (e: TouchEvent) => {
       if (isPinchingRef.current || e.touches.length >= 2) {
@@ -2047,18 +2089,20 @@ export const MapView: React.FC<MapViewProps> = ({
         pinchDistRef.current = null;
         initialZoomRef.current = null;
         initialPinchAngleRef.current = null;
+        lastRotationAngleRef.current = null;
         // Sync accumulated CSS scale into React state.
         const scaleRatio = zoomScaleRef.current;
         const zoomOffset = Math.log2(scaleRatio);
-        setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
-        zoomScaleRef.current = 1;
+        setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));         zoomScaleRef.current = 1;
         // Sync rotation display for the UI indicator.
         setRotationDisplay(rotationRef.current);
         // Defer transform reset to next frame to eliminate pinch-end jump.
+        // Also re-apply the pins overlay's transform here so any leftover
+        // inverse-scale (1 / old zoom) gets cleared in lockstep — the
+        // overlay's previous transform was driven by zoomScaleRef.current
+        // which we just reset to 1.
         requestAnimationFrame(() => {
-          if (mapContainerRef.current) {
-            mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
-          }
+          applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
         });
       }
     };
@@ -2090,6 +2134,7 @@ export const MapView: React.FC<MapViewProps> = ({
         touch2.clientY - touch1.clientY,
         touch2.clientX - touch1.clientX
       ) * (180 / Math.PI);
+      lastRotationAngleRef.current = initialPinchAngleRef.current;
       return;
     }
 
@@ -2124,8 +2169,16 @@ export const MapView: React.FC<MapViewProps> = ({
           touch2.clientY - touch1.clientY,
           touch2.clientX - touch1.clientX
         ) * (180 / Math.PI);
-        // Apply 0.5x damping so rotation is less twitchy
-        rotationRef.current = (currentAngle - initialPinchAngleRef.current) * 0.5;
+        // Incremental-delta rotation: same wrap-safe logic as the native path,
+        // necessary for React-synthetic TouchEvents too (otherwise the same
+        // 360° snap appears here on touchscreens that route through React).
+        if (lastRotationAngleRef.current !== null) {
+          let delta = currentAngle - lastRotationAngleRef.current;
+          if (delta > 180) delta -= 360;
+          if (delta < -180) delta += 360;
+          rotationRef.current += delta * 0.5;
+        }
+        lastRotationAngleRef.current = currentAngle;
       }
       // Apply combined scale + rotation as CSS transform — no React re-render.
       applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
@@ -2156,6 +2209,7 @@ export const MapView: React.FC<MapViewProps> = ({
       pinchDistRef.current = null;
       initialZoomRef.current = null;
       initialPinchAngleRef.current = null;
+      lastRotationAngleRef.current = null;
       // Sync accumulated pan offset into React state
       const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
       const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
@@ -2173,10 +2227,12 @@ export const MapView: React.FC<MapViewProps> = ({
       // Sync rotation display for the UI indicator.
       setRotationDisplay(rotationRef.current);
       // Defer transform reset to next frame to eliminate pinch-end jump.
+      // Re-run applyMapTransform here so the pins overlay picks up the fresh
+      // zoom/rotation values in lockstep with the map container's new
+      // transform — otherwise the overlay sticks on whatever inverse scale
+      // it had mid-gesture and pins look slightly off until the next touch.
       requestAnimationFrame(() => {
-        if (mapContainerRef.current) {
-          mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
-        }
+        applyMapTransform(1, 0, 0, rotationRef.current);
       });
       return;
     }
@@ -2788,16 +2844,14 @@ export const MapView: React.FC<MapViewProps> = ({
             {/* Gradients now defined at top of SVG */}
           </svg>
 
-          {/* Marker Pins Overlay — counter-scaled AND counter-rotated during
-              pinch/rotation gestures so pins stay the same size and upright
-              while the map tiles scale and rotate. */}
+          {/* Marker Pins Overlay — inverse scale + inverse rotation applied
+              directly via DOM in applyMapTransform (every animation frame)
+              so pins stay the same size and upright *while* the user pinches
+              and twists, not just after React decides to re-render at the
+              end of the gesture. */}
           <div
+            ref={pinOverlayRef}
             className="absolute inset-0 pointer-events-none z-20"
-            style={{
-              transform: (zoomScaleRef.current !== 1 || rotationRef.current !== 0)
-                ? `scale(${1 / zoomScaleRef.current}) rotate(${-rotationRef.current}deg)`
-                : undefined,
-            }}
           >
             {/* User's Current Location Marker — blue dot tracks the live GPS fix
                 once the locate button is used; falls back to the forecast location
@@ -3644,6 +3698,9 @@ export const MapView: React.FC<MapViewProps> = ({
               onClick={() => {
                 rotationRef.current = 0;
                 setRotationDisplay(0);
+                // applyMapTransform also clears the pins overlay's inverse
+                // transform to 'none', so both the tiles and the pins return
+                // to north-up & full size together.
                 applyMapTransform(zoomScaleRef.current, panOffsetRef.current.x, panOffsetRef.current.y, 0);
               }}
               className={`p-2 rounded-2xl border shadow-xl backdrop-blur-md transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -3700,27 +3757,31 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
 
-        {/* ONE SHARED HOURLY WEATHER SLIDER: wind + precipitation forecast */}
+        {/* ONE SHARED HOURLY WEATHER SLIDER: wind + precipitation forecast
+            Compact 2-row layout: hour label + slider + Best Path chip + close
+            on top, weather stats in one tight scrolling row below. No day
+            buttons (the day's name already shows on the forecast cards), no
+            bulky 4-column grid — every element earns its space. */}
         {showHourlyWeather && (
           <div
             id="map-hourly-weather-control"
-            className={`absolute ${selectedPin ? 'bottom-52 sm:bottom-3' : 'bottom-16 sm:bottom-3'} left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn`}
+            className={`absolute ${selectedPin ? 'bottom-44 sm:bottom-3' : 'bottom-16 sm:bottom-3'} left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn`}
             role="region"
             aria-label="Hourly weather forecast"
           >
             <div
-              className={`rounded-2xl border shadow-2xl backdrop-blur-md px-3 py-2 ${
+              className={`rounded-xl border shadow-2xl backdrop-blur-md px-2.5 py-1.5 ${
                 isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
               }`}
             >
-              <div className="flex items-center gap-2 sm:gap-3">
-                <Clock className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-xs font-black whitespace-nowrap">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Clock className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span className="text-[11px] font-black whitespace-nowrap tabular-nums">
                   {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
                 </span>
                 {bestPathActive && (
-                  <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-md border border-emerald-500/30 whitespace-nowrap">
-                    <GitBranch className="w-3 h-3 inline -mt-0.5 mr-0.5" />Best Path Active
+                  <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap hidden sm:inline-flex items-center gap-0.5">
+                    <GitBranch className="w-2.5 h-2.5" />Best Path
                   </span>
                 )}
                 <input
@@ -3729,48 +3790,36 @@ export const MapView: React.FC<MapViewProps> = ({
                   max="23"
                   value={selectedHour}
                   onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
-                  className={`flex-1 min-w-0 accent-emerald-500 cursor-pointer h-1.5 border rounded-lg ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-300 border-slate-400'}`}
-                  style={{ backgroundColor: isDark ? '#334155' : '#cbd5e1', borderColor: isDark ? '#475569' : '#94a3b8' }}
+                  className={`flex-1 min-w-0 accent-emerald-500 cursor-pointer h-1 border rounded-full ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}
+                  style={{ backgroundColor: isDark ? '#334155' : '#cbd5e1' }}
                   aria-label="Hourly weather slider"
                 />
                 <button
                   onClick={() => setShowHourlyWeather(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
+                  className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
                   title="Close hourly weather slider"
                   aria-label="Close hourly weather forecast"
                   aria-expanded={showHourlyWeather}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              {/* Day buttons — hidden when a pin is selected to save space */}
-              {!selectedPin && (
-              <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pt-2 border-t border-slate-700/30 pb-0.5" aria-label="Forecast day">
-                {activeForecasts.slice(0, 7).map((day, index) => (
-                  <button
-                    key={day.date}
-                    type="button"
-                    onClick={() => setSelectedDayIndex(index)}
-                    aria-pressed={selectedDayIndex === index}
-                    className={`px-2 py-1 rounded-lg border text-[10px] font-black whitespace-nowrap transition-colors ${
-                      selectedDayIndex === index
-                        ? 'bg-emerald-600 border-emerald-500 text-white'
-                        : isDark
-                        ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
-                        : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {day.dayName}
-                  </button>
-                ))}
-              </div>
-              )}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5 mt-2 text-[10px] font-bold">
-                <span className="flex items-center gap-1.5"><Wind className="w-3 h-3 text-emerald-400" /> {windDirText} @ {displayWindSpeed}</span>
-                <span className="flex items-center gap-1.5"><Droplets className="w-3 h-3 text-sky-400" /> {precipProbability}% rain · {displayPrecipAmount}</span>
-                <span className="flex items-center gap-1.5 text-sky-400"><Navigation className="w-3 h-3" style={{ transform: `rotate(${downwindDeg}deg)` }} /> Scent → {downwindDirText}</span>
-                <span className={`flex items-center gap-1.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
-                  <Sparkles className="w-3 h-3" /> {currentHourForecast?.isPrimeWindow ? 'Prime hunt window' : `${currentHourForecast?.temp ?? '--'}°`}
+              {/* Single-row weather stats — gapless inline pills that scroll
+                  horizontally on cramped screens so the bar never wraps into
+                  multiple lines. */}
+              <div className="flex items-center gap-1 mt-1 overflow-x-auto whitespace-nowrap text-[9px] font-bold scrollbar-none">
+                <span className="inline-flex items-center gap-0.5 text-emerald-400"><Wind className="w-2.5 h-2.5" />{windDirText} {displayWindSpeed}</span>
+                <span className="text-slate-500">·</span>
+                <span className="inline-flex items-center gap-0.5 text-sky-400"><Droplets className="w-2.5 h-2.5" />{precipProbability}% · {displayPrecipAmount}</span>
+                <span className="text-slate-500">·</span>
+                <span className="inline-flex items-center gap-0.5 text-sky-400">
+                  <Navigation className="w-2.5 h-2.5" style={{ transform: `rotate(${downwindDeg}deg)` }} />
+                  Scent → {downwindDirText}
+                </span>
+                <span className="text-slate-500">·</span>
+                <span className={`inline-flex items-center gap-0.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {currentHourForecast?.isPrimeWindow ? 'Prime window' : `${currentHourForecast?.temp ?? '--'}°`}
                 </span>
               </div>
             </div>
