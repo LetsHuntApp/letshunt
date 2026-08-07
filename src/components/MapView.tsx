@@ -1899,13 +1899,17 @@ export const MapView: React.FC<MapViewProps> = ({
 
     const renderBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
     const tileSize = 256 * Math.pow(2, zoom - renderBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
+    // Tile elements are rendered at the rounded base zoom and scaled to the
+    // fractional `zoom`. Keep both the center coordinate and the conversion
+    // zoom at that same base zoom; mixing a `zoom` coordinate with a base-zoom
+    // pixel size shifts clicks (and pan release math) whenever zoom is .5.
+    const centerTile = latLngToTileCoords(centerLat, centerLng, renderBaseZoom);
     const mouseTileX = centerTile.x + (clickX - dimensions.width / 2) / tileSize;
     const mouseTileY = centerTile.y + (clickY - dimensions.height / 2) / tileSize;
 
     return {
-      lat: tileYToLat(mouseTileY, zoom),
-      lng: tileXToLng(mouseTileX, zoom),
+      lat: tileYToLat(mouseTileY, renderBaseZoom),
+      lng: tileXToLng(mouseTileX, renderBaseZoom),
     };
   };
 
@@ -1937,11 +1941,28 @@ export const MapView: React.FC<MapViewProps> = ({
     // No React state update = no re-render during drag.
     panOffsetRef.current.x += dx;
     panOffsetRef.current.y += dy;
-    if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) rotate(${rotationRef.current}deg)`;
-    }
+    applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
 
     dragStartRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  // Convert the screen-space CSS translation back into the map's local
+  // (unrotated) tile coordinates before baking it into the geographic center.
+  // Without this inverse rotation, releasing a pan after rotating the map
+  // shifts the center along the wrong axis.
+  const getPannedCenterTile = (
+    centerTile: { x: number; y: number },
+    offset: { x: number; y: number },
+    tileSize: number,
+    rotation: number
+  ) => {
+    const radians = (-rotation * Math.PI) / 180;
+    const localX = offset.x * Math.cos(radians) - offset.y * Math.sin(radians);
+    const localY = offset.x * Math.sin(radians) + offset.y * Math.cos(radians);
+    return {
+      x: centerTile.x - localX / tileSize,
+      y: centerTile.y - localY / tileSize,
+    };
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
@@ -1952,13 +1973,17 @@ export const MapView: React.FC<MapViewProps> = ({
     // rendered tiles naturally land at the panned position WITHOUT the
     // CSS transform. Sign is positive: dragging content rightward
     // (panOffset.x > 0) reveals what's further east, so the new center
-    // moves east, not west. Earlier code subtracted, which produced a
-    // 1-frame "double-snap" jump on every drag release.
+    // moves west, not east. The rendered tile math is:
+    // tileLeft = center + (tile - centerTile) * tileSize, so a positive
+    // CSS translation must be baked into the center with a MINUS sign.
+    // The old positive sign applied the gesture twice and caused the map
+    // to jump away from the finger on release.
     const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
     const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const newX = centerTile.x + panOffsetRef.current.x / tileSize;
-    const newY = centerTile.y + panOffsetRef.current.y / tileSize;
+    const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+    const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
+    const newX = pannedCenter.x;
+    const newY = pannedCenter.y;
     panOffsetRef.current = { x: 0, y: 0 };
 
     // ORDER MATTERS: COMMIT FIRST, then clear the CSS translate.
@@ -1973,8 +1998,8 @@ export const MapView: React.FC<MapViewProps> = ({
     // identity translate — which is the "snap back then snap forward"
     // glitch (looks like the map races off on release).
     flushSync(() => {
-      setCenterLng(tileXToLng(newX, zoom));
-      setCenterLat(tileYToLat(newY, zoom));
+      setCenterLng(tileXToLng(newX, panBaseZoom));
+      setCenterLat(tileYToLat(newY, panBaseZoom));
     });
     applyMapTransform(1, 0, 0, rotationRef.current);
 
@@ -2030,111 +2055,51 @@ export const MapView: React.FC<MapViewProps> = ({
     }, 50);
   };
 
-  // Non-passive native touch listeners to prevent page viewport zoom when pinching on mobile
+  // Keep browser viewport gestures from competing with the map's React
+  // gesture owner. The previous implementation also handled pinch movement
+  // and touchend here while React handled the same events below, so a single
+  // finger release could be committed twice and jump by roughly 2x.
   useEffect(() => {
     const el = mapContainerRef.current;
     if (!el) return;
 
-    const handleNativeTouchStart = (e: TouchEvent) => {
+    const preventViewportGesture = (e: TouchEvent) => {
       if (isUiControlTarget(e.target as HTMLElement)) return;
-      if (e.touches.length >= 2) {
-        if (e.cancelable) e.preventDefault();
-        isPinchingRef.current = true;
-        lastPinchTimeRef.current = Date.now();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        pinchDistRef.current = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-        initialZoomRef.current = zoom;
-        // Record the initial angle between the two fingers for rotation tracking.
-        initialPinchAngleRef.current = Math.atan2(
-          touch2.clientY - touch1.clientY,
-          touch2.clientX - touch1.clientX
-        ) * (180 / Math.PI);
-        lastRotationAngleRef.current = initialPinchAngleRef.current;
-      }
+      if (e.touches.length >= 2 && e.cancelable) e.preventDefault();
     };
 
-    const handleNativeTouchMove = (e: TouchEvent) => {
-      if (isUiControlTarget(e.target as HTMLElement)) return;
-      if (e.touches.length >= 2 && isPinchingRef.current && pinchDistRef.current && initialZoomRef.current) {
-        if (e.cancelable) e.preventDefault();
-        lastPinchTimeRef.current = Date.now();
-        const touch1 = e.touches[0];
-        const touch2 = e.touches[1];
-        // --- Pinch-to-zoom ---
-        const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
-        const zoomFactor = currentDist / pinchDistRef.current;
-        // Allow scale below 1.0 for zoom-out visual feedback; clamp to
-        // reasonable bounds so the map doesn't vanish or explode.
-        const newScale = Math.max(0.25, Math.min(4, zoomFactor));
-        zoomScaleRef.current = newScale;
-        // --- Two-finger rotation ---
-        if (initialPinchAngleRef.current !== null) {
-          const currentAngle = Math.atan2(             touch2.clientY - touch1.clientY,
-             touch2.clientX - touch1.clientX
-           ) * (180 / Math.PI);
-           // Accumulate rotation as an incremental delta vs the previous
-           // frame's angle, normalized into (-180°, 180°]. This naturally
-           // wraps past atan2's +/-180° discontinuity and survives finger
-           // swaps — both of which used to produce a sudden 360° snap.
-           if (lastRotationAngleRef.current !== null) {
-             let delta = currentAngle - lastRotationAngleRef.current;
-             if (delta > 180) delta -= 360;
-             if (delta < -180) delta += 360;
-             // 0.5x damping keeps rotation slightly under finger speed so the
-             // map feels controllable instead of twitchy.
-             rotationRef.current += delta * 0.5;
-           }
-           lastRotationAngleRef.current = currentAngle;
-         }
-         // Apply combined scale + rotation as CSS transform — no React re-render.
-         applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
-       }
-     };
-
-    const handleNativeTouchEnd = (e: TouchEvent) => {
-      if (isPinchingRef.current || e.touches.length >= 2) {
-        lastPinchTimeRef.current = Date.now();
-      }
-      if (e.touches.length < 2 && isPinchingRef.current) {
-        isPinchingRef.current = false;
-        pinchDistRef.current = null;
-        initialZoomRef.current = null;
-        initialPinchAngleRef.current = null;
-        lastRotationAngleRef.current = null;
-        // Sync accumulated CSS scale into React state.
-        const scaleRatio = zoomScaleRef.current;
-        const zoomOffset = Math.log2(scaleRatio);
-        setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));         zoomScaleRef.current = 1;
-        // Sync rotation display for the UI indicator.
-        setRotationDisplay(rotationRef.current);
-        // Defer transform reset to next frame to eliminate pinch-end jump.
-        // Also re-apply the pins overlay's transform here so any leftover
-        // inverse-scale (1 / old zoom) gets cleared in lockstep — the
-        // overlay's previous transform was driven by zoomScaleRef.current
-        // which we just reset to 1.
-        requestAnimationFrame(() => {
-          applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
-        });
-      }
-    };
-
-    el.addEventListener('touchstart', handleNativeTouchStart, { passive: false });
-    el.addEventListener('touchmove', handleNativeTouchMove, { passive: false });
-    el.addEventListener('touchend', handleNativeTouchEnd, { passive: false });
+    el.addEventListener('touchstart', preventViewportGesture, { passive: false });
+    el.addEventListener('touchmove', preventViewportGesture, { passive: false });
 
     return () => {
-      el.removeEventListener('touchstart', handleNativeTouchStart);
-      el.removeEventListener('touchmove', handleNativeTouchMove);
-      el.removeEventListener('touchend', handleNativeTouchEnd);
+      el.removeEventListener('touchstart', preventViewportGesture);
+      el.removeEventListener('touchmove', preventViewportGesture);
     };
-  }, [zoom]);
+  }, []);
 
   // Touch handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isUiControlTarget(e.target as HTMLElement)) return;
-
     if (e.touches.length === 2) {
+      // If a second finger joins while a one-finger pan is still active,
+      // commit that first pan before switching gesture modes. Resetting the
+      // temporary offset here would otherwise throw away the visible pan and
+      // make the map jump as pinch begins.
+      if (isDragging && (panOffsetRef.current.x !== 0 || panOffsetRef.current.y !== 0)) {
+        const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+        const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
+        const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+        const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
+        flushSync(() => {
+          setIsDragging(false);
+          setCenterLng(tileXToLng(pannedCenter.x, panBaseZoom));
+          setCenterLat(tileYToLat(pannedCenter.y, panBaseZoom));
+        });
+        panOffsetRef.current = { x: 0, y: 0 };
+        applyMapTransform(1, 0, 0, rotationRef.current);
+      } else if (isDragging) {
+        setIsDragging(false);
+      }
       isPinchingRef.current = true;
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
@@ -2152,6 +2117,11 @@ export const MapView: React.FC<MapViewProps> = ({
 
     if (e.touches.length === 1) {
       isPinchingRef.current = false;
+      // The previous pinch-end path has already committed and cleared any
+      // temporary transform. Do not clear a live one-finger pan here.
+      if (panOffsetRef.current.x === 0 && panOffsetRef.current.y === 0) {
+        applyMapTransform(1, 0, 0, rotationRef.current);
+      }
       const now = Date.now();
       if (now - lastTouchTimeRef.current < 300) {
         setZoom((prev) => Math.min(MAX_ZOOM, prev + 1));
@@ -2208,29 +2178,43 @@ export const MapView: React.FC<MapViewProps> = ({
     // Accumulate pixel offset and apply directly to DOM for 60fps smooth panning.
     panOffsetRef.current.x += dx;
     panOffsetRef.current.y += dy;
-    if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) rotate(${rotationRef.current}deg)`;
-    }
+    applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
 
     dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    // A cancelled touch is not a completed pan. Drop the temporary CSS
+    // translation instead of baking a partial/stale offset into the center,
+    // and make the cleanup idempotent if the browser also emits touchend.
+    if (e.type === 'touchcancel') {
+      isPinchingRef.current = false;
+      setIsDragging(false);
+      pinchDistRef.current = null;
+      initialZoomRef.current = null;
+      initialPinchAngleRef.current = null;
+      lastRotationAngleRef.current = null;
+      panOffsetRef.current = { x: 0, y: 0 };
+      zoomScaleRef.current = 1;
+      applyMapTransform(1, 0, 0, rotationRef.current);
+      return;
+    }
+
     if (isPinchingRef.current) {
       isPinchingRef.current = false;
       pinchDistRef.current = null;
       initialZoomRef.current = null;
       initialPinchAngleRef.current = null;
       lastRotationAngleRef.current = null;
-      // Sync accumulated pan offset into React state. Positive sign so
-      // dragging content right reveals MORE east, moving the geographic
-      // center east. The previous minus-sign produced a one-frame jump
-      // on every pinch-end / drag-release.
+      // Sync any accumulated pan offset into React state using the same
+      // screen-to-map conversion as one-finger release. This also keeps a
+      // pinch that began after a short pan from carrying a stale offset.
       const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
       const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-      const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-      const newX = centerTile.x + panOffsetRef.current.x / tileSize;
-      const newY = centerTile.y + panOffsetRef.current.y / tileSize;
+      const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+      const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
+      const newX = pannedCenter.x;
+      const newY = pannedCenter.y;
       panOffsetRef.current = { x: 0, y: 0 };
       // Sync accumulated CSS scale into React state.
       const scaleRatio = zoomScaleRef.current;
@@ -2252,8 +2236,8 @@ export const MapView: React.FC<MapViewProps> = ({
       flushSync(() => {
         setZoom(nextZoom);
         setRotationDisplay(nextRotation);
-        setCenterLng(tileXToLng(newX, zoom));
-        setCenterLat(tileYToLat(newY, zoom));
+        setCenterLng(tileXToLng(newX, panBaseZoom));
+        setCenterLat(tileYToLat(newY, panBaseZoom));
       });
       applyMapTransform(1, 0, 0, rotationRef.current);
       return;
@@ -2262,13 +2246,15 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!isDragging) return;
     setIsDragging(false);
 
-    // Bake the accumulated pan offset into the geographic center.
-    // Positive sign — drag right means reveal east, so center moves east.
+    // Bake the accumulated pan offset into the geographic center. The
+    // geographic center moves opposite to the finger's temporary CSS
+    // translation: drag right => center west, drag down => center north.
     const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
     const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const newX = centerTile.x + panOffsetRef.current.x / tileSize;
-    const newY = centerTile.y + panOffsetRef.current.y / tileSize;
+    const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+    const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
+    const newX = pannedCenter.x;
+    const newY = pannedCenter.y;
     panOffsetRef.current = { x: 0, y: 0 };
     // Commit React's setCenter updates FIRST (flushSync) so the
     // browser never paints the intermediate frame where tiles are at
@@ -2277,8 +2263,8 @@ export const MapView: React.FC<MapViewProps> = ({
     // after React has placed tiles at the new center do we strip the
     // translate. The two DOM updates collapse into a single paint.
     flushSync(() => {
-      setCenterLng(tileXToLng(newX, zoom));
-      setCenterLat(tileYToLat(newY, zoom));
+      setCenterLng(tileXToLng(newX, panBaseZoom));
+      setCenterLat(tileYToLat(newY, panBaseZoom));
     });
     applyMapTransform(1, 0, 0, rotationRef.current);
 
@@ -2528,6 +2514,7 @@ export const MapView: React.FC<MapViewProps> = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
         >
           {allTileElements}
 
