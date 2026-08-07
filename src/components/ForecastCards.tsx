@@ -509,7 +509,7 @@ const getScoreBadgeColor = (score: number) => {
                           <span>{maxPrecipProb}% precip</span>
                         </span>
                       </div>
-                      <span className={`text-xs font-bold block truncate max-w-[140px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      <span className={`text-xs font-bold block leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {cardWeatherDesc}
                       </span>
                       <span className="text-[10px] sm:text-[11px] font-extrabold block text-emerald-600 dark:text-emerald-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
@@ -612,7 +612,7 @@ const getScoreBadgeColor = (score: number) => {
                         >
                           {renderSmallWeatherIcon(hrDetails.icon)}
                         </motion.span>
-                        <span className="opacity-90 truncate">{hrDetails.desc}</span>
+                        <span className="opacity-90">{hrDetails.desc}</span>
                       </>
                     ) : (
                       <span
