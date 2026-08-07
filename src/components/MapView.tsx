@@ -1007,10 +1007,11 @@ export const MapView: React.FC<MapViewProps> = ({
   // can swap order mid-gesture, both of which produced embarrassing 360°
   // jumps that snapped the map to a wildly wrong orientation.
   const lastRotationAngleRef = useRef<number | null>(null);
-  // Marker Pins overlay lives inside the same transformed container as the
-  // tiles; we update its inverse transform from applyMapTransform rather than
-  // via React state, so pin sizing is frame-perfect during the gesture.
-  const pinOverlayRef = useRef<HTMLDivElement | null>(null);
+  // Marker visuals inherit these DOM-updated variables during gestures. The
+  // geographic position remains inside the transformed map; only each marker's
+  // visual is counter-scaled/counter-rotated so it stays anchored, upright, and
+  // the same size while the map moves.
+  const pinVisualsRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 640,
     height: typeof window !== 'undefined' ? window.innerHeight : 480,
@@ -1200,22 +1201,43 @@ export const MapView: React.FC<MapViewProps> = ({
   // Live GPS fix captured by the locate button — drives the blue "my location"
   // dot on the map instead of the dot being pinned to the forecast location.
   const [gpsFix, setGpsFix] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const gpsWatchIdRef = useRef<number | null>(null);
+  const hasInitialGpsFixRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (gpsWatchIdRef.current !== null) {
+        navigator.geolocation?.clearWatch(gpsWatchIdRef.current);
+        gpsWatchIdRef.current = null;
+      }
+    };
+  }, []);
+
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by this browser.');
       return;
     }
+
+    if (gpsWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+    }
+
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
+    hasInitialGpsFixRef.current = false;
+    gpsWatchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
-        setCenterLat(position.coords.latitude);
-        setCenterLng(position.coords.longitude);
-        setGpsFix({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy || 25,
-        });
-        setZoom(16);
+        const { latitude, longitude, accuracy } = position.coords;
+        setGpsFix({ lat: latitude, lng: longitude, accuracy: accuracy || 25 });
+
+        // Center and zoom only on the first fix. Later fixes keep the marker
+        // current without pulling the hunter's manually panned map away.
+        if (!hasInitialGpsFixRef.current) {
+          hasInitialGpsFixRef.current = true;
+          setCenterLat(latitude);
+          setCenterLng(longitude);
+          setZoom(16);
+        }
         setIsLocating(false);
       },
       (error) => {
@@ -2014,26 +2036,13 @@ export const MapView: React.FC<MapViewProps> = ({
     if (mapContainerRef.current) {
       mapContainerRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale}) rotate(${rotation}deg)`;
     }
-    // Counter-scale and counter-rotate the pin/overlay layer in lockstep with
-    // the map. Doing it from the DOM here (instead of via JSX inline style)
-    // means the inverse is applied on EVERY animation frame during the
-    // gesture — pins stay perfectly constant-sized and upright instead of
-    // re-asserting their size only after React re-renders when the gesture
-    // ends.
-    const overlay = pinOverlayRef.current;
-    if (overlay) {
-      // Visual origin of the overlay needs to match the map container so
-      // rotate() doesn't swing the pins off into the corner when the user
-      // rotates. The pins were rendered with transformOrigin at the top-left
-      // (per-element for each pin); the overlay itself doesn't need its own
-      // transform-origin since the inner pin coordinates are absolute pixels
-      // — wrap them in a rotation around (0, 0) and CSS handles the rest
-      // because each pin sits in pre-rotation coordinates.
-      const invScale = 1 / scale;
-      const transform = (scale !== 1 || rotation !== 0)
-        ? `scale(${invScale}) rotate(${-rotation}deg)`
-        : '';
-      overlay.style.transform = transform;
+    // Update marker visual compensation on every DOM-only gesture frame. This
+    // must not be React state: React intentionally does not re-render while a
+    // pan/pinch is in progress.
+    const visuals = pinVisualsRef.current;
+    if (visuals) {
+      visuals.style.setProperty('--map-pin-inverse-scale', String(1 / scale));
+      visuals.style.setProperty('--map-pin-inverse-rotation', `${-rotation}deg`);
     }
   };
 
@@ -2863,8 +2872,12 @@ export const MapView: React.FC<MapViewProps> = ({
               and twists, not just after React decides to re-render at the
               end of the gesture. */}
           <div
-            ref={pinOverlayRef}
+            ref={pinVisualsRef}
             className="absolute inset-0 pointer-events-none z-20"
+            style={{
+              '--map-pin-inverse-scale': '1',
+              '--map-pin-inverse-rotation': '0deg',
+            } as React.CSSProperties}
           >
             {/* User's Current Location Marker — blue dot tracks the live GPS fix
                 once the locate button is used; falls back to the forecast location
@@ -2873,9 +2886,9 @@ export const MapView: React.FC<MapViewProps> = ({
               const myLat = gpsFix ? gpsFix.lat : location.latitude;
               const myLng = gpsFix ? gpsFix.lng : location.longitude;
               const myPx = latLngToPixel(myLat, myLng);
-              if (myPx.x < -40 || myPx.x > dimensions.width + 40 || myPx.y < -40 || myPx.y > dimensions.height + 40) {
-                return null;
-              }
+              // Keep the GPS marker mounted during an active transform. Its
+              // committed pixel position can temporarily be outside the normal
+              // viewport while the DOM transform is moving the map underneath it.
               // Convert GPS accuracy (meters) to pixel radius at the current zoom
               // so the halo roughly matches real-world uncertainty.
               const metersPerPixel = (156543.03392 * Math.cos((myLat * Math.PI) / 180)) / Math.pow(2, zoom);
@@ -2889,26 +2902,33 @@ export const MapView: React.FC<MapViewProps> = ({
                     setCenterLat(myLat);
                     setCenterLng(myLng);
                   }}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 ${
+                  className={`absolute left-0 top-0 group ${
                     isDrawingPolygon || isDrawingPath ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
                   }`}
-                  style={{ left: `${myPx.x}px`, top: `${myPx.y}px` }}
+                  style={{ left: `${myPx.x}px`, top: `${myPx.y}px`, transform: 'translate(-50%, -50%)' }}
                   title={gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : 'My Current Location'}
                 >
-                  <div className="relative flex items-center justify-center">
-                    {gpsFix && (
-                      <div
-                        className="absolute rounded-full bg-sky-500/20 border border-sky-400/40"
-                        style={{ width: `${accuracyRadiusPx * 2}px`, height: `${accuracyRadiusPx * 2}px` }}
-                      />
-                    )}
-                    <div className="absolute -inset-2 bg-sky-500/30 rounded-full animate-ping" />
-                    <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center shadow-2xl ring-2 ring-white border border-sky-400 font-extrabold text-xs z-10 hover:scale-110 transition-transform">
-                      <Navigation className="w-4 h-4 fill-white text-sky-200" />
+                  <div
+                    style={{
+                      transform: 'scale(var(--map-pin-inverse-scale)) rotate(var(--map-pin-inverse-rotation))',
+                      transformOrigin: 'center center',
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      {gpsFix && (
+                        <div
+                          className="absolute rounded-full bg-sky-500/20 border border-sky-400/40"
+                          style={{ width: `${accuracyRadiusPx * 2}px`, height: `${accuracyRadiusPx * 2}px` }}
+                        />
+                      )}
+                      <div className="absolute -inset-2 bg-sky-500/30 rounded-full animate-ping" />
+                      <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center shadow-2xl ring-2 ring-white border border-sky-400 font-extrabold text-xs z-10 hover:scale-110 transition-transform">
+                        <Navigation className="w-4 h-4 fill-white text-sky-200" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-sky-950/95 text-sky-200 text-[10px] font-black px-2 py-0.5 rounded-md border border-sky-600 shadow-md pointer-events-none">
-                    <MapPin className="w-3 h-3 inline-block mr-1 -mt-0.5" />{gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : `My Location (${location.name})`}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-sky-950/95 text-sky-200 text-[10px] font-black px-2 py-0.5 rounded-md border border-sky-600 shadow-md pointer-events-none">
+                      <MapPin className="w-3 h-3 inline-block mr-1 -mt-0.5" />{gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : `My Location (${location.name})`}
+                    </div>
                   </div>
                 </div>
               );
@@ -2933,24 +2953,31 @@ export const MapView: React.FC<MapViewProps> = ({
                     setSelectedPolygonId(null);
                     setShowHourlyWeather(false);
                   }}
-                  className={`absolute transform -translate-x-1/2 -translate-y-1/2 group transition-transform duration-150 ${
+                  className={`absolute left-0 top-0 group ${
                     isDrawingPolygon || isDrawingPath ? 'pointer-events-none' : 'pointer-events-auto cursor-pointer'
                   }`}
-                  style={{ left: `${px.x}px`, top: `${px.y}px` }}
+                  style={{ left: `${px.x}px`, top: `${px.y}px`, transform: 'translate(-50%, -50%)' }}
                 >
                   <div
-                    className={`relative flex items-center justify-center rounded-full shadow-xl transition-all ${
-                      isSelected
-                        ? 'w-10 h-10 ring-4 ring-emerald-400 scale-125 z-30'
-                        : 'w-8 h-8 hover:scale-110 z-20'
-                    } ${pinMeta.color}`}
+                    style={{
+                      transform: 'scale(var(--map-pin-inverse-scale)) rotate(var(--map-pin-inverse-rotation))',
+                      transformOrigin: 'center center',
+                    }}
                   >
-                    <span className="text-sm"><MetaIcon icon={pinMeta.icon} fallback={Crosshair} className="w-4 h-4" /></span>
-                  </div>
+                    <div
+                      className={`relative flex items-center justify-center rounded-full shadow-xl transition-all ${
+                        isSelected
+                          ? 'w-10 h-10 ring-4 ring-emerald-400 scale-125 z-30'
+                          : 'w-8 h-8 hover:scale-110 z-20'
+                      } ${pinMeta.color}`}
+                    >
+                      <span className="text-sm"><MetaIcon icon={pinMeta.icon} fallback={Crosshair} className="w-4 h-4" /></span>
+                    </div>
 
-                  {/* Pin Name Label */}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-slate-950/90 text-white text-[10px] font-black px-2 py-0.5 rounded-md border border-slate-700 shadow-md pointer-events-none">
-                    {pin.name}
+                    {/* Pin Name Label */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-slate-950/90 text-white text-[10px] font-black px-2 py-0.5 rounded-md border border-slate-700 shadow-md pointer-events-none">
+                      {pin.name}
+                    </div>
                   </div>
                 </div>
               );

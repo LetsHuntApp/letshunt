@@ -450,6 +450,42 @@ const getScoreBadgeColor = (score: number) => {
         </div>
       </div>
 
+      {/* The extended forecast action belongs to the section header, so it is
+          immediately discoverable without making the user scan past all seven
+          cards. */}
+      {hasExtendedForecast && !isExtendedView && (
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenFourteenDay) onOpenFourteenDay();
+            else setShowFourteenDay(true);
+          }}
+          aria-label="View 14-day hunting forecast"
+          className={`mb-3 w-full sm:w-auto self-center group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 backdrop-blur-md ${
+            theme === 'hunting'
+              ? 'border-[#c85a17]/55 text-[#7a3208] hover:brightness-95 focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
+              : theme === 'olive'
+              ? 'border-[#556b2f]/55 text-[#3d4f21] hover:brightness-95 focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
+              : isDark
+              ? 'border-emerald-400/60 text-emerald-300 hover:brightness-110 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
+              : 'border-emerald-600/55 text-emerald-800 hover:brightness-95 focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
+          }`}
+          style={{
+            backgroundColor: theme === 'hunting'
+              ? 'rgb(200 90 23 / var(--card-opacity))'
+              : theme === 'olive'
+              ? 'rgb(85 107 47 / var(--card-opacity))'
+              : isDark
+              ? 'rgb(16 185 129 / var(--card-opacity))'
+              : 'rgb(236 253 245 / var(--card-opacity))',
+          }}
+        >
+          <Calendar className="w-4 h-4 shrink-0" />
+          <span>View {Math.max(7, (dailyAll?.length || daily.length))}-Day Forecast</span>
+          <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      )}
+
       {/* Vertical Stacked Card List */}
       <div className="flex flex-col gap-3.5">
         {daily.map((day) => {
@@ -887,42 +923,6 @@ const getScoreBadgeColor = (score: number) => {
           );
         })}
 
-        {/* "View 14-day forecast" button — sits inline below the 7-day cards,
-            in the same column flex so it floats right under the last card rather
-            than stretching weirdly. Hidden when the API never returned more than
-            7 days (e.g. a transient short response during a refresh). */}
-        {hasExtendedForecast && !isExtendedView && (
-          <button
-            type="button"
-            onClick={() => {
-              if (onOpenFourteenDay) onOpenFourteenDay();
-              else setShowFourteenDay(true);
-            }}
-            aria-label="View 14-day hunting forecast"
-            className={`mt-1 w-full sm:w-auto self-center group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 backdrop-blur-md ${
-              theme === 'hunting'
-                ? 'border-[#c85a17]/55 text-[#7a3208] hover:brightness-95 focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
-                : theme === 'olive'
-                ? 'border-[#556b2f]/55 text-[#3d4f21] hover:brightness-95 focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
-                : isDark
-                ? 'border-emerald-400/60 text-emerald-300 hover:brightness-110 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
-                : 'border-emerald-600/55 text-emerald-800 hover:brightness-95 focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
-            }`}
-            style={{
-              backgroundColor: theme === 'hunting'
-                ? 'rgb(200 90 23 / var(--card-opacity))'
-                : theme === 'olive'
-                ? 'rgb(85 107 47 / var(--card-opacity))'
-                : isDark
-                ? 'rgb(16 185 129 / var(--card-opacity))'
-                : 'rgb(236 253 245 / var(--card-opacity))',
-            }}
-          >
-            <Calendar className="w-4 h-4 shrink-0" />
-            <span>View {Math.max(7, (dailyAll?.length || daily.length))}-Day Forecast</span>
-            <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        )}
       </div>
 
       {/* 14-day forecast modal — slides in over the dashboard, theme-aware,
