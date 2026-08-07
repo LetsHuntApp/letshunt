@@ -61,6 +61,10 @@ interface RadarOverlayProps {
   precipProbability: number;
   /** Precipitation amount in mm for the selected hour. */
   precipMm: number;
+  /** Wind direction (deg, 0–360, direction wind comes FROM) for the selected
+   *  hour — drives the downstream drift of the synthesized forecast rain.
+   *  Changes as the hourly slider moves, so systems appear to cross the map. */
+  windDirectionDeg?: number;
   /** Called whenever the active frame changes (for time-stamp UI in the parent). */
   onFrameChange?: (frame: RadarFrame | null, index: number, total: number) => void;
   /** Index-fetch interval in ms. Default 10 minutes. */
@@ -86,21 +90,32 @@ interface ForecastBlob {
   size: string;
   dur: number;
   delay: number;
+  /** 0 (centre) .. 1 (map edge) — radial distance from the forecast location. */
+  rad: number;
+  /** Opacity falloff with distance from the centre. */
+  fade: number;
 }
 
+// Blobs are placed around the map centre (≈ the forecast location) and sorted
+// nearest-first so low tie "rain" shows only as a small core near the location,
+// growing outward as the hourly intensity rises — like a system building.
 const FORECAST_BLOBS: ForecastBlob[] = Array.from({ length: 20 }, (_, i) => {
-  // Deterministic pseudo-random spread across the viewport (fixed per index so
-  // the pattern never reshuffles and doesn't jump between slider ticks).
-  const seed = (((i * 7919) % 9973) / 9973);
-  const seed2 = ((((i + 3) * 104729) % 9973) / 9973);
+  const seed = ((i * 7919) % 9973) / 9973;
+  const seed2 = (((i + 3) * 104729) % 9973) / 9973;
+  const angle = seed * Math.PI * 2;
+  const rad = 0.06 + seed2 * 0.3; // distance from centre (0..~0.36)
+  const radiusPct = rad * 100;
+  const fade = Math.max(0.15, 1 - radiusPct / 40);
   return {
-    left: `${(seed * 92 + 4).toFixed(1)}%`,
-    top: `${(seed2 * 90 + 5).toFixed(1)}%`,
-    size: `${(9 + seed2 * 16).toFixed(1)}vw`,
-    dur: 18 + seed2 * 9,
-    delay: -((seed * 14) % 12),
+    left: `${(50 + Math.cos(angle) * radiusPct).toFixed(1)}%`,
+    top: `${(50 + Math.sin(angle) * radiusPct).toFixed(1)}%`,
+    size: `${(9 + seed2 * 15).toFixed(1)}vw`,
+    dur: 20 + seed2 * 10,
+    delay: -(seed * 16),
+    rad,
+    fade,
   };
-});
+}).sort((a, b) => a.rad - b.rad);
 
 function latLngToTileCoords(lat: number, lng: number, z: number) {
   const clampedLat = clamp(lat, -85.0511, 85.0511);
@@ -208,6 +223,7 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   isToday,
   precipProbability,
   precipMm,
+  windDirectionDeg,
   onFrameChange,
   refreshIntervalMs = 10 * 60 * 1000,
   frameStepMs = 2000,
@@ -364,7 +380,20 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   const forecastLayerOpacity = forecastScale * baseOpacity;
   const showForecastRain = inForecastMode && forecastLayerOpacity > 0.01;
   // Blob coverage grows with forecast intensity (radar-like bands appearing).
+  // Blobs are sorted nearest-first, so light rain shows as a small core near
+  // the location that spreads outward as the hour's chance/amount increases.
   const activeBlobCount = Math.round(forecastScale * FORECAST_BLOBS.length);
+
+  // Downstream (with the wind) drift vector for the synthesized rain, so the
+  // precipitation appears to move across the map in the direction the weather
+  // is heading. Recomputes when the hourly slider changes the wind direction.
+  const windDeg = (() => {
+    const d = Number(windDirectionDeg);
+    return Number.isFinite(d) ? ((d % 360) + 360) % 360 : 0;
+  })();
+  const downstreamRad = ((windDeg + 180) * Math.PI) / 180;
+  const driftX = Math.sin(downstreamRad);
+  const driftY = -Math.cos(downstreamRad);
 
   const frameTimeLabel = activeFrame ? formatTime(activeFrame.time) : '';
   const selectedTimeLabel = formatTime(selectedDateTime.getTime());
@@ -384,7 +413,13 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
         <div
           aria-hidden="true"
           className="absolute inset-0 z-[6] pointer-events-none overflow-hidden"
-          style={{ opacity: forecastLayerOpacity, transition: 'opacity 0.3s ease' }}
+          style={{
+            opacity: forecastLayerOpacity,
+            transition: 'opacity 0.3s ease',
+            // wind-driven drift direction (consumed by the keyframes below)
+            '--drift-x': driftX.toFixed(3),
+            '--drift-y': driftY.toFixed(3),
+          } as React.CSSProperties}
         >
           {FORECAST_BLOBS.map((b, i) => (
             <div
@@ -395,7 +430,7 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
                 top: b.top,
                 width: b.size,
                 height: b.size,
-                opacity: i < activeBlobCount ? 1 : 0,
+                opacity: i < activeBlobCount ? b.fade : 0,
                 animationDuration: `${b.dur}s`,
                 animationDelay: `${b.delay}s`,
               }}
@@ -403,9 +438,8 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
           ))}
           <style>{`
             @keyframes letshuntDrift {
-              0%   { transform: translate3d(0,0,0) scale(1); }
-              50%  { transform: translate3d(-16vw, 9vh, 0) scale(1.06); }
-              100% { transform: translate3d(-32vw, 18vh, 0) scale(1); }
+              0%, 100% { transform: translate3d(0,0,0) scale(1); }
+              50%      { transform: translate3d(calc(var(--drift-x) * 10vw), calc(var(--drift-y) * 10vh), 0) scale(1.05); }
             }
             .radar-fc-blob{
               position:absolute; border-radius:9999px; pointer-events:none;

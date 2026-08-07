@@ -2365,6 +2365,7 @@ export const MapView: React.FC<MapViewProps> = ({
             isToday={selectedDayIndex === 0}
             precipProbability={precipProbability}
             precipMm={currentHourForecast?.precipMm ?? 0}
+            windDirectionDeg={windDeg}
           />
 
           {/* SVG Overlay: Polygons, Scent Cones & Routes */}
