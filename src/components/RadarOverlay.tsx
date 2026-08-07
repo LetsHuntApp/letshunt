@@ -1,76 +1,75 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 
 /**
- * Latest-frame precipitation-radar overlay with optional throttled playback.
+ * Interactive precipitation-radar overlay tied to the hourly weather slider
+ * and the forecast day buttons.
  *
- * - Tile coordinates use the SAME Mercator math as MapView (clamped lat to
- *   ±85.0511, integer-zoom snap with smooth sub-zoom scaling). Radar tiles are
- *   capped at RainViewer's documented maximum z7 and scaled to align with the
- *   higher-resolution base map.
- * - Frames are pulled from RainViewer's public API
- *   (https://api.rainviewer.com/public/weather-maps.json — no key, CORS-open,
- *   verified live). Each frame's `path` field is already a fully-qualified
- *   tile-prefix (e.g. "/v2/radar/1742.../256/{z}/{x}/{y}/{color}/{opt}.png").
- * - Past frames play backwards-to-forwards so the loop ends on "now"; if a
- *   short-range `nowcast` array is available it's appended and the loop segues
- *   into it. Forecast frames (typically 30 min apart) auto-skip every-other
- *   step on slow connections to keep cadence stable.
- * - All requests are GET <img> loads; nothing is uploaded, so privacy is
- *   preserved. The overlay sits above base tiles (zIndex 3) but below the SVG
- *   scent/path layer (zIndex 10) and is click-through (`pointer-events: none`)
- *   so map drags and pin taps still work.
+ * Behaviour
+ * ---------
+ * - LIVE mode — the selected day is today AND the selected hour falls inside
+ *   the RainViewer window (≈2 h back to ≈30 min ahead of now): the nearest
+ *   radar frame is shown at full opacity with its capture time, and dragging
+ *   the hourly slider scrubs through the available frames.
+ * - FORECAST mode — today but outside the live window, or a different day: no
+ *   radar exists for that moment, so the nearest available frame is shown
+ *   dimmed while the status pill reports the exact Open-Meteo forecast for the
+ *   selected day + hour (probability + mm). The overlay therefore visibly
+ *   reacts to every slider tick and day-button press instead of appearing
+ *   frozen on one radar image.
+ * - A play/pause control animates through the frames like a classic radar app.
+ *
+ * Tile coordinates use the same Mercator math as MapView, capped at
+ * RainViewer's documented maximum z7 (the base map can zoom far closer, so
+ * radar tiles are requested at the cap and scaled to align).
  */
 
 export interface RadarFrame {
-  /** Wall-clock time of the frame, ms since epoch. */
-  time: number;
-  /** Tile-path prefix returned by RainViewer ("/v2/radar/<hash>"). */
-  path: string;
+  time: number; // ms since epoch
+  path: string; // e.g. "/v2/radar/<hash>"
 }
 
 function normalizeFrame(raw: { time?: unknown; path?: unknown }): RadarFrame | null {
   const seconds = Number(raw.time);
   const path = String(raw.path ?? '');
   if (!Number.isFinite(seconds) || !path.startsWith('/v2/radar/')) return null;
-  return {
-    // RainViewer's index uses Unix seconds; the component exposes milliseconds
-    // so Date and any parent timestamp display remain correct.
-    time: seconds * 1000,
-    path,
-  };
+  return { time: seconds * 1000, path };
 }
 
 interface RadarOverlayProps {
   centerLat: number;
   centerLon: number;
-  /** Continuous zoom (may be fractional, e.g. 15.4). */
   zoom: number;
   width: number;
   height: number;
-  /** 0..1. */
+  /** 0..1 */
   opacity: number;
-  /** RainViewer color-scheme id (0..8). Common picks: 3 (Universal Blue), 4 (TITAN), 7 (Dark Sky). */
+  /** RainViewer palette id (0–8). */
   colorScheme: number;
-  /** Master toggle. When false we render nothing and stop fetching. */
+  /** Master toggle — renders nothing and stops fetching when false. */
   enabled: boolean;
-  /** Auto-play through frames; disabled by default to avoid rate-limiting tile providers. */
-  playing?: boolean;
+  /** Hour selected on the 0–23 hourly slider. */
+  selectedHour: number;
+  /** Date string of the selected forecast day (YYYY-MM-DD). */
+  selectedDayDate?: string;
+  /** Human label of the selected day ("Today", "Tomorrow", "Tue", …). */
+  selectedDayName?: string;
+  /** True when the selected forecast day is today (passed from the parent —
+   *  more reliable than re-deriving the date string, which can drift across
+   *  timezones vs. Open-Meteo's UTC date strings). */
+  isToday: boolean;
+  /** Precipitation probability for the selected hour (0–100). */
+  precipProbability: number;
+  /** Precipitation amount in mm for the selected hour. */
+  precipMm: number;
   /** Called whenever the active frame changes (for time-stamp UI in the parent). */
   onFrameChange?: (frame: RadarFrame | null, index: number, total: number) => void;
   /** Index-fetch interval in ms. Default 10 minutes. */
   refreshIntervalMs?: number;
-  /** Frame-step interval in ms. Default 500. */
+  /** Frame-step interval in ms while auto-playing. Default 2000. */
   frameStepMs?: number;
 }
 
-// RainViewer's documented radar tile service supports z0–z7 only. The base
-// satellite map can be much closer (usually z16), so radar tiles must be
-// requested at this capped zoom and scaled over the base map. Requesting the
-// map zoom directly produces out-of-range radar URLs and an apparently empty
-// overlay even when the <img> request itself completes.
 const MAX_RADAR_ZOOM = 7;
-
-// --- Tile math (mirrors src/components/MapView.tsx exactly) -------------------
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -114,8 +113,7 @@ function computeVisibleTiles(
   for (let tx = minX; tx <= maxX; tx++) {
     for (let ty = minY; ty <= maxY; ty++) {
       tiles.push({
-        tx,
-        ty,
+        tx, ty,
         left: halfW + (tx - cc.x) * actTileSize,
         top: halfH + (ty - cc.y) * actTileSize,
       });
@@ -134,7 +132,7 @@ function clampTileY(ty: number, z: number) {
   return clamp(ty, 0, max - 1);
 }
 
-// --- Frame cache (session-only; reload re-fetches) ----------------------------
+// --- Frame cache (session-only; reload re-fetches) ---
 
 interface FrameCacheEntry {
   host: string;
@@ -145,7 +143,28 @@ interface FrameCacheEntry {
 
 let frameCache: FrameCacheEntry | null = null;
 
-// --- Component ----------------------------------------------------------------
+// --- Time helpers ---
+
+/**
+ * Build the wall-clock moment the hourly slider points at: the selected hour
+ * on the selected day, in local time. Comparing its epoch ms against the
+ * RainViewer frame timestamps is timezone-safe.
+ */
+function buildSelectedDateTime(dayStr: string | undefined, hour: number): Date {
+  const [y, m, d] = (dayStr || '').split('-').map(Number);
+  const now = new Date();
+  const valid = Number.isInteger(y) && Number.isInteger(m) && Number.isInteger(d) && m >= 1 && m <= 12 && d >= 1 && d <= 31;
+  const base = valid
+    ? new Date(y, m - 1, d, hour, 0, 0, 0)
+    : new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0, 0);
+  return base;
+}
+
+function formatTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+// --- Component ---
 
 export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   centerLat,
@@ -156,41 +175,70 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   opacity,
   colorScheme,
   enabled,
-  playing = false,
+  selectedHour,
+  selectedDayDate,
+  selectedDayName,
+  isToday,
+  precipProbability,
+  precipMm,
   onFrameChange,
   refreshIntervalMs = 10 * 60 * 1000,
-  frameStepMs = 500,
+  frameStepMs = 2000,
 }) => {
   const [frames, setFrames] = useState<RadarFrame[]>([]);
-  const [activeIndex, setActiveIndex] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [tileStats, setTileStats] = useState({ frameKey: '', failed: 0 });
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const [autoPlayIdx, setAutoPlayIdx] = useState(0);
+
+  // The exact moment selected by the slider + day buttons.
+  const selectedDateTime = useMemo(() => {
+    return buildSelectedDateTime(selectedDayDate, selectedHour);
+  }, [selectedDayDate, selectedHour]);
+
+  // Nearest RainViewer frame to the selected moment.
+  const nearestFrameIdx = useMemo(() => {
+    if (frames.length === 0) return -1;
+    const target = selectedDateTime.getTime();
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < frames.length; i++) {
+      const dist = Math.abs(frames[i].time - target);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    }
+    return best;
+  }, [frames, selectedDateTime]);
+
+  // The active frame: from auto-play, or scrubbed by the slider.
+  const activeIndex = isAutoPlaying ? autoPlayIdx : nearestFrameIdx;
+
+  // Whether the selected moment is covered by live radar data (today only).
+  const isWithinRadarRange = useMemo(() => {
+    if (frames.length < 2 || !isToday) return false;
+    const first = frames[0].time;
+    const last = frames[frames.length - 1].time;
+    const t = selectedDateTime.getTime();
+    const tolerance = 30 * 60 * 1000;
+    return t >= first - tolerance && t <= last + tolerance;
+  }, [frames, selectedDateTime, isToday]);
 
   // Fetch (or refresh) the RainViewer frame index when enabled.
   useEffect(() => {
     if (!enabled) {
       setFrames([]);
-      setActiveIndex(0);
       return;
     }
     let cancelled = false;
 
-    const shouldUseCache =
-      frameCache &&
-      Date.now() - frameCache.fetchedAt < refreshIntervalMs;
+    const shouldUseCache = frameCache && Date.now() - frameCache.fetchedAt < refreshIntervalMs;
 
     const ingest = (entry: FrameCacheEntry) => {
       if (cancelled) return;
-      // Oldest → newest so the loop ends on real-time.
       const past = [...entry.past].sort((a, b) => a.time - b.time);
       const forecast = [...entry.forecast].sort((a, b) => a.time - b.time);
-      const all = [...past, ...forecast];
-      setFrames(all);
-      // Show the newest available observation immediately. The map used to
-      // start at the oldest frame and advance every 500ms, which remounted all
-      // visible tile images dozens of times per minute and quickly exhausted
-      // RainViewer's public tile quota before the current frame could render.
-      setActiveIndex(Math.max(0, all.length - 1));
+      setFrames([...past, ...forecast]);
       setLoadError(null);
     };
 
@@ -203,10 +251,6 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
       try {
         const res = await fetch('https://api.rainviewer.com/public/weather-maps.json', {
           method: 'GET',
-          // RainViewer doesn't send CORS headers for this MIME, so we keep
-          // a fallback when blocked. The endpoint *does* send
-          // `Access-Control-Allow-Origin: *` as of 2024+ — see
-          // https://www.rainviewer.com/api/weather-maps-api.html
           mode: 'cors',
           credentials: 'omit',
         });
@@ -215,10 +259,10 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
         const host: string = json?.host || 'https://tilecache.rainviewer.com';
         const past: RadarFrame[] = (json?.radar?.past ?? [])
           .map((f: unknown) => normalizeFrame(f as { time?: unknown; path?: unknown }))
-          .filter((frame: RadarFrame | null): frame is RadarFrame => frame !== null);
+          .filter((f): f is RadarFrame => f !== null);
         const forecast: RadarFrame[] = (json?.radar?.nowcast ?? [])
           .map((f: unknown) => normalizeFrame(f as { time?: unknown; path?: unknown }))
-          .filter((frame: RadarFrame | null): frame is RadarFrame => frame !== null);
+          .filter((f): f is RadarFrame => f !== null);
         const normalizedHost = typeof host === 'string' && /^https?:\/\//.test(host)
           ? host.replace(/\/$/, '')
           : 'https://tilecache.rainviewer.com';
@@ -226,74 +270,83 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
         ingest(frameCache);
       } catch (err) {
         if (cancelled) return;
-        // Quiet failure: still surface to the parent so a tiny "Radar: unavailable"
-        // badge can be shown. We never throw into render.
         setLoadError(err instanceof Error ? err.message : 'radar-unavailable');
         setFrames([]);
-        setActiveIndex(0);
       }
     })();
 
     return () => { cancelled = true; };
-    // refreshIntervalMs intentionally participates — a parent slider can change it
   }, [enabled, refreshIntervalMs]);
 
-  // Optional animation. It is intentionally opt-in: one visible frame is the
-  // reliable default for the public RainViewer endpoint. Animating 30+ tiles
-  // every 500ms can make a browser request hundreds of uncached images per
-  // minute, causing the entire layer to look blank after HTTP 429 responses.
+  // Auto-play: advance through frames at frameStepMs.
   useEffect(() => {
-    if (!enabled || !playing || frames.length <= 1) return;
+    if (!enabled || !isAutoPlaying || frames.length <= 1) return;
     const id = setInterval(() => {
-      setActiveIndex((i) => (i + 1) % frames.length);
-    }, Math.max(2000, frameStepMs));
+      setAutoPlayIdx((i) => (i + 1) % frames.length);
+    }, Math.max(1500, frameStepMs));
     return () => clearInterval(id);
-  }, [enabled, playing, frames.length, frameStepMs]);
+  }, [enabled, isAutoPlaying, frames.length, frameStepMs]);
 
-  // Notify parent of active frame.
+  // Stop auto-play when the user manually moves the slider or switches days.
+  useEffect(() => {
+    setIsAutoPlaying(false);
+  }, [selectedHour, selectedDayDate]);
+
+  // When auto-play stops, snap back to the frame for the selected hour.
+  useEffect(() => {
+    if (!isAutoPlaying) {
+      setAutoPlayIdx(nearestFrameIdx >= 0 ? nearestFrameIdx : Math.max(0, frames.length - 1));
+    }
+  }, [isAutoPlaying, nearestFrameIdx, frames.length]);
+
+  // Notify the parent of the active frame (for any external time-stamp UI).
   useEffect(() => {
     if (!onFrameChange) return;
-    if (frames.length === 0) {
+    if (frames.length === 0 || activeIndex < 0) {
       onFrameChange(null, 0, 0);
       return;
     }
     onFrameChange(frames[activeIndex] ?? null, activeIndex, frames.length);
   }, [activeIndex, frames, onFrameChange]);
 
+  if (!enabled) return null;
+
   const { baseZoom, actTileSize, tiles } = computeVisibleTiles(
     centerLat, centerLon, zoom, width, height
   );
 
   const activeFrame = frames[activeIndex];
-
-  // Build host/prefix once we have a frame. The API's host is authoritative;
-  // keep the fallback only for older/offline responses that omitted it.
   const host = frameCache?.host || 'https://tilecache.rainviewer.com';
-  const hasFrame = Boolean(activeFrame);
-  const frameKey = activeFrame ? `${activeFrame.time}-${baseZoom}-${colorScheme}` : '';
+  const hasFrame = Boolean(activeFrame) && activeIndex >= 0 && activeIndex < frames.length;
 
-  useEffect(() => {
-    setTileStats({ frameKey, failed: 0 });
-  }, [frameKey]);
+  // Dim the radar whenever the selected moment has no live coverage so the
+  // user can tell "this is the live picture" from "this is the forecast".
+  const baseOpacity = clamp(opacity, 0, 1);
+  const radarLayerOpacity = isWithinRadarRange ? baseOpacity : baseOpacity * 0.3;
 
-  const frameTimeLabel = activeFrame
-    ? new Date(activeFrame.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-    : '';
+  const frameTimeLabel = activeFrame ? formatTime(activeFrame.time) : '';
+  const selectedTimeLabel = formatTime(selectedDateTime.getTime());
+  const coverageStart = frames.length ? formatTime(frames[0].time) : '';
+  const coverageEnd = frames.length ? formatTime(frames[frames.length - 1].time) : '';
 
-  if (!enabled) return null;
+  const inForecastMode = !isToday || !isWithinRadarRange;
+  const canAnimate = isToday && frames.length > 1;
 
   return (
     <>
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 z-[6] pointer-events-none overflow-hidden"
-        style={{ opacity: loadError ? 0 : clamp(opacity, 0, 1) }}
-      >
-        {hasFrame && activeFrame &&
-          tiles.map((t) => (
+      {/* Radar tile layer — today only. Full opacity in live mode, dimmed in
+          forecast mode so the overlay keeps moving with the controls even
+          when no radar exists for the selected moment. */}
+      {hasFrame && isToday && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-[6] pointer-events-none overflow-hidden"
+          style={{ opacity: radarLayerOpacity, transition: 'opacity 0.3s ease' }}
+        >
+          {tiles.map((t) => (
             <img
-              key={`radar-${t.tx}-${t.ty}`}
-              src={`${host}${activeFrame.path}/256/${baseZoom}/${wrapTileX(t.tx, baseZoom)}/${clampTileY(t.ty, baseZoom)}/${colorScheme}/1_1.png`}
+              key={`radar-${t.tx}-${t.ty}-${activeFrame!.time}`}
+              src={`${host}${activeFrame!.path}/256/${baseZoom}/${wrapTileX(t.tx, baseZoom)}/${clampTileY(t.ty, baseZoom)}/${colorScheme}/1_1.png`}
               alt=""
               draggable={false}
               loading="eager"
@@ -307,60 +360,88 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
                 pointerEvents: 'none',
                 userSelect: 'none',
               }}
-              onLoad={(e) => {
-                (e.currentTarget as HTMLImageElement).style.visibility = 'visible';
-                // A successful frame tile is visible; no state update is needed.
-                // Keeping this handler explicit also restores a tile that may
-                // have been hidden after a transient provider error.
-              }}
-              onError={(e) => {
-                // Hide only the failed tile, but keep enough state to explain a
-                // provider outage instead of presenting an apparently empty map.
-                (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                setTileStats((previous) => previous.frameKey === frameKey
-                  ? { ...previous, failed: previous.failed + 1 }
-                  : previous
-                );
-              }}
             />
           ))}
-      </div>
+        </div>
+      )}
 
-      {/* Live / unavailable status chip — top-center, below the app header.
-          The old badge sat at top-right where the LAYERS button sits on top of
-          it, so a failed fetch looked like a silently-broken overlay. The chip
-          also proves the overlay is running even when the region is dry
-          (tiles are transparent when there's no precipitation to draw), which
-          is the usual reason a radar toggle appears to "show nothing". */}
-      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[40] pointer-events-none">
-        <div className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 shadow-2xl backdrop-blur-md text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
-          loadError || (hasFrame && tileStats.frameKey === frameKey && tileStats.failed >= tiles.length && tiles.length > 0)
-            ? 'bg-slate-900/85 border-rose-500/50 text-rose-300'
-            : !hasFrame
-            ? 'bg-slate-900/85 border-slate-600/60 text-slate-300'
-            : hasFrame && tileStats.frameKey === frameKey && tileStats.failed > 0
-            ? 'bg-slate-900/85 border-amber-400/50 text-amber-200'
-            : 'bg-slate-900/85 border-sky-500/50 text-sky-300'
-        }`}>
-          {loadError || (hasFrame && tileStats.frameKey === frameKey && tileStats.failed >= tiles.length && tiles.length > 0) ? (
+      {/* Status chip — top-center: live radar info, or the exact forecast for
+          the selected day + hour. Play/pause animates the frames. */}
+      <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[40] pointer-events-auto">
+        <div
+          role="status"
+          aria-live="polite"
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 shadow-2xl backdrop-blur-md text-[10px] font-black uppercase tracking-wider whitespace-nowrap max-w-[92vw] overflow-hidden ${
+            loadError
+              ? 'bg-slate-900/90 border-rose-500/60 text-rose-300'
+              : inForecastMode
+              ? 'bg-slate-900/90 border-amber-400/50 text-amber-200'
+              : 'bg-slate-900/90 border-sky-500/50 text-sky-300'
+          }`}
+          title={
+            isToday && frames.length > 1
+              ? `Live radar coverage: ${coverageStart} – ${coverageEnd}. The slider scrubs the nearest frame; outside the window, the dimmed image is the nearest available observation and the numbers are the Open-Meteo forecast for that day + hour.`
+              : 'Live radar covers only the past ~2 hours and next ~30 minutes — other times show the Open-Meteo forecast'
+          }
+        >
+          {/* Play / pause — animate through the radar frames */}
+          {canAnimate && (
+            <button
+              onClick={() => setIsAutoPlaying((p) => !p)}
+              className="flex items-center justify-center w-4 h-4 rounded-full bg-sky-500/20 hover:bg-sky-500/40 transition-colors text-sky-300 flex-shrink-0 cursor-pointer"
+              aria-label={isAutoPlaying ? 'Pause radar animation' : 'Play radar animation'}
+              title={isAutoPlaying ? 'Pause' : 'Animate frames'}
+            >
+              {isAutoPlaying ? (
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><rect x="1" y="1" width="2.2" height="6" rx="0.5"/><rect x="4.8" y="1" width="2.2" height="6" rx="0.5"/></svg>
+              ) : (
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><polygon points="1,0 7,4 1,8"/></svg>
+              )}
+            </button>
+          )}
+
+          {loadError ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-              Radar unavailable
+              <span>Radar unavailable</span>
             </>
-          ) : hasFrame && tileStats.frameKey === frameKey && tileStats.failed > 0 ? (
+          ) : !isToday ? (
+            /* Other days — no radar exists; the forecast responds immediately to the day buttons */
             <>
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-300" />
-              Radar partial · {tileStats.failed} tile{tileStats.failed === 1 ? '' : 's'} unavailable
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>
+                FORECAST · {selectedDayName ? `${selectedDayName} ` : ''}{selectedTimeLabel} · {precipProbability}% rain · {precipMm.toFixed(1)} mm
+              </span>
             </>
-          ) : !hasFrame ? (
+          ) : frames.length === 0 ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-              Radar loading…
+              <span>Radar loading…</span>
             </>
-          ) : (
+          ) : isAutoPlaying ? (
+            /* Animating — show the playing frame, not the slider's forecast */
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-              Radar live · {frameTimeLabel} · frame {activeIndex + 1}/{frames.length}
+              <span>RADAR · {frameTimeLabel} · {activeIndex + 1}/{frames.length}</span>
+            </>
+          ) : inForecastMode ? (
+            /* Forecast for the selected day + hour — visibly tracks the slider/day buttons */
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>
+                FORECAST · {selectedDayName && !isToday ? `${selectedDayName} ` : ''}{selectedTimeLabel} · {precipProbability}% rain · {precipMm.toFixed(1)} mm
+              </span>
+            </>
+          ) : (
+            /* Live radar frame scrubbed by the slider */
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+              <span>
+                RADAR · {frameTimeLabel} · frame {activeIndex + 1}/{frames.length}
+              </span>
+              {precipProbability > 0 && (
+                <span className="text-slate-400"> · {precipProbability}%</span>
+              )}
             </>
           )}
         </div>

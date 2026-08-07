@@ -2359,6 +2359,12 @@ export const MapView: React.FC<MapViewProps> = ({
             opacity={radarOpacity}
             colorScheme={radarColorScheme}
             enabled={showRadar}
+            selectedHour={selectedHour}
+            selectedDayDate={activeDayForecast?.date}
+            selectedDayName={activeDayForecast?.dayName}
+            isToday={selectedDayIndex === 0}
+            precipProbability={precipProbability}
+            precipMm={currentHourForecast?.precipMm ?? 0}
           />
 
           {/* SVG Overlay: Polygons, Scent Cones & Routes */}
