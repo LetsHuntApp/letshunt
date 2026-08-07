@@ -75,6 +75,33 @@ function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+// --- Animated FORECAST rain layer (no real radar exists outside the live
+// window, so we synthesize drifting precipitation whose intensity tracks the
+// Open-Meteo forecast for the selected day + hour). Blob geometry is fixed at
+// module scope so it's identical frame to frame and doesn't jump on re-render.
+
+interface ForecastBlob {
+  left: string;
+  top: string;
+  size: string;
+  dur: number;
+  delay: number;
+}
+
+const FORECAST_BLOBS: ForecastBlob[] = Array.from({ length: 20 }, (_, i) => {
+  // Deterministic pseudo-random spread across the viewport (fixed per index so
+  // the pattern never reshuffles and doesn't jump between slider ticks).
+  const seed = (((i * 7919) % 9973) / 9973);
+  const seed2 = ((((i + 3) * 104729) % 9973) / 9973);
+  return {
+    left: `${(seed * 92 + 4).toFixed(1)}%`,
+    top: `${(seed2 * 90 + 5).toFixed(1)}%`,
+    size: `${(9 + seed2 * 16).toFixed(1)}vw`,
+    dur: 18 + seed2 * 9,
+    delay: -((seed * 14) % 12),
+  };
+});
+
 function latLngToTileCoords(lat: number, lng: number, z: number) {
   const clampedLat = clamp(lat, -85.0511, 85.0511);
   const n = Math.pow(2, z);
@@ -319,29 +346,90 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
   const host = frameCache?.host || 'https://tilecache.rainviewer.com';
   const hasFrame = Boolean(activeFrame) && activeIndex >= 0 && activeIndex < frames.length;
 
-  // Dim the radar whenever the selected moment has no live coverage so the
-  // user can tell "this is the live picture" from "this is the forecast".
   const baseOpacity = clamp(opacity, 0, 1);
-  const radarLayerOpacity = isWithinRadarRange ? baseOpacity : baseOpacity * 0.3;
+
+  // True live mode: today AND the selected moment falls inside the observed
+  // RainViewer window (past ~2 h → next ~30 min) AND a frame actually exists.
+  const coverageValid = isToday && isWithinRadarRange && hasFrame;
+  const inForecastMode = !coverageValid;
+
+  // Forecast-rain intensity driven by the Open-Meteo numbers of the selected
+  // day + hour: blend chance-of-rain with amount, then scale by the user's
+  // opacity so the synthesized precipitation visually scrubs with the slider.
+  const forecastScale = clamp(
+    (precipProbability / 100) * 0.6 + clamp(precipMm / 5, 0, 1) * 0.4,
+    0,
+    1
+  );
+  const forecastLayerOpacity = forecastScale * baseOpacity;
+  const showForecastRain = inForecastMode && forecastLayerOpacity > 0.01;
+  // Blob coverage grows with forecast intensity (radar-like bands appearing).
+  const activeBlobCount = Math.round(forecastScale * FORECAST_BLOBS.length);
 
   const frameTimeLabel = activeFrame ? formatTime(activeFrame.time) : '';
   const selectedTimeLabel = formatTime(selectedDateTime.getTime());
   const coverageStart = frames.length ? formatTime(frames[0].time) : '';
   const coverageEnd = frames.length ? formatTime(frames[frames.length - 1].time) : '';
 
-  const inForecastMode = !isToday || !isWithinRadarRange;
   const canAnimate = isToday && frames.length > 1;
 
   return (
     <>
-      {/* Radar tile layer — today only. Full opacity in live mode, dimmed in
-          forecast mode so the overlay keeps moving with the controls even
-          when no radar exists for the selected moment. */}
-      {hasFrame && isToday && (
+      {/* Animated forecast-rain layer — used whenever the selected day + hour
+          has no observed radar (any future hour, or a different day). Driven by
+          the Open-Meteo 5-day hourly forecast: blob coverage and opacity follow
+          the selected hour's chance/amount, and the blobs drift so the layer
+          visibly moves with the hourly slider and day buttons. */}
+      {showForecastRain && (
         <div
           aria-hidden="true"
           className="absolute inset-0 z-[6] pointer-events-none overflow-hidden"
-          style={{ opacity: radarLayerOpacity, transition: 'opacity 0.3s ease' }}
+          style={{ opacity: forecastLayerOpacity, transition: 'opacity 0.3s ease' }}
+        >
+          {FORECAST_BLOBS.map((b, i) => (
+            <div
+              key={i}
+              className="radar-fc-blob"
+              style={{
+                left: b.left,
+                top: b.top,
+                width: b.size,
+                height: b.size,
+                opacity: i < activeBlobCount ? 1 : 0,
+                animationDuration: `${b.dur}s`,
+                animationDelay: `${b.delay}s`,
+              }}
+            />
+          ))}
+          <style>{`
+            @keyframes letshuntDrift {
+              0%   { transform: translate3d(0,0,0) scale(1); }
+              50%  { transform: translate3d(-16vw, 9vh, 0) scale(1.06); }
+              100% { transform: translate3d(-32vw, 18vh, 0) scale(1); }
+            }
+            .radar-fc-blob{
+              position:absolute; border-radius:9999px; pointer-events:none;
+              background: radial-gradient(circle at 42% 38%,
+                rgba(186,230,253,0.95) 0%,
+                rgba(56,189,248,0.70) 32%,
+                rgba(56,189,248,0.25) 60%,
+                rgba(56,189,248,0) 78%);
+              filter: blur(7px);
+              animation: letshuntDrift linear infinite;
+              transition: opacity 0.6s ease;
+              will-change: transform;
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* Real RainViewer radar tiles — only while the selected moment is inside
+          the live window (today, past ~2 h → next ~30 min). Full opacity here
+          because forecast mode never reaches this branch. */}
+      {coverageValid && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-[6] pointer-events-none overflow-hidden"
         >
           {tiles.map((t) => (
             <img
@@ -380,8 +468,8 @@ export const RadarOverlay: React.FC<RadarOverlayProps> = ({
           }`}
           title={
             isToday && frames.length > 1
-              ? `Live radar coverage: ${coverageStart} – ${coverageEnd}. The slider scrubs the nearest frame; outside the window, the dimmed image is the nearest available observation and the numbers are the Open-Meteo forecast for that day + hour.`
-              : 'Live radar covers only the past ~2 hours and next ~30 minutes — other times show the Open-Meteo forecast'
+              ? `Live radar coverage: ${coverageStart} – ${coverageEnd}. Within this window the slider scrubs the real radar frame; outside it (or on other days) the moving precipitation is the Open-Meteo forecast for that day + hour.`
+              : 'Real radar is available only for the past ~2 hours and next ~30 minutes — all other hours and days show animated precipitation from the Open-Meteo 5-day forecast, scrubbed by the slider and day buttons'
           }
         >
           {/* Play / pause — animate through the radar frames */}
