@@ -991,6 +991,10 @@ export const MapView: React.FC<MapViewProps> = ({
   // CSS-transform panning: offset accumulates during drag and is applied
   // directly to the DOM (bypassing React state) for 60fps smoothness.
   const panOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // CSS-transform zooming: scale accumulates during wheel/pinch and is applied
+  // directly to the DOM. State is synced only after the gesture ends.
+  const zoomScaleRef = useRef<number>(1);
+  const zoomSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dimensions, setDimensions] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 640,
     height: typeof window !== 'undefined' ? window.innerHeight : 480,
@@ -1948,14 +1952,38 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
-  // Wheel zoom
+  // Apply combined pan + zoom CSS transform directly to the DOM.
+  const applyMapTransform = (scale: number, px: number, py: number) => {
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
+    }
+  };
+
+  // Wheel zoom — accumulate CSS scale for instant visual feedback;
+  // sync React state after a debounce pause (150ms after last tick).
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    if (e.deltaY < 0) {
-      setZoom((prev) => Math.min(MAX_ZOOM, prev + 0.5));
-    } else {
-      setZoom((prev) => Math.max(3, prev - 0.5));
-    }
+
+    // Accumulate CSS scale factor
+    const zoomDelta = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+    const newScale = Math.min(
+      Math.pow(2, MAX_ZOOM - 3),
+      Math.max(1, zoomScaleRef.current * zoomDelta)
+    );
+    zoomScaleRef.current = newScale;
+    applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y);
+
+    // Debounce: sync the actual zoom state after the user stops scrolling
+    if (zoomSyncTimerRef.current) clearTimeout(zoomSyncTimerRef.current);
+    zoomSyncTimerRef.current = setTimeout(() => {
+      // Convert CSS scale back to a zoom level delta
+      const scaleRatio = zoomScaleRef.current;
+      const zoomOffset = Math.log2(scaleRatio);
+      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, prev + zoomOffset)));
+      zoomScaleRef.current = 1;
+      applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y);
+      zoomSyncTimerRef.current = null;
+    }, 150);
   };
 
   // Non-passive native touch listeners to prevent page viewport zoom when pinching on mobile
@@ -1985,8 +2013,10 @@ export const MapView: React.FC<MapViewProps> = ({
         const touch2 = e.touches[1];
         const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         const zoomFactor = currentDist / pinchDistRef.current;
-        const newZoom = Math.min(MAX_ZOOM, Math.max(3, initialZoomRef.current + Math.log2(zoomFactor)));
-        setZoom(newZoom);
+        // Apply as CSS scale for instant visual feedback — no React re-render.
+        const newScale = Math.max(1, Math.min(Math.pow(2, MAX_ZOOM - 3), zoomFactor));
+        zoomScaleRef.current = newScale;
+        applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y);
       }
     };
 
@@ -1998,7 +2028,12 @@ export const MapView: React.FC<MapViewProps> = ({
         isPinchingRef.current = false;
         pinchDistRef.current = null;
         initialZoomRef.current = null;
-        setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round(prev * 2) / 2)));
+        // Sync accumulated CSS scale into React state, then reset.
+        const scaleRatio = zoomScaleRef.current;
+        const zoomOffset = Math.log2(scaleRatio);
+        setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
+        zoomScaleRef.current = 1;
+        applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y);
       }
     };
 
@@ -2047,8 +2082,10 @@ export const MapView: React.FC<MapViewProps> = ({
       const touch2 = e.touches[1];
       const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
       const zoomFactor = currentDist / pinchDistRef.current;
-      const newZoom = Math.min(MAX_ZOOM, Math.max(3, initialZoomRef.current + Math.log2(zoomFactor)));
-      setZoom(newZoom);
+      // Apply as CSS scale for instant visual feedback — no React re-render.
+      const newScale = Math.max(1, Math.min(Math.pow(2, MAX_ZOOM - 3), zoomFactor));
+      zoomScaleRef.current = newScale;
+      applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y);
       return;
     }
 
@@ -2075,7 +2112,7 @@ export const MapView: React.FC<MapViewProps> = ({
       isPinchingRef.current = false;
       pinchDistRef.current = null;
       initialZoomRef.current = null;
-      // Sync any accumulated pan offset before snapping zoom
+      // Sync accumulated pan offset into React state
       const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
       const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
       const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
@@ -2084,10 +2121,12 @@ export const MapView: React.FC<MapViewProps> = ({
       setCenterLng(tileXToLng(newX, zoom));
       setCenterLat(tileYToLat(newY, zoom));
       panOffsetRef.current = { x: 0, y: 0 };
-      if (mapContainerRef.current) {
-        mapContainerRef.current.style.transform = '';
-      }
-      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round(prev * 2) / 2)));
+      // Sync accumulated CSS scale into React state, then reset.
+      const scaleRatio = zoomScaleRef.current;
+      const zoomOffset = Math.log2(scaleRatio);
+      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
+      zoomScaleRef.current = 1;
+      applyMapTransform(1, 0, 0);
       return;
     }
 
