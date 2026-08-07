@@ -504,6 +504,14 @@ export default function App() {
 
   const activeDay = dailyForecast.find((d) => d.date === selectedDate) || dailyForecast[0];
 
+  // The extended outlook is a dashboard-owned subpage. Reset the document
+  // scroll after it mounts so opening it always starts at its own heading,
+  // rather than inheriting the dashboard's previous scroll position.
+  useEffect(() => {
+    if (activeTab !== 'dashboard' || !isFourteenDayView) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [activeTab, isFourteenDayView]);
+
   return (
     <div
       className={`font-sans antialiased flex flex-col transition-colors duration-200 ${
