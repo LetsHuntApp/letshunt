@@ -916,7 +916,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // accumulates hundreds of <img> layers; eviction drops the oldest entries
   // (Map preserves insertion order) beyond the cap.
   const cachedTilesRef = useRef<Map<string, { z: number; tx: number; ty: number; src: string; style: string }>>(new Map());
-  const [, setTileCacheVersion] = useState(0);
+  const [tileCacheVersion, setTileCacheVersion] = useState(0);
   const tileCacheRafRef = useRef<number | null>(null);
   const MAX_CACHED_TILES = 500;
 
@@ -1909,15 +1909,19 @@ export const MapView: React.FC<MapViewProps> = ({
     dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  // Convert client/viewport coordinates to map lat/lng (shared by click + snap-preview math)
+  // Convert client/viewport coordinates to map lat/lng (shared by click + snap-preview math).
+  // IMPORTANT: divisor must match the ACTUAL rendered tile width at the current (possibly
+  // fractional) zoom — at z=16.5 tiles paint at 256*2^0.5 ≈ 362 CSS px, not 256. Using a
+  // hard-coded 256 made clicks/pan mis-target at fractional zoom.
   const clientToLatLng = (clientX: number, clientY: number) => {
     if (!mapContainerRef.current) return { lat: centerLat, lng: centerLng };
     const rect = mapContainerRef.current.getBoundingClientRect();
     const clickX = clientX - rect.left;
     const clickY = clientY - rect.top;
 
+    const renderBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+    const tileSize = 256 * Math.pow(2, zoom - renderBaseZoom);
     const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const tileSize = 256;
     const mouseTileX = centerTile.x + (clickX - dimensions.width / 2) / tileSize;
     const mouseTileY = centerTile.y + (clickY - dimensions.height / 2) / tileSize;
 
@@ -1953,8 +1957,9 @@ export const MapView: React.FC<MapViewProps> = ({
 
     dragStartRef.current = { x: e.clientX, y: e.clientY };
 
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
     const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const tileSize = 256;
     const newX = centerTile.x - dx / tileSize;
     const newY = centerTile.y - dy / tileSize;
 
@@ -2086,8 +2091,9 @@ export const MapView: React.FC<MapViewProps> = ({
 
     dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
     const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const tileSize = 256;
     const newX = centerTile.x - dx / tileSize;
     const newY = centerTile.y - dy / tileSize;
 
@@ -2118,8 +2124,14 @@ export const MapView: React.FC<MapViewProps> = ({
   const halfWidth = dimensions.width / 2;
   const halfHeight = dimensions.height / 2;
 
-  const allTileElements: React.ReactNode[] = [];
-
+  // Wrap the entire 3-tier tile-element build in useMemo so unrelated state
+  // changes (drawing polygons, opening dropdowns, slider scrubs) don't churn
+  // dozens of fresh React elements per render. Without this memo, every
+  // re-render allocated new `urls` arrays inside MapTile props, defeating
+  // React.memo on MapTile and forcing hundreds of <img> re-mounts on each
+  // pan step on lower-end devices.
+  const allTileElements = useMemo<React.ReactNode[]>(() => {
+    const tiles: React.ReactNode[] = [];
   // Tier 1: Low-zoom regional overview layer (zIndex: 1)
   // Guarantees 100% background satellite coverage for the entire region. The
   // zoom is capped relative to the current level so the scaled tiles never
@@ -2144,7 +2156,7 @@ export const MapView: React.FC<MapViewProps> = ({
         const urls = getTileUrls(overviewZoom, ty, tx, mapStyle);
         const tileKey = `overview-${overviewZoom}-${tx}-${ty}-${mapStyle}`;
 
-        allTileElements.push(
+        tiles.push(
           <MapTile
             key={tileKey}
             tileKey={tileKey}
@@ -2182,7 +2194,7 @@ export const MapView: React.FC<MapViewProps> = ({
         tileTop + tileSize >= -160 &&
         tileTop <= dimensions.height + 160
       ) {
-        allTileElements.push(
+        tiles.push(
           <img
             key={`cached-bg-${key}`}
             src={cached.src}
@@ -2225,8 +2237,7 @@ export const MapView: React.FC<MapViewProps> = ({
       const tileTop = halfHeight + (ty - actCoords.y) * actTileSize;
       const urls = getTileUrls(baseZoom, ty, tx, mapStyle);
       const tileKey = `active-${baseZoom}-${tx}-${ty}-${mapStyle}`;
-
-      allTileElements.push(
+      tiles.push(
         <MapTile
           key={tileKey}
           tileKey={tileKey}
@@ -2244,6 +2255,9 @@ export const MapView: React.FC<MapViewProps> = ({
       );
     }
   }
+
+    return tiles;
+  }, [centerLat, centerLng, zoom, dimensions.width, dimensions.height, mapStyle, tileCacheVersion, halfWidth, halfHeight, handleTileLoaded, cachedTilesRef]);
 
   // Convert lat/lng to map container pixel coordinates
   const latLngToPixel = useCallback(
