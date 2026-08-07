@@ -2015,7 +2015,9 @@ export const MapView: React.FC<MapViewProps> = ({
         // --- Pinch-to-zoom ---
         const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         const zoomFactor = currentDist / pinchDistRef.current;
-        const newScale = Math.max(1, Math.min(Math.pow(2, MAX_ZOOM - 3), zoomFactor));
+        // Allow scale below 1.0 for zoom-out visual feedback; clamp to
+        // reasonable bounds so the map doesn't vanish or explode.
+        const newScale = Math.max(0.25, Math.min(4, zoomFactor));
         zoomScaleRef.current = newScale;
         // --- Two-finger rotation ---
         if (initialPinchAngleRef.current !== null) {
@@ -2100,7 +2102,9 @@ export const MapView: React.FC<MapViewProps> = ({
       // --- Pinch-to-zoom ---
       const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
       const zoomFactor = currentDist / pinchDistRef.current;
-      const newScale = Math.max(1, Math.min(Math.pow(2, MAX_ZOOM - 3), zoomFactor));
+      // Allow scale below 1.0 for zoom-out visual feedback; clamp to
+      // reasonable bounds so the map doesn't vanish or explode.
+      const newScale = Math.max(0.25, Math.min(4, zoomFactor));
       zoomScaleRef.current = newScale;
       // --- Two-finger rotation ---
       if (initialPinchAngleRef.current !== null) {
