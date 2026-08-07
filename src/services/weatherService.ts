@@ -201,7 +201,7 @@ export async function fetch5DayHuntingForecast(
 ): Promise<DailyForecast[]> {
   const { latitude: lat, longitude: lon } = location;
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,windgusts_10m,winddirection_10m&timezone=auto`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,windgusts_10m,winddirection_10m&forecast_days=14&timezone=auto`;
 
   // Batch 1: rolling 30-day climate normal for the location, fetched from
   // the Open-Meteo Archive API (free, no API key). Used to score the
@@ -246,8 +246,12 @@ export async function fetch5DayHuntingForecast(
 
   const dailyForecasts: DailyForecast[] = [];
 
-  // We take 7 days (Today + 6 upcoming forecast days)
-  const daysCount = Math.min(7, dailyRaw.time.length);
+  // We process up to 14 days (1-2 weeks out) so the dashboard can offer a
+  // 14-day forecast view on demand, without breaking callers that only
+  // render the first 7 cards. Open-Meteo's daily + hourly arrays always
+  // cover the same span, so it's safe to parallelize the per-day loop up to
+  // 14 even if a caller only consumes the first slice.
+  const daysCount = Math.min(14, dailyRaw.time.length);
 
   for (let d = 0; d < daysCount; d++) {
     const dateStr = dailyRaw.time[d];

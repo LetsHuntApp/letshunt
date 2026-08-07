@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DailyForecast, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit, Location } from '../types';
 import { DeerIcon } from './DeerIcon';
 import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, RATING_THRESHOLDS } from '../utils/huntingEngine';
@@ -42,10 +42,21 @@ import {
   Moon,
   Star,
   Maximize2,
+  ChevronRight,
+  Info,
+  X,
 } from 'lucide-react';
 
 interface ForecastCardsProps {
   daily: DailyForecast[];
+  /**
+   * Optional extended forecast (e.g. all 14 days from the API). When supplied,
+   * a "View 14-day forecast" button is rendered below the 7-day cards that
+   * opens a modal listing every day beyond the default 7 — the dashboard
+   * stays unchanged. Defaults to `daily` so callers that don't pass it keep
+   * working unchanged.
+   */
+  dailyAll?: DailyForecast[];
   selectedDate: string;
   onSelectDate: (dateStr: string) => void;
   units: UnitSystem;
@@ -61,6 +72,7 @@ interface ForecastCardsProps {
 
 export const ForecastCards: React.FC<ForecastCardsProps> = ({
   daily,
+  dailyAll,
   selectedDate,
   onSelectDate,
   units,
@@ -76,6 +88,40 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   // Which 7-day card the Best Day banner auto-expanded — kept separate from the
   // real selection so tapping the banner never swaps the top forecast card.
   const [autoExpandedDate, setAutoExpandedDate] = useState<string | null>(null);
+  // Extended-foresight modal: only opens when the user explicitly taps the
+  // "View 14-day forecast" button below the 7-day cards. We default to the
+  // supplied `daily` array if the parent didn't pass `dailyAll`, so the button
+  // gracefully no-ops when extra forecast data isn't available.
+  const [showFourteenDay, setShowFourteenDay] = useState(false);
+
+  // Days covered by the 7-day cards. Anything past this index lives only in
+  // `dailyAll` and is reachable via the extended-view modal below. Falls back
+  // gracefully if the parent passed a shorter dashboard list.
+  const extendedDays = (dailyAll && dailyAll.length > 7 ? dailyAll : daily).slice(7);
+  const hasExtendedForecast = extendedDays.length > 0;
+
+  // ESC closes the 14-day modal. We don't fight the rest of the app for this
+  // key because the modal is a full-screen overlay that captures focus when
+  // open, and once closed focus returns to whatever the user was looking at.
+  useEffect(() => {
+    if (!showFourteenDay) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowFourteenDay(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showFourteenDay]);
+
+  // Lock body scroll while the modal is open so swiping the page behind it
+  // can't escape the overlay on iOS Safari.
+  useEffect(() => {
+    if (!showFourteenDay) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [showFourteenDay]);
 
   if (!daily || daily.length === 0) return null;
 
@@ -834,7 +880,213 @@ const getScoreBadgeColor = (score: number) => {
             </div>
           );
         })}
+
+        {/* "View 14-day forecast" button — sits inline below the 7-day cards,
+            in the same column flex so it floats right under the last card rather
+            than stretching weirdly. Hidden when the API never returned more than
+            7 days (e.g. a transient short response during a refresh). */}
+        {hasExtendedForecast && (
+          <button
+            type="button"
+            onClick={() => setShowFourteenDay(true)}
+            aria-label="View 14-day hunting forecast"
+            className={`mt-1 w-full sm:w-auto self-center group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+              theme === 'hunting'
+                ? 'bg-[#c85a17]/15 border-[#c85a17]/55 text-[#7a3208] hover:bg-[#c85a17]/25 focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
+                : theme === 'olive'
+                ? 'bg-[#556b2f]/15 border-[#556b2f]/55 text-[#3d4f21] hover:bg-[#556b2f]/25 focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
+                : isDark
+                ? 'bg-emerald-500/15 border-emerald-400/60 text-emerald-300 hover:bg-emerald-500/25 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
+                : 'bg-emerald-50 border-emerald-600/55 text-emerald-800 hover:bg-emerald-100 focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
+            }`}
+          >
+            <Calendar className="w-4 h-4 shrink-0" />
+            <span>View {Math.max(7, (dailyAll?.length || daily.length))}-Day Forecast</span>
+            <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        )}
       </div>
+
+      {/* 14-day forecast modal — slides in over the dashboard, theme-aware,
+          showing every day from index 7 onward with the same scoring language
+          the user already understands from the 7-day cards. */}
+      {showFourteenDay && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="fourteen-day-modal-title"
+        >
+          {/* Backdrop dims and blocks clicks outside the sheet */}
+          <button
+            type="button"
+            aria-label="Close 14-day forecast modal"
+            onClick={() => setShowFourteenDay(false)}
+            className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm"
+          />
+          <div
+            className={`relative w-full max-w-2xl max-h-[88vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
+              isDark
+                ? 'bg-slate-900 border-slate-700 text-slate-100'
+                : theme === 'hunting'
+                ? 'bg-[#f4eee1] border-[#d4c4a8] text-[#2a1b0e]'
+                : theme === 'olive'
+                ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            {/* Modal header — title, playback endpoint, close button */}
+            <div
+              className={`px-4 sm:px-6 py-4 border-b flex items-center justify-between gap-3 ${
+                isDark ? 'border-slate-700/60' : theme === 'hunting' ? 'border-[#d4c4a8]/60' : theme === 'olive' ? 'border-[#d8d2c0]/60' : 'border-slate-200'
+              }`}
+            >
+              <div className="min-w-0">
+                <h2
+                  id="fourteen-day-modal-title"
+                  className={`text-base sm:text-lg font-black flex items-center gap-2 ${isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}
+                >
+                  <Calendar className={`w-5 h-5 shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                  <span>14-Day Hunting Forecast</span>
+                </h2>
+                <p
+                  className={`text-[11px] sm:text-xs mt-0.5 ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}
+                >
+                  Extended outlook — confidence fades after day 7
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFourteenDay(false)}
+                aria-label="Close"
+                className={`p-2 rounded-xl transition-colors cursor-pointer flex-shrink-0 ${
+                  isDark
+                    ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    : theme === 'hunting'
+                    ? 'text-[#8b7355] hover:text-[#7a3208] hover:bg-[#eae1cf]'
+                    : theme === 'olive'
+                    ? 'text-[#6e6a5e] hover:text-[#1e2e1b] hover:bg-[#e8e3d3]'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Confidence caveat — visible only once per modal open so the
+                hunter knows the 8-14d scores are model guidance, not a guarantee. */}
+            <div
+              className={`mx-4 sm:mx-6 mt-4 px-3 py-2 rounded-xl text-[11px] sm:text-xs font-semibold border flex items-start gap-2 ${
+                isDark
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-200'
+                  : theme === 'hunting'
+                  ? 'bg-[#c85a17]/10 border-[#c85a17]/40 text-[#7a3208]'
+                  : theme === 'olive'
+                  ? 'bg-[#b87333]/10 border-[#b87333]/40 text-[#5c3d10]'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}
+            >
+              <Info className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                Days 8-14 are model-only forecasts with lower confidence. Use them for
+                broad planning (vacation timing, scouting visits), not for picking a stand.
+              </span>
+            </div>
+
+            {/* Scrollable list of extended-range days. Each row mirrors the
+                7-day card language so the user already knows how to read it. */}
+            <div className="overflow-y-auto px-4 sm:px-6 py-4 flex-1">
+              <ul className="flex flex-col gap-2.5">
+                {extendedDays.map((day, idx) => {
+                  const extendedIdx = 7 + idx + 1; // 1-indexed day count from "today"
+                  const rating = getRatingFromScore(day.huntScore);
+                  const ratingColor = rating === 'Excellent'
+                    ? isDark ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40' : 'text-emerald-800 bg-emerald-100 border-emerald-300'
+                    : rating === 'Good'
+                    ? isDark ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                    : rating === 'Fair'
+                    ? isDark ? 'text-amber-300 bg-amber-500/10 border-amber-500/30' : 'text-amber-700 bg-amber-50 border-amber-200'
+                    : isDark ? 'text-rose-300 bg-rose-500/10 border-rose-500/30' : 'text-rose-700 bg-rose-50 border-rose-200';
+
+                  const lowConfidence = idx + 7 >= 8
+                    ? isDark ? 'border-dashed border-amber-500/50' : 'border-dashed border-amber-300'
+                    : '';
+                  const dayName = day.dayName === 'Today' ? 'Today' : day.dayName === 'Tomorrow' ? 'Tomorrow' : day.dayName;
+
+                  return (
+                    <li
+                      key={day.date}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        onSelectDate(day.date);
+                        setShowFourteenDay(false);
+                        if (onOpenDetails) onOpenDetails(day.date);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelectDate(day.date);
+                          setShowFourteenDay(false);
+                          if (onOpenDetails) onOpenDetails(day.date);
+                        }
+                      }}
+                      className={`group cursor-pointer rounded-xl border-2 px-3 py-2.5 sm:px-4 sm:py-3 transition-all flex items-center gap-3 hover:scale-[1.005] ${lowConfidence} ${
+                        isDark
+                          ? 'bg-slate-800/60 hover:bg-slate-800 border-slate-700'
+                          : theme === 'hunting'
+                          ? 'bg-[#eee6d6] hover:bg-[#eae1cf] border-[#d4c4a8]'
+                          : theme === 'olive'
+                          ? 'bg-[#efebd9] hover:bg-[#e8e3d3] border-[#d4cebc]'
+                          : 'bg-slate-50 hover:bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center justify-center min-w-[3rem] sm:min-w-[3.5rem] text-center">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
+                          {idx + 7 >= 8 ? `Day ${extendedIdx}` : dayName}
+                        </span>
+                        <span className={`text-[11px] mt-0.5 font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-slate-600'}`}>
+                          {day.dateFormatted}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className={`flex items-center gap-2 ${isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
+                          <span className="text-sm font-black truncate">{day.weatherDesc}</span>
+                        </div>
+                        <div className={`text-[11px] sm:text-xs font-semibold ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
+                          {day.maxTemp}°/{day.minTemp}°
+                          {units === 'imperial' ? 'F' : 'C'}
+                          {' · '}
+                          {day.windDirectionText} {units === 'imperial' ? `${day.windSpeedMaxMph} mph` : `${day.windSpeedMaxKmh} km/h`}
+                          {day.precipSumMm > 0 ? ` · ${day.precipSumInches.toFixed(2)} in` : ''}
+                        </div>
+                      </div>
+
+                      <div className={`px-2.5 py-1 rounded-lg border font-black text-xs flex flex-col items-center justify-center min-w-[3.2rem] ${ratingColor}`}>
+                        <span className="text-base leading-none">{day.huntScore}</span>
+                        <span className="text-[9px] mt-0.5 opacity-80 uppercase tracking-wide">{rating}</span>
+                      </div>
+
+                      <ChevronRight
+                        className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
+                          isDark ? 'text-slate-500' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-400'
+                        }`}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div
+              className={`px-4 sm:px-6 py-3 border-t text-[10px] sm:text-xs text-center ${isDark ? 'border-slate-700/60 text-slate-500' : 'border-slate-200 text-slate-500'}`}
+            >
+              Tap any day to jump to the full prediction view.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

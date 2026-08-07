@@ -718,6 +718,7 @@ export default function App() {
                   forecastCards={
                     <ForecastCards
                       daily={dailyForecast.slice(0, 7)}
+                      dailyAll={dailyForecast}
                       selectedDate={selectedDate}
                       onSelectDate={(date) => setSelectedDate(date)}
                       selectedHour={selectedHour}
