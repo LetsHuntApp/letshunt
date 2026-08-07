@@ -117,6 +117,8 @@ export interface DailyForecast {
   weatherIcon: string;
   isPostStorm: boolean;
   hasRainBreak?: boolean;
+  /** Hour index (0-23) of the last hour with meaningful rain (> 0.2 mm). -1 if no rain. */
+  lastRainHour?: number;
   humidityAvg?: number; // Average relative humidity 0-100 (optional, Batch 1)
   
   // Hunting forecast metrics

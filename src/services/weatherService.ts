@@ -301,9 +301,15 @@ export async function fetch5DayHuntingForecast(
     const hasDryHour = dayHourlyRaw.precip.some((p: number) => p < 0.1);
     const hasRainBreak = hasRainHour && hasDryHour;
 
-    const morningRain = dayHourlyRaw.precip.slice(0, 10).some((p: number) => p > 0.5);
-    const afternoonClear = dayHourlyRaw.precip.slice(12, 20).every((p: number) => p < 0.2);
-    const isPostStorm = morningRain && afternoonClear;
+    // Detect any rain-then-clear pattern: find the last hour with meaningful
+    // rain (> 0.2 mm), then check that at least 2 consecutive dry hours follow.
+    let lastRainIdx = -1;
+    for (let i = dayHourlyRaw.precip.length - 1; i >= 0; i--) {
+      if ((dayHourlyRaw.precip[i] || 0) > 0.2) { lastRainIdx = i; break; }
+    }
+    const lastRainHour = lastRainIdx; // 0-23 hour index, or -1
+    const isPostStorm = lastRainIdx >= 0 && lastRainIdx < dayHourlyRaw.precip.length - 2 &&
+      dayHourlyRaw.precip.slice(lastRainIdx + 1, lastRainIdx + 3).every((p: number) => (p || 0) < 0.1);
 
     // Calculate Solunar Info
     const solunar = calculateSolunar(dateStr, lat, lon, sunriseStr, sunsetStr);
@@ -471,6 +477,7 @@ export async function fetch5DayHuntingForecast(
       weatherIcon,
       isPostStorm,
       hasRainBreak,
+      lastRainHour,
       humidityAvg: humidityAvg ?? undefined, // Batch 1: undefined => unavailable
       huntScore: score,
       rating,

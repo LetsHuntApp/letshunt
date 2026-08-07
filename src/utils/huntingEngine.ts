@@ -111,20 +111,46 @@ export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'E
 
 /**
  * True when a specific hour represents a break in the rain / post-storm
- * clearing: a dry hour on a day that had rain (day.hasRainBreak), or clear
- * skies on a day whose forecast called for rain. Mirrors the rain-break
- * signal weatherService applies to hourly scores so display-side factor
- * breakdowns stay consistent with the scores they explain.
+ * clearing. This is used by the display-side condition explanation to show
+ * "Rain Just Stopped" — so it must only fire for hours that are actually
+ * near when rain stopped, NOT any dry hour on a rainy day.
+ *
+ * The hourly weather service already computes `isRainBreakHour` which checks
+ * that rain occurred in the preceding 3 hours. This function is the
+ * display-side mirror: it should be consistent with that signal.
+ *
+ * Returns true only when:
+ *  - The current hour is NOT currently precipitating, AND
+ *  - The day has a rain break (rain occurred then stopped), AND
+ *  - The day-level weather suggests rain was significant (code >= 61 or
+ *    isPostStorm), so this isn't just scattered light drizzle.
  */
-export function isHourlyRainBreak(day: DailyForecast, weatherCode: number): boolean {
+export function isHourlyRainBreak(day: DailyForecast, weatherCode: number, hourIndex?: number): boolean {
   const precipitating =
     weatherCode === 51 || weatherCode === 53 || weatherCode === 55 ||
     weatherCode === 61 || weatherCode === 63 || weatherCode === 65 ||
     (weatherCode >= 71 && weatherCode <= 75) ||
     (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95;
-  if (!precipitating && day.hasRainBreak) return true;
-  return (weatherCode === 1 || weatherCode === 2 || weatherCode === 3) &&
-    (day.weatherCode === 61 || day.weatherCode === 63 || day.weatherCode === 65 || day.isPostStorm);
+  if (precipitating) return false;
+  // Require that rain actually stopped recently (within 3 hours). The
+  // hourly `isRainBreakHour` in weatherService checks the preceding 3 hours;
+  // this function must be consistent: "Rain Just Stopped" should only appear
+  // when rain actually stopped within the last few hours, not any dry hour
+  // on a rainy day.
+  if (day.lastRainHour !== undefined && day.lastRainHour >= 0 && hourIndex !== undefined) {
+    const hoursSinceRain = hourIndex - day.lastRainHour;
+    // Rain stopped 1-3 hours ago → this is the "just stopped" window.
+    // Also allow the hour AFTER rain stops (hoursSinceRain === 0 means
+    // this hour had rain, which is already filtered above).
+    if (hoursSinceRain >= 0 && hoursSinceRain <= 3) {
+      return day.hasRainBreak === true;
+    }
+    return false;
+  }
+  // Fallback: if lastRainHour is unavailable, use the day-level weather code
+  // to determine if rain was significant enough to warrant the signal.
+  return day.hasRainBreak === true &&
+    (day.weatherCode >= 61 || day.weatherCode === 80 || day.weatherCode === 81 || day.weatherCode === 82 || day.isPostStorm);
 }
 
 export function formatTimeRange12h(start: Date | string, end: Date | string): string {
@@ -762,8 +788,14 @@ export function getDetailedConditionExplanation(
     : day.isPostStorm;
   const tempDrop = day.tempDrop24h;
 
-  // Check if current hour or day represents a break in the rain
-  const hasRainBreak = hourData ? isHourlyRainBreak(day, hourData.weatherCode) : day.hasRainBreak;
+  // Check if current hour or day represents a break in the rain.
+  // Pass the hour index so isHourlyRainBreak can verify rain stopped recently.
+  const hourIndex = hourData?.timestamp ? new Date(hourData.timestamp).getHours() : undefined;
+  const hasRainBreak = hourData
+    ? isHourlyRainBreak(day, hourData.weatherCode, hourIndex)
+    // Day-level fallback: only show rain break if rain stopped within the
+    // last few hours (lastRainHour check) or the day is a post-storm day.
+    : (day.hasRainBreak === true && day.isPostStorm);
 
   // 1. Heavy Rain & Storms (Codes 65, 95, 96, 99)
   if (weatherCode === 65 || weatherCode >= 95) {
