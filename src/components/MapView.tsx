@@ -1964,31 +1964,22 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
-  // Wheel zoom — accumulate CSS scale for instant visual feedback;
-  // sync React state after a debounce pause (150ms after last tick).
+  // Wheel zoom — debounced state update for smoothness.
+  // CSS scale() doesn't work for wheel zoom because tiles must actually
+  // change (different zoom level = different tile URLs). We debounce the
+  // setZoom call so rapid scroll ticks batch into fewer re-renders.
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
 
-    // Accumulate CSS scale factor
-    const zoomDelta = e.deltaY < 0 ? 1.08 : 1 / 1.08;
-    const newScale = Math.min(
-      Math.pow(2, MAX_ZOOM - 3),
-      Math.max(1, zoomScaleRef.current * zoomDelta)
-    );
-    zoomScaleRef.current = newScale;
-    applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y);
-
-    // Debounce: sync the actual zoom state after the user stops scrolling
     if (zoomSyncTimerRef.current) clearTimeout(zoomSyncTimerRef.current);
     zoomSyncTimerRef.current = setTimeout(() => {
-      // Convert CSS scale back to a zoom level delta
-      const scaleRatio = zoomScaleRef.current;
-      const zoomOffset = Math.log2(scaleRatio);
-      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, prev + zoomOffset)));
-      zoomScaleRef.current = 1;
-      applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+      if (e.deltaY < 0) {
+        setZoom((prev) => Math.min(MAX_ZOOM, prev + 0.5));
+      } else {
+        setZoom((prev) => Math.max(3, prev - 0.5));
+      }
       zoomSyncTimerRef.current = null;
-    }, 150);
+    }, 50);
   };
 
   // Non-passive native touch listeners to prevent page viewport zoom when pinching on mobile
