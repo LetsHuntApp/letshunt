@@ -1947,24 +1947,28 @@ export const MapView: React.FC<MapViewProps> = ({
     if (!isDragging) return;
     setIsDragging(false);
 
-    // Sync accumulated pixel offset into React state so tiles/SVG re-render
-    // at the correct position, then reset the CSS transform.
+    // Bake the accumulated pan offset into the geographic center so the
+    // rendered tiles naturally land at the panned position WITHOUT the
+    // CSS transform. Sign is positive: dragging content rightward
+    // (panOffset.x > 0) reveals what's further east, so the new center
+    // moves east, not west. Earlier code subtracted, which produced a
+    // 1-frame "double-snap" jump on every drag release.
     const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
     const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
     const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const newX = centerTile.x - panOffsetRef.current.x / tileSize;
-    const newY = centerTile.y - panOffsetRef.current.y / tileSize;
+    const newX = centerTile.x + panOffsetRef.current.x / tileSize;
+    const newY = centerTile.y + panOffsetRef.current.y / tileSize;
+
+    // Clear the translate synchronously BEFORE React commits the
+    // re-render. applyMapTransform writes both the map container and the
+    // pin overlay in one shot, so pins never drift out of sync with the
+    // tiles during the transition. This eliminates the 1-frame jump
+    // users saw on every drag release.
+    panOffsetRef.current = { x: 0, y: 0 };
+    applyMapTransform(1, 0, 0, rotationRef.current);
+
     setCenterLng(tileXToLng(newX, zoom));
     setCenterLat(tileYToLat(newY, zoom));
-    panOffsetRef.current = { x: 0, y: 0 };
-    // Defer transform clear to next frame so the re-render places tiles at
-    // the new position BEFORE the transform is removed — eliminates the
-    // visual jump/glitch on drag end.
-    requestAnimationFrame(() => {
-      if (mapContainerRef.current) {
-        mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
-      }
-    });
 
     if (!hasMovedRef.current && mapContainerRef.current) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY);
@@ -2210,14 +2214,15 @@ export const MapView: React.FC<MapViewProps> = ({
       initialZoomRef.current = null;
       initialPinchAngleRef.current = null;
       lastRotationAngleRef.current = null;
-      // Sync accumulated pan offset into React state
+      // Sync accumulated pan offset into React state. Positive sign so
+      // dragging content right reveals MORE east, moving the geographic
+      // center east. The previous minus-sign produced a one-frame jump
+      // on every pinch-end / drag-release.
       const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
       const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
       const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-      const newX = centerTile.x - panOffsetRef.current.x / tileSize;
-      const newY = centerTile.y - panOffsetRef.current.y / tileSize;
-      setCenterLng(tileXToLng(newX, zoom));
-      setCenterLat(tileYToLat(newY, zoom));
+      const newX = centerTile.x + panOffsetRef.current.x / tileSize;
+      const newY = centerTile.y + panOffsetRef.current.y / tileSize;
       panOffsetRef.current = { x: 0, y: 0 };
       // Sync accumulated CSS scale into React state.
       const scaleRatio = zoomScaleRef.current;
@@ -2226,35 +2231,33 @@ export const MapView: React.FC<MapViewProps> = ({
       zoomScaleRef.current = 1;
       // Sync rotation display for the UI indicator.
       setRotationDisplay(rotationRef.current);
-      // Defer transform reset to next frame to eliminate pinch-end jump.
-      // Re-run applyMapTransform here so the pins overlay picks up the fresh
-      // zoom/rotation values in lockstep with the map container's new
-      // transform — otherwise the overlay sticks on whatever inverse scale
-      // it had mid-gesture and pins look slightly off until the next touch.
-      requestAnimationFrame(() => {
-        applyMapTransform(1, 0, 0, rotationRef.current);
-      });
+      // Clear translate + scale SYNCHRONOUSLY (not via rAF) so React's
+      // next commit places tiles at the new center with no residual
+      // offset. applyMapTransform also resets the pin overlay's inverse
+      // transform in the same call, so pins and tiles stay in lockstep.
+      applyMapTransform(1, 0, 0, rotationRef.current);
+      setCenterLng(tileXToLng(newX, zoom));
+      setCenterLat(tileYToLat(newY, zoom));
       return;
     }
 
     if (!isDragging) return;
     setIsDragging(false);
 
-    // Sync accumulated pixel offset into React state, then reset transform.
+    // Bake the accumulated pan offset into the geographic center.
+    // Positive sign — drag right means reveal east, so center moves east.
     const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
     const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
     const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const newX = centerTile.x - panOffsetRef.current.x / tileSize;
-    const newY = centerTile.y - panOffsetRef.current.y / tileSize;
+    const newX = centerTile.x + panOffsetRef.current.x / tileSize;
+    const newY = centerTile.y + panOffsetRef.current.y / tileSize;
+    panOffsetRef.current = { x: 0, y: 0 };
+    // Clear translate synchronously so React's commit sees identity
+    // translate alongside the new center; combined with applyMapTransform
+    // the pin overlay resets its inverse scale + rotation in lockstep.
+    applyMapTransform(1, 0, 0, rotationRef.current);
     setCenterLng(tileXToLng(newX, zoom));
     setCenterLat(tileYToLat(newY, zoom));
-    panOffsetRef.current = { x: 0, y: 0 };
-    // Defer transform clear to next frame to eliminate drag-end jump.
-    requestAnimationFrame(() => {
-      if (mapContainerRef.current) {
-        mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
-      }
-    });
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
