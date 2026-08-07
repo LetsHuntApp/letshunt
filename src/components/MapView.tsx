@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Camera,
   Compass,
@@ -1958,17 +1959,24 @@ export const MapView: React.FC<MapViewProps> = ({
     const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
     const newX = centerTile.x + panOffsetRef.current.x / tileSize;
     const newY = centerTile.y + panOffsetRef.current.y / tileSize;
-
-    // Clear the translate synchronously BEFORE React commits the
-    // re-render. applyMapTransform writes both the map container and the
-    // pin overlay in one shot, so pins never drift out of sync with the
-    // tiles during the transition. This eliminates the 1-frame jump
-    // users saw on every drag release.
     panOffsetRef.current = { x: 0, y: 0 };
-    applyMapTransform(1, 0, 0, rotationRef.current);
 
-    setCenterLng(tileXToLng(newX, zoom));
-    setCenterLat(tileYToLat(newY, zoom));
+    // ORDER MATTERS: COMMIT FIRST, then clear the CSS translate.
+    // flushSync() forces all queued React state updates inside it to
+    // commit synchronously inside this microtask — that means the
+    // browser paints the next frame with tiles already in their NEW
+    // positions while the container still carries the old translate.
+    // Only AFTER that commit do we clear the translate via
+    // applyMapTransform. The two DOM mutations happen back-to-back
+    // inside a single JS turn, so the browser never paints an
+    // intermediate frame where tiles are at OLD center coords with
+    // identity translate — which is the "snap back then snap forward"
+    // glitch (looks like the map races off on release).
+    flushSync(() => {
+      setCenterLng(tileXToLng(newX, zoom));
+      setCenterLat(tileYToLat(newY, zoom));
+    });
+    applyMapTransform(1, 0, 0, rotationRef.current);
 
     if (!hasMovedRef.current && mapContainerRef.current) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY);
@@ -2227,17 +2235,27 @@ export const MapView: React.FC<MapViewProps> = ({
       // Sync accumulated CSS scale into React state.
       const scaleRatio = zoomScaleRef.current;
       const zoomOffset = Math.log2(scaleRatio);
-      setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
+      const nextZoom = (prev: number) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2));
       zoomScaleRef.current = 1;
       // Sync rotation display for the UI indicator.
-      setRotationDisplay(rotationRef.current);
-      // Clear translate + scale SYNCHRONOUSLY (not via rAF) so React's
-      // next commit places tiles at the new center with no residual
-      // offset. applyMapTransform also resets the pin overlay's inverse
-      // transform in the same call, so pins and tiles stay in lockstep.
+      const nextRotation = rotationRef.current;
+      // Commit React state BEFORE clearing the CSS translate + scale.
+      // flushSync forces both setZoom + setCenter to commit in this
+      // microtask, so the browser paints a single frame where tiles
+      // are already at their new (center, zoom, rotation) positions
+      // and only then we strip the translate + scale via
+      // applyMapTransform. Without flushSync the order was
+      //   applyMapTransform(identity) → setCenter → setZoom → render
+      // which leaves a stale frame showing OLD tile coords with no
+      // translate, producing the "snap back + snap forward" ghost
+      // pan users saw on release.
+      flushSync(() => {
+        setZoom(nextZoom);
+        setRotationDisplay(nextRotation);
+        setCenterLng(tileXToLng(newX, zoom));
+        setCenterLat(tileYToLat(newY, zoom));
+      });
       applyMapTransform(1, 0, 0, rotationRef.current);
-      setCenterLng(tileXToLng(newX, zoom));
-      setCenterLat(tileYToLat(newY, zoom));
       return;
     }
 
@@ -2252,12 +2270,17 @@ export const MapView: React.FC<MapViewProps> = ({
     const newX = centerTile.x + panOffsetRef.current.x / tileSize;
     const newY = centerTile.y + panOffsetRef.current.y / tileSize;
     panOffsetRef.current = { x: 0, y: 0 };
-    // Clear translate synchronously so React's commit sees identity
-    // translate alongside the new center; combined with applyMapTransform
-    // the pin overlay resets its inverse scale + rotation in lockstep.
+    // Commit React's setCenter updates FIRST (flushSync) so the
+    // browser never paints the intermediate frame where tiles are at
+    // OLD coords and the container has no translate — that frame was
+    // the "map races across the screen on release" artifact. Only
+    // after React has placed tiles at the new center do we strip the
+    // translate. The two DOM updates collapse into a single paint.
+    flushSync(() => {
+      setCenterLng(tileXToLng(newX, zoom));
+      setCenterLat(tileYToLat(newY, zoom));
+    });
     applyMapTransform(1, 0, 0, rotationRef.current);
-    setCenterLng(tileXToLng(newX, zoom));
-    setCenterLat(tileYToLat(newY, zoom));
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
