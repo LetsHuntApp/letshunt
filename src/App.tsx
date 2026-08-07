@@ -43,7 +43,7 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
-import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
   name: 'Madison',
@@ -141,6 +141,10 @@ export default function App() {
 
   const [dailyForecast, setDailyForecast] = useState<DailyForecast[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
+  // Dashboard-owned subpage state. It deliberately does not become an
+  // activeTab/navbar item: browser/mobile navigation continues to read as
+  // Dashboard while this view is open.
+  const [isFourteenDayView, setIsFourteenDayView] = useState(false);
   const [selectedHour, setSelectedHour] = useState<number>(() => new Date().getHours()); // Default to current local time hour
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -572,7 +576,12 @@ export default function App() {
         onOpenGuide={() => setIsGuideOpen(true)}
         onOpenPwaModal={() => setIsPwaModalOpen(true)}
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          // Returning to Dashboard from any route always lands on the main
+          // dashboard, not the hidden extended subpage.
+          setIsFourteenDayView(false);
+        }}
       />
 
       {/* Main App Container */}
@@ -682,8 +691,76 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Detailed Prediction Full View OR Main Dashboard Conditions */}
-            {activeTab === 'details' && activeDay ? (
+            {/* Dashboard-owned 14-day subpage. It deliberately lives inside the
+                dashboard branch, so it gets no navbar slot of its own. */}
+            {activeTab === 'dashboard' && isFourteenDayView ? (
+              <div className="w-full space-y-4 sm:space-y-6">
+                <div className={`rounded-2xl border px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between gap-3 shadow-lg backdrop-blur-xl ${
+                  isDark
+                    ? 'bg-slate-900/[var(--card-opacity)] border-slate-700 text-slate-100'
+                    : theme === 'hunting'
+                    ? 'bg-[#eee6d6]/[var(--card-opacity)] border-[#d4c4a8] text-[#2a1b0e]'
+                    : theme === 'olive'
+                    ? 'bg-[#f7f5ed]/[var(--card-opacity)] border-[#d8d2c0] text-[#1e2e1b]'
+                    : 'bg-white/[var(--card-opacity)] border-slate-200 text-slate-900'
+                }`}>
+                  <div className="min-w-0">
+                    <div className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.16em] ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-700'}`}>
+                      Dashboard · Extended Outlook
+                    </div>
+                    <h1 className="text-lg sm:text-2xl font-black flex items-center gap-2 mt-0.5">
+                      <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+                      14-Day Deer Forecast
+                    </h1>
+                    <p className={`text-[11px] sm:text-xs mt-1 ${isDark ? 'text-slate-400' : 'opacity-70'}`}>
+                      Full outlook for {currentLocation.name}; days 8–14 are planning-grade guidance.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFourteenDayView(false);
+                      setSelectedDate('');
+                    }}
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] focus:outline-none focus-visible:ring-2 ${
+                      isDark
+                        ? 'border-slate-600 text-slate-300 hover:bg-slate-800 focus-visible:ring-emerald-400'
+                        : theme === 'hunting'
+                        ? 'border-[#c85a17]/40 text-[#7a3208] hover:bg-[#c85a17]/10 focus-visible:ring-[#c85a17]'
+                        : theme === 'olive'
+                        ? 'border-[#556b2f]/40 text-[#3d4f21] hover:bg-[#556b2f]/10 focus-visible:ring-[#556b2f]'
+                        : 'border-slate-300 text-slate-600 hover:bg-slate-100 focus-visible:ring-emerald-600'
+                    }`}
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Back to dashboard</span>
+                    <span className="sm:hidden">Back</span>
+                  </button>
+                </div>
+
+                <ForecastCards
+                  daily={dailyForecast}
+                  dailyAll={dailyForecast}
+                  isExtendedView
+                  selectedDate={selectedDate}
+                  onSelectDate={(date) => setSelectedDate(date)}
+                  selectedHour={selectedHour}
+                  units={units}
+                  pressureUnit={pressureUnit}
+                  theme={theme}
+                  isDark={isDark}
+                  hasCustomBackground={!!customBackground}
+                  location={currentLocation}
+                  lastRefreshed={lastRefreshed}
+                  onOpenDetails={(date) => {
+                    setSelectedDate(date);
+                    setActiveTab('details');
+                    setIsFourteenDayView(false);
+                  }}
+                />
+              </div>
+            ) : activeTab === 'details' && activeDay ? (
+              /* Detailed Prediction Full View OR Main Dashboard Conditions */
               <DetailedPredictionView
                 day={activeDay}
                 location={currentLocation}
@@ -719,6 +796,7 @@ export default function App() {
                     <ForecastCards
                       daily={dailyForecast.slice(0, 7)}
                       dailyAll={dailyForecast}
+                      onOpenFourteenDay={() => setIsFourteenDayView(true)}
                       selectedDate={selectedDate}
                       onSelectDate={(date) => setSelectedDate(date)}
                       selectedHour={selectedHour}
@@ -813,6 +891,8 @@ export default function App() {
         <button
           onClick={() => {
             setActiveTab('dashboard');
+            setIsFourteenDayView(false);
+            setSelectedDate('');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${

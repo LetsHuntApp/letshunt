@@ -57,6 +57,10 @@ interface ForecastCardsProps {
    * working unchanged.
    */
   dailyAll?: DailyForecast[];
+  /** Opens the dashboard-owned 14-day subpage instead of a local overlay. */
+  onOpenFourteenDay?: () => void;
+  /** When true, render every supplied day and label the heading accordingly. */
+  isExtendedView?: boolean;
   selectedDate: string;
   onSelectDate: (dateStr: string) => void;
   units: UnitSystem;
@@ -73,6 +77,8 @@ interface ForecastCardsProps {
 export const ForecastCards: React.FC<ForecastCardsProps> = ({
   daily,
   dailyAll,
+  onOpenFourteenDay,
+  isExtendedView = false,
   selectedDate,
   onSelectDate,
   units,
@@ -429,7 +435,7 @@ const getScoreBadgeColor = (score: number) => {
       }`}>
         <h2 className={`text-base sm:text-lg font-black flex items-center gap-2 transition-colors duration-300 ${headerTextColor} ${headerShadow}`}>
           <Calendar className={`w-5 h-5 shrink-0 ${headerIconColor}`} />
-          <span>7-Day Deer Hunting Forecast</span>
+          <span>{isExtendedView ? '14-Day Deer Hunting Forecast' : '7-Day Deer Hunting Forecast'}</span>
         </h2>
         <div className="flex flex-col items-end gap-0.5">
           {lastRefreshed && (
@@ -885,19 +891,22 @@ const getScoreBadgeColor = (score: number) => {
             in the same column flex so it floats right under the last card rather
             than stretching weirdly. Hidden when the API never returned more than
             7 days (e.g. a transient short response during a refresh). */}
-        {hasExtendedForecast && (
+        {hasExtendedForecast && !isExtendedView && (
           <button
             type="button"
-            onClick={() => setShowFourteenDay(true)}
+            onClick={() => {
+              if (onOpenFourteenDay) onOpenFourteenDay();
+              else setShowFourteenDay(true);
+            }}
             aria-label="View 14-day hunting forecast"
             className={`mt-1 w-full sm:w-auto self-center group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
               theme === 'hunting'
-                ? 'bg-[#c85a17]/15 border-[#c85a17]/55 text-[#7a3208] hover:bg-[#c85a17]/25 focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
+                ? 'bg-[#c85a17]/[var(--card-opacity)] border-[#c85a17]/55 text-[#7a3208] hover:bg-[#c85a17]/[calc(var(--card-opacity)*1.12)] backdrop-blur-md focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
                 : theme === 'olive'
-                ? 'bg-[#556b2f]/15 border-[#556b2f]/55 text-[#3d4f21] hover:bg-[#556b2f]/25 focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
+                ? 'bg-[#556b2f]/[var(--card-opacity)] border-[#556b2f]/55 text-[#3d4f21] hover:bg-[#556b2f]/[calc(var(--card-opacity)*1.12)] backdrop-blur-md focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
                 : isDark
-                ? 'bg-emerald-500/15 border-emerald-400/60 text-emerald-300 hover:bg-emerald-500/25 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
-                : 'bg-emerald-50 border-emerald-600/55 text-emerald-800 hover:bg-emerald-100 focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
+                ? 'bg-emerald-500/[var(--card-opacity)] border-emerald-400/60 text-emerald-300 hover:bg-emerald-500/[calc(var(--card-opacity)*1.12)] backdrop-blur-md focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
+                : 'bg-emerald-50/[var(--card-opacity)] border-emerald-600/55 text-emerald-800 hover:bg-emerald-50/[calc(var(--card-opacity)*1.12)] backdrop-blur-md focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
             }`}
           >
             <Calendar className="w-4 h-4 shrink-0" />
