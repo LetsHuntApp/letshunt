@@ -339,25 +339,37 @@ export default function App() {
     }
   }, []);
 
+  // Sequence number for in-flight forecast loads. Rapid location / unit
+  // changes can fire multiple fetches back-to-back; without this guard the
+  // slowest response could land last and replace the latest one with stale
+  // data (the classic fetch-race). Each call gets a unique id; only the
+  // response whose id still matches the latest one survives.
+  const loadSeqRef = useRef(0);
+  const lastRefreshedForSeqRef = useRef(0);
+
   // Fetch forecast whenever location or units change. `silent` skips the full-screen
   // loading spinner and preserves the currently selected day (used by auto-refresh).
   const loadForecast = async (silent = false) => {
+    const seq = ++loadSeqRef.current;
     if (!silent) setLoading(true);
     setError(null);
     try {
       const forecasts = await fetch5DayHuntingForecast(currentLocation, units, pressureUnit);
+      if (loadSeqRef.current !== seq) return; // stale, a newer request superseded us
       setDailyForecast(forecasts);
+      lastRefreshedForSeqRef.current = seq;
       setLastRefreshed(new Date());
       if (!silent && forecasts.length > 0) {
         setSelectedDate('');
       }
     } catch (err: any) {
+      if (loadSeqRef.current !== seq) return; // stale error, ignore
       console.error('Failed to fetch forecast:', err);
       if (!silent) {
         setError('Failed to fetch real-time weather & barometric data. Please check connection and try again.');
       }
     } finally {
-      setLoading(false);
+      if (loadSeqRef.current === seq) setLoading(false);
     }
   };
 
@@ -472,6 +484,19 @@ export default function App() {
     }
     setDeferredPrompt(null);
   };
+
+  // Reconcile selectedDate with the live forecast. If the user picked a day
+  // whose date slipped out of the forecast window (refresh crossing midnight,
+  // forecast trimming, etc.), reset to '' so the dashboard transparently falls
+  // back to "today" via the dailyForecast[0] fallback below — never silently
+  // rebinding without telling anyone.
+  useEffect(() => {
+    if (!selectedDate || dailyForecast.length === 0) return;
+    const stillPresent = dailyForecast.some((d) => d.date === selectedDate);
+    if (!stillPresent) {
+      setSelectedDate('');
+    }
+  }, [dailyForecast, selectedDate]);
 
   const activeDay = dailyForecast.find((d) => d.date === selectedDate) || dailyForecast[0];
 

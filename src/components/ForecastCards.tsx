@@ -420,7 +420,7 @@ const getScoreBadgeColor = (score: number) => {
           const cardPressure = pressureUnit === 'hPa'
             ? `${day.pressureAvgHpa} hPa`
             : `${day.pressureAvgInHg} inHg`;
-          const isTopDay = cardScore === maxScore && maxScore >= 66;
+          const isTopDay = day.huntScore === maxScore && maxScore >= 66;
           const dayRut = getRutPhase(day.date, location);
 
           // Calculate maximum precipitation probability for the day

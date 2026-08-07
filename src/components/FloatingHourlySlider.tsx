@@ -67,7 +67,17 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   };
 
   const currentHourData = hourly && hourly[localHour] ? hourly[localHour] : null;
-  const currentLocalHour = new Date().getHours();
+  // Track the current wall-clock hour so the "NOW" badge flips back when
+  // the app stays open across midnight (or the user changes device clock).
+  // Without this, `new Date().getHours()` is only sampled per-render and
+  // would keep showing "NOW" on hour 23 forever after midnight rolled over.
+  const [currentLocalHour, setCurrentLocalHour] = useState(() => new Date().getHours());
+  useEffect(() => {
+    const tick = () => setCurrentLocalHour(new Date().getHours());
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
   const isNow = localHour === currentLocalHour;
 
   // Calculate percentage along the track for thumb position (0 to 100%)
