@@ -2788,11 +2788,16 @@ export const MapView: React.FC<MapViewProps> = ({
             {/* Gradients now defined at top of SVG */}
           </svg>
 
-          {/* Marker Pins Overlay — counter-scaled during pinch zoom so pins
-              stay the same size while the map tiles scale. */}
+          {/* Marker Pins Overlay — counter-scaled AND counter-rotated during
+              pinch/rotation gestures so pins stay the same size and upright
+              while the map tiles scale and rotate. */}
           <div
             className="absolute inset-0 pointer-events-none z-20"
-            style={{ transform: zoomScaleRef.current !== 1 ? `scale(${1 / zoomScaleRef.current})` : undefined }}
+            style={{
+              transform: (zoomScaleRef.current !== 1 || rotationRef.current !== 0)
+                ? `scale(${1 / zoomScaleRef.current}) rotate(${-rotationRef.current}deg)`
+                : undefined,
+            }}
           >
             {/* User's Current Location Marker — blue dot tracks the live GPS fix
                 once the locate button is used; falls back to the forecast location
@@ -3713,6 +3718,11 @@ export const MapView: React.FC<MapViewProps> = ({
                 <span className="text-xs font-black whitespace-nowrap">
                   {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
                 </span>
+                {bestPathActive && (
+                  <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-md border border-emerald-500/30 whitespace-nowrap">
+                    <GitBranch className="w-3 h-3 inline -mt-0.5 mr-0.5" />Best Path Active
+                  </span>
+                )}
                 <input
                   type="range"
                   min="0"
@@ -3733,6 +3743,8 @@ export const MapView: React.FC<MapViewProps> = ({
                   <X className="w-4 h-4" />
                 </button>
               </div>
+              {/* Day buttons — hidden when a pin is selected to save space */}
+              {!selectedPin && (
               <div className="flex items-center gap-1.5 overflow-x-auto mt-2 pt-2 border-t border-slate-700/30 pb-0.5" aria-label="Forecast day">
                 {activeForecasts.slice(0, 7).map((day, index) => (
                   <button
@@ -3752,6 +3764,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   </button>
                 ))}
               </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5 mt-2 text-[10px] font-bold">
                 <span className="flex items-center gap-1.5"><Wind className="w-3 h-3 text-emerald-400" /> {windDirText} @ {displayWindSpeed}</span>
                 <span className="flex items-center gap-1.5"><Droplets className="w-3 h-3 text-sky-400" /> {precipProbability}% rain · {displayPrecipAmount}</span>
