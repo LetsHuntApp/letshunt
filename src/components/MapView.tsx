@@ -998,6 +998,7 @@ export const MapView: React.FC<MapViewProps> = ({
   // CSS-transform rotation: angle in degrees, applied directly to the DOM
   // during two-finger rotation gestures for instant visual feedback.
   const rotationRef = useRef<number>(0);
+  const [rotationDisplay, setRotationDisplay] = useState(0);
   const initialPinchAngleRef = useRef<number | null>(null);
   const [dimensions, setDimensions] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 640,
@@ -2029,7 +2030,8 @@ export const MapView: React.FC<MapViewProps> = ({
             touch2.clientY - touch1.clientY,
             touch2.clientX - touch1.clientX
           ) * (180 / Math.PI);
-          rotationRef.current = currentAngle - initialPinchAngleRef.current;
+          // Apply 0.5x damping so rotation is less twitchy
+          rotationRef.current = (currentAngle - initialPinchAngleRef.current) * 0.5;
         }
         // Apply combined scale + rotation as CSS transform — no React re-render.
         applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
@@ -2050,6 +2052,8 @@ export const MapView: React.FC<MapViewProps> = ({
         const zoomOffset = Math.log2(scaleRatio);
         setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
         zoomScaleRef.current = 1;
+        // Sync rotation display for the UI indicator.
+        setRotationDisplay(rotationRef.current);
         // Defer transform reset to next frame to eliminate pinch-end jump.
         requestAnimationFrame(() => {
           if (mapContainerRef.current) {
@@ -2120,7 +2124,8 @@ export const MapView: React.FC<MapViewProps> = ({
           touch2.clientY - touch1.clientY,
           touch2.clientX - touch1.clientX
         ) * (180 / Math.PI);
-        rotationRef.current = currentAngle - initialPinchAngleRef.current;
+        // Apply 0.5x damping so rotation is less twitchy
+        rotationRef.current = (currentAngle - initialPinchAngleRef.current) * 0.5;
       }
       // Apply combined scale + rotation as CSS transform — no React re-render.
       applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
@@ -2165,6 +2170,8 @@ export const MapView: React.FC<MapViewProps> = ({
       const zoomOffset = Math.log2(scaleRatio);
       setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
       zoomScaleRef.current = 1;
+      // Sync rotation display for the UI indicator.
+      setRotationDisplay(rotationRef.current);
       // Defer transform reset to next frame to eliminate pinch-end jump.
       requestAnimationFrame(() => {
         if (mapContainerRef.current) {
@@ -2781,8 +2788,12 @@ export const MapView: React.FC<MapViewProps> = ({
             {/* Gradients now defined at top of SVG */}
           </svg>
 
-          {/* Marker Pins Overlay */}
-          <div className="absolute inset-0 pointer-events-none z-20">
+          {/* Marker Pins Overlay — counter-scaled during pinch zoom so pins
+              stay the same size while the map tiles scale. */}
+          <div
+            className="absolute inset-0 pointer-events-none z-20"
+            style={{ transform: zoomScaleRef.current !== 1 ? `scale(${1 / zoomScaleRef.current})` : undefined }}
+          >
             {/* User's Current Location Marker — blue dot tracks the live GPS fix
                 once the locate button is used; falls back to the forecast location
                 before that. A translucent halo visualizes GPS accuracy. */}
@@ -3623,10 +3634,11 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* BOTTOM RIGHT FLOATING CONTROLS: Center on GPS Location */}
         <div className="absolute bottom-16 sm:bottom-4 right-4 z-30 pointer-events-auto flex flex-col gap-2">
           {/* Rotation indicator — shows current map rotation and allows reset */}
-          {rotationRef.current !== 0 && (
+          {rotationDisplay !== 0 && (
             <button
               onClick={() => {
                 rotationRef.current = 0;
+                setRotationDisplay(0);
                 applyMapTransform(zoomScaleRef.current, panOffsetRef.current.x, panOffsetRef.current.y, 0);
               }}
               className={`p-2 rounded-2xl border shadow-xl backdrop-blur-md transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -3636,8 +3648,8 @@ export const MapView: React.FC<MapViewProps> = ({
               }`}
               title="Tap to reset map rotation to North-up"
             >
-              <Compass className="w-4 h-4" style={{ transform: `rotate(${-rotationRef.current}deg)` }} />
-              <span className="text-[10px] font-black">{Math.round(rotationRef.current)}°</span>
+              <Compass className="w-4 h-4" style={{ transform: `rotate(${-rotationDisplay}deg)` }} />
+              <span className="text-[10px] font-black">{Math.round(rotationDisplay)}°</span>
             </button>
           )}
           <button
