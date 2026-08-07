@@ -988,6 +988,9 @@ export const MapView: React.FC<MapViewProps> = ({
   const initialZoomRef = useRef<number | null>(null);
   const isPinchingRef = useRef<boolean>(false);
   const hasMovedRef = useRef<boolean>(false);
+  // CSS-transform panning: offset accumulates during drag and is applied
+  // directly to the DOM (bypassing React state) for 60fps smoothness.
+  const panOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 640,
     height: typeof window !== 'undefined' ? window.innerHeight : 480,
@@ -1910,21 +1913,34 @@ export const MapView: React.FC<MapViewProps> = ({
       hasMovedRef.current = true;
     }
 
+    // Accumulate pixel offset and apply directly to DOM for 60fps smooth panning.
+    // No React state update = no re-render during drag.
+    panOffsetRef.current.x += dx;
+    panOffsetRef.current.y += dy;
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px)`;
+    }
+
     dragStartRef.current = { x: e.clientX, y: e.clientY };
-
-    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
-    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const newX = centerTile.x - dx / tileSize;
-    const newY = centerTile.y - dy / tileSize;
-
-    setCenterLng(tileXToLng(newX, zoom));
-    setCenterLat(tileYToLat(newY, zoom));
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
+
+    // Sync accumulated pixel offset into React state so tiles/SVG re-render
+    // at the correct position, then reset the CSS transform.
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
+    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
+    const newX = centerTile.x - panOffsetRef.current.x / tileSize;
+    const newY = centerTile.y - panOffsetRef.current.y / tileSize;
+    setCenterLng(tileXToLng(newX, zoom));
+    setCenterLat(tileYToLat(newY, zoom));
+    panOffsetRef.current = { x: 0, y: 0 };
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.transform = '';
+    }
 
     if (!hasMovedRef.current && mapContainerRef.current) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY);
@@ -2044,16 +2060,14 @@ export const MapView: React.FC<MapViewProps> = ({
       hasMovedRef.current = true;
     }
 
+    // Accumulate pixel offset and apply directly to DOM for 60fps smooth panning.
+    panOffsetRef.current.x += dx;
+    panOffsetRef.current.y += dy;
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px)`;
+    }
+
     dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-
-    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
-    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
-    const newX = centerTile.x - dx / tileSize;
-    const newY = centerTile.y - dy / tileSize;
-
-    setCenterLng(tileXToLng(newX, zoom));
-    setCenterLat(tileYToLat(newY, zoom));
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -2061,12 +2075,37 @@ export const MapView: React.FC<MapViewProps> = ({
       isPinchingRef.current = false;
       pinchDistRef.current = null;
       initialZoomRef.current = null;
+      // Sync any accumulated pan offset before snapping zoom
+      const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+      const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
+      const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
+      const newX = centerTile.x - panOffsetRef.current.x / tileSize;
+      const newY = centerTile.y - panOffsetRef.current.y / tileSize;
+      setCenterLng(tileXToLng(newX, zoom));
+      setCenterLat(tileYToLat(newY, zoom));
+      panOffsetRef.current = { x: 0, y: 0 };
+      if (mapContainerRef.current) {
+        mapContainerRef.current.style.transform = '';
+      }
       setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round(prev * 2) / 2)));
       return;
     }
 
     if (!isDragging) return;
     setIsDragging(false);
+
+    // Sync accumulated pixel offset into React state, then reset transform.
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
+    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
+    const centerTile = latLngToTileCoords(centerLat, centerLng, zoom);
+    const newX = centerTile.x - panOffsetRef.current.x / tileSize;
+    const newY = centerTile.y - panOffsetRef.current.y / tileSize;
+    setCenterLng(tileXToLng(newX, zoom));
+    setCenterLat(tileYToLat(newY, zoom));
+    panOffsetRef.current = { x: 0, y: 0 };
+    if (mapContainerRef.current) {
+      mapContainerRef.current.style.transform = '';
+    }
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
@@ -2307,6 +2346,7 @@ export const MapView: React.FC<MapViewProps> = ({
         <div
           ref={mapContainerRef}
           className="absolute inset-0 cursor-grab active:cursor-grabbing select-none touch-none"
+          style={{ willChange: 'transform' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
