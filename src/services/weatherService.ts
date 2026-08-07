@@ -25,6 +25,83 @@ function average(values: number[]): number {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
+/**
+ * Compute a representative daily weather condition from the 24 hourly weather
+ * codes. Open-Meteo's daily `weathercode` picks the "most significant" code
+ * for the whole day, which can be misleading — e.g. a single hour of passing
+ * showers (code 80) makes the entire day show "Passing Showers" even when
+ * 23 out of 24 hours are clear.
+ *
+ * Strategy: count how many hours fall into each severity tier. If precipitation
+ * only occurs in a small minority of hours (< 4 h), we describe the day by
+ * its dominant *non-precipitating* condition instead. This makes the daily
+ * card representative of what the user will actually experience for most of
+ * the day.
+ */
+function computeRepresentativeDailyWeather(
+  hourlyCodes: number[],
+  fallbackCode: number,
+): { code: number; desc: string; icon: string } {
+  if (!hourlyCodes || hourlyCodes.length === 0) {
+    return { code: fallbackCode, ...getWeatherDetails(fallbackCode) };
+  }
+
+  // Weather-code severity tiers (higher = more significant)
+  const isRain = (c: number) =>
+    (c >= 51 && c <= 65) || (c >= 80 && c <= 82) || c >= 95;
+  const isFog = (c: number) => c === 45 || c === 48;
+  const isClear = (c: number) => c <= 1;
+  const isCloudy = (c: number) => c === 2 || c === 3;
+
+  let rainHours = 0;
+  let fogHours = 0;
+  let clearHours = 0;
+  let cloudyHours = 0;
+  const total = hourlyCodes.length;
+
+  // Track the heaviest rain code seen (for days where rain is dominant)
+  let worstRainCode = 0;
+
+  for (const c of hourlyCodes) {
+    if (isRain(c)) {
+      rainHours++;
+      if (c > worstRainCode) worstRainCode = c;
+    } else if (isFog(c)) {
+      fogHours++;
+    } else if (isClear(c)) {
+      clearHours++;
+    } else if (isCloudy(c)) {
+      cloudyHours++;
+    }
+  }
+
+  const rainPct = rainHours / total;
+
+  // If rain occupies less than ~17% of the day (< 4 h), the day is mostly
+  // fair — describe it by the dominant non-precipitating condition.
+  if (rainPct < 4 / 24) {
+    if (fogHours >= clearHours && fogHours >= cloudyHours && fogHours > 0) {
+      return { code: 45, ...getWeatherDetails(45) };
+    }
+    if (clearHours >= cloudyHours) {
+      return { code: clearHours > total / 2 ? 0 : 1, ...getWeatherDetails(clearHours > total / 2 ? 0 : 1) };
+    }
+    // Mostly cloudy
+    return { code: 3, ...getWeatherDetails(3) };
+  }
+
+  // Rain is a meaningful part of the day — use the worst rain code, but
+  // soften very brief heavy bursts (e.g. 1 h of code 80) to a gentler label
+  // when the rain fraction is still modest.
+  if (rainPct < 0.25 && worstRainCode >= 80 && worstRainCode <= 82) {
+    // Brief showers — label as "Partly Cloudy, brief showers" by picking the
+    // underlying cloud code (2 = partly cloudy) so the icon isn't alarming.
+    return { code: 2, ...getWeatherDetails(2) };
+  }
+
+  return { code: worstRainCode, ...getWeatherDetails(worstRainCode) };
+}
+
 function pressureTrendFromChange(changeHpa: number): PressureTrend {
   // Compare short averages rather than individual readings to avoid reacting
   // to noise. Thresholds are deliberately conservative (hPa over ~3 hours).
@@ -149,8 +226,7 @@ export async function fetch5DayHuntingForecast(
     const windDirectionDeg = dailyRaw.winddirection_10m_dominant[d];
     const windDirectionText = getWindDirectionText(windDirectionDeg);
 
-    const weatherCode = dailyRaw.weathercode[d];
-    const { desc: weatherDesc, icon: weatherIcon } = getWeatherDetails(weatherCode);
+    const rawWeatherCode = dailyRaw.weathercode[d];
 
     const precipSumMm = dailyRaw.precipitation_sum[d];
     const precipSumInches = Number((precipSumMm * 0.0393701).toFixed(2));
@@ -172,6 +248,13 @@ export async function fetch5DayHuntingForecast(
 
     const dayStartIdx = d * 24;
     const dayEndIdx = Math.min(dayStartIdx + 24, timeArr.length || 24);
+
+    // Compute a representative daily condition from the hourly weather codes
+    // instead of using the API's single "most significant" code, which can be
+    // misleading when rain only occurs for a brief window.
+    const dayHourlyCodes = (hourlyRaw.weathercode || []).slice(dayStartIdx, dayEndIdx);
+    const { code: weatherCode, desc: weatherDesc, icon: weatherIcon } =
+      computeRepresentativeDailyWeather(dayHourlyCodes, rawWeatherCode);
 
     const dayHourlyRaw = {
       time: timeArr.slice(dayStartIdx, dayEndIdx),
