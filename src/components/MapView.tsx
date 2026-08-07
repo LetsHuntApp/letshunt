@@ -885,7 +885,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const cachedTilesRef = useRef<Map<string, { z: number; tx: number; ty: number; src: string; style: string }>>(new Map());
   const [tileCacheVersion, setTileCacheVersion] = useState(0);
   const tileCacheRafRef = useRef<number | null>(null);
-  const MAX_CACHED_TILES = 500;
+  const MAX_CACHED_TILES = 800;
 
   const handleTileLoaded = useCallback((key: string, src: string, z: number, tx: number, ty: number, style: string) => {
     if (!cachedTilesRef.current.has(key)) {
@@ -1946,10 +1946,14 @@ export const MapView: React.FC<MapViewProps> = ({
     setCenterLng(tileXToLng(newX, zoom));
     setCenterLat(tileYToLat(newY, zoom));
     panOffsetRef.current = { x: 0, y: 0 };
-    // Preserve rotation after pan ends
-    if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
-    }
+    // Defer transform clear to next frame so the re-render places tiles at
+    // the new position BEFORE the transform is removed — eliminates the
+    // visual jump/glitch on drag end.
+    requestAnimationFrame(() => {
+      if (mapContainerRef.current) {
+        mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
+      }
+    });
 
     if (!hasMovedRef.current && mapContainerRef.current) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY);
@@ -2046,8 +2050,12 @@ export const MapView: React.FC<MapViewProps> = ({
         const zoomOffset = Math.log2(scaleRatio);
         setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
         zoomScaleRef.current = 1;
-        // Rotation is already in rotationRef — keep it applied via CSS.
-        applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+        // Defer transform reset to next frame to eliminate pinch-end jump.
+        requestAnimationFrame(() => {
+          if (mapContainerRef.current) {
+            mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
+          }
+        });
       }
     };
 
@@ -2157,8 +2165,12 @@ export const MapView: React.FC<MapViewProps> = ({
       const zoomOffset = Math.log2(scaleRatio);
       setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
       zoomScaleRef.current = 1;
-      // Rotation stays applied via CSS — rotationRef retains the angle.
-      applyMapTransform(1, 0, 0, rotationRef.current);
+      // Defer transform reset to next frame to eliminate pinch-end jump.
+      requestAnimationFrame(() => {
+        if (mapContainerRef.current) {
+          mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
+        }
+      });
       return;
     }
 
@@ -2174,10 +2186,12 @@ export const MapView: React.FC<MapViewProps> = ({
     setCenterLng(tileXToLng(newX, zoom));
     setCenterLat(tileYToLat(newY, zoom));
     panOffsetRef.current = { x: 0, y: 0 };
-    // Preserve rotation after pan ends
-    if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
-    }
+    // Defer transform clear to next frame to eliminate drag-end jump.
+    requestAnimationFrame(() => {
+      if (mapContainerRef.current) {
+        mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
+      }
+    });
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
       const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
@@ -2243,11 +2257,10 @@ export const MapView: React.FC<MapViewProps> = ({
   }
 
   // Tier 2: Persistent cached loaded satellite tiles from memory (zIndex: 2)
-  // Scaled smoothly to match the current viewport so zero space appears while zooming/panning
+  // Scaled smoothly to match the current viewport so zero space appears while zooming/panning.
+  // Include tiles within 2 zoom levels so there's always background coverage during transitions.
   cachedTilesRef.current.forEach((cached, key) => {
-    // Only tiles within one zoom level of the current view make useful
-    // zoom-transition filler; distant-zoom leftovers are pure DOM weight.
-    if (cached.style === mapStyle && Math.abs(cached.z - baseZoom) <= 1) {
+    if (cached.style === mapStyle && Math.abs(cached.z - baseZoom) <= 2) {
       const scale = Math.pow(2, zoom - cached.z);
       const tileSize = 256 * scale;
       const tileCoords = latLngToTileCoords(centerLat, centerLng, cached.z);
@@ -3729,8 +3742,8 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1.5 mt-2 text-[10px] font-bold">
                 <span className="flex items-center gap-1.5"><Wind className="w-3 h-3 text-emerald-400" /> {windDirText} @ {displayWindSpeed}</span>
-                <span className="flex items-center gap-1.5"><Droplets className="w-3 h-3 text-sky-400" /> {precipProbability}% chance</span>
-                <span className="flex items-center gap-1.5 text-sky-500"><Droplets className="w-3 h-3" /> {displayPrecipAmount}</span>
+                <span className="flex items-center gap-1.5"><Droplets className="w-3 h-3 text-sky-400" /> {precipProbability}% rain · {displayPrecipAmount}</span>
+                <span className="flex items-center gap-1.5 text-sky-400"><Navigation className="w-3 h-3" style={{ transform: `rotate(${downwindDeg}deg)` }} /> Scent → {downwindDirText}</span>
                 <span className={`flex items-center gap-1.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
                   <Sparkles className="w-3 h-3" /> {currentHourForecast?.isPrimeWindow ? 'Prime hunt window' : `${currentHourForecast?.temp ?? '--'}°`}
                 </span>
@@ -3739,26 +3752,7 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
 
-        {/* WIND FLOW DIRECTION CHIP — moved from top-3 (where it clashed with
-            the search container at top-3 left-3) onto the bottom-right column, stacked
-            directly above the GPS recenter button. Shows only while the
-            hourly weather slider is open. */}
-        {showHourlyWeather && (
-          <div className="absolute bottom-16 sm:bottom-12 right-4 z-[32] hidden sm:flex items-center gap-1.5 pointer-events-none animate-fadeIn max-w-[calc(100%-170px)]">
-            <div
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 backdrop-blur-md shadow-2xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
-                isDark ? 'bg-slate-950/90 border-sky-500/40 text-sky-200' : 'bg-white/95 border-sky-500/40 text-sky-800'
-              }`}
-              title="Wind flows toward this direction at the selected hour"
-            >
-              <Navigation
-                className={`w-3.5 h-3.5 transition-transform duration-700 ease-out ${isDark ? 'text-sky-400' : 'text-sky-600'}`}
-                style={{ transform: `rotate(${downwindDeg}deg)` }}
-              />
-              <span>Wind → {downwindDirText}</span>
-            </div>
-          </div>
-        )}
+
 
         {/* CONDENSED BOTTOM FLOATING SCENT FORECASTER PANEL WITH TABS */}
         {selectedPin && (
@@ -3835,27 +3829,21 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
             </div>
 
-            {/* Collapsed Minimalist Preview Bar with Compact Hourly Slider */}
+            {/* Collapsed Minimalist Preview Bar */}
             {isScentPanelCollapsed ? (
-              <div className="p-2.5 space-y-2 text-xs">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-400 truncate">
-                  <Wind className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">Downwind: {downwindDirText} ({Math.round(downwindDeg)}°)</span>
-                </div>
-
-                {/* Shared hourly control trigger — the map owns the one timeline slider. */}
-                <div className="pt-1 border-t border-slate-800/40 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold text-slate-400">
-                    {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
-                    <span className="text-sky-400 ml-1">· {precipProbability}% rain</span>
-                  </span>
+              <div className="p-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-400 truncate">
+                    <Wind className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate">Scent → {downwindDirText} ({Math.round(downwindDeg)}°)</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => { setIsScentPanelCollapsed(true); setShowHourlyWeather(true); }}
+                    onClick={() => { setIsScentPanelCollapsed(false); setShowHourlyWeather(true); }}
                     className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-400 text-[10px] font-black uppercase tracking-wide hover:bg-sky-500/25 transition-colors"
                     aria-expanded={showHourlyWeather}
                   >
-                    Open hourly
+                    Adjust
                   </button>
                 </div>
               </div>
@@ -3891,52 +3879,9 @@ export const MapView: React.FC<MapViewProps> = ({
                   </button>
                 </div>
 
-                {/* TAB 1: Hourly Forecast & Wind Vector Slider */}
+                {/* TAB 1: Scent Cone Controls */}
                 {activeForecasterTab === 'hourly' && (
                   <div className="space-y-3">
-                    {/* Days Selector */}
-                    <div className="flex gap-1 overflow-x-auto pb-1">
-                      {activeForecasts.slice(0, 5).map((d, idx) => (
-                        <button
-                          key={d.date}
-                          onClick={() => setSelectedDayIndex(idx)}
-                          className={`px-2.5 py-1 text-[10px] font-black rounded-xl border transition-all cursor-pointer flex-shrink-0 ${
-                            selectedDayIndex === idx
-                              ? 'bg-emerald-600 border-emerald-500 text-white shadow-xs'
-                              : isDark
-                              ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                              : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          {d.dayName}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* The shared map timeline is the only hourly slider. Keep this panel focused on the selected hour's readout. */}
-                    <div className={`rounded-xl border p-2.5 ${
-                      isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
-                    }`}>
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="font-black flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 text-emerald-400" />
-                          {selectedHour === 0 ? '12:00 AM' : selectedHour === 12 ? '12:00 PM' : selectedHour > 12 ? `${selectedHour - 12}:00 PM` : `${selectedHour}:00 AM`}
-                        </span>
-                        <span className="text-sky-400 font-black">{precipProbability}% rain · {displayPrecipAmount}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 mt-1.5 text-[10px] font-bold text-slate-400">
-                        <span>{windDirText} @ {displayWindSpeed}</span>
-                        <button
-                          type="button"
-                          onClick={() => { setIsScentPanelCollapsed(true); setShowHourlyWeather(true); }}
-                          className="text-emerald-400 hover:text-emerald-300 font-black uppercase tracking-wide"
-                          aria-expanded={showHourlyWeather}
-                        >
-                          Adjust hour →
-                        </button>
-                      </div>
-                    </div>
-
                     {/* Wind & Scent Cone Description Card */}
                     <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
@@ -3946,6 +3891,7 @@ export const MapView: React.FC<MapViewProps> = ({
                         <span className="font-extrabold text-orange-400">
                           Blowing TO {downwindDirText} ({Math.round(downwindDeg)}°)
                         </span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5">{windDirText} @ {displayWindSpeed} · {precipProbability}% rain</span>
                       </div>
 
                       {/* Scent Spread Selector */}
