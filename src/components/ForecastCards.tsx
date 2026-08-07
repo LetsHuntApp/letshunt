@@ -408,8 +408,9 @@ const getScoreBadgeColor = (score: number) => {
           // and with the day's dial. Previously the hourly slider controlled every
           // card, which produced "1.35″ rain" day cards that still read "Clear Skies".
           const hourData = selectedHour !== undefined && day.hourly && day.hourly[selectedHour] ? day.hourly[selectedHour] : null;
-          const cardScore = day.huntScore;
-          const cardRating = day.rating;
+          // Use hourly score when slider is active so badges update dynamically
+          const cardScore = hourData ? hourData.huntScore : day.huntScore;
+          const cardRating = hourData ? getRatingFromScore(hourData.huntScore) : day.rating;
           const cardWeatherIcon = day.weatherIcon;
           const cardWeatherDesc = day.weatherDesc;
           const cardWindDirText = day.windDirectionText;
@@ -594,7 +595,7 @@ const getScoreBadgeColor = (score: number) => {
                     {differsFromDay ? (
                       <>
                         <span
-                          className={`uppercase tracking-wider text-[9px] sm:text-[10px] font-extrabold shrink-0 ${
+                          className={`uppercase tracking-wider text-[10px] sm:text-xs font-extrabold shrink-0 ${
                             isDark ? 'text-emerald-400' : 'text-emerald-600'
                           }`}
                         >
@@ -615,11 +616,11 @@ const getScoreBadgeColor = (score: number) => {
                       </>
                     ) : (
                       <span
-                        className={`uppercase tracking-wider text-[9px] sm:text-[10px] font-extrabold opacity-60 ${
-                          isDark ? 'text-slate-500' : 'text-slate-400'
+                        className={`uppercase tracking-wider text-[10px] sm:text-xs font-extrabold ${
+                          isDark ? 'text-slate-400' : 'text-slate-500'
                         }`}
                       >
-                        Conditions steady · {getHour12Label(hourIndex)}
+                        {hrDetails.desc} · {getHour12Label(hourIndex)}
                       </span>
                     )}
                   </div>
