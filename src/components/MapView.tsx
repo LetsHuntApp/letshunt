@@ -995,6 +995,10 @@ export const MapView: React.FC<MapViewProps> = ({
   // directly to the DOM. State is synced only after the gesture ends.
   const zoomScaleRef = useRef<number>(1);
   const zoomSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // CSS-transform rotation: angle in degrees, applied directly to the DOM
+  // during two-finger rotation gestures for instant visual feedback.
+  const rotationRef = useRef<number>(0);
+  const initialPinchAngleRef = useRef<number | null>(null);
   const [dimensions, setDimensions] = useState(() => ({
     width: typeof window !== 'undefined' ? window.innerWidth : 640,
     height: typeof window !== 'undefined' ? window.innerHeight : 480,
@@ -1922,7 +1926,7 @@ export const MapView: React.FC<MapViewProps> = ({
     panOffsetRef.current.x += dx;
     panOffsetRef.current.y += dy;
     if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px)`;
+      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) rotate(${rotationRef.current}deg)`;
     }
 
     dragStartRef.current = { x: e.clientX, y: e.clientY };
@@ -1942,8 +1946,9 @@ export const MapView: React.FC<MapViewProps> = ({
     setCenterLng(tileXToLng(newX, zoom));
     setCenterLat(tileYToLat(newY, zoom));
     panOffsetRef.current = { x: 0, y: 0 };
+    // Preserve rotation after pan ends
     if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = '';
+      mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
     }
 
     if (!hasMovedRef.current && mapContainerRef.current) {
@@ -1952,10 +1957,10 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
-  // Apply combined pan + zoom CSS transform directly to the DOM.
-  const applyMapTransform = (scale: number, px: number, py: number) => {
+  // Apply combined pan + zoom + rotation CSS transform directly to the DOM.
+  const applyMapTransform = (scale: number, px: number, py: number, rotation = 0) => {
     if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale})`;
+      mapContainerRef.current.style.transform = `translate(${px}px, ${py}px) scale(${scale}) rotate(${rotation}deg)`;
     }
   };
 
@@ -1981,7 +1986,7 @@ export const MapView: React.FC<MapViewProps> = ({
       const zoomOffset = Math.log2(scaleRatio);
       setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, prev + zoomOffset)));
       zoomScaleRef.current = 1;
-      applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y);
+      applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
       zoomSyncTimerRef.current = null;
     }, 150);
   };
@@ -2001,6 +2006,11 @@ export const MapView: React.FC<MapViewProps> = ({
         const touch2 = e.touches[1];
         pinchDistRef.current = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         initialZoomRef.current = zoom;
+        // Record the initial angle between the two fingers for rotation tracking.
+        initialPinchAngleRef.current = Math.atan2(
+          touch2.clientY - touch1.clientY,
+          touch2.clientX - touch1.clientX
+        ) * (180 / Math.PI);
       }
     };
 
@@ -2011,12 +2021,21 @@ export const MapView: React.FC<MapViewProps> = ({
         lastPinchTimeRef.current = Date.now();
         const touch1 = e.touches[0];
         const touch2 = e.touches[1];
+        // --- Pinch-to-zoom ---
         const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
         const zoomFactor = currentDist / pinchDistRef.current;
-        // Apply as CSS scale for instant visual feedback — no React re-render.
         const newScale = Math.max(1, Math.min(Math.pow(2, MAX_ZOOM - 3), zoomFactor));
         zoomScaleRef.current = newScale;
-        applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y);
+        // --- Two-finger rotation ---
+        if (initialPinchAngleRef.current !== null) {
+          const currentAngle = Math.atan2(
+            touch2.clientY - touch1.clientY,
+            touch2.clientX - touch1.clientX
+          ) * (180 / Math.PI);
+          rotationRef.current = currentAngle - initialPinchAngleRef.current;
+        }
+        // Apply combined scale + rotation as CSS transform — no React re-render.
+        applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
       }
     };
 
@@ -2028,12 +2047,14 @@ export const MapView: React.FC<MapViewProps> = ({
         isPinchingRef.current = false;
         pinchDistRef.current = null;
         initialZoomRef.current = null;
-        // Sync accumulated CSS scale into React state, then reset.
+        initialPinchAngleRef.current = null;
+        // Sync accumulated CSS scale into React state.
         const scaleRatio = zoomScaleRef.current;
         const zoomOffset = Math.log2(scaleRatio);
         setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
         zoomScaleRef.current = 1;
-        applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y);
+        // Rotation is already in rotationRef — keep it applied via CSS.
+        applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
       }
     };
 
@@ -2059,6 +2080,11 @@ export const MapView: React.FC<MapViewProps> = ({
       const dist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
       pinchDistRef.current = dist;
       initialZoomRef.current = zoom;
+      // Record the initial angle between the two fingers for rotation tracking.
+      initialPinchAngleRef.current = Math.atan2(
+        touch2.clientY - touch1.clientY,
+        touch2.clientX - touch1.clientX
+      ) * (180 / Math.PI);
       return;
     }
 
@@ -2080,12 +2106,21 @@ export const MapView: React.FC<MapViewProps> = ({
     if (isPinchingRef.current && e.touches.length === 2 && pinchDistRef.current && initialZoomRef.current) {
       const touch1 = e.touches[0];
       const touch2 = e.touches[1];
+      // --- Pinch-to-zoom ---
       const currentDist = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
       const zoomFactor = currentDist / pinchDistRef.current;
-      // Apply as CSS scale for instant visual feedback — no React re-render.
       const newScale = Math.max(1, Math.min(Math.pow(2, MAX_ZOOM - 3), zoomFactor));
       zoomScaleRef.current = newScale;
-      applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y);
+      // --- Two-finger rotation ---
+      if (initialPinchAngleRef.current !== null) {
+        const currentAngle = Math.atan2(
+          touch2.clientY - touch1.clientY,
+          touch2.clientX - touch1.clientX
+        ) * (180 / Math.PI);
+        rotationRef.current = currentAngle - initialPinchAngleRef.current;
+      }
+      // Apply combined scale + rotation as CSS transform — no React re-render.
+      applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
       return;
     }
 
@@ -2101,7 +2136,7 @@ export const MapView: React.FC<MapViewProps> = ({
     panOffsetRef.current.x += dx;
     panOffsetRef.current.y += dy;
     if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px)`;
+      mapContainerRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) rotate(${rotationRef.current}deg)`;
     }
 
     dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -2112,6 +2147,7 @@ export const MapView: React.FC<MapViewProps> = ({
       isPinchingRef.current = false;
       pinchDistRef.current = null;
       initialZoomRef.current = null;
+      initialPinchAngleRef.current = null;
       // Sync accumulated pan offset into React state
       const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
       const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
@@ -2121,12 +2157,13 @@ export const MapView: React.FC<MapViewProps> = ({
       setCenterLng(tileXToLng(newX, zoom));
       setCenterLat(tileYToLat(newY, zoom));
       panOffsetRef.current = { x: 0, y: 0 };
-      // Sync accumulated CSS scale into React state, then reset.
+      // Sync accumulated CSS scale into React state.
       const scaleRatio = zoomScaleRef.current;
       const zoomOffset = Math.log2(scaleRatio);
       setZoom((prev) => Math.min(MAX_ZOOM, Math.max(3, Math.round((prev + zoomOffset) * 2) / 2)));
       zoomScaleRef.current = 1;
-      applyMapTransform(1, 0, 0);
+      // Rotation stays applied via CSS — rotationRef retains the angle.
+      applyMapTransform(1, 0, 0, rotationRef.current);
       return;
     }
 
@@ -2142,8 +2179,9 @@ export const MapView: React.FC<MapViewProps> = ({
     setCenterLng(tileXToLng(newX, zoom));
     setCenterLat(tileYToLat(newY, zoom));
     panOffsetRef.current = { x: 0, y: 0 };
+    // Preserve rotation after pan ends
     if (mapContainerRef.current) {
-      mapContainerRef.current.style.transform = '';
+      mapContainerRef.current.style.transform = rotationRef.current ? `rotate(${rotationRef.current}deg)` : '';
     }
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
@@ -3575,7 +3613,25 @@ export const MapView: React.FC<MapViewProps> = ({
         )}
 
         {/* BOTTOM RIGHT FLOATING CONTROLS: Center on GPS Location */}
-        <div className="absolute bottom-16 sm:bottom-4 right-4 z-30 pointer-events-auto">
+        <div className="absolute bottom-16 sm:bottom-4 right-4 z-30 pointer-events-auto flex flex-col gap-2">
+          {/* Rotation indicator — shows current map rotation and allows reset */}
+          {rotationRef.current !== 0 && (
+            <button
+              onClick={() => {
+                rotationRef.current = 0;
+                applyMapTransform(zoomScaleRef.current, panOffsetRef.current.x, panOffsetRef.current.y, 0);
+              }}
+              className={`p-2 rounded-2xl border shadow-xl backdrop-blur-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                isDark
+                  ? 'bg-slate-950/85 border-sky-500/50 text-sky-400 hover:bg-slate-800 hover:text-white'
+                  : 'bg-white/95 border-sky-200 text-sky-600 hover:bg-slate-50'
+              }`}
+              title="Tap to reset map rotation to North-up"
+            >
+              <Compass className="w-4 h-4" style={{ transform: `rotate(${-rotationRef.current}deg)` }} />
+              <span className="text-[10px] font-black">{Math.round(rotationRef.current)}°</span>
+            </button>
+          )}
           <button
             onClick={handleGetCurrentLocation}
             className={`p-2.5 rounded-2xl border shadow-xl backdrop-blur-md transition-all cursor-pointer ${
