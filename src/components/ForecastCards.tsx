@@ -650,8 +650,9 @@ const getScoreBadgeColor = (score: number) => {
                 </div>
 
                 {/* Right side: keep Prime -> View forecast -> Score in one compact row. */}
-                <div className="flex w-full max-w-full flex-nowrap items-center justify-end gap-1.5 overflow-x-auto scrollbar-none sm:w-auto sm:justify-end sm:gap-2.5 shrink-0 ml-auto">
-                  {/* Badges container stays on one line so Prime never pushes the action or score down. */}
+                <div className="flex w-full max-w-full flex-nowrap items-center overflow-x-auto scrollbar-none sm:w-auto shrink-0 ml-auto">
+                  <div className="ml-auto flex flex-nowrap items-center gap-1.5 sm:gap-2.5 shrink-0">
+                    {/* Badges container stays on one line so Prime never pushes the action or score down. */}
                   <div className="flex flex-nowrap items-center justify-start gap-1.5 shrink-0">
                     {day.solunar?.moonPhaseName === 'Full Moon' && (
                       <div className={`text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border whitespace-nowrap ${
@@ -675,7 +676,7 @@ const getScoreBadgeColor = (score: number) => {
                           e.stopPropagation();
                           setExpandedPrimeDate(isPrimeExplainerOpen ? null : day.date);
                         }}
-                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
+                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
                       >
                         <Award className="w-3 h-3 fill-slate-950 shrink-0" />
                         <span>Prime</span>
@@ -733,6 +734,7 @@ const getScoreBadgeColor = (score: number) => {
                         }`}
                       />
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
