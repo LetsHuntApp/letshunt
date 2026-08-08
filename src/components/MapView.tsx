@@ -3853,8 +3853,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <span className="inline-flex items-center gap-0.5 text-sky-400"><Droplets className="w-2.5 h-2.5" />{precipProbability}% · {displayPrecipAmount}</span>
                 <span className="text-slate-500">·</span>
                 <span className="inline-flex items-center gap-0.5 text-sky-400">
-                  <Navigation className="w-2.5 h-2.5" style={{ transform: `rotate(${downwindDeg}deg)` }} />
-                  Scent → {downwindDirText}
+                  Scent: {downwindDirText}
                 </span>
                 <span className="text-slate-500">·</span>
                 <span className={`inline-flex items-center gap-0.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
@@ -3949,7 +3948,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-400 truncate">
                     <Wind className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate">Scent → {downwindDirText} ({Math.round(downwindDeg)}°)</span>
+                    <span className="truncate">Scent: {downwindDirText} ({Math.round(downwindDeg)}°)</span>
                   </div>
                   <button
                     type="button"
