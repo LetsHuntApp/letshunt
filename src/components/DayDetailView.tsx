@@ -369,6 +369,29 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               )}
             </div>
 
+            {/* Keep day navigation separate from the status badge row so it is
+                always visible when viewing a future day. */}
+            {!isToday && onResetToToday && (
+              <div className="self-center sm:self-start">
+                <button
+                  type="button"
+                  onClick={onResetToToday}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shadow-sm transition-all cursor-pointer hover:scale-[1.02] active:scale-95 ${
+                    theme === 'hunting'
+                      ? 'bg-[#c85a17] hover:bg-[#b34e12] text-white border-[#e08a5a]'
+                      : theme === 'olive'
+                      ? 'bg-[#556b2f] hover:bg-[#4a5e27] text-white border-[#8a9a5b]'
+                      : isDark
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-300'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-300'
+                  }`}
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  <span>Back to Today</span>
+                </button>
+              </div>
+            )}
+
             {/* Pill style badges */}
             <div className="flex flex-col items-center sm:items-start gap-1.5 w-full">
               {/* Top Row Badges */}
@@ -401,22 +424,6 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   <span>{rutInfo.name}</span>
                   <Info className="w-4 h-4 opacity-80 shrink-0" />
                 </button>
-                {!isToday && onResetToToday && (
-                  <button
-                    onClick={onResetToToday}
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs border ring-2 whitespace-nowrap cursor-pointer ${
-                      theme === 'hunting'
-                        ? 'bg-[#c85a17] hover:bg-[#b34e12] active:bg-[#a34610] text-white border-[#e08a5a] ring-[#c85a17]/20'
-                        : (theme === 'olive' || theme === 'hunting')
-                        ? 'bg-[#556b2f] hover:bg-[#4a5e27] active:bg-[#3f5221] text-white border-[#8a9a5b] ring-[#556b2f]/20'
-                        : isDark
-                        ? 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 border-emerald-300 ring-emerald-500/20'
-                        : 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white border-emerald-300 ring-emerald-500/20'
-                    }`}
-                  >
-                    <Undo2 className="w-4 h-4" /> Back to Today
-                  </button>
-                )}
               </div>
 
               {/* Centered Best Hunt Time Badge */}
