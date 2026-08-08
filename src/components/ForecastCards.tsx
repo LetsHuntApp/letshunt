@@ -461,24 +461,17 @@ const getScoreBadgeColor = (score: number) => {
             else setShowFourteenDay(true);
           }}
           aria-label="View 14-day hunting forecast"
-          className={`mb-3 w-full sm:w-auto self-center group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl border-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 backdrop-blur-md ${
-            theme === 'hunting'
-              ? 'border-[#c85a17]/55 text-[#7a3208] hover:brightness-95 focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
+          className={`mb-3 w-full sm:w-auto self-center group inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl border text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
+            isDark || theme === 'hunting' || theme === 'olive' ? 'shadow-none' : 'shadow-sm'
+          } hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 backdrop-blur-md ${
+            isDark
+              ? 'bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-slate-700/60 text-emerald-300 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
+              : theme === 'hunting'
+              ? 'bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf]/[var(--card-opacity)] border-[#d4c4a8] text-[#7a3208] focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
               : theme === 'olive'
-              ? 'border-[#556b2f]/55 text-[#3d4f21] hover:brightness-95 focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
-              : isDark
-              ? 'border-emerald-400/60 text-emerald-300 hover:brightness-110 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-950'
-              : 'border-emerald-600/55 text-emerald-800 hover:brightness-95 focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
+              ? 'bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9]/[var(--card-opacity)] border-[#d8d2c0] text-[#3d4f21] focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#efebd9]'
+              : 'bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-slate-200 text-emerald-800 focus-visible:ring-emerald-600 focus-visible:ring-offset-slate-100'
           }`}
-          style={{
-            backgroundColor: theme === 'hunting'
-              ? 'rgb(200 90 23 / var(--card-opacity))'
-              : theme === 'olive'
-              ? 'rgb(85 107 47 / var(--card-opacity))'
-              : isDark
-              ? 'rgb(16 185 129 / var(--card-opacity))'
-              : 'rgb(236 253 245 / var(--card-opacity))',
-          }}
         >
           <Calendar className="w-4 h-4 shrink-0" />
           <span>View {Math.max(7, (dailyAll?.length || daily.length))}-Day Forecast</span>
