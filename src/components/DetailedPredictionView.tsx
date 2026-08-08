@@ -359,9 +359,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left/Center Column: Interactive Score Graph & Factor Breakdown */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           
           {/* 24-Hour Deer Movement Score Graph */}
+          <div className="order-3">
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
               isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800 text-slate-100' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 text-slate-900'
@@ -551,7 +552,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             )}
           </div>
 
+          </div>
+
           {/* 24-Hour Precipitation & Barometric Pressure Chart */}
+          <div className="order-2">
           <PressureChart
             hourly={day.hourly}
             units={units}
@@ -564,8 +568,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             selectedDayName={day.dayName}
             selectedDateFormatted={day.dateFormatted}
           />
+          </div>
 
           {/* Factor Breakdown Section */}
+          <div className="order-1">
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
               isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
@@ -625,6 +631,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 })}
               </div>
             )}
+          </div>
           </div>
         </div>
 

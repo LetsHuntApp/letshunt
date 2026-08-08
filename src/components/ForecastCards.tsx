@@ -628,6 +628,33 @@ const getScoreBadgeColor = (score: number) => {
                     )}
                   </div>
 
+                  {/* Quick action stays in the compact header so detailed predictions are
+                      reachable without expanding the card first. The label hides on
+                      narrow screens to preserve the score badge's breathing room. */}
+                  {onOpenDetails && (
+                    <button
+                      type="button"
+                      aria-label={`View detailed prediction for ${day.dayName}`}
+                      title="View detailed prediction"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenDetails(day.date);
+                      }}
+                      className={`group inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2 sm:px-2.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                        isDark
+                          ? 'bg-slate-950/35 hover:bg-emerald-500/15 border-slate-700/70 text-emerald-300 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-900'
+                          : theme === 'hunting'
+                          ? 'bg-[#f4eee1]/70 hover:bg-[#c85a17]/10 border-[#c85a17]/35 text-[#7a3208] focus-visible:ring-[#c85a17] focus-visible:ring-offset-[#f4eee1]'
+                          : theme === 'olive'
+                          ? 'bg-[#f7f5ed]/70 hover:bg-[#556b2f]/10 border-[#556b2f]/35 text-[#3d4f21] focus-visible:ring-[#556b2f] focus-visible:ring-offset-[#f7f5ed]'
+                          : 'bg-white/70 hover:bg-emerald-50 border-slate-300 text-emerald-700 focus-visible:ring-emerald-600 focus-visible:ring-offset-white'
+                      }`}
+                    >
+                      <Maximize2 className="w-3.5 h-3.5 shrink-0" />
+                      <span className="hidden sm:inline">Details</span>
+                    </button>
+                  )}
+
                   {/* Fixed-width Score Badge & Arrow for 100% left-to-right alignment across all cards */}
                   <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <div
@@ -769,28 +796,6 @@ const getScoreBadgeColor = (score: number) => {
                       </span>
                     )}
                   </div>
-
-                  {/* Detailed Prediction Button — top of expanded view for quick access */}
-                  {onOpenDetails && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenDetails(day.date);
-                      }}
-                      className={`w-full mt-2 py-2.5 font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] ring-2 ${
-                        theme === 'hunting'
-                          ? 'bg-[#c85a17] hover:bg-[#b34e12] text-white ring-[#c85a17]/10'
-                          : theme === 'olive'
-                          ? 'bg-[#556b2f] hover:bg-[#4a5e27] text-white ring-[#556b2f]/10'
-                          : isDark
-                          ? 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 ring-emerald-500/10'
-                          : 'bg-emerald-500 hover:bg-emerald-600 text-white ring-emerald-500/10'
-                      }`}
-                    >
-                      <Maximize2 className="w-4 h-4 shrink-0" />
-                      <span>View Detailed Prediction</span>
-                    </button>
-                  )}
 
                   {/* Weather & Temp */}
                   <div className="flex items-center gap-3.5 my-3">
