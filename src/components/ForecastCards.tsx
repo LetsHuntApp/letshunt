@@ -662,6 +662,8 @@ const getScoreBadgeColor = (score: number) => {
                       type="button"
                       aria-label={`View detailed prediction for ${day.dayName}`}
                       title="View detailed prediction"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenDetails(day.date);
