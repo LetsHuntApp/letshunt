@@ -110,6 +110,16 @@ export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'E
 }
 
 /**
+ * A prime day is an objectively excellent forecast, not merely the highest
+ * score somewhere in the current seven-day list. Keeping this rule beside the
+ * rating thresholds prevents the badge, notifications, and fallback forecast
+ * from drifting apart again.
+ */
+export function isPrimeDay(score: number): boolean {
+  return score >= RATING_THRESHOLDS.excellent;
+}
+
+/**
  * True when a specific hour represents a break in the rain / post-storm
  * clearing. This is used by the display-side condition explanation to show
  * "Rain Just Stopped" — so it must only fire for hours that are actually

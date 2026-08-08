@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DailyForecast, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit, Location } from '../types';
 import { DeerIcon } from './DeerIcon';
-import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, RATING_THRESHOLDS } from '../utils/huntingEngine';
+import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, isPrimeDay, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import { motion } from 'motion/react';
 import { PaperTexture } from './PaperTexture';
@@ -94,6 +94,9 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   // Which 7-day card the Best Day banner auto-expanded — kept separate from the
   // real selection so tapping the banner never swaps the top forecast card.
   const [autoExpandedDate, setAutoExpandedDate] = useState<string | null>(null);
+  // Prime explanations are intentionally opt-in: a badge click opens one
+  // explanation, while expanding a card or changing the selected day does not.
+  const [expandedPrimeDate, setExpandedPrimeDate] = useState<string | null>(null);
   // Extended-foresight modal: only opens when the user explicitly taps the
   // "View 14-day forecast" button below the 7-day cards. We default to the
   // supplied `daily` array if the parent didn't pass `dailyAll`, so the button
@@ -501,7 +504,14 @@ const getScoreBadgeColor = (score: number) => {
           const cardPressure = pressureUnit === 'hPa'
             ? `${day.pressureAvgHpa} hPa`
             : `${day.pressureAvgInHg} inHg`;
-          const isTopDay = day.huntScore === maxScore && maxScore >= 66;
+          // Prime is an absolute Excellent-band signal (90+), not simply the
+          // best score in this particular seven-day slice.
+          const isPrime = isPrimeDay(day.huntScore);
+          const isPrimeExplainerOpen = expandedPrimeDate === day.date;
+          const primeReasons = day.factors
+            .filter((factor) => factor.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 3);
           const dayRut = getRutPhase(day.date, location);
 
           // Calculate maximum precipitation probability for the day
@@ -620,11 +630,23 @@ const getScoreBadgeColor = (score: number) => {
                       </div>
                     )}
 
-                    {isTopDay && (
-                      <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border border-amber-300 whitespace-nowrap">
+                    {isPrime && (
+                      <button
+                        type="button"
+                        aria-label={`Explain why ${day.dayName} is a prime day`}
+                        aria-expanded={isPrimeExplainerOpen}
+                        aria-controls={`prime-explainer-${day.date}`}
+                        title="Why is this a prime day?"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedPrimeDate(isPrimeExplainerOpen ? null : day.date);
+                        }}
+                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
+                      >
                         <Award className="w-3 h-3 fill-slate-950 shrink-0" />
                         <span>Prime</span>
-                      </div>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${isPrimeExplainerOpen ? 'rotate-180' : ''}`} />
+                      </button>
                     )}
                   </div>
 
@@ -679,6 +701,66 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
                 </div>
               </div>
+
+              {isPrime && isPrimeExplainerOpen && (
+                <motion.div
+                  id={`prime-explainer-${day.date}`}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ duration: 0.2 }}
+                  role="region"
+                  aria-label={`${day.dayName} prime day explanation`}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`mx-3.5 sm:mx-4 mb-3 overflow-hidden rounded-xl border px-3 py-3 text-xs backdrop-blur-sm ${
+                    isDark
+                      ? 'bg-emerald-950/45 border-emerald-500/35 text-emerald-50'
+                      : theme === 'hunting'
+                      ? 'bg-[#fff4e6] border-[#c85a17]/35 text-[#3f2414]'
+                      : theme === 'olive'
+                      ? 'bg-[#eef4e5] border-[#556b2f]/35 text-[#26351e]'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      <div>
+                        <p className="font-black uppercase tracking-wider">Why this is a prime day</p>
+                        <p className="mt-1 leading-relaxed opacity-85">
+                          The daily score reaches {day.huntScore}/100 ({getRatingFromScore(day.huntScore)}), placing this forecast in the engine's top tier.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Close prime day explanation"
+                      onClick={() => setExpandedPrimeDate(null)}
+                      className="shrink-0 rounded-md p-1 opacity-65 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="mt-2.5 space-y-2 border-t border-current/15 pt-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider opacity-70">Strongest positive contributors</p>
+                    {primeReasons.length > 0 ? primeReasons.map((factor) => (
+                      <div key={factor.name} className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-extrabold">{factor.name}</p>
+                          <p className="mt-0.5 leading-relaxed opacity-80">{factor.description}</p>
+                        </div>
+                        <span className="shrink-0 font-black text-emerald-700 dark:text-emerald-300">+{factor.score} pts</span>
+                      </div>
+                    )) : (
+                      <p className="leading-relaxed opacity-80">Several smaller factors combine to lift this day into the top tier.</p>
+                    )}
+                  </div>
+
+                  <p className="mt-2.5 border-t border-current/15 pt-2.5 text-[10px] leading-relaxed opacity-70">
+                    Prime means unusually favorable predicted movement conditions—not a guarantee of deer activity. Always verify wind direction, access, and local conditions.
+                  </p>
+                </motion.div>
+              )}
 
               {/* HOUR "NOW" CHIP — small, hour-driven weather glance that updates
                   with the hourly slider. Always reserves its row so cards don't

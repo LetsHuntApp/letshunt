@@ -6,6 +6,7 @@ import {
   format12HourTime,
   formatTimeRange12h,
   getRatingFromScore,
+  isPrimeDay,
   getSolunarRating,
   getWeatherDetails,
   getWindDirectionText,
@@ -708,7 +709,9 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
     // Use the app-wide rating thresholds so the offline fallback stays
     // consistent with getRatingFromScore used by the dial and cards.
     const rating: 'Poor' | 'Fair' | 'Good' | 'Excellent' = getRatingFromScore(score);
-    const verdict = score >= 80 ? 'Prime hunting conditions with optimal wind and barometric pressure.' : 'Moderate conditions. Focus on transition areas.';
+    const verdict = isPrimeDay(score)
+      ? 'Prime hunting conditions with optimal wind and barometric pressure.'
+      : 'Moderate conditions. Focus on transition areas.';
 
     const hourly: HourlyForecast[] = [];
     for (let h = 0; h < 24; h++) {
