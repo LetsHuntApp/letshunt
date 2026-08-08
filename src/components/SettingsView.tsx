@@ -254,7 +254,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     { key: 'coldFront', icon: Snowflake, label: 'Cold Fronts', desc: 'Sharp 24h temperature drops (~9°F / 5°C)' },
     { key: 'weatherFront', icon: Wind, label: 'Weather Fronts (Baro Shift)', desc: 'Rapid falling or rising barometric pressure' },
     { key: 'rainBreak', icon: CloudRain, label: 'Breaks in the Rain', desc: 'Dry windows right after rain trigger feeding surges' },
-    { key: 'primeDay', icon: Zap, label: 'Prime Hunting Days', desc: 'Excellent (90+) movement rating days' },
+    { key: 'primeDay', icon: Zap, label: 'Prime Hunting Days', desc: 'Peak movement scores of 95+ at any forecast hour' },
     { key: 'severeWeather', icon: CloudLightning, label: 'Severe Weather', desc: 'Heavy rain & thunderstorm warnings' },
   ];
 

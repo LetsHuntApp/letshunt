@@ -1,4 +1,5 @@
 import { DailyForecast, UnitSystem } from '../types';
+import { isPrimeDay } from '../utils/huntingEngine';
 
 export type NotificationEventType =
   | 'cold_front'
@@ -191,6 +192,10 @@ export function detectWeatherAlerts(
     const dayStart = new Date(day.date + 'T00:00:00').getTime();
     if (dayStart + 24 * HOUR_MS < now) continue; // day already over
 
+    const peakHuntScore = day.hourly && day.hourly.length > 0
+      ? Math.max(day.huntScore, ...day.hourly.map((hour) => hour.huntScore))
+      : day.huntScore;
+
     if (prefs.coldFront && day.tempDrop24h >= tempDropThreshold) {
       events.push({
         id: `cold_front_${day.date}`,
@@ -225,12 +230,12 @@ export function detectWeatherAlerts(
       });
     }
 
-    if (prefs.primeDay && day.rating === 'Excellent') {
+    if (prefs.primeDay && isPrimeDay(peakHuntScore)) {
       events.push({
         id: `prime_day_${day.date}`,
         type: 'prime_day',
         title: `🎯 Prime Hunt Day ${day.dayName}`,
-        body: `${day.dateFormatted} — ${day.huntScore}/100 Excellent rating. Best windows: ${day.morningPrime} & ${day.eveningPrime}.`,
+        body: `${day.dateFormatted} — peak movement score ${peakHuntScore}/100. Best windows: ${day.morningPrime} & ${day.eveningPrime}.`,
         fireAt: dayStart + 5 * HOUR_MS,
         dateStr: day.date,
       });

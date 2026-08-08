@@ -504,9 +504,14 @@ const getScoreBadgeColor = (score: number) => {
           const cardPressure = pressureUnit === 'hPa'
             ? `${day.pressureAvgHpa} hPa`
             : `${day.pressureAvgInHg} inHg`;
-          // Prime is an absolute Excellent-band signal (90+), not simply the
-          // best score in this particular seven-day slice.
-          const isPrime = isPrimeDay(day.huntScore);
+          // Prime is a peak-movement signal: a day qualifies when its daily
+          // summary or any forecast hour reaches 95+, not merely because it
+          // leads this particular seven-day slice.
+          const peakHour = day.hourly && day.hourly.length > 0
+            ? day.hourly.reduce((peak, hour) => hour.huntScore > peak.huntScore ? hour : peak, day.hourly[0])
+            : null;
+          const primeScore = Math.max(day.huntScore, peakHour?.huntScore ?? day.huntScore);
+          const isPrime = isPrimeDay(primeScore);
           const isPrimeExplainerOpen = expandedPrimeDate === day.date;
           const primeReasons = day.factors
             .filter((factor) => factor.score > 0)
@@ -726,7 +731,7 @@ const getScoreBadgeColor = (score: number) => {
                       <div>
                         <p className="font-black uppercase tracking-wider">Why this is a prime day</p>
                         <p className="mt-1 leading-relaxed opacity-85">
-                          The daily score reaches {day.huntScore}/100 ({getRatingFromScore(day.huntScore)}), placing this forecast in the engine's top tier.
+                          The forecast reaches {primeScore}/100{peakHour && primeScore === peakHour.huntScore ? ` at ${getHour12Label(new Date(peakHour.timestamp).getHours())}` : ''}, crossing the engine's 95+ Prime threshold.
                         </p>
                       </div>
                     </div>

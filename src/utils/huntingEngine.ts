@@ -110,13 +110,13 @@ export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'E
 }
 
 /**
- * A prime day is an objectively excellent forecast, not merely the highest
- * score somewhere in the current seven-day list. Keeping this rule beside the
- * rating thresholds prevents the badge, notifications, and fallback forecast
- * from drifting apart again.
+ * Prime is a stricter peak-movement signal than the Excellent rating: a day
+ * earns it when its daily summary or any hourly forecast reaches 95+.
  */
+export const PRIME_DAY_THRESHOLD = 95;
+
 export function isPrimeDay(score: number): boolean {
-  return score >= RATING_THRESHOLDS.excellent;
+  return score >= PRIME_DAY_THRESHOLD;
 }
 
 /**
