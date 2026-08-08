@@ -94,6 +94,7 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   // Which 7-day card the Best Day banner auto-expanded — kept separate from the
   // real selection so tapping the banner never swaps the top forecast card.
   const [autoExpandedDate, setAutoExpandedDate] = useState<string | null>(null);
+  const [bestDayScrollRequest, setBestDayScrollRequest] = useState(0);
   // Prime explanations are intentionally opt-in: a badge click opens one
   // explanation, while expanding a card or changing the selected day does not.
   const [expandedPrimeDate, setExpandedPrimeDate] = useState<string | null>(null);
@@ -131,6 +132,17 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
       document.body.style.overflow = prev;
     };
   }, [showFourteenDay]);
+
+  // Scroll only after the auto-expanded card has rendered. Scrolling in the
+  // button's click handler raced the state update, making the first tap expand
+  // the card and the second tap appear to be what performed the scroll.
+  useEffect(() => {
+    if (!autoExpandedDate) return;
+    const timeoutId = window.setTimeout(() => {
+      document.getElementById(`forecast-card-${autoExpandedDate}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    return () => window.clearTimeout(timeoutId);
+  }, [autoExpandedDate, bestDayScrollRequest]);
 
   if (!daily || daily.length === 0) return null;
 
@@ -394,9 +406,10 @@ const getScoreBadgeColor = (score: number) => {
         <button
           onClick={() => {
             // Expand the best day's 7-day card WITHOUT changing the selected day
-            // (that would swap the top forecast card), then smooth-scroll to it.
+            // (that would swap the top forecast card). The effect above scrolls
+            // after React commits the expanded card.
             setAutoExpandedDate(bestDay.date);
-            document.getElementById(`forecast-card-${bestDay.date}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setBestDayScrollRequest((request) => request + 1);
           }}
           className={`w-full mb-3 rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.002] cursor-pointer backdrop-blur-md ${
             isDark
