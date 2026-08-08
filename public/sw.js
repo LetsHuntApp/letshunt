@@ -1,4 +1,4 @@
-const CACHE_NAME = 'letshunt-v13';
+const CACHE_NAME = 'letshunt-v15';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
