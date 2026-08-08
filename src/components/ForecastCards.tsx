@@ -726,14 +726,10 @@ const getScoreBadgeColor = (score: number) => {
                   <div className="flex flex-wrap gap-1.5 mt-3.5 mb-3.5">
                     {/* Semi-rectangular Pill Style Badge for Rut Status */}
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border ${
-                        isDark
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/45'
-                          : 'bg-purple-50 text-purple-800 border-purple-200 shadow-2xs'
-                      }`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-black rounded-lg border-2 ${dayRut.badgeStyle}`}
                     >
-                      {renderRutIcon(dayRut.iconName, "w-3.5 h-3.5 shrink-0 text-purple-500 dark:text-purple-300")}
-                      <span>Rut Status: {dayRut.name}</span>
+                      {renderRutIcon(dayRut.iconName, "w-3.5 h-3.5 shrink-0")}
+                      <span>Rut: {dayRut.name}</span>
                     </span>
 
                     {day.tempDrop24h >= 5 && (

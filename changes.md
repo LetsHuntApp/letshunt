@@ -1,5 +1,31 @@
 # Changes Log
 
+## Rut badge prominence + Olive/Hunting card theme consistency
+
+- **Rut status badge is now prominent & readable on every theme.** All rut
+  phase badges (`rutEngine.ts` badgeStyle) switched from translucent pastels
+  to solid, high-contrast phase colors with white text and colored borders —
+  readable on light and dark variants of Standard, Olive and Hunting alike.
+  Peak Rut gets a rose→orange gradient. The dashboard hero badge
+  (`DayDetailView`) is larger with a white glow ring, deeper shadow, a
+  pulsing dot during Peak Rut, and a bigger phase icon; forecast-day cards
+  (`ForecastCards`) now color-code each day's rut phase with the same solid
+  styles.
+- **Olive & Hunting cards now share one hue family with the hourly slider.**
+  Root cause: `src/index.css` had an unclosed `.hunting .font-brand-hunting`
+  block that absorbed every `.dark.olive` / `.dark.hunting` card re-tint rule
+  inside a `prefers-reduced-motion` media query — with CSS nesting semantics
+  those selectors never matched, so dark-mode cards stayed generic black while
+  the inline-styled slider kept its theme hue. Restructured the tail into
+  valid top-level rules, completed the previously-empty Hunting (walnut)
+  re-tints, aligned Olive to a consistent moss hue (base, hover, gradient
+  stops, nested-depth `*0.5`/`*0.7` cards), and added **light-mode** paper
+  re-tints (`#f7f5ed` olive / warm kraft hunting) so white cards in those
+  themes no longer look stark white. All re-tints use the same
+  `--card-opacity` / `--card-blur` settings as every other card.
+- Removed the `}}}}}}` "auto-close orphan braces" hack — brace balance is now
+  exact (verified: final depth 0).
+
 ## Batch 3 — Consistency & Housekeeping
 
 - **Single source of truth for the hunt-score rating scale.** The

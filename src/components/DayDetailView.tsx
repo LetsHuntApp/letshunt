@@ -339,12 +339,15 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsRutModalOpen(true)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider border cursor-pointer hover:scale-[1.02] active:scale-95 transition-all shadow-xs ring-2 ring-transparent hover:ring-amber-500/40 ${rutInfo.badgeStyle}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-xs sm:text-[13px] font-black uppercase tracking-wider border-2 cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${rutInfo.badgeStyle}`}
                   title="Click for Rut Phase Breakdown & Hunter Tips"
                 >
-                  <RutPhaseIcon iconName={rutInfo.iconName} className="w-4 h-4 flex-shrink-0" />
+                  {rutInfo.phaseId === 'peak_rut' && (
+                    <span className="w-2 h-2 rounded-full bg-white/90 animate-pulse motion-reduce:animate-none flex-shrink-0" />
+                  )}
+                  <RutPhaseIcon iconName={rutInfo.iconName} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                   <span>{rutInfo.name}</span>
-                  <Info className="w-3.5 h-3.5 opacity-80 shrink-0" />
+                  <Info className="w-4 h-4 opacity-80 shrink-0" />
                 </button>
                 {!isToday && onResetToToday && (
                   <button

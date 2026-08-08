@@ -399,21 +399,20 @@ rect:focus {
 }
 
 .hunting .font-brand-hunting {
-/* Respect user's motion preferences — kill the texture overlays entirely
-   for anyone who set prefers-reduced-motion (common on field wearables
-   and low-end Android). The kraft color and Oswald headings still apply,
-   so the theme identity carries through. */
-@media (prefers-reduced-motion: reduce) {
+  /* Reserved for the branded hunt-mark font — see the --hunting-* tokens. */
+}
 
 /* ===== OLIVE × DARK MODE — dim moss-green cards =====
    The global Light/Dark toggle now correctly drives `isDark` inside every
    component, so dark-mode cards emit the standard dark slate utilities
    (bg-slate-900/950/[var(--card-opacity)] etc.). These rules re-tint those
    surfaces to Olive's moss palette so Olive stays Olive at night instead
-   of collapsing into generic dark. The :not([class*="hover:"]) guard keeps
+   of collapsing into generic dark — and every card (dashboard, map, logs,
+   trail cams, slider, modals) shares the SAME hue with the SAME
+   --card-opacity / blur settings. The :not([class*="hover:"]) guard keeps
    hover:bg-* states alive so buttons still visibly react. */
-.dark.olive [class*="bg-slate-900/"]:not([class*="hover:"]),
-.dark.olive [class*="bg-slate-950/"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-900"]:not([class*="hover:"]),
+.dark.olive [class*="bg-slate-950"]:not([class*="hover:"]),
 .dark.olive [class*="bg-white/"]:not([class*="hover:"]),
 .dark.olive [class*="bg-slate-50/"]:not([class*="hover:"]),
 .dark.olive [class*="bg-slate-100"]:not([class*="hover:"]),
@@ -430,13 +429,12 @@ rect:focus {
 .dark.olive [class*="bg-[#ede5d5]"]:not([class*="hover:"]),
 .dark.olive [class*="bg-[#e0d6c0]"]:not([class*="hover:"]),
 .dark.olive [class*="bg-[#e8e4d5]"]:not([class*="hover:"]) {
-  background-color: rgba(28, 40, 21, var(--card-opacity, 0.92)) !important;
-  border-color: rgba(85, 107, 47, 0.45) !important;
+  background-color: rgba(31, 45, 23, var(--card-opacity, 0.92)) !important;
 }
 
 /* ===== HUNTING × DARK MODE — dim walnut cards ===== */
-.dark.hunting [class*="bg-slate-900/"]:not([class*="hover:"]),
-.dark.hunting [class*="bg-slate-950/"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-900"]:not([class*="hover:"]),
+.dark.hunting [class*="bg-slate-950"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-white/"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-slate-50/"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-slate-100"]:not([class*="hover:"]),
@@ -453,6 +451,8 @@ rect:focus {
 .dark.hunting [class*="bg-[#ede5d5]"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-[#e0d6c0]"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-[#e8e4d5]"]:not([class*="hover:"]) {
+  background-color: rgba(43, 28, 17, var(--card-opacity, 0.92)) !important;
+}
 
 /* Extra card-opacity fallbacks for the olive/hunting chrome colors used
    by the footer + mobile nav (now /[var(--card-opacity)]). */
@@ -487,11 +487,12 @@ rect:focus {
    repaint the lifted state, so both stay in sync. */
 .dark.olive [class*="bg-slate-900/[var(--card-opacity)]"][class*="hover:bg-slate-900/"],
 .dark.olive [class*="bg-slate-950/[var(--card-opacity)]"][class*="hover:bg-slate-950/"] {
-  background-color: rgb(28 40 21 / var(--card-opacity, 0.92)) !important;
-  border-color: rgba(85, 107, 47, 0.45) !important;
+  background-color: rgb(31 45 23 / var(--card-opacity, 0.92)) !important;
 }
 .dark.hunting [class*="bg-slate-900/[var(--card-opacity)]"][class*="hover:bg-slate-900/"],
 .dark.hunting [class*="bg-slate-950/[var(--card-opacity)]"][class*="hover:bg-slate-950/"] {
+  background-color: rgb(43 28 17 / var(--card-opacity, 0.92)) !important;
+}
 
 /* Hover-state overrides for the dark variant palettes. The
    :not([class*="hover:"]) guard above keeps hover:bg-* states alive, but it
@@ -501,10 +502,12 @@ rect:focus {
    repaint the hover surfaces with the matching theme tint + lift. */
 .dark.olive [class*="hover:bg-slate-900/"]:hover,
 .dark.olive [class*="hover:bg-slate-950/"]:hover {
-  background-color: rgb(38 54 28 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+  background-color: rgb(40 57 29 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
 }
 .dark.hunting [class*="hover:bg-slate-900/"]:hover,
 .dark.hunting [class*="hover:bg-slate-950/"]:hover {
+  background-color: rgb(55 36 22 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}
 
 /* Gradient-stop re-tints — the hero cards emit dark gradients with
    via-slate-900 / to-slate-950 stops (both the [var(--card-opacity)] variants
@@ -514,12 +517,16 @@ rect:focus {
    the dark variants. */
 .dark.olive [class*="via-slate-900"],
 .dark.olive [class*="to-slate-950"] {
-  --tw-gradient-via: rgb(28 40 21 / var(--card-opacity, 0.92)) !important;
-  --tw-gradient-to: rgb(20 29 15 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-via: rgb(31 45 23 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-to: rgb(22 31 16 / var(--card-opacity, 0.92)) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
 }
 .dark.hunting [class*="via-slate-900"],
 .dark.hunting [class*="to-slate-950"] {
+  --tw-gradient-via: rgb(43 28 17 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-to: rgb(30 19 11 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
+}
 
 /* Expanded forecast details stay visually continuous with their selected
    card: no hidden gradient or opaque white layer can bleed through, and the
@@ -529,5 +536,62 @@ rect:focus {
      standard / olive / hunting palette. */
 }
 
-/* auto-close orphan braces */
-}}}}}}
+/* ===== LIGHT MODE re-tints — Olive + Hunting cards adopt the theme's
+   paper hue (with the SAME --card-opacity / blur as every other card)
+   instead of stark white, so all surfaces share one hue family. ===== */
+.olive:not(.dark) [class*="bg-white/"]:not([class*="hover:"]),
+.olive:not(.dark) [class*="bg-slate-50/"]:not([class*="hover:"]),
+.olive:not(.dark) [class*="bg-slate-100"]:not([class*="hover:"]),
+.olive:not(.dark) [class*="bg-slate-200"]:not([class*="hover:"]) {
+  background-color: rgb(247 245 237 / var(--card-opacity, 0.92)) !important;
+}
+
+.hunting:not(.dark) [class*="bg-white/"]:not([class*="hover:"]),
+.hunting:not(.dark) [class*="bg-slate-50/"]:not([class*="hover:"]),
+.hunting:not(.dark) [class*="bg-slate-100"]:not([class*="hover:"]),
+.hunting:not(.dark) [class*="bg-slate-200"]:not([class*="hover:"]) {
+  background-color: rgb(240 231 213 / var(--card-opacity, 0.92)) !important;
+}
+
+/* Nested-card depth for the dark variant palettes (photo tiles etc. that
+   multiply the card opacity) — keeps depth while staying on-hue. */
+.dark.olive [class*="bg-slate-900/[calc(var(--card-opacity)*0.5)]"],
+.dark.olive [class*="bg-slate-950/[calc(var(--card-opacity)*0.5)]"] {
+  background-color: rgb(24 34 18 / calc(var(--card-opacity, 0.92) * 0.55)) !important;
+}
+.dark.olive [class*="bg-slate-900/[calc(var(--card-opacity)*0.7)]"],
+.dark.olive [class*="bg-slate-950/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(24 34 18 / calc(var(--card-opacity, 0.92) * 0.75)) !important;
+}
+.dark.hunting [class*="bg-slate-900/[calc(var(--card-opacity)*0.5)]"],
+.dark.hunting [class*="bg-slate-950/[calc(var(--card-opacity)*0.5)]"] {
+  background-color: rgb(33 21 13 / calc(var(--card-opacity, 0.92) * 0.55)) !important;
+}
+.dark.hunting [class*="bg-slate-900/[calc(var(--card-opacity)*0.7)]"],
+.dark.hunting [class*="bg-slate-950/[calc(var(--card-opacity)*0.7)]"] {
+  background-color: rgb(33 21 13 / calc(var(--card-opacity, 0.92) * 0.75)) !important;
+}
+
+/* Light-mode base-state + hover-state re-tints for hover-carrying cards
+   that use neutral white/slate surfaces (mirrors the dark rules above), so
+   e.g. a white card with a hover:bg-* class also adopts the theme's paper
+   hue instead of staying stark white in Olive/Hunting light. Backgrounds
+   only — semantic borders (selected-day emerald, score colors) are kept. */
+.olive:not(.dark) [class*="bg-white/[var(--card-opacity)]"][class*="hover:bg-"],
+.olive:not(.dark) [class*="bg-slate-50/"][class*="hover:bg-"] {
+  background-color: rgb(247 245 237 / var(--card-opacity, 0.92)) !important;
+}
+.hunting:not(.dark) [class*="bg-white/[var(--card-opacity)]"][class*="hover:bg-"],
+.hunting:not(.dark) [class*="bg-slate-50/"][class*="hover:bg-"] {
+  background-color: rgb(240 231 213 / var(--card-opacity, 0.92)) !important;
+}
+.olive:not(.dark) [class*="hover:bg-white/"]:hover,
+.olive:not(.dark) [class*="hover:bg-slate-50"]:hover,
+.olive:not(.dark) [class*="hover:bg-slate-100"]:hover {
+  background-color: rgb(241 239 228 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}
+.hunting:not(.dark) [class*="hover:bg-white/"]:hover,
+.hunting:not(.dark) [class*="hover:bg-slate-50"]:hover,
+.hunting:not(.dark) [class*="hover:bg-slate-100"]:hover {
+  background-color: rgb(232 222 203 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+}

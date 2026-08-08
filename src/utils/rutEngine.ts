@@ -62,7 +62,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Quiet Summer',
         phaseId: 'summer',
         iconName: 'Trees',
-        badgeStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35',
+        badgeStyle: 'bg-emerald-700 text-white border-emerald-300/70',
         description: 'Quiet Velvet Pattern',
         hunterTip: "Bucks are taking it easy in bachelor groups, growing their fuzzy velvet antlers and filling up on soybeans. Sit on a high-protein field edge in the evening and don't spook them!"
       };
@@ -71,7 +71,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Early Season',
         phaseId: 'early',
         iconName: 'Compass',
-        badgeStyle: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/35',
+        badgeStyle: 'bg-teal-700 text-white border-teal-300/70',
         description: 'Green Food & Bedding Shift',
         hunterTip: "Bachelor groups are breaking up and velvet is shedding. Bucks are still on highly predictable bed-to-food patterns. Target early dropping acorns or green clover plots."
       };
@@ -80,7 +80,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Pre-Rut',
         phaseId: 'pre_rut',
         iconName: 'Sparkles',
-        badgeStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35',
+        badgeStyle: 'bg-amber-700 text-white border-amber-300/70',
         description: 'Scraping & Sparring Phase',
         hunterTip: "Bucks are feeling the testosterone surge! Scrape lines are popping up overnight and sparring is common. Time to hang mock scrapes, mock-lick branches, and use light buck grunts."
       };
@@ -89,7 +89,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Peak Rut Chasing',
         phaseId: 'peak_rut',
         iconName: 'Flame',
-        badgeStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35',
+        badgeStyle: 'bg-gradient-to-r from-rose-600 to-orange-500 text-white border-rose-300/80',
         description: 'The Seeking & Chasing Frenzy',
         hunterTip: "Absolute visual chaos! Estrous does have bucks running on pure adrenaline in broad daylight. Do not leave the woods—sit all day near downwind funnel routes or thick doe bedding."
       };
@@ -98,7 +98,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Lockdown Phase',
         phaseId: 'lockdown',
         iconName: 'Lock',
-        badgeStyle: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/35',
+        badgeStyle: 'bg-indigo-700 text-white border-indigo-300/70',
         description: 'Doe Lockdown Phase',
         hunterTip: "The woods can seem dead. Bucks have paired up and are tucked away with hot does in dense brush for 24-48 hours. Focus on tight bedding pinch points or wait for a buck transitioning between does."
       };
@@ -107,7 +107,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Post-Rut',
         phaseId: 'post_rut',
         iconName: 'ShieldCheck',
-        badgeStyle: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/35',
+        badgeStyle: 'bg-sky-700 text-white border-sky-300/70',
         description: 'Secondary Doe Search',
         hunterTip: "Bucks are tired but looking to recover. A second wave of breeding occurs for late-developing fawns or unbred does. Focus on primary travel corridors near high-calorie food."
       };
@@ -117,7 +117,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Late Season',
         phaseId: 'late',
         iconName: 'Snowflake',
-        badgeStyle: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/35',
+        badgeStyle: 'bg-blue-700 text-white border-blue-300/70',
         description: 'Severe Winter Bed-to-Feed',
         hunterTip: "Cold is king and deer need heavy calories. Bucks are worn thin and focused strictly on survival. Target standing corn, soy, or brassicas near southwest-facing bedding slopes."
       };
@@ -129,7 +129,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Quiet Summer',
         phaseId: 'summer',
         iconName: 'Trees',
-        badgeStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35',
+        badgeStyle: 'bg-emerald-700 text-white border-emerald-300/70',
         description: 'Quiet Velvet Phase',
         hunterTip: "Warm weather has deer lying low in the shade. Bucks are packing on protein to grow giant antlers. Check shaded water holes and deep mesquite draw pathways."
       };
@@ -138,7 +138,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Early Season',
         phaseId: 'early',
         iconName: 'Compass',
-        badgeStyle: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/35',
+        badgeStyle: 'bg-teal-700 text-white border-teal-300/70',
         description: 'Early Feeder & Oak Patterns',
         hunterTip: "Shedding velvet and establishing social status. Deer are hitting feeders or fresh drops of live oak acorns. Keep your wind correct on these sensitive trails."
       };
@@ -147,7 +147,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Pre-Rut',
         phaseId: 'pre_rut',
         iconName: 'Sparkles',
-        badgeStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35',
+        badgeStyle: 'bg-amber-700 text-white border-amber-300/70',
         description: 'Scraping & Sparring Phase',
         hunterTip: "Scrapes and rubs are popping up overnight in the brush. Bucks are making their presence known. Get aggressive with mock scrapes and mid-day rattling calls."
       };
@@ -156,7 +156,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Peak Rut Chasing',
         phaseId: 'peak_rut',
         iconName: 'Flame',
-        badgeStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35',
+        badgeStyle: 'bg-gradient-to-r from-rose-600 to-orange-500 text-white border-rose-300/80',
         description: 'The Southern Chase is ON!',
         hunterTip: "The main event! Bucks are actively searching for hot does through the brush and mesquite. Loud horn rattling is highly effective right now to pull a dominant buck into view."
       };
@@ -165,7 +165,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Lockdown Phase',
         phaseId: 'lockdown',
         iconName: 'Lock',
-        badgeStyle: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/35',
+        badgeStyle: 'bg-indigo-700 text-white border-indigo-300/70',
         description: 'Brush Lockdown Phase',
         hunterTip: "Mature bucks are locked down with receptive does in dense sendero brush. Hunt the edges of extremely thick bedding cover where a buck might stand up to herd his doe."
       };
@@ -175,7 +175,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Post-Rut',
         phaseId: 'post_rut',
         iconName: 'ShieldCheck',
-        badgeStyle: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/35',
+        badgeStyle: 'bg-sky-700 text-white border-sky-300/70',
         description: 'Secondary Buck Seek',
         hunterTip: "Mature bucks are exhausted but younger does and fawns are hitting their first cycle, sparking secondary chases. Hunt doe-rich zones and supplemental feed sources."
       };
@@ -185,7 +185,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Late Season',
         phaseId: 'late',
         iconName: 'Snowflake',
-        badgeStyle: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/35',
+        badgeStyle: 'bg-blue-700 text-white border-blue-300/70',
         description: 'Late Winter Food Patterns',
         hunterTip: "Brutal winter stress means deer are focused completely on supplemental high-carb feed or remaining winter greens. Target feeders or native browse close to thick bedding."
       };
@@ -197,7 +197,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Quiet Summer',
         phaseId: 'summer',
         iconName: 'Trees',
-        badgeStyle: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35',
+        badgeStyle: 'bg-emerald-700 text-white border-emerald-300/70',
         description: 'Quiet Velvet Phase',
         hunterTip: "Deer are staying cool and growing velvet. Focus on late afternoon agricultural feeding fields like alfalfa, clover, or mineral spots where legal."
       };
@@ -206,7 +206,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Early Season',
         phaseId: 'early',
         iconName: 'Compass',
-        badgeStyle: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/35',
+        badgeStyle: 'bg-teal-700 text-white border-teal-300/70',
         description: 'Predictable Bed-to-Feed Patterns',
         hunterTip: "Bachelor groups are shifting to hardwood timber as white oak acorns begin to drop. Target these high-attraction oak trees on the transitions to bedding cover."
       };
@@ -215,7 +215,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Pre-Rut',
         phaseId: 'pre_rut',
         iconName: 'Sparkles',
-        badgeStyle: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/35',
+        badgeStyle: 'bg-amber-700 text-white border-amber-300/70',
         description: 'Scraping & Rubbing Phase',
         hunterTip: "Pre-rut is heating up! Bucks are tearing up scrape lines along timber edges. Set up camera traps on active scrapes and try light rattling and soft contact grunts."
       };
@@ -224,7 +224,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Peak Rut Chasing',
         phaseId: 'peak_rut',
         iconName: 'Flame',
-        badgeStyle: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35',
+        badgeStyle: 'bg-gradient-to-r from-rose-600 to-orange-500 text-white border-rose-300/80',
         description: 'Crucial Seeking & Chasing',
         hunterTip: "Prime time! Bucks are actively seeking out receptive does across ridges and draws. Set your stand near active travel corridors, ridges, and doe feeding hotspots."
       };
@@ -233,7 +233,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Lockdown Phase',
         phaseId: 'lockdown',
         iconName: 'Lock',
-        badgeStyle: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/35',
+        badgeStyle: 'bg-indigo-700 text-white border-indigo-300/70',
         description: 'Doe Lockdown Phase',
         hunterTip: "The woods can feel very quiet today as bucks lock down with does in thick cover. Set up on transition funnels between bedding thickets and be patient—the wait is worth it."
       };
@@ -242,7 +242,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Post-Rut',
         phaseId: 'post_rut',
         iconName: 'ShieldCheck',
-        badgeStyle: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/35',
+        badgeStyle: 'bg-sky-700 text-white border-sky-300/70',
         description: 'Secondary Rut Chasing',
         hunterTip: "A secondary mini-rut will trigger for any unbred does. Tired bucks will travel travel-corridors. Focus on remaining soft mast, white oak acorns, or crop fields."
       };
@@ -252,7 +252,7 @@ export function getRutPhase(dateStr: string, location?: Location): RutPhase {
         name: 'Late Season',
         phaseId: 'late',
         iconName: 'Snowflake',
-        badgeStyle: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/35',
+        badgeStyle: 'bg-blue-700 text-white border-blue-300/70',
         description: 'Late Winter Bed-to-Feed Patterns',
         hunterTip: "With cold air moving in, focus is strictly on food. Deer are in survival mode, moving from thick security bedding to grain sources. Find the active feed and you'll find the deer."
       };
