@@ -158,6 +158,57 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? '#d97706' // amber-600 (Warm Amber)
     : '#f43f5e'; // rose-500 (Terracotta)
 
+  // The engine's condition explanation supplies semantic tone classes, but
+  // those classes were tuned for dark mode. Remap the rationale surface to
+  // each app theme so the "What drives this score" panel stays readable.
+  const explanationTone = condExplanation.badgeColor.includes('rose')
+    ? 'poor'
+    : condExplanation.badgeColor.includes('amber')
+    ? 'fair'
+    : condExplanation.badgeColor.includes('sky')
+    ? 'cool'
+    : 'good';
+
+  const weatherExplanationSurface = isDark
+    ? explanationTone === 'poor'
+      ? 'bg-rose-950/55 border-rose-500/45 text-rose-100'
+      : explanationTone === 'fair'
+      ? 'bg-amber-950/55 border-amber-500/45 text-amber-100'
+      : explanationTone === 'cool'
+      ? 'bg-sky-950/55 border-sky-500/45 text-sky-100'
+      : 'bg-emerald-950/55 border-emerald-500/45 text-emerald-100'
+    : theme === 'hunting'
+    ? explanationTone === 'poor'
+      ? 'bg-[#fff0e8] border-[#c85a17]/40 text-[#5c2412]'
+      : explanationTone === 'fair'
+      ? 'bg-[#fff6df] border-[#b87333]/40 text-[#5c3d10]'
+      : explanationTone === 'cool'
+      ? 'bg-[#edf5f6] border-[#3f7f87]/35 text-[#21434a]'
+      : 'bg-[#edf6e9] border-[#556b2f]/35 text-[#26351e]'
+    : theme === 'olive'
+    ? explanationTone === 'poor'
+      ? 'bg-[#f8ece7] border-[#9b4b3f]/40 text-[#54231e]'
+      : explanationTone === 'fair'
+      ? 'bg-[#f7f0df] border-[#b87333]/40 text-[#5c3d10]'
+      : explanationTone === 'cool'
+      ? 'bg-[#edf4f5] border-[#4f858d]/35 text-[#23464d]'
+      : 'bg-[#eef4e5] border-[#556b2f]/35 text-[#26351e]'
+    : explanationTone === 'poor'
+    ? 'bg-rose-50 border-rose-200 text-rose-900'
+    : explanationTone === 'fair'
+    ? 'bg-amber-50 border-amber-200 text-amber-900'
+    : explanationTone === 'cool'
+    ? 'bg-sky-50 border-sky-200 text-sky-900'
+    : 'bg-emerald-50 border-emerald-200 text-emerald-900';
+
+  const weatherExplanationHeading = isDark
+    ? 'text-emerald-300'
+    : theme === 'hunting'
+    ? 'text-[#9a4615]'
+    : theme === 'olive'
+    ? 'text-[#466126]'
+    : 'text-emerald-800';
+
   return (
     <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn">
       {/* Hero Overview Header Card */}
@@ -321,7 +372,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             {/* Pill style badges */}
             <div className="flex flex-col items-center sm:items-start gap-1.5 w-full">
               {/* Top Row Badges */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 w-full">
+              {/* Keep the status/rut badges on one row; Best Hunt is the only second row. */}
+              <div className="flex flex-nowrap items-center justify-start gap-1.5 w-full overflow-x-auto scrollbar-none">
                 <span
                   className={`px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider border flex items-center gap-1 ${
                     isExcellentDay
@@ -385,11 +437,23 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowWeatherExplanation((prev) => !prev)}
-                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer shadow-sm ${
+                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer shadow-sm border active:scale-95 ${
                     showWeatherExplanation
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
-                  } active:scale-95`}
+                      ? isDark
+                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
+                        : theme === 'hunting'
+                        ? 'bg-[#c85a17]/15 text-[#7a3208] border-[#c85a17]/40 hover:bg-[#c85a17]/25'
+                        : theme === 'olive'
+                        ? 'bg-[#556b2f]/15 text-[#3d4f21] border-[#556b2f]/40 hover:bg-[#556b2f]/25'
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
+                      : isDark
+                      ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:bg-emerald-500/20'
+                      : theme === 'hunting'
+                      ? 'bg-[#c85a17]/10 text-[#8b3f12] border-[#c85a17]/30 hover:bg-[#c85a17]/20'
+                      : theme === 'olive'
+                      ? 'bg-[#556b2f]/10 text-[#466126] border-[#556b2f]/30 hover:bg-[#556b2f]/20'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  }`}
                   title="Click to view weather factors driving this score"
                 >
                   <Info className="w-3.5 h-3.5" />
@@ -404,11 +468,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
               {/* Specific Weather Score Rationale Box - Only shown when clicked */}
               {showWeatherExplanation && (
-                <div className={`w-full p-2.5 rounded-xl border ${condExplanation.badgeColor} backdrop-blur-sm text-left mt-1 shadow-sm space-y-0.5`}>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                <div className={`w-full p-2.5 rounded-xl border ${weatherExplanationSurface} backdrop-blur-sm text-left mt-1 shadow-sm space-y-0.5`}>
+                  <div className={`text-[10px] font-black uppercase tracking-wider ${weatherExplanationHeading}`}>
                     Weather Factor Breakdown
                   </div>
-                  <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                  <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-slate-100' : theme === 'hunting' ? 'text-[#3f2414]' : theme === 'olive' ? 'text-[#2e4028]' : 'text-slate-800'}`}>
                     {condExplanation.detail}
                   </p>
                 </div>
