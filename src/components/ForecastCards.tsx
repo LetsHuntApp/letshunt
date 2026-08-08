@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DailyForecast, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit, Location } from '../types';
 import { DeerIcon } from './DeerIcon';
-import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, isPrimeDay, RATING_THRESHOLDS } from '../utils/huntingEngine';
+import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, getPeakHuntScore, isPrimeDay, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import { motion } from 'motion/react';
 import { PaperTexture } from './PaperTexture';
@@ -158,21 +158,32 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
       : 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]'
     : '';
 
-  // Find max score day
-  const maxScore = Math.max(...daily.map((d) => d.huntScore));
-  const bestDay = daily.find((d) => d.huntScore === maxScore) || daily[0];
+  // Best Day and Prime use the same strongest-opportunity score. This means
+  // the banner cannot select one day while the Prime badge identifies another.
+  const bestDay = daily.reduce((best, candidate) =>
+    getPeakHuntScore(candidate) > getPeakHuntScore(best) ? candidate : best,
+    daily[0]
+  );
+  const bestDayScore = getPeakHuntScore(bestDay);
 
-  // Peak hourly deer-movement score for the best day, e.g. "93% chance at 5 PM".
+  // Prefer the exact peak hour for the banner, but fall back to the daily
+  // summary when it is stronger than every hourly sample.
   const bestDayPeak = (() => {
-    if (!bestDay.hourly || bestDay.hourly.length === 0) return null;
+    if (!bestDay.hourly || bestDay.hourly.length === 0) {
+      return { score: bestDay.huntScore, label: '', isHourly: false };
+    }
     let peak = bestDay.hourly[0];
     for (const h of bestDay.hourly) {
       if (h.huntScore > peak.huntScore) peak = h;
     }
-    return {
-      score: peak.huntScore,
-      label: getHour12Label(new Date(peak.timestamp).getHours()).replace(':00 ', ' '),
-    };
+    if (peak.huntScore >= bestDay.huntScore) {
+      return {
+        score: peak.huntScore,
+        label: getHour12Label(new Date(peak.timestamp).getHours()).replace(':00 ', ' '),
+        isHourly: true,
+      };
+    }
+    return { score: bestDay.huntScore, label: '', isHourly: false };
   })();
 
   const renderWeatherIcon = (iconName: string) => {
@@ -403,8 +414,13 @@ const getScoreBadgeColor = (score: number) => {
               <Award className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 text-slate-950" />
             </div>
             <div className="min-w-0">
-              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
-                Best Day
+              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
+                <span>Best Day</span>
+                {isPrimeDay(bestDayScore) && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-600 dark:text-amber-300 border border-amber-500/35">
+                    <Sparkles className="w-2.5 h-2.5" /> Prime
+                  </span>
+                )}
               </div>
               <div className="flex items-baseline gap-2 flex-wrap min-w-0">
                 <span className={`text-xl sm:text-2xl font-black leading-tight ${isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
@@ -415,9 +431,9 @@ const getScoreBadgeColor = (score: number) => {
                 </span>
               </div>
               <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {bestDayPeak
+                {bestDayPeak.isHourly
                   ? `Peak movement window: ${bestDayPeak.score}/100 at ${bestDayPeak.label}`
-                  : `Movement score: ${bestDay.huntScore}/100`}
+                  : `Overall movement score: ${bestDayPeak.score}/100`}
               </div>
             </div>
           </div>
@@ -510,7 +526,7 @@ const getScoreBadgeColor = (score: number) => {
           const peakHour = day.hourly && day.hourly.length > 0
             ? day.hourly.reduce((peak, hour) => hour.huntScore > peak.huntScore ? hour : peak, day.hourly[0])
             : null;
-          const primeScore = Math.max(day.huntScore, peakHour?.huntScore ?? day.huntScore);
+          const primeScore = getPeakHuntScore(day);
           const isPrime = isPrimeDay(primeScore);
           const isPrimeExplainerOpen = expandedPrimeDate === day.date;
           const primeReasons = day.factors

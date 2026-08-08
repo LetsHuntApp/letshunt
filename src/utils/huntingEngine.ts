@@ -120,6 +120,16 @@ export function isPrimeDay(score: number): boolean {
 }
 
 /**
+ * Returns the strongest movement opportunity available in a day, considering
+ * both the daily summary and every hourly score. Best Day and Prime badges use
+ * this same value so those labels cannot point at different days.
+ */
+export function getPeakHuntScore(day: Pick<DailyForecast, 'huntScore' | 'hourly'>): number {
+  if (!day.hourly || day.hourly.length === 0) return day.huntScore;
+  return Math.max(day.huntScore, ...day.hourly.map((hour) => hour.huntScore));
+}
+
+/**
  * True when a specific hour represents a break in the rain / post-storm
  * clearing. This is used by the display-side condition explanation to show
  * "Rain Just Stopped" — so it must only fire for hours that are actually

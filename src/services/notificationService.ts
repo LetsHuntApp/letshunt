@@ -1,5 +1,5 @@
 import { DailyForecast, UnitSystem } from '../types';
-import { isPrimeDay } from '../utils/huntingEngine';
+import { getPeakHuntScore, isPrimeDay } from '../utils/huntingEngine';
 
 export type NotificationEventType =
   | 'cold_front'
@@ -192,9 +192,7 @@ export function detectWeatherAlerts(
     const dayStart = new Date(day.date + 'T00:00:00').getTime();
     if (dayStart + 24 * HOUR_MS < now) continue; // day already over
 
-    const peakHuntScore = day.hourly && day.hourly.length > 0
-      ? Math.max(day.huntScore, ...day.hourly.map((hour) => hour.huntScore))
-      : day.huntScore;
+    const peakHuntScore = getPeakHuntScore(day);
 
     if (prefs.coldFront && day.tempDrop24h >= tempDropThreshold) {
       events.push({
