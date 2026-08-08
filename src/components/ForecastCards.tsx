@@ -637,7 +637,7 @@ const getScoreBadgeColor = (score: number) => {
                 </div>
 
                 {/* Right side: keep Prime -> View forecast -> Score in one compact row. */}
-                <div className="flex w-full max-w-full flex-nowrap items-center justify-start gap-1.5 overflow-x-auto scrollbar-none sm:w-auto sm:justify-end sm:gap-2.5 shrink-0 ml-auto">
+                <div className="flex w-full max-w-full flex-nowrap items-center justify-end gap-1.5 overflow-x-auto scrollbar-none sm:w-auto sm:justify-end sm:gap-2.5 shrink-0 ml-auto">
                   {/* Badges container stays on one line so Prime never pushes the action or score down. */}
                   <div className="flex flex-nowrap items-center justify-start gap-1.5 shrink-0">
                     {day.solunar?.moonPhaseName === 'Full Moon' && (
