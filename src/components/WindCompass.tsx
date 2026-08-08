@@ -99,7 +99,9 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
   // Handle Drag-to-Pan state
   const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchGestureRef = useRef<{ startX: number; startY: number; axis: 'undecided' | 'vertical' | 'horizontal' } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
   // Dimensions of map container (measured or fallback)
@@ -136,12 +138,13 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
   // Slippy Map drag handlers
   const handleDragStart = (clientX: number, clientY: number) => {
+    isDraggingRef.current = true;
     setIsDragging(true);
     dragStartRef.current = { x: clientX, y: clientY };
   };
 
   const handleDragMove = (clientX: number, clientY: number) => {
-    if (!isDragging) return;
+    if (!isDraggingRef.current) return;
     const dx = clientX - dragStartRef.current.x;
     const dy = clientY - dragStartRef.current.y;
     dragStartRef.current = { x: clientX, y: clientY };
@@ -162,6 +165,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
   };
 
   const handleDragEnd = () => {
+    isDraggingRef.current = false;
     setIsDragging(false);
   };
 
@@ -175,15 +179,44 @@ export const WindCompass: React.FC<WindCompassProps> = ({
     handleDragMove(e.clientX, e.clientY);
   };
 
-  // Touch events
+  // Touch events: leave vertical gestures to the page so scrolling over the
+  // little map never pans it. A horizontal gesture becomes an intentional map
+  // drag only after it clears a small movement threshold.
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
-    handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    handleDragEnd();
+    touchGestureRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      axis: 'undecided',
+    };
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    if (e.touches.length !== 1 || !touchGestureRef.current) return;
+
+    const touch = e.touches[0];
+    const gesture = touchGestureRef.current;
+    const dx = touch.clientX - gesture.startX;
+    const dy = touch.clientY - gesture.startY;
+
+    if (gesture.axis === 'undecided') {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return;
+      gesture.axis = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+    }
+
+    if (gesture.axis !== 'horizontal') return;
+
+    e.preventDefault();
+    if (!isDraggingRef.current) {
+      handleDragStart(gesture.startX, gesture.startY);
+    }
+    handleDragMove(touch.clientX, touch.clientY);
+  };
+
+  const handleTouchEnd = () => {
+    touchGestureRef.current = null;
+    handleDragEnd();
   };
 
   // Zoom handlers
@@ -367,8 +400,9 @@ export const WindCompass: React.FC<WindCompassProps> = ({
             onMouseLeave={handleDragEnd}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            onTouchEnd={handleDragEnd}
-            className={`relative w-full h-[320px] overflow-hidden select-none touch-none ${
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            className={`relative w-full h-[320px] overflow-hidden select-none touch-pan-y ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
           >
