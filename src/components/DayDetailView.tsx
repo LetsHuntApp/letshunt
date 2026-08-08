@@ -375,7 +375,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {/* Keep the status/rut badges on one row; Best Hunt is the only second row. */}
               <div className="flex flex-nowrap items-center justify-start gap-1.5 w-full overflow-x-auto scrollbar-none">
                 <span
-                  className={`px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider border flex items-center gap-1 ${
+                  className={`px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider border flex items-center gap-1 whitespace-nowrap ${
                     isExcellentDay
                       ? 'bg-emerald-800 text-white border-emerald-600'
                       : isGoodDay
@@ -391,7 +391,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsRutModalOpen(true)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-xs sm:text-[13px] font-black uppercase tracking-wider border-2 cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${rutInfo.badgeStyle}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl text-xs sm:text-[13px] font-black uppercase tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${rutInfo.badgeStyle}`}
                   title="Click for Rut Phase Breakdown & Hunter Tips"
                 >
                   {rutInfo.phaseId === 'peak_rut' && (
@@ -404,7 +404,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 {!isToday && onResetToToday && (
                   <button
                     onClick={onResetToToday}
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs border ring-2 cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs border ring-2 whitespace-nowrap cursor-pointer ${
                       theme === 'hunting'
                         ? 'bg-[#c85a17] hover:bg-[#b34e12] active:bg-[#a34610] text-white border-[#e08a5a] ring-[#c85a17]/20'
                         : (theme === 'olive' || theme === 'hunting')
@@ -421,7 +421,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
               {/* Centered Best Hunt Time Badge */}
               <div className="flex items-center justify-center w-full">
-                <span className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider bg-emerald-500/15 border border-emerald-500/35 text-emerald-600 dark:text-emerald-400 shadow-xs">
+                <span className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider whitespace-nowrap bg-emerald-500/15 border border-emerald-500/35 text-emerald-600 dark:text-emerald-400 shadow-xs">
                   <Crosshair className="w-3.5 h-3.5" /> Best Hunt: {getBestHuntTime(day)}
                 </span>
               </div>
@@ -437,7 +437,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowWeatherExplanation((prev) => !prev)}
-                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer shadow-sm border active:scale-95 ${
+                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
                     showWeatherExplanation
                       ? isDark
                         ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
