@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className={`sticky top-0 z-50 px-3 sm:px-6 py-1.5 transition-colors duration-200 border-b ${
+      className={`sticky top-0 z-50 px-3 sm:px-6 lg:px-8 py-1.5 transition-colors duration-200 border-b ${
         isDark
           ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800/80 shadow-lg text-slate-100'
           : theme === 'hunting'
@@ -257,7 +257,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* Quick Search Box */}
-            <div className="relative flex-1 max-w-[140px] sm:max-w-[220px]" ref={searchContainerRef}>
+            <div className="relative flex-1 max-w-[140px] sm:max-w-[220px] lg:max-w-[280px]" ref={searchContainerRef}>
               <div
                 className={`flex items-center border rounded-xl px-2 py-1 sm:py-1.5 transition-all ${
                   isDark
@@ -384,8 +384,19 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right: Navigation Tabs */}
-          <div className="hidden md:flex items-center gap-1 flex-shrink-0 min-w-0">
+          {/* Desktop separator between left controls and nav tabs */}
+          <div className="hidden sm:block w-px self-stretch my-1.5 flex-shrink-0" style={{
+            backgroundColor: isDark
+              ? 'rgba(148,163,184,0.15)'
+              : theme === 'hunting'
+              ? 'rgba(42,27,14,0.1)'
+              : theme === 'olive'
+              ? 'rgba(30,46,27,0.1)'
+              : 'rgba(148,163,184,0.2)',
+          }} />
+
+          {/* Right: Navigation Tabs (visible from sm / 640px+ desktop) */}
+          <div className="hidden sm:flex items-center gap-1 flex-shrink-0 min-w-0">
             <nav className={`flex items-center gap-1 p-0.5 rounded-2xl border flex-shrink-0 ${
               isDark
                 ? 'bg-slate-900/[var(--card-opacity)] border-slate-800'
@@ -437,7 +448,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-amber-600 hover:bg-amber-50/50'
                 }`}
               >
-                <ScrollText className="w-3.5 h-3.5 text-amber-500" />
+                <ScrollText className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Logs</span>
               </button>
 
@@ -453,7 +464,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-sky-600 hover:bg-sky-50/50'
                 }`}
               >
-                <Camera className="w-3.5 h-3.5 text-sky-400" />
+                <Camera className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Trail Cams</span>
               </button>
 

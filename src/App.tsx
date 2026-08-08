@@ -597,7 +597,7 @@ export default function App() {
         className={`w-full mx-auto ${
           activeTab === 'map'
             ? 'p-0 h-[calc(100vh-64px-52px)] sm:h-[calc(100vh-64px)] overflow-hidden relative flex-1'
-            : 'flex-1 max-w-7xl px-3 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-24 space-y-4 sm:space-y-6'
+            : 'flex-1 max-w-7xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-20 sm:pb-8 space-y-4 sm:space-y-6'
         }`}
       >
         {activeTab === 'settings' ? (
@@ -848,7 +848,7 @@ export default function App() {
       {/* Footer (Hidden on Map Plotter tab for true full-screen map) */}
       {activeTab !== 'map' && (
         <footer
-          className={`border-t py-3 px-4 text-center text-xs transition-colors mt-auto backdrop-blur-sm ${
+          className={`border-t py-3 sm:py-4 px-4 sm:px-6 text-center text-xs transition-colors mt-auto backdrop-blur-sm ${
             isDark
               ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/50 text-slate-500'
               : theme === 'hunting'
