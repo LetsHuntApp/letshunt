@@ -620,10 +620,10 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
                 </div>
 
-                {/* Right side: Score badge, Prime badge, Full Moon badge, and Dropdown arrow */}
-                <div className="flex flex-wrap sm:flex-nowrap items-center justify-end gap-2 sm:gap-2.5 shrink-0 ml-auto max-w-full">
-                  {/* Badges container (Full Moon, Prime) - flex-wrap ensures no overflow off card bounds */}
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
+                {/* Right side: keep Prime -> View forecast -> Score in one compact row. */}
+                <div className="flex w-full max-w-full flex-nowrap items-center justify-start gap-1.5 overflow-x-auto scrollbar-none sm:w-auto sm:justify-end sm:gap-2.5 shrink-0 ml-auto">
+                  {/* Badges container stays on one line so Prime never pushes the action or score down. */}
+                  <div className="flex flex-nowrap items-center justify-start gap-1.5 shrink-0">
                     {day.solunar?.moonPhaseName === 'Full Moon' && (
                       <div className={`text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border whitespace-nowrap ${
                         isDark
@@ -668,7 +668,7 @@ const getScoreBadgeColor = (score: number) => {
                         e.stopPropagation();
                         onOpenDetails(day.date);
                       }}
-                      className={`group inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2 sm:px-2.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                      className={`group inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1.5 sm:px-2.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
                         isDark
                           ? 'bg-slate-950/35 hover:bg-emerald-500/15 border-slate-700/70 text-emerald-300 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-900'
                           : theme === 'hunting'
@@ -686,20 +686,20 @@ const getScoreBadgeColor = (score: number) => {
                   {/* Fixed-width Score Badge & Arrow for 100% left-to-right alignment across all cards */}
                   <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <div
-                      className={`w-[140px] sm:w-[155px] shrink-0 px-2 sm:px-2.5 py-1.5 rounded-xl border font-black shadow-xs flex items-center justify-center gap-1 sm:gap-1.5 ${getScoreBadgeColor(
+                      className={`w-[122px] sm:w-[155px] shrink-0 px-1.5 sm:px-2.5 py-1.5 rounded-xl border font-black shadow-xs flex items-center justify-center gap-1 sm:gap-1.5 ${getScoreBadgeColor(
                         cardScore
                       )}`}
                     >
                       <DeerIcon className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
                       {cardScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current text-amber-350 shrink-0" />}
-                      <span className="text-sm sm:text-base leading-none font-black">{cardScore}</span>
-                      <span className="text-[10px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
+                      <span className="text-[13px] sm:text-base leading-none font-black">{cardScore}</span>
+                      <span className="text-[9px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
                     </div>
 
                     {/* Dropdown Arrow */}
-                    <div className={`w-6 sm:w-7 h-6 sm:h-7 shrink-0 flex items-center justify-center rounded-full hover:bg-slate-500/10 transition-colors ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <div className={`w-5 sm:w-7 h-5 sm:h-7 shrink-0 flex items-center justify-center rounded-full hover:bg-slate-500/10 transition-colors ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       <ChevronDown
-                        className={`w-5 h-5 transition-transform duration-300 ease-in-out ${
+                        className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ease-in-out ${
                           isExpanded ? 'rotate-180' : 'rotate-0'
                         }`}
                       />
