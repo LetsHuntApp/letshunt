@@ -651,8 +651,7 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
 
                   {/* Quick action stays in the compact header so detailed predictions are
-                      reachable without expanding the card first. The label hides on
-                      narrow screens to preserve the score badge's breathing room. */}
+                      reachable without expanding the card first. */}
                   {onOpenDetails && (
                     <button
                       type="button"
@@ -673,7 +672,7 @@ const getScoreBadgeColor = (score: number) => {
                       }`}
                     >
                       <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-                      <span className="hidden sm:inline">Details</span>
+                      <span>View forecast</span>
                     </button>
                   )}
 
