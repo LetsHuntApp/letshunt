@@ -12,7 +12,7 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "./splash-logo-1024.png",
+      "src": "./splash-logo-1024.png?v=2",
       "type": "image/png",
       "sizes": "1024x1024",
       "purpose": "any"
