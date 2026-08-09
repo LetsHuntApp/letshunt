@@ -1131,7 +1131,7 @@ const getScoreBadgeColor = (score: number) => {
                 {extendedDays.map((day, idx) => {
                   const extendedIdx = 7 + idx + 1; // 1-indexed day count from "today"
                   const rating = getRatingFromScore(day.huntScore);
-                  const ratingColor = rating === 'Excellent'
+                  const ratingColor = rating === 'Great'
                     ? isDark ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40' : 'text-emerald-800 bg-emerald-100 border-emerald-300'
                     : rating === 'Good'
                     ? isDark ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' : 'text-emerald-700 bg-emerald-50 border-emerald-200'

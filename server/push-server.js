@@ -209,7 +209,7 @@ function detectAlerts(raw, prefs, isMetric) {
         alerts.push({
           id: `prime_day_${dateStr}`,
           title: `🎯 Prime Hunt Day ${dayName}`,
-          body: `${dateFormatted} — light wind, dry, stable pressure. Excellent conditions for deer movement.`,
+          body: `${dateFormatted} — light wind, dry, stable pressure. Great conditions for deer movement.`,
         });
       }
     }

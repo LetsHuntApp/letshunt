@@ -91,7 +91,7 @@ export function getHour12Label(hour: number): string {
  * the older 90 / 66 / 40 documented in `changes.md` (we've reconciled
  * `changes.md` separately). Every score-band branch in the app reads
  * from this constant: the verdict block in `calculateHuntScore`, the
- * `Excellent / Good / Fair / Poor` rating returned by `getRatingFromScore`,
+ * `Great / Good / Fair / Poor` rating returned by `getRatingFromScore`,
  * the score-based headline fallback in `getDetailedConditionExplanation`,
  * and the dial / card colour tables in `DayDetailView`,
  * `ForecastCards` and `DetailedPredictionView`.
@@ -102,15 +102,15 @@ export const RATING_THRESHOLDS = {
   fair: 46,
 } as const;
 
-export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'Excellent' {
-  if (score >= RATING_THRESHOLDS.excellent) return 'Excellent';
+export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'Great' {
+  if (score >= RATING_THRESHOLDS.excellent) return 'Great';
   if (score >= RATING_THRESHOLDS.good) return 'Good';
   if (score >= RATING_THRESHOLDS.fair) return 'Fair';
   return 'Poor';
 }
 
 /**
- * Prime is a stricter peak-movement signal than the Excellent rating: a day
+ * Prime is a stricter peak-movement signal than the Great rating: a day
  * earns it when its daily summary or any hourly forecast reaches 95+.
  */
 export const PRIME_DAY_THRESHOLD = 95;
@@ -763,7 +763,7 @@ export function calculateHuntScore(params: {
   let verdict = '';
 
   if (finalScore >= RATING_THRESHOLDS.excellent) {
-    rating = 'Excellent';
+    rating = 'Great';
     verdict = 'GO HUNTING! Cold front, pressure shift, or post-storm clearing creates top-tier buck movement.';
   } else if (finalScore >= RATING_THRESHOLDS.good) {
     rating = 'Good';
@@ -960,7 +960,7 @@ export function getDetailedConditionExplanation(
   // copy never contradicts the dial rating.
   if (score >= RATING_THRESHOLDS.excellent) {
     return {
-      headline: 'Excellent time to hunt - Top-Tier Conditions',
+      headline: 'Great time to hunt - Top-Tier Conditions',
       detail: 'Almost every factor lines up. A cold front, post-storm clearing, or ideal seasonal conditions are converging for a top-tier window.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };

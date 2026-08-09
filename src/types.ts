@@ -123,7 +123,7 @@ export interface DailyForecast {
   
   // Hunting forecast metrics
   huntScore: number; // 0 - 100
-  rating: 'Poor' | 'Fair' | 'Good' | 'Excellent';
+  rating: 'Poor' | 'Fair' | 'Good' | 'Great';
   verdict: string;
   
   // Breakdown
