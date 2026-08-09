@@ -395,8 +395,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             {/* Pill style badges */}
             <div className="flex flex-col items-center sm:items-start gap-1.5 w-full">
               {/* Top Row Badges */}
-              {/* Keep the status/rut badges on one row; Best Hunt is the only second row. */}
-              <div className="flex flex-nowrap items-center justify-start gap-1.5 w-full overflow-x-auto scrollbar-none">
+              {/* Wrap (never clip) when the rating pill + rut badge are too
+                  wide for the row — otherwise the rut badge gets cut off. */}
+              <div className="flex flex-wrap items-center justify-start gap-1.5 w-full">
                 <span
                   className={`px-2.5 py-0.5 sm:py-1 rounded-lg text-xs font-black uppercase tracking-wider border flex items-center gap-1 whitespace-nowrap ${
                     isExcellentDay
