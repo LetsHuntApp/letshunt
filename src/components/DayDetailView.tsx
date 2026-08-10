@@ -398,9 +398,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {/* Keep the rating and rut badges together on one centered row.
                   The compact phone sizing leaves room for both without clipping,
                   while the larger layout keeps the fuller visual treatment. */}
-              <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-1.5 w-[calc(100%+0.5rem)] -mx-1 sm:mx-0 sm:w-full overflow-visible">
+              <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-1.5 w-[calc(100%+1rem)] -mx-2 sm:mx-0 sm:w-full overflow-visible">
                 <span
-                  className={`shrink-0 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[9px] sm:text-sm font-black uppercase tracking-tight sm:tracking-wider border flex items-center gap-0.5 sm:gap-1 whitespace-nowrap ${
+                  className={`shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
                     isExcellentDay
                       ? 'bg-emerald-800 text-white border-emerald-600'
                       : isGoodDay
@@ -410,21 +410,21 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                       : 'bg-rose-500 text-white border-rose-400'
                   }`}
                 >
-                  {isExcellentDay && <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current text-amber-300" />}
+                  {isExcellentDay && <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current text-amber-300" />}
                   <span>{currentRating} Hunt Forecast</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsRutModalOpen(true)}
-                  className={`inline-flex shrink-0 items-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-0.5 sm:py-1.5 rounded-xl text-[9px] sm:text-sm font-black uppercase tracking-tight sm:tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${rutInfo.badgeStyle}`}
+                  className={`inline-flex shrink-0 items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 rounded-xl text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${rutInfo.badgeStyle}`}
                   title="Click for Rut Phase Breakdown & Hunter Tips"
                 >
                   {rutInfo.phaseId === 'peak_rut' && (
                     <span className="w-2 h-2 rounded-full bg-white/90 animate-pulse motion-reduce:animate-none flex-shrink-0" />
                   )}
-                  <RutPhaseIcon iconName={rutInfo.iconName} className="w-3.5 h-3.5 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <RutPhaseIcon iconName={rutInfo.iconName} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                   <span>{rutInfo.name}</span>
-                  <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-80 shrink-0" />
+                  <Info className="w-4 h-4 sm:w-5 sm:h-5 opacity-80 shrink-0" />
                 </button>
               </div>
 
