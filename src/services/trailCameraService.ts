@@ -117,7 +117,9 @@ export function getMoonPhase(date: Date): { phase: number; illumination: number;
 }
 
 // ---- Thumbnail Generation ----
-function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
+// Returns a JPEG data-URL directly (avoids the toBlob → FileReader round-trip
+// that the old generateThumbnail + blobToDataURL pipeline required).
+function generateThumbnailDataURL(file: File, maxWidth = 300): Promise<string | null> {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -140,9 +142,7 @@ function generateThumbnail(file: File, maxWidth = 300): Promise<Blob | null> {
         const ctx = canvas.getContext('2d');
         if (!ctx) { resolve(null); return; }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          resolve(blob || null);
-        }, 'image/jpeg', 0.7);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
       } catch {
         resolve(null);
       }
@@ -818,7 +818,7 @@ export async function matchWeatherForPhoto(photo: TrailCameraPhoto): Promise<His
 export async function importPhotos(files: FileList | File[], onProgress?: (completed: number, total: number) => void): Promise<TrailCameraPhoto[]> {
   const fileArray = Array.from(files);
   const imported: TrailCameraPhoto[] = [];
-  let successCount = 0;
+  let completedCount = 0;
 
   // Pre-create a single Tesseract worker to reuse across all photos.
   // The default CDN (jsdelivr @v7.0.0) loads correctly; explicit
@@ -838,60 +838,109 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     );
   }
 
-  for (let i = 0; i < fileArray.length; i++) {
-    const file = fileArray[i];
-    const id = `cam_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
-
-    try {
-      const thumbnailBlob = await generateThumbnail(file, 300);
-      const thumbnailDataUrl = thumbnailBlob ? await blobToDataURL(thumbnailBlob) : undefined;
-
-      const fileBlob = new Blob([file], { type: file.type });
-
-      // Date extraction: ONLY OCR reads the timestamp bar (or filename pattern).
-      // We NEVER use file.lastModified as a fallback — it represents the file's
-      // copy/download time, not the capture time.
-      let dateTime: string | undefined = validateFilenameDate(parseDateFromFilename(file.name));
-      let rawOcrText: string | undefined;
-      let timeDefaulted: boolean | undefined;
-      if (!dateTime && ocrWorker) {
-        console.warn(`[OCR] Attempting OCR for "${file.name}"...`);
-        const ocrResult = await extractDateFromImageOCR(file, ocrWorker);
-        dateTime = ocrResult.dateTime;
-        timeDefaulted = ocrResult.timeDefaulted;
-        // Only store raw OCR text when OCR fails (keep IndexedDB lean).
-        // Cap at 8 entries / 1000 chars to avoid storing huge diagnostic strings.
-        rawOcrText = dateTime ? undefined : (ocrResult.rawTexts.length > 0 ? ocrResult.rawTexts.slice(0, 8).join(' | ').slice(0, 1000) : undefined);
-        console.warn(`[OCR] Result for "${file.name}": ${dateTime || 'FAILED — no date set'}${timeDefaulted ? ' (time defaulted to 12:00 PM)' : ''} (${ocrResult.rawTexts.length} attempts)`);
-      } else if (!ocrWorker) {
-        console.warn(`[OCR] No worker available for "${file.name}" — skipping OCR`);
-      }
-
-      const photo: TrailCameraPhoto = {
-        id,
-        fileName: file.name,
-        fileSize: file.size,
-        importedAt: Date.now(),
-        dateTime,
-        timeDefaulted: dateTime ? timeDefaulted : undefined,
-        isFavorite: false,
-        rawOcrText,
-      };
-
-      console.warn(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} timeDefaulted=${timeDefaulted || false} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
-
-      await putInStore(PHOTOS_STORE, photo);
-      await putInStore(FULL_IMAGES_STORE, { id, blob: fileBlob, thumbnailUrl: thumbnailDataUrl || '' });
-      imported.push(photo);
-      successCount++;
-    } catch (err) {
-      console.warn(`Skipping file "${file.name}":`, err);
-    }
-
-    onProgress?.(i + 1, fileArray.length);
+  // Open a single DB connection for the entire import batch.
+  // Reusing one connection avoids the per-photo overhead of opening a new
+  // connection + transaction pair for every IndexedDB write.
+  let db: IDBDatabase | undefined;
+  try {
+    db = await openDB();
+  } catch (dbErr) {
+    console.error('[import] Failed to open IndexedDB:', dbErr);
   }
 
-  // Clean up the shared OCR worker
+  // ---- Process photos with a concurrency pool ----
+  // Thumbnail generation (canvas work) runs in parallel with OCR for each
+  // photo, and multiple photos are processed concurrently so that thumbnail
+  // canvas work for photo N+1 overlaps with OCR on photo N.
+  // The Tesseract worker is single-threaded so OCR calls are internally
+  // serialized — the pool simply ensures non-OCR work fills the gaps.
+  const CONCURRENCY = 3;
+  let nextIndex = 0;
+
+  const processOne = async (): Promise<void> => {
+    while (nextIndex < fileArray.length) {
+      const i = nextIndex++;
+      const file = fileArray[i];
+      const id = `cam_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
+
+      try {
+        // Run thumbnail generation and OCR concurrently — they are
+        // completely independent (thumbnail uses canvas, OCR uses the
+        // Tesseract worker).
+        const [thumbnailDataUrl, ocrResult] = await Promise.all([
+          generateThumbnailDataURL(file, 300),
+          (async () => {
+            // Date extraction: ONLY OCR reads the timestamp bar (or filename pattern).
+            // We NEVER use file.lastModified as a fallback — it represents the file's
+            // copy/download time, not the capture time.
+            let dateTime: string | undefined = validateFilenameDate(parseDateFromFilename(file.name));
+            if (!dateTime && ocrWorker) {
+              console.warn(`[OCR] Attempting OCR for "${file.name}"...`);
+              const result = await extractDateFromImageOCR(file, ocrWorker);
+              console.warn(`[OCR] Result for "${file.name}": ${result.dateTime || 'FAILED — no date set'}${result.timeDefaulted ? ' (time defaulted to 12:00 PM)' : ''} (${result.rawTexts.length} attempts)`);
+              return { dateTime: result.dateTime, timeDefaulted: result.timeDefaulted, rawTexts: result.rawTexts };
+            } else if (!ocrWorker) {
+              console.warn(`[OCR] No worker available for "${file.name}" — skipping OCR`);
+            }
+            return { dateTime, timeDefaulted: undefined as boolean | undefined, rawTexts: [] as string[] };
+          })(),
+        ]);
+
+        const dateTime = ocrResult.dateTime;
+        const timeDefaulted = ocrResult.timeDefaulted;
+        // Only store raw OCR text when OCR fails (keep IndexedDB lean).
+        // Cap at 8 entries / 1000 chars to avoid storing huge diagnostic strings.
+        const rawOcrText = !dateTime && ocrResult.rawTexts.length > 0
+          ? ocrResult.rawTexts.slice(0, 8).join(' | ').slice(0, 1000)
+          : undefined;
+
+        const photo: TrailCameraPhoto = {
+          id,
+          fileName: file.name,
+          fileSize: file.size,
+          importedAt: Date.now(),
+          dateTime,
+          timeDefaulted: dateTime ? timeDefaulted : undefined,
+          isFavorite: false,
+          rawOcrText,
+        };
+
+        console.warn(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} timeDefaulted=${timeDefaulted || false} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
+
+        // Write both stores in a SINGLE transaction instead of two
+        // separate putInStore calls (each of which opened its own connection).
+        // The File object IS a Blob — no need for new Blob([file]).
+        if (db) {
+          const tx = db.transaction([PHOTOS_STORE, FULL_IMAGES_STORE], 'readwrite');
+          tx.objectStore(PHOTOS_STORE).put(photo);
+          tx.objectStore(FULL_IMAGES_STORE).put({ id, blob: file, thumbnailUrl: thumbnailDataUrl || '' });
+          await new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        } else {
+          // Fallback: use the old helpers if DB connection failed
+          await putInStore(PHOTOS_STORE, photo);
+          await putInStore(FULL_IMAGES_STORE, { id, blob: file, thumbnailUrl: thumbnailDataUrl || '' });
+        }
+
+        imported.push(photo);
+      } catch (err) {
+        console.warn(`Skipping file "${file.name}":`, err);
+      }
+
+      completedCount++;
+      onProgress?.(completedCount, fileArray.length);
+    }
+  };
+
+  // Spin up CONCURRENCY workers that each pull from the shared index.
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, fileArray.length) }, () => processOne())
+  );
+
+  // Clean up
+  try { db?.close(); } catch { /* ignore */ }
   if (ocrWorker) {
     try { await ocrWorker.terminate(); } catch { /* ignore */ }
   }
@@ -899,14 +948,7 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   return imported;
 }
 
-function blobToDataURL(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
+
 
 // ---- Photo CRUD ----
 export async function getAllPhotos(): Promise<TrailCameraPhoto[]> {
