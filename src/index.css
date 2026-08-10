@@ -665,3 +665,17 @@ rect:focus {
 .hunting svg[class*="text-orange-"] {
   color: var(--hunting-highlight) !important;
 }
+
+/* Solid orange Hunting badges use a light foreground so the label never
+   disappears into the accent. Dark Hunting also gets a white foreground on
+   amber/translucent orange chips after their surfaces are re-tinted above. */
+.hunting [class~="bg-[#c85a17]"],
+.hunting [class~="bg-[#a34610]"],
+.hunting [class~="bg-[#b87333]"] {
+  color: #fff !important;
+}
+.dark.hunting [class*="bg-amber-"],
+.dark.hunting [class*="bg-[#c85a17]"],
+.dark.hunting [class*="bg-[#a34610]"] {
+  color: #fff !important;
+}
