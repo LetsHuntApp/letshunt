@@ -420,7 +420,7 @@ const getScoreBadgeColor = (score: number) => {
               ? 'bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#556b2f]/50 text-[#1e2e1b]'
               : 'bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-300 shadow-sm'
           }`}
-          title="Tap to jump to the best day"
+          title="Tap to jump to the great day"
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-amber-500 to-amber-600 shadow-md`}>
@@ -428,10 +428,10 @@ const getScoreBadgeColor = (score: number) => {
             </div>
             <div className="min-w-0">
               <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
-                <span>Best Day to Hunt</span>
+                <span>Great Day to Hunt</span>
                 {isPrimeDay(bestDayScore) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-600 dark:text-amber-300 border border-amber-500/35">
-                    <Sparkles className="w-2.5 h-2.5" /> Prime
+                    <Sparkles className="w-2.5 h-2.5" /> Great Day
                   </span>
                 )}
               </div>
@@ -650,10 +650,10 @@ const getScoreBadgeColor = (score: number) => {
                 </div>
 
                 {/* Right side: keep Prime -> See forecast -> Score in one compact row. */}
-                <div className="flex w-full max-w-full flex-nowrap items-center overflow-x-auto scrollbar-none sm:w-auto shrink-0 ml-auto">
-                  <div className="ml-auto flex flex-nowrap items-center gap-1.5 sm:gap-2.5 shrink-0">
+                <div className="flex w-full min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5 overflow-visible sm:w-auto sm:flex-nowrap sm:gap-2.5 shrink-0 ml-auto">
+                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 shrink-0 sm:flex-nowrap sm:gap-2.5">
                     {/* Badges container stays on one line so Prime never pushes the action or score down. */}
-                  <div className="flex flex-nowrap items-center justify-start gap-1.5 shrink-0">
+                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 shrink-0 sm:flex-nowrap sm:gap-1.5">
                     {day.solunar?.moonPhaseName === 'Full Moon' && (
                       <div className={`text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border whitespace-nowrap ${
                         isDark
@@ -668,10 +668,10 @@ const getScoreBadgeColor = (score: number) => {
                     {isPrime && (
                       <button
                         type="button"
-                        aria-label={`Explain why ${day.dayName} is a best day`}
+                        aria-label={`Explain why ${day.dayName} is a great day`}
                         aria-expanded={isPrimeExplainerOpen}
                         aria-controls={`prime-explainer-${day.date}`}
-                        title="Why is this a best day?"
+                        title="Why is this a great day?"
                         onClick={(e) => {
                           e.stopPropagation();
                           setExpandedPrimeDate(isPrimeExplainerOpen ? null : day.date);
@@ -679,7 +679,7 @@ const getScoreBadgeColor = (score: number) => {
                         className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
                       >
                         <Award className="w-3 h-3 fill-slate-950 shrink-0" />
-                        <span>Best Day</span>
+                        <span>Great Day</span>
                         <ChevronDown className={`w-3 h-3 transition-transform ${isPrimeExplainerOpen ? 'rotate-180' : ''}`} />
                       </button>
                     )}
@@ -698,7 +698,7 @@ const getScoreBadgeColor = (score: number) => {
                         e.stopPropagation();
                         onOpenDetails(day.date);
                       }}
-                      className={`group inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1.5 sm:px-2.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                      className={`group inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1 sm:px-2.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
                         isDark
                           ? 'bg-slate-950/35 hover:bg-emerald-500/15 border-slate-700/70 text-emerald-300 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-900'
                           : theme === 'hunting'
@@ -709,21 +709,22 @@ const getScoreBadgeColor = (score: number) => {
                       }`}
                     >
                       <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>See forecast</span>
+                      <span className="sm:hidden">Details</span>
+                      <span className="hidden sm:inline">See forecast</span>
                     </button>
                   )}
 
                   {/* Fixed-width Score Badge & Arrow for 100% left-to-right alignment across all cards */}
                   <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <div
-                      className={`w-[122px] sm:w-[155px] shrink-0 px-1.5 sm:px-2.5 py-1.5 rounded-xl border font-black shadow-xs flex items-center justify-center gap-1 sm:gap-1.5 ${getScoreBadgeColor(
+                      className={`w-[104px] sm:w-[155px] shrink-0 px-1 sm:px-2.5 py-1.5 rounded-xl border font-black shadow-xs flex items-center justify-center gap-0.5 sm:gap-1.5 ${getScoreBadgeColor(
                         cardScore
                       )}`}
                     >
-                      <DeerIcon className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
+                      <DeerIcon className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current shrink-0" />
                       {cardScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current text-amber-350 shrink-0" />}
                       <span className="text-[13px] sm:text-base leading-none font-black">{cardScore}</span>
-                      <span className="text-[9px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
+                      <span className="text-[8px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
                     </div>
 
                     {/* Dropdown Arrow */}
@@ -746,7 +747,7 @@ const getScoreBadgeColor = (score: number) => {
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.2 }}
                   role="region"
-                  aria-label={`${day.dayName} best-day explanation`}
+                  aria-label={`${day.dayName} great-day explanation`}
                   onClick={(e) => e.stopPropagation()}
                   className={`mx-3.5 sm:mx-4 mb-3 overflow-hidden rounded-xl border px-3 py-3 text-xs backdrop-blur-sm ${
                     isDark
@@ -762,9 +763,9 @@ const getScoreBadgeColor = (score: number) => {
                     <div className="flex items-start gap-2">
                       <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                       <div>
-                        <p className="font-black uppercase tracking-wider">Why this is a best-day forecast</p>
+                        <p className="font-black uppercase tracking-wider">Why this is a great-day forecast</p>
                         <p className="mt-1 leading-relaxed opacity-85">
-                          The forecast reaches {primeScore}/100{peakHour && primeScore === peakHour.huntScore ? ` at ${getHour12Label(new Date(peakHour.timestamp).getHours())}` : ''}, crossing the 95+ best-day mark.
+                          The forecast reaches {primeScore}/100{peakHour && primeScore === peakHour.huntScore ? ` at ${getHour12Label(new Date(peakHour.timestamp).getHours())}` : ''}, crossing the 95+ great-day mark.
                         </p>
                       </div>
                     </div>
@@ -794,7 +795,7 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
 
                   <p className="mt-2.5 border-t border-current/15 pt-2.5 text-[10px] leading-relaxed opacity-70">
-                    Prime means unusually favorable predicted movement conditions—not a guarantee of deer activity. Always verify wind direction, access, and local conditions.
+                    A Great Day means unusually favorable predicted movement conditions—not a guarantee of deer activity. Always verify wind direction, access, and local conditions.
                   </p>
                 </motion.div>
               )}

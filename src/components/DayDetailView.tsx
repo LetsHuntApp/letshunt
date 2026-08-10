@@ -209,6 +209,22 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? 'text-[#466126]'
     : 'text-emerald-800';
 
+  const ratingBadgeClasses = theme === 'hunting'
+    ? isExcellentDay
+      ? 'bg-[#1a6b3c] text-white border-[#2f7d4c]'
+      : isGoodDay
+      ? 'bg-[#4a8c5e] text-white border-[#74ad82]'
+      : isModerateDay
+      ? 'bg-[#c85a17] text-white border-[#e08a5a]'
+      : 'bg-[#8b3a3a] text-white border-[#b56b6b]'
+    : isExcellentDay
+    ? 'bg-emerald-800 text-white border-emerald-600'
+    : isGoodDay
+    ? 'bg-emerald-500 text-slate-950 border-emerald-300'
+    : isModerateDay
+    ? 'bg-amber-500 text-slate-950 border-amber-300'
+    : 'bg-rose-500 text-white border-rose-400';
+
   return (
     <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn">
       {/* Hero Overview Header Card */}
@@ -244,7 +260,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               <div className={`relative flex items-center justify-center shrink-0 transition-all ${
                 theme === 'hunting'
                   ? isDark
-                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 border-emerald-600/60 shadow-xl ring-4 ring-emerald-500/25'
+                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#24170f]/[var(--card-opacity)] border-2 border-[#9a5a2c]/70 shadow-xl ring-4 ring-[#c85a17]/35'
                     : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#eae1cf] border-2 border-[#c85a17] shadow-xl ring-4 ring-[#c85a17]/25'
                   : theme === 'olive'
                   ? isDark
@@ -260,7 +276,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     cy="50"
                     r="40"
                     fill="transparent"
-                    stroke={isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0'}
+                    stroke={isDark ? (theme === 'hunting' ? '#4a3320' : '#1e293b') : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0'}
                     strokeWidth="8"
                   />
                   {/* Colored Indicator */}
@@ -401,13 +417,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-1.5 w-[calc(100%+1rem)] -mx-2 sm:mx-0 sm:w-full overflow-visible">
                 <span
                   className={`shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
-                    isExcellentDay
-                      ? 'bg-emerald-800 text-white border-emerald-600'
-                      : isGoodDay
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-300'
-                      : isModerateDay
-                      ? 'bg-amber-500 text-slate-950 border-amber-300'
-                      : 'bg-rose-500 text-white border-rose-400'
+                    ratingBadgeClasses
                   }`}
                 >
                   {isExcellentDay && <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current text-amber-300" />}

@@ -150,6 +150,21 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
 
   const colors = getScoreColorClasses(activeScore);
   const chartAccent = isDark && theme === 'hunting' ? '#c77942' : '#10b981';
+  const ratingBadgeClasses = theme === 'hunting'
+    ? isExcellentDay
+      ? 'bg-[#1a6b3c] text-white ring-2 ring-[#2f7d4c]/40'
+      : isGoodDay
+      ? 'bg-[#4a8c5e] text-white ring-2 ring-[#74ad82]/35'
+      : isModerateDay
+      ? 'bg-[#c85a17] text-white ring-2 ring-[#e08a5a]/35'
+      : 'bg-[#8b3a3a] text-white ring-2 ring-[#b56b6b]/35'
+    : isExcellentDay
+    ? 'bg-emerald-800 text-white ring-2 ring-emerald-800/25'
+    : isGoodDay
+    ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-500/20'
+    : isModerateDay
+    ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-500/20'
+    : 'bg-rose-500 text-white ring-2 ring-rose-500/20';
   const rutInfo = getRutPhase(day.date, location);
 
   // Setup 24-hour Hunt Score Chart parameters
@@ -248,7 +263,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 cy="50"
                 r="40"
                 fill="transparent"
-                stroke={isDark ? '#1e293b' : '#e2e8f0'}
+                stroke={isDark ? (theme === 'hunting' ? '#4a3320' : '#1e293b') : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0'}
                 strokeWidth="8"
               />
               <circle
@@ -299,13 +314,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 Today's Hunting Plan
               </span>
               <div className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs transition-all flex items-center gap-1 ${
-                isExcellentDay
-                  ? 'bg-emerald-800 text-white ring-2 ring-emerald-800/25'
-                  : isGoodDay
-                  ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-500/20'
-                  : isModerateDay
-                  ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-500/20'
-                  : 'bg-rose-500 text-white ring-2 ring-rose-500/20'
+                ratingBadgeClasses
               }`}>
                 {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-300" />}
                 <span>{getRatingFromScore(activeScore)} {selectedHour !== undefined ? `at ${getHour12Label(selectedHour)}` : 'Day'}</span>
