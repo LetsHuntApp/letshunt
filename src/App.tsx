@@ -521,7 +521,7 @@ export default function App() {
       } ${
         themeMode === 'dark'
           ? themeVariant === 'hunting'
-            ? 'bg-[#221610] text-[#f5e9d6] selection:bg-[#c85a17] selection:text-white'
+            ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#817b58] selection:text-white'
             : themeVariant === 'olive'
             ? 'bg-[#1c2614] text-[#dde6cb] selection:bg-[#556b2f] selection:text-white'
             : 'bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950'
@@ -885,7 +885,7 @@ export default function App() {
         className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-colors duration-200 ${
           isDark
             ? themeVariant === 'hunting'
-              ? 'bg-[#221610] border-[#4a3320] text-[#f5e9d6]'
+              ? 'bg-[#201c17] border-[#5b4c3a] text-[#e8dfd2]'
               : themeVariant === 'olive'
               ? 'bg-[#1c2614] border-[#2c3d1f] text-[#dde6cb]'
               : 'bg-slate-950 border-slate-800/60 text-slate-100'

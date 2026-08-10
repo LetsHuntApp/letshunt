@@ -387,19 +387,24 @@ rect:focus {
   --hunting-border: #d4c4a8;
   --hunting-highlight: #d9631e;
   --hunting-card: #eae1cf;
+
+  /* Oswald gives the Hunting variant a compact, field-guide / backwoods
+     silhouette without changing typography in Standard or Olive. */
+  font-family: 'Oswald', 'Roboto Condensed', Arial, sans-serif !important;
 }
 
-/* Backwoods Rustic Outdoor Serif Typography for Hunting Theme */
+/* Strong condensed outdoor display face for Hunting headings and branded
+   labels. Body copy inherits Oswald above, while these weights keep the
+   hierarchy bold and unmistakably hunter-oriented. */
 .hunting h1,
 .hunting h2,
 .hunting h3,
 .hunting h4,
-.hunting .font-serif-hunting {
-  font-family: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif !important;
-}
-
+.hunting .font-serif-hunting,
 .hunting .font-brand-hunting {
-  /* Reserved for the branded hunt-mark font — see the --hunting-* tokens. */
+  font-family: 'Oswald', 'Roboto Condensed', Arial, sans-serif !important;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 /* ===== OLIVE × DARK MODE — dim moss-green cards =====
@@ -451,7 +456,7 @@ rect:focus {
 .dark.hunting [class*="bg-[#ede5d5]"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-[#e0d6c0]"]:not([class*="hover:"]),
 .dark.hunting [class*="bg-[#e8e4d5]"]:not([class*="hover:"]) {
-  background-color: rgba(43, 28, 17, var(--card-opacity, 0.92)) !important;
+  background-color: rgba(45, 38, 30, var(--card-opacity, 0.92)) !important;
 }
 
 /* Extra card-opacity fallbacks for the olive/hunting chrome colors used
@@ -491,7 +496,7 @@ rect:focus {
 }
 .dark.hunting [class*="bg-slate-900/[var(--card-opacity)]"][class*="hover:bg-slate-900/"],
 .dark.hunting [class*="bg-slate-950/[var(--card-opacity)]"][class*="hover:bg-slate-950/"] {
-  background-color: rgb(43 28 17 / var(--card-opacity, 0.92)) !important;
+  background-color: rgb(45 38 30 / var(--card-opacity, 0.92)) !important;
 }
 
 /* Hover-state overrides for the dark variant palettes. The
@@ -506,7 +511,7 @@ rect:focus {
 }
 .dark.hunting [class*="hover:bg-slate-900/"]:hover,
 .dark.hunting [class*="hover:bg-slate-950/"]:hover {
-  background-color: rgb(55 36 22 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
+  background-color: rgb(63 51 39 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
 }
 
 /* Gradient-stop re-tints — the hero cards emit dark gradients with
@@ -523,8 +528,8 @@ rect:focus {
 }
 .dark.hunting [class*="via-slate-900"],
 .dark.hunting [class*="to-slate-950"] {
-  --tw-gradient-via: rgb(43 28 17 / var(--card-opacity, 0.92)) !important;
-  --tw-gradient-to: rgb(30 19 11 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-via: rgb(45 38 30 / var(--card-opacity, 0.92)) !important;
+  --tw-gradient-to: rgb(29 25 20 / var(--card-opacity, 0.92)) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via) var(--tw-gradient-via-position, 50%), var(--tw-gradient-to) !important;
 }
 
@@ -565,11 +570,11 @@ rect:focus {
 }
 .dark.hunting [class*="bg-slate-900/[calc(var(--card-opacity)*0.5)]"],
 .dark.hunting [class*="bg-slate-950/[calc(var(--card-opacity)*0.5)]"] {
-  background-color: rgb(33 21 13 / calc(var(--card-opacity, 0.92) * 0.55)) !important;
+  background-color: rgb(35 30 24 / calc(var(--card-opacity, 0.92) * 0.55)) !important;
 }
 .dark.hunting [class*="bg-slate-900/[calc(var(--card-opacity)*0.7)]"],
 .dark.hunting [class*="bg-slate-950/[calc(var(--card-opacity)*0.7)]"] {
-  background-color: rgb(33 21 13 / calc(var(--card-opacity, 0.92) * 0.75)) !important;
+  background-color: rgb(35 30 24 / calc(var(--card-opacity, 0.92) * 0.75)) !important;
 }
 
 /* Light-mode base-state + hover-state re-tints for hover-carrying cards
@@ -595,3 +600,56 @@ rect:focus {
 .hunting:not(.dark) [class*="hover:bg-slate-100"]:hover {
   background-color: rgb(232 222 203 / calc(var(--card-opacity, 0.92) * 1.1)) !important;
 }
+
+/* ===== DARK HUNTING COLOR FINISH — walnut, khaki, and woodland green =====
+   Keep the light Hunting palette warm and rustic, but make its dark mode read
+   as quiet walnut rather than glowing orange. These selectors only apply when
+   both the Hunting variant and the global dark modifier are present. */
+.dark.hunting {
+  --hunting-bg: #201c17;
+  --hunting-text: #e8dfd2;
+  --hunting-accent: #9b9568;
+  --hunting-accent-hover: #b4ad7b;
+  --hunting-border: #5b4c3a;
+  --hunting-highlight: #b6a16d;
+  --hunting-card: #2d261e;
+  color: var(--hunting-text);
+}
+
+.dark.hunting [class*="bg-slate-800"],
+.dark.hunting [class*="bg-slate-700"] {
+  background-color: rgb(57 49 40 / var(--card-opacity, 0.92)) !important;
+}
+
+.dark.hunting [class*="border-slate-"] {
+  border-color: rgba(105, 88, 68, 0.62) !important;
+}
+
+.dark.hunting [class*="text-slate-100"] { color: #eee7dc !important; }
+.dark.hunting [class*="text-slate-200"] { color: #ded4c6 !important; }
+.dark.hunting [class*="text-slate-300"] { color: #c5b8a8 !important; }
+.dark.hunting [class*="text-slate-400"] { color: #a99988 !important; }
+.dark.hunting [class*="text-slate-500"] { color: #8a7967 !important; }
+
+/* Woodland green replaces the generic emerald accent in dark Hunting, while
+   amber indicators become muted brass instead of saturated orange. */
+.dark.hunting [class*="text-emerald-400"],
+.dark.hunting [class*="text-emerald-300"] { color: #aeb98a !important; }
+.dark.hunting [class*="bg-emerald-400"],
+.dark.hunting [class*="bg-emerald-500"],
+.dark.hunting [class*="bg-emerald-600"] { background-color: #71804d !important; }
+.dark.hunting [class*="text-amber-"] { color: #b8a875 !important; }
+.dark.hunting [class*="bg-amber-"] { background-color: #806d48 !important; }
+.dark.hunting [class*="border-amber-"] { border-color: #9b8556 !important; }
+
+/* Existing light-theme hex utilities can still be emitted by Hunting-only
+   controls in dark mode; neutralize those orange values at the theme boundary. */
+.dark.hunting [class*="bg-[#c85a17]"],
+.dark.hunting [class*="bg-[#e08a5a]"],
+.dark.hunting [class*="bg-[#a34610]"] { background-color: #817b58 !important; }
+.dark.hunting [class*="text-[#c85a17]"],
+.dark.hunting [class*="text-[#e08a5a]"],
+.dark.hunting [class*="text-[#a34610]"] { color: #b2a873 !important; }
+.dark.hunting [class*="border-[#c85a17]"],
+.dark.hunting [class*="border-[#e08a5a]"],
+.dark.hunting [class*="border-[#a34610]"] { border-color: #9b8b61 !important; }

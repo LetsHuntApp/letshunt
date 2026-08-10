@@ -84,7 +84,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   const handlePercent = (localHour / 23) * 100;
 
   const sliderTrackClass = isDark
-    ? theme === 'hunting' ? 'bg-[#3b2418] border-[#6b4228]'
+    ? theme === 'hunting' ? 'bg-[#3a332a] border-[#655745]'
     : theme === 'olive' ? 'bg-[#26351b] border-[#465b2d]'
     : 'bg-slate-800 border-slate-700'
     : theme === 'hunting' ? 'bg-[#d6b98f] border-[#a47b4e]'
@@ -93,7 +93,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
 
   const sliderTrackStyle = isDark
     ? theme === 'hunting'
-      ? { backgroundColor: '#3b2418', borderColor: '#6b4228' }
+      ? { backgroundColor: '#3a332a', borderColor: '#655745' }
       : theme === 'olive'
       ? { backgroundColor: '#26351b', borderColor: '#465b2d' }
       : { backgroundColor: '#1e293b', borderColor: '#475569' }
@@ -125,7 +125,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         style={{
           backgroundColor: isDark
             ? theme === 'hunting'
-              ? 'rgba(34, 22, 16, var(--slider-opacity, 0.98))'
+              ? 'rgba(32, 28, 23, var(--slider-opacity, 0.98))'
               : theme === 'olive'
               ? 'rgba(28, 38, 20, var(--slider-opacity, 0.98))'
               : 'rgba(2, 6, 23, var(--slider-opacity, 0.98))'
