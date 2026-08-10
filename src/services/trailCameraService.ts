@@ -495,9 +495,9 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     { hRatio: 0.18, targetH: 240, label: '18%-240' },
   ];
 
-  // Collect ALL valid results from all 3 strategies for a single strip.
-  // Previously short-circuited on first success — now all strategies run
-  // so majority consensus can override a noisy read like "01" for "11".
+  // Try the cheapest OCR strategy first and stop as soon as a valid timestamp
+  // is found. Most trail-cam timestamp bars are readable from the first pass;
+  // the inverted and binarized passes remain fallbacks for harder photos.
   const tryStrip = async (
     worker: any,
     hRatio: number,
@@ -537,7 +537,11 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
-    if (r) { console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); results.push({ ...r, label: `${label} raw` }); }
+    if (r) {
+      console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
+      results.push({ ...r, label: `${label} raw` });
+      return;
+    }
 
     // ─ Strategy B: invert (white-on-dark → black-on-white) ─
     invertCanvas(tmp, ctx);
@@ -545,7 +549,11 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
-    if (r) { console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); results.push({ ...r, label: `${label} inv` }); }
+    if (r) {
+      console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
+      results.push({ ...r, label: `${label} inv` });
+      return;
+    }
 
     // ─ Strategy C: binarize the inverted image ─
     const meanGray = computeMeanGray(ctx, canvasW, targetH);
@@ -556,7 +564,10 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
       console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
-      if (r) { console.warn(`[OCR] ✓ binarized ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`); results.push({ ...r, label: `${label} bw` }); }
+      if (r) {
+        console.warn(`[OCR] ✓ binarized ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
+        results.push({ ...r, label: `${label} bw` });
+      }
     }
   };
 
@@ -570,16 +581,21 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
     try {
       // ── Phase 1: PSM 7 (single uniform line — best for timestamp bars) ──
-      // Run ALL strips, collect ALL results, apply majority consensus.
-      // No more short-circuiting on the first successful read — that let
-      // a single noisy strip (e.g. "01" misread for "11") override the
-      // other strips that all agree on the correct date.
+      // Start with the narrowest timestamp strip and stop at the first valid
+      // read. This avoids paying for up to twelve OCR passes per photo.
       console.warn('[OCR] Setting PSM=7');
       await worker.setParameters({ tessedit_pageseg_mode: '7' });
       const psm7Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
       for (let si = 0; si < strips.length; si++) {
         const { hRatio, targetH, label } = strips[si];
         await tryStrip(worker, hRatio, targetH, `PSM7 ${label}`, psm7Results);
+        if (psm7Results.length > 0) {
+          const consensus = resolveConsensus(psm7Results);
+          if (consensus) {
+            console.warn(`[OCR] PSM7 result: ${consensus.dateTime}${consensus.timeDefaulted ? ' (time defaulted)' : ''}`);
+            return { dateTime: consensus.dateTime, timeDefaulted: consensus.timeDefaulted, rawTexts };
+          }
+        }
         await new Promise((r) => setTimeout(r, 0));
       }
 
@@ -597,6 +613,13 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       for (let si = 0; si < strips.length; si++) {
         const { hRatio, targetH, label } = strips[si];
         await tryStrip(worker, hRatio, targetH, `PSM3 ${label}`, psm3Results);
+        if (psm3Results.length > 0) {
+          const consensus3 = resolveConsensus(psm3Results);
+          if (consensus3) {
+            console.warn(`[OCR] PSM3 result: ${consensus3.dateTime}${consensus3.timeDefaulted ? ' (time defaulted)' : ''}`);
+            return { dateTime: consensus3.dateTime, timeDefaulted: consensus3.timeDefaulted, rawTexts };
+          }
+        }
         await new Promise((r) => setTimeout(r, 0));
       }
 
@@ -848,13 +871,12 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     console.error('[import] Failed to open IndexedDB:', dbErr);
   }
 
-  // ---- Process photos with a concurrency pool ----
-  // Thumbnail generation (canvas work) runs in parallel with OCR for each
-  // photo, and multiple photos are processed concurrently so that thumbnail
-  // canvas work for photo N+1 overlaps with OCR on photo N.
-  // The Tesseract worker is single-threaded so OCR calls are internally
-  // serialized — the pool simply ensures non-OCR work fills the gaps.
-  const CONCURRENCY = 3;
+  // ---- Process photos one at a time ----
+  // Tesseract uses one worker, so running multiple photo jobs at once only
+  // makes completion order noisy and causes React to batch progress updates.
+  // A single job keeps the progress bar honest: every completed photo emits
+  // exactly one progress update while the OCR worker stays fully utilized.
+  const CONCURRENCY = 1;
   let nextIndex = 0;
 
   const processOne = async (): Promise<void> => {
@@ -934,7 +956,8 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     }
   };
 
-  // Spin up CONCURRENCY workers that each pull from the shared index.
+  // Run one worker for the import batch. The shared-index loop remains here
+  // so the progress callback and cleanup behavior stay unchanged.
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCY, fileArray.length) }, () => processOne())
   );
