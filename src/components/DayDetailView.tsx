@@ -145,7 +145,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   }, [selectedHour, day, units, pressureUnit, location]);
 
   const scoreStrokeColor = isDark
-    ? (currentScore >= RATING_THRESHOLDS.excellent ? '#34d399' : currentScore >= RATING_THRESHOLDS.good ? '#10b981' : currentScore >= RATING_THRESHOLDS.fair ? '#d97706' : '#f43f5e')
+    ? (currentScore >= RATING_THRESHOLDS.excellent ? (theme === 'hunting' ? '#d08a4d' : '#34d399') : currentScore >= RATING_THRESHOLDS.good ? (theme === 'hunting' ? '#c77942' : '#10b981') : currentScore >= RATING_THRESHOLDS.fair ? (theme === 'hunting' ? '#c98349' : '#d97706') : '#f43f5e')
     : theme === 'hunting'
     ? (currentScore >= RATING_THRESHOLDS.excellent ? '#1a6b3c' : currentScore >= RATING_THRESHOLDS.good ? '#4a8c5e' : currentScore >= RATING_THRESHOLDS.fair ? '#c85a17' : '#8b3a3a')
     : (theme === 'olive' || theme === 'hunting')
@@ -466,7 +466,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   title="Click to view weather factors driving this score"
                 >
                   <Info className="w-3.5 h-3.5" />
-                  <span>{showWeatherExplanation ? 'Hide weather analysis ▲' : 'What drives this score? ▼'}</span>
+                  <span>{showWeatherExplanation ? 'Hide the details ▲' : 'Why is this a good (or bad) hunt? ▼'}</span>
                 </button>
               </div>
 
@@ -479,7 +479,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {showWeatherExplanation && (
                 <div className={`w-full p-2.5 rounded-xl border ${weatherExplanationSurface} backdrop-blur-sm text-left mt-1 shadow-sm space-y-0.5`}>
                   <div className={`text-[10px] font-black uppercase tracking-wider ${weatherExplanationHeading}`}>
-                    Weather Factor Breakdown
+                    Why the hunt looks this way
                   </div>
                   <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-slate-100' : theme === 'hunting' ? 'text-[#3f2414]' : theme === 'olive' ? 'text-[#2e4028]' : 'text-slate-800'}`}>
                     {condExplanation.detail}
@@ -572,7 +572,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 </div>
               </div>
               <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold shrink-0">
-                Peak Dawn
+                Dawn Window
               </span>
             </div>
 
@@ -591,7 +591,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 </div>
               </div>
               <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 font-bold shrink-0">
-                Peak Dusk
+                Dusk Window
               </span>
             </div>
           </div>
@@ -631,10 +631,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             >
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Deer Movement Factor Breakdown</span>
+                  <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> What may get deer moving</span>
                 </h3>
                 <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Variables driving prediction score for {day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted})
+                  What is helping or hurting deer movement for {day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted})
                   {selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}
                 </p>
               </div>
@@ -653,7 +653,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   }`}>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span>
-                      Selected Time: {day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted})
+                      Looking at: {day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted})
                       {selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}
                     </span>
                   </div>
@@ -677,7 +677,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                                 : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}
                           >
-                            {factor.status.toUpperCase()}
+                            {factor.status === 'optimal' ? 'Best' : factor.status === 'good' ? 'Good' : factor.status === 'poor' ? 'Tough' : 'Normal'}
                           </span>
                         </div>
                         <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{factor.description}</p>
@@ -704,7 +704,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           }`}>
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
             <span className="leading-normal">
-              Wind Map Display: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted}){selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}</span>
+              Wind & Scent: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted}){selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}</span>
             </span>
           </div>
 
@@ -730,7 +730,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                 <Moon className="w-4 h-4 text-amber-500" />
-                <span>Solunar & Moon Activity</span>
+                <span>Moon & Deer Activity</span>
               </h3>
               <span className="text-xs text-amber-600 dark:text-amber-300 font-bold">{day.solunar.moonPhaseName}</span>
             </div>
@@ -741,7 +741,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               }`}
             >
               <div>
-                <span className={`block text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Moon Illumination</span>
+                <span className={`block text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Moon Brightness</span>
                 <span className={`font-black text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{day.solunar.moonIllumination}%</span>
               </div>
               <div className="text-right">
@@ -759,11 +759,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 }`}
               >
                 <div>
-                  <span className="font-bold text-emerald-700 dark:text-emerald-300 block">Major Period #1 (2 Hrs)</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300 block">Best Moon Window #1 (2 hrs)</span>
                   <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{day.solunar.major1}</span>
                 </div>
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
-                  High Feed
+                  Good time to feed
                 </span>
               </div>
 
@@ -773,11 +773,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 }`}
               >
                 <div>
-                  <span className="font-bold text-emerald-700 dark:text-emerald-300 block">Major Period #2 (2 Hrs)</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300 block">Best Moon Window #2 (2 hrs)</span>
                   <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{day.solunar.major2}</span>
                 </div>
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
-                  High Feed
+                  Good time to feed
                 </span>
               </div>
 
@@ -786,7 +786,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
                 }`}
               >
-                <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Minor Periods:</span>
+                <span className={`font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Other Moon Windows:</span>
                 <span className={`font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   {day.solunar.minor1} • {day.solunar.minor2}
                 </span>

@@ -168,7 +168,7 @@ export async function showSystemNotification(title: string, body: string, tag = 
 export async function sendTestNotification(): Promise<boolean> {
   return showSystemNotification(
     'LetsHunt Notifications Working 🔔',
-    'This is a test alert. You will be notified here when cold fronts, barometric front shifts, breaks in the rain, or prime hunting days approach your grounds.',
+    'This is a test alert. You will hear from us when cold fronts, weather changes, rain breaks, or great hunting days are headed your way.',
     'letshunt-test'
   );
 }
@@ -210,8 +210,8 @@ export function detectWeatherAlerts(
       events.push({
         id: `weather_front_${day.date}`,
         type: 'weather_front',
-        title: `🌬️ Barometric Front ${day.dayName}`,
-        body: `${day.dateFormatted} — pressure ${dropping ? 'falling ahead of rain. Deer feed hard before the storm arrives.' : 'rising post-front. Clear, stable air sparks daylight travel.'}`,
+        title: `🌬️ Weather Front ${day.dayName}`,
+        body: `${day.dateFormatted} — the barometer ${dropping ? 'is falling ahead of rain. Deer often feed hard before the storm arrives.' : 'is rising after the front. Clear, stable air can get deer moving in daylight.'}`,
         fireAt: dayStart + 5 * HOUR_MS,
         dateStr: day.date,
       });
@@ -233,7 +233,7 @@ export function detectWeatherAlerts(
         id: `prime_day_${day.date}`,
         type: 'prime_day',
         title: `🎯 Prime Hunt Day ${day.dayName}`,
-        body: `${day.dateFormatted} — peak movement score ${peakHuntScore}/100. Best windows: ${day.morningPrime} & ${day.eveningPrime}.`,
+        body: `${day.dateFormatted} — best deer movement score ${peakHuntScore}/100. Best windows: ${day.morningPrime} & ${day.eveningPrime}.`,
         fireAt: dayStart + 5 * HOUR_MS,
         dateStr: day.date,
       });
@@ -251,7 +251,7 @@ export function detectWeatherAlerts(
           id: `rain_break_${day.date}_${i}`,
           type: 'rain_break',
           title: `☔ Break in the Rain ${day.dayName}`,
-          body: `${day.dateFormatted} ${hour.time} — rain lets up. Deer surge out to feed and stretch. Prime setup window.`,
+          body: `${day.dateFormatted} ${hour.time} — rain lets up. Deer surge out to feed and stretch. Good time to get set up.`,
           fireAt: hour.timestamp - 30 * 60 * 1000, // 30-minute heads-up
           dateStr: day.date,
         });

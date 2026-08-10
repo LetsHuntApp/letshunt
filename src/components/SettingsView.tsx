@@ -252,9 +252,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const alertRows: { key: keyof Pick<NotificationPrefs, 'coldFront' | 'weatherFront' | 'rainBreak' | 'primeDay' | 'severeWeather'>; icon: React.ComponentType<{ className?: string }>; label: string; desc: string }[] = [
     { key: 'coldFront', icon: Snowflake, label: 'Cold Fronts', desc: 'Sharp 24h temperature drops (~9°F / 5°C)' },
-    { key: 'weatherFront', icon: Wind, label: 'Weather Fronts (Baro Shift)', desc: 'Rapid falling or rising barometric pressure' },
+    { key: 'weatherFront', icon: Wind, label: 'Weather Fronts', desc: 'The barometer changing quickly' },
     { key: 'rainBreak', icon: CloudRain, label: 'Breaks in the Rain', desc: 'Dry windows right after rain trigger feeding surges' },
-    { key: 'primeDay', icon: Zap, label: 'Prime Hunting Days', desc: 'Peak movement scores of 95+ at any forecast hour' },
+    { key: 'primeDay', icon: Zap, label: 'Best Hunting Days', desc: 'The strongest deer movement windows' },
     { key: 'severeWeather', icon: CloudLightning, label: 'Severe Weather', desc: 'Heavy rain & thunderstorm warnings' },
   ];
 
@@ -728,7 +728,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
 
             <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Get alerted when conditions move deer — cold fronts, barometric front shifts, breaks in the rain,
+              Get alerted when weather may get deer moving — cold fronts, weather changes, breaks in the rain,
               and prime hunting days. Alerts fire while LetsHunt is open, as an installed app running
               in the background, <strong>or even when the app is fully closed</strong> (via background push).
               On Android, also allow notifications for LetsHunt in your device Settings.
@@ -1058,14 +1058,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Barometric Pressure Unit Card */}
+          {/* Barometer Unit Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
           ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
           : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <Gauge className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Barometric Pressure Unit
+                Barometer Unit
               </h2>
             </div>
 
@@ -1372,7 +1372,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 }`}
               >
                 <BookOpen className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <span>Barometric & Solunar Guide</span>
+                <span>Weather & Moon Guide</span>
               </button>
 
               <button

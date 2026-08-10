@@ -587,7 +587,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
         </div>
         
         <p className={`text-[11px] mt-1.5 flex items-center justify-center gap-1 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-          Blows scent towards:
+          Your scent blows toward:
           <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-rose-500/10 text-rose-500 text-[10px] font-black border border-rose-500/15">
             <Wind className="w-3 h-3" /> {getWindDirectionText(windToDeg)}
           </span>
@@ -599,7 +599,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
         }`}>
           <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
           <p>
-            Avoid hunting downwind stands where deer bedding or oak flats sit inside the red scent cone. Pan the map or toggle directions to plan your entrance/exit trails.
+            Avoid stands downwind of bedding areas or oak flats. Pan the map to plan a quiet entrance and exit.
           </p>
         </div>
       </div>

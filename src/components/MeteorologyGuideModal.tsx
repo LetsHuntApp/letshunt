@@ -27,10 +27,10 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
             </div>
             <div>
               <h2 className={`text-base sm:text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                How LetsHunt Score Algorithm Works
+                How the Hunt Score Works
               </h2>
               <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                The 7 Core Wildlife Science Factors Driving Our Movement Score
+                The weather and wildlife clues behind the deer movement score
               </p>
             </div>
           </div>
@@ -63,35 +63,35 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-cyan-500 dark:text-cyan-400 text-sm">
               <TrendingDown className="w-4 h-4" />
-              <span>2. Temperature Trend (24h Change)</span>
+              <span>2. Temperature Change (24 hours)</span>
             </div>
             <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <strong className="text-emerald-500">Good:</strong> Rapid cooling drops of 5–10°C (9–18°F) spark massive cold-front movement.<br />
-              <strong className="text-rose-500">Bad:</strong> Rapid warming spikes after a cold spell suppress daylight travel, driving deer to nocturnal feeding.
+              <strong className="text-emerald-500">Good:</strong> A quick cool-down of 5–10°C (9–18°F) can get deer moving after a cold front.<br />
+              <strong className="text-rose-500">Bad:</strong> A quick warm-up after cold weather can keep deer bedded until after dark.
             </p>
           </div>
 
-          {/* Factor 3: Wind Speed */}
+          {/* Factor 3: Wind & Scent */}
           <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-sky-500 dark:text-sky-400 text-sm">
               <Wind className="w-4 h-4" />
-              <span>3. Wind Speed</span>
+              <span>3. Wind & Scent</span>
             </div>
             <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <strong className="text-emerald-500">Good:</strong> Light to moderate winds (8–20 km/h / 5–12.5 mph) carry steady scent streams without tree noise.<br />
-              <strong className="text-rose-500">Bad:</strong> Dead calm (&lt;5 km/h) pools human scent; strong winds (&gt;30 km/h) force deer into sheltered lee-side draws.
+              <strong className="text-emerald-500">Good:</strong> A light to moderate breeze (8–20 km/h / 5–12.5 mph) carries your scent steadily without making the woods noisy.<br />
+              <strong className="text-rose-500">Bad:</strong> Dead calm (&lt;5 km/h) lets your scent hang around; hard wind (&gt;30 km/h) pushes deer into sheltered draws.
             </p>
           </div>
 
-          {/* Factor 4: Barometric Pressure */}
+          {/* Factor 4: The Barometer */}
           <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-amber-500 dark:text-amber-400 text-sm">
               <Gauge className="w-4 h-4" />
-              <span>4. Barometric Pressure</span>
+              <span>4. The Barometer</span>
             </div>
             <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <strong className="text-emerald-500">Good:</strong> High or rising pressure (&gt;30.00 inHg) post-front brings clear atmospheric stability and peak travel.<br />
-              <strong className="text-rose-500">Bad:</strong> Low pressure (&lt;29.70 inHg) or rapidly falling pressure before severe storms depresses movement.
+              <strong className="text-emerald-500">Good:</strong> A high or rising barometer (&gt;30.00 inHg) after a front often brings clear skies and better deer movement.<br />
+              <strong className="text-rose-500">Bad:</strong> A low or quickly falling barometer (&lt;29.70 inHg) before a bad storm can shut movement down.
             </p>
           </div>
 
@@ -99,35 +99,35 @@ export const MeteorologyGuideModal: React.FC<MeteorologyGuideModalProps> = ({ is
           <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-teal-500 dark:text-teal-400 text-sm">
               <CloudRain className="w-4 h-4" />
-              <span>5. Precipitation & Rain Breaks</span>
+              <span>5. Rain & Breaks in the Rain</span>
             </div>
             <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <strong className="text-emerald-500">Good:</strong> Light drizzle or rain breaks/post-storm clearings prompt deer to leave cover to groom and feed.<br />
-              <strong className="text-rose-500">Bad:</strong> Heavy, steady downpours or severe thunderstorms force deer to remain bedded down in thick cover.
+              <strong className="text-emerald-500">Good:</strong> Light drizzle or a break after rain can get deer out of cover to feed and clean up.<br />
+              <strong className="text-rose-500">Bad:</strong> Heavy rain and thunderstorms usually keep deer bedded in thick cover.
             </p>
           </div>
 
-          {/* Factor 6: Time of Day */}
+          {/* Factor 6: Best Time of Day */}
           <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-indigo-500 dark:text-indigo-400 text-sm">
               <Clock className="w-4 h-4" />
-              <span>6. Time of Day</span>
+              <span>6. Best Time of Day</span>
             </div>
             <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <strong className="text-emerald-500">Good:</strong> First 2 hours after sunrise and last 2 hours before sunset are primary crepuscular travel windows.<br />
-              <strong className="text-rose-500">Bad:</strong> Midday hours outside active rut periods are low-activity bedding lulls.
+              <strong className="text-emerald-500">Good:</strong> The first two hours after sunrise and the last two hours before sunset are usually your best windows.<br />
+              <strong className="text-rose-500">Bad:</strong> Outside the rut, midday is often a slow stretch while deer stay bedded.
             </p>
           </div>
 
-          {/* Factor 7: Rut Phase */}
+          {/* Factor 7: Rut & Buck Movement */}
           <div className={`p-3.5 rounded-2xl border space-y-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <div className="flex items-center gap-2 font-bold text-purple-500 dark:text-purple-400 text-sm">
               <Sparkles className="w-4 h-4" />
-              <span>7. Rut Phase</span>
+              <span>7. Rut & Buck Movement</span>
             </div>
             <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              <strong className="text-emerald-500">Good:</strong> Pre-rut, seeking, chasing, and peak rut feature testosterone-driven, broad-daylight buck searching.<br />
-              <strong className="text-slate-400">Not as good:</strong> Early season before rut or post-rut feature strict bed-to-feed nocturnal or localized routines.
+              <strong className="text-emerald-500">Good:</strong> During the pre-rut and rut, bucks may cruise and chase in broad daylight.<br />
+              <strong className="text-slate-400">Not as good:</strong> Before or after the rut, bucks often stick closer to a bed-to-feed routine.
             </p>
           </div>
         </div>

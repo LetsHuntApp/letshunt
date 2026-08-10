@@ -204,7 +204,7 @@ export function calculateSolunar(dateStr: string, lat: number, lon: number, sunr
   const major2Start = moonTimes.lowerTransit ? new Date(moonTimes.lowerTransit.getTime() - 3600000) : null;
   const major2End = moonTimes.lowerTransit ? new Date(moonTimes.lowerTransit.getTime() + 3600000) : null;
 
-  // Minor periods: moonrise and moonset, each ±1h.
+  // Other moon windows: moonrise and moonset, each ±1h.
   const minor1Start = moonTimes.moonrise ? new Date(moonTimes.moonrise.getTime() - 3600000) : null;
   const minor1End = moonTimes.moonrise ? new Date(moonTimes.moonrise.getTime() + 3600000) : null;
 
@@ -338,11 +338,11 @@ export function calculateHuntScore(params: {
     if (deltaF >= 12) {
       tempScore = -20;
       tempStatus = 'poor';
-      tempDesc = `Unseasonably warm (+${roundingPositive(deltaF)}${tempUnitStr} above recent normal). High heat suppresses daylight travel.`;
+      tempDesc = `Too warm for good daylight movement (+${roundingPositive(deltaF)}${tempUnitStr} above recent normal). High heat suppresses daylight travel.`;
     } else if (deltaF >= 6) {
       tempScore = -10;
       tempStatus = 'poor';
-      tempDesc = `Warmer than normal (+${roundingPositive(deltaF)}${tempUnitStr}). Slightly limits open daylight movement.`;
+      tempDesc = `Warmer than normal (+${roundingPositive(deltaF)}${tempUnitStr}). Daylight movement may be lighter.`;
     } else if (deltaF > -6) {
       // within ±6°F of normal
       tempScore = 5;
@@ -364,11 +364,11 @@ export function calculateHuntScore(params: {
     if (maxTempCheckF >= 78) {
       tempScore = -20;
       tempStatus = 'poor';
-      tempDesc = `Unseasonably warm (${maxTempDisp}${tempUnitStr}). High heat suppresses daytime travel; deer remain bedded in shaded cover.`;
+      tempDesc = `Too warm for good daylight movement (${maxTempDisp}${tempUnitStr}). Heat keeps deer bedded down during the day; deer remain bedded in shaded cover.`;
     } else if (maxTempCheckF >= 73) {
       tempScore = -10;
       tempStatus = 'poor';
-      tempDesc = `Warm temperature (${maxTempDisp}${tempUnitStr}). Slightly limits open daylight movement.`;
+      tempDesc = `Warm temperature (${maxTempDisp}${tempUnitStr}). Daylight movement may be lighter.`;
     } else if (maxTempCheckF >= 66) {
       tempScore = 5;
       tempStatus = 'good';
@@ -377,7 +377,7 @@ export function calculateHuntScore(params: {
       // <= 65°F (18°C)
       tempScore = 15;
       tempStatus = 'optimal';
-      tempDesc = `Cool crisp temperature (${maxTempDisp}${tempUnitStr}). Ideal thermal range for active daylight movement.`;
+      tempDesc = `Cool, crisp weather (${maxTempDisp}${tempUnitStr}). The kind of weather that gets deer moving in daylight.`;
     }
   }
 
@@ -400,15 +400,15 @@ export function calculateHuntScore(params: {
   if (tempDropCheckF >= 15) {
     trendScore = 8;
     trendStatus = 'optimal';
-    trendDesc = `Major Cold Front! A sharp 24h temp drop of ${tempDropVal}${tempUnitStr} triggers massive feeding movement.`;
+    trendDesc = `Big cold front! A sharp temperature drop of ${tempDropVal}${tempUnitStr} triggers massive feeding movement.`;
   } else if (tempDropCheckF >= 9) {
     trendScore = 6;
     trendStatus = 'optimal';
-    trendDesc = `Rapid cooling trend! Temperature drop of ${tempDropVal}${tempUnitStr} (5–10°C) encourages active daylight travel.`;
+    trendDesc = `Cooling off fast! Temperature drop of ${tempDropVal}${tempUnitStr} (5–10°C) encourages active daylight travel.`;
   } else if (tempDropCheckF >= 4) {
     trendScore = 3;
     trendStatus = 'good';
-    trendDesc = `Slight cooling trend (-${tempDropVal}${tempUnitStr} drop) favors daylight movement.`;
+    trendDesc = `A little cooling favors deer movement.`;
   } else if (tempDropCheckF <= -9) {
     trendScore = -6;
     trendStatus = 'poor';
@@ -425,7 +425,7 @@ export function calculateHuntScore(params: {
 
   totalScore += trendScore;
   factors.push({
-    name: 'Temperature Trend',
+    name: 'Temperature Change',
     score: trendScore,
     maxScore: 8,
     description: trendDesc,
@@ -448,11 +448,11 @@ export function calculateHuntScore(params: {
   } else if (windKmh < 5) { // < 3 mph
     windScore = -6;
     windStatus = 'poor';
-    windDesc = `Dead calm wind (${windDisp} ${windUnitStr}). Stagnant air pools human scent around position and alerts skittish deer.`;
+    windDesc = `Dead-calm wind (${windDisp} ${windUnitStr}). Your scent can hang around you and tip off deer.`;
   } else if (windKmh > 30) { // > 19 mph
     windScore = -12;
     windStatus = 'poor';
-    windDesc = `Very strong winds (${windDisp} ${windUnitStr}). Swirling scents and noisy woods force deer into thick sheltered cover.`;
+    windDesc = `Hard wind (${windDisp} ${windUnitStr}). Swirling scent and noisy woods push deer into thick cover.`;
   } else if (windKmh >= 5 && windKmh < 8) {
     windScore = 3;
     windStatus = 'good';
@@ -482,14 +482,14 @@ export function calculateHuntScore(params: {
 
   totalScore += windScore;
   factors.push({
-    name: 'Wind Speed',
+    name: 'Wind & Scent',
     score: windScore,
     maxScore: 10,
     description: windDesc,
     status: windStatus,
   });
 
-  // Factor 4: Barometric Pressure. Pressure is included as a small trend cue;
+  // Factor 4: Barometer. Pressure is included as a small trend cue;
   // absolute station pressure varies substantially by elevation.
   let baroScore = 0;
   let baroDesc = '';
@@ -500,32 +500,32 @@ export function calculateHuntScore(params: {
   if (params.pressureTrend === 'rapid_rise' || (params.pressureInHg >= 30.00 && params.pressureTrend === 'rising')) {
     baroScore = 6;
     baroStatus = 'optimal';
-    baroDesc = `High / rising pressure (${pressDisp} ${pressUnitStr}). Clear post-front stability triggers heavy daylight movement.`;
+    baroDesc = `High or rising barometer (${pressDisp} ${pressUnitStr}). Clear post-front stability triggers heavy daylight movement.`;
   } else if (params.pressureTrend === 'rapid_drop' && isStormCode) {
     baroScore = -6;
     baroStatus = 'poor';
-    baroDesc = `Rapidly falling pressure (${pressDisp} ${pressUnitStr}) before heavy storm. Atmospheric depression suppresses travel.`;
+    baroDesc = `Barometer falling fast (${pressDisp} ${pressUnitStr}) before a heavy storm. Deer may stay tucked in until it passes.`;
   } else if (params.pressureTrend === 'rapid_drop' || params.pressureTrend === 'falling') {
     baroScore = 4;
     baroStatus = 'good';
-    baroDesc = `Falling barometric pressure (${pressDisp} ${pressUnitStr}). Pre-front shift prompts deer to feed before rain.`;
+    baroDesc = `Falling barometer (${pressDisp} ${pressUnitStr}). Pre-front shift prompts deer to feed before rain.`;
   } else if (params.pressureInHg >= 29.90) {
     baroScore = 3;
     baroStatus = 'good';
-    baroDesc = `High barometric pressure (${pressDisp} ${pressUnitStr}). Favorable atmospheric stability.`;
+    baroDesc = `High barometer (${pressDisp} ${pressUnitStr}). Clear, steady weather is usually a good sign for deer movement.`;
   } else if (params.pressureInHg < 29.70) {
     baroScore = -3;
     baroStatus = 'poor';
-    baroDesc = `Low barometric pressure (${pressDisp} ${pressUnitStr}). Low atmospheric pressure slows daytime travel.`;
+    baroDesc = `Low barometer (${pressDisp} ${pressUnitStr}). Deer may move less in daylight.`;
   } else {
     baroScore = 0;
     baroStatus = 'neutral';
-    baroDesc = `Moderate barometric pressure (${pressDisp} ${pressUnitStr}). Normal baseline activity.`;
+    baroDesc = `Steady barometer (${pressDisp} ${pressUnitStr}). Normal baseline activity.`;
   }
 
   totalScore += baroScore;
   factors.push({
-    name: 'Barometric Pressure',
+    name: 'Barometer',
     score: baroScore,
     maxScore: 6,
     description: baroDesc,
@@ -552,11 +552,11 @@ export function calculateHuntScore(params: {
   if ((params.hasRainBreak || params.isPostStorm) && !isCurrentlyPrecipitating) {
     precipScore = 8;
     precipStatus = 'optimal';
-    precipDesc = 'Rain break / Post-storm clearing! Sudden stop in precipitation triggers an immediate surge in deer movement and feeding.';
+    precipDesc = 'Rain just quit and the woods are clearing. Deer often step out to feed and stretch right after a break.';
   } else if (params.weatherCode === 51 || params.weatherCode === 53 || params.weatherCode === 55 || params.weatherCode === 45 || params.weatherCode === 48) {
     precipScore = 3;
     precipStatus = 'optimal';
-    precipDesc = 'Light drizzle & mist. Damp ground silences footsteps while overcast sky encourages bold daylight cruising.';
+    precipDesc = 'Light drizzle and mist can quiet your footsteps and keep deer moving under cloudy skies.';
   } else if (params.weatherCode >= 71 && params.weatherCode <= 75) {
     precipScore = 4;
     precipStatus = 'good';
@@ -564,20 +564,20 @@ export function calculateHuntScore(params: {
   } else if (params.weatherCode === 65 || params.weatherCode >= 95) {
     precipScore = -12;
     precipStatus = 'poor';
-    precipDesc = 'Heavy rain / severe storms. High downpours and lightning force deer to remain bedded down.';
+    precipDesc = 'Heavy rain and lightning usually send deer to thick cover.';
   } else if (params.weatherCode === 61 || params.weatherCode === 63) {
     precipScore = -4;
     precipStatus = 'poor';
-    precipDesc = 'Steady active rain. Deer hold tight in thick thermal cover until precipitation eases.';
+    precipDesc = 'Steady rain usually keeps deer tucked into thick cover until it lets up.';
   } else {
     precipScore = 0;
     precipStatus = 'neutral';
-    precipDesc = 'Fair conditions with clear skies or light cloud cover.';
+    precipDesc = 'Clear or lightly cloudy skies — a normal day in the woods.';
   }
 
   totalScore += precipScore;
   factors.push({
-    name: 'Precipitation',
+    name: 'Rain & Snow',
     score: precipScore,
     maxScore: 12,
     description: precipDesc,
@@ -597,7 +597,7 @@ export function calculateHuntScore(params: {
     if (params.isPrimeWindow) {
       timeScore = 16;
       timeStatus = 'optimal';
-      timeDesc = `Prime window (${hourLabel})! First 2 hours after sunrise or last 2 hours before sunset are peak travel hours.`;
+      timeDesc = `Best window (${hourLabel})! First 2 hours after sunrise or last 2 hours before sunset are peak travel hours.`;
     } else if (hr >= 11 && hr <= 14) {
       if (isPeakRut) {
         timeScore = 3;
@@ -611,17 +611,17 @@ export function calculateHuntScore(params: {
     } else {
       timeScore = 0;
       timeStatus = 'neutral';
-      timeDesc = `Standard movement hour (${hourLabel}). Moon phase: ${params.solunar.moonPhaseName}.`;
+      timeDesc = `An ordinary movement hour (${hourLabel}). Moon phase: ${params.solunar.moonPhaseName}.`;
     }
   } else {
     timeScore = 6;
     timeStatus = 'good';
-    timeDesc = `Dawn and dusk shifts offer primary movement windows. Solunar moon phase: ${params.solunar.moonPhaseName}.`;
+    timeDesc = `First light and the last hour before dark are your best bets. Moon phase: ${params.solunar.moonPhaseName}.`;
   }
 
   totalScore += timeScore;
   factors.push({
-    name: 'Time of Day',
+    name: 'Best Time of Day',
     score: timeScore,
     maxScore: 16,
     description: timeDesc,
@@ -637,7 +637,7 @@ export function calculateHuntScore(params: {
     if (rutInfo.phaseId === 'peak_rut' || rutInfo.phaseId === 'pre_rut') {
       rutScore = 8;
       rutStatus = 'optimal';
-      rutDesc = `Prime Rut Phase (${rutInfo.name}): Pre-rut scraping, seeking, and chasing frenzy! Daylight buck movement is at its seasonal peak.`;
+      rutDesc = `Active rut (${rutInfo.name}): Pre-rut scraping, seeking, and chasing frenzy! Daylight buck movement is at its seasonal peak.`;
     } else if (rutInfo.phaseId === 'lockdown') {
       rutScore = 2;
       rutStatus = 'good';
@@ -659,7 +659,7 @@ export function calculateHuntScore(params: {
 
   totalScore += rutScore;
   factors.push({
-    name: 'Rut Phase',
+    name: 'Rut & Buck Movement',
     score: rutScore,
     maxScore: 8,
     description: rutDesc,
@@ -679,7 +679,7 @@ export function calculateHuntScore(params: {
   if (moonPhaseName === 'Full Moon') {
     solunarScore = 5;
     solunarStatus = 'optimal';
-    solunarDesc = `Full Moon (${moonIllumination}% illumination). Strong solunar conditions can increase movement around the listed major periods.`;
+    solunarDesc = `Full Moon (${moonIllumination}% illumination). Strong moon conditions can increase movement around the listed best moon windows.`;
   } else if (moonPhaseName === 'New Moon') {
     solunarScore = 3;
     solunarStatus = 'good';
@@ -687,16 +687,16 @@ export function calculateHuntScore(params: {
   } else if (moonPhaseName === 'Waxing Gibbous' || moonPhaseName === 'Waning Gibbous') {
     solunarScore = 2;
     solunarStatus = 'good';
-    solunarDesc = `Gibbous moon (${moonIllumination}% illumination). Moderate solunar lift, especially near the major periods.`;
+    solunarDesc = `Gibbous moon (${moonIllumination}% illumination). Moderate solunar lift, especially near the best moon windows.`;
   } else {
     solunarScore = 1;
     solunarStatus = 'neutral';
-    solunarDesc = `${moonPhaseName} (${moonIllumination}% illumination). A small solunar contribution; prioritize the forecasted weather and wind.`;
+    solunarDesc = `${moonPhaseName} (${moonIllumination}% brightness). The moon is only a small clue today, so watch the weather and wind first.`;
   }
 
   totalScore += solunarScore;
   factors.push({
-    name: 'Solunar',
+    name: 'Moon Activity',
     score: solunarScore,
     maxScore: 5,
     description: solunarDesc,
@@ -718,11 +718,11 @@ export function calculateHuntScore(params: {
     if (humidity >= 75 && humidity <= 95) {
       scentScore = 6;
       scentStatus = 'optimal';
-      scentDesc = `High humidity (${Math.round(humidity)}%) holds scent in thermals and dampens ground noise.`;
+      scentDesc = `Damp air (${Math.round(humidity)}%) can hold scent close and soften ground noise.`;
     } else if (humidity >= 60 && humidity < 75) {
       scentScore = 3;
       scentStatus = 'good';
-      scentDesc = `Moderate humidity (${Math.round(humidity)}%) keeps scent workable.`;
+      scentDesc = `Moderately damp air (${Math.round(humidity)}%) usually gives you workable scent conditions.`;
     } else if (humidity > 95 && fogCode) {
       scentScore = 3;
       scentStatus = 'good';
@@ -744,12 +744,12 @@ export function calculateHuntScore(params: {
     // No humidity supplied by caller (legacy callers / fallback forecast).
     scentScore = 0;
     scentStatus = 'neutral';
-    scentDesc = 'Humidity data unavailable.';
+    scentDesc = 'No humidity reading — pay extra attention to wind and ground noise.';
   }
 
   totalScore += scentScore;
   factors.push({
-    name: 'Scent & Humidity',
+    name: 'Scent & Ground Noise',
     score: scentScore,
     maxScore: 6,
     description: scentDesc,
@@ -764,16 +764,16 @@ export function calculateHuntScore(params: {
 
   if (finalScore >= RATING_THRESHOLDS.excellent) {
     rating = 'Great';
-    verdict = 'GO HUNTING! Cold front, pressure shift, or post-storm clearing creates top-tier buck movement.';
+    verdict = "Get in the woods — it's a great day! A cold front, weather change, or clearing sky should get bucks on their feet.";
   } else if (finalScore >= RATING_THRESHOLDS.good) {
     rating = 'Good';
-    verdict = 'High-probability hunt day. Key movement expected during early morning and late afternoon hunt shifts.';
+    verdict = "It's a good day to go hunting. Deer should move best early and late in the day.";
   } else if (finalScore >= RATING_THRESHOLDS.fair) {
     rating = 'Fair';
-    verdict = 'Moderate activity expected. Pay close attention to Solunar major/minor feeding periods.';
+    verdict = "It's an okay day to hunt. Your best bet is around first light and the last hour before dark.";
   } else {
     rating = 'Poor';
-    verdict = 'Challenging conditions due to high heat, high wind, or low stagnant pressure. Focus on deep bedding thickets.';
+    verdict = "It's not a good day to be hunting. Heat, hard wind, or rough weather may keep deer bedded down — look for thick cover if you go.";
   }
 
   return {
@@ -820,8 +820,8 @@ export function getDetailedConditionExplanation(
   // 1. Heavy Rain & Storms (Codes 65, 95, 96, 99)
   if (weatherCode === 65 || weatherCode >= 95) {
     return {
-      headline: 'Poor time to hunt - Heavy Rain & Storms',
-      detail: 'Heavy precipitation and active storm conditions force deer to stay bedded down in thick thermal cover to conserve heat and avoid heavy downpours.',
+      headline: 'It is not a good time to hunt — Heavy Rain & Storms',
+      detail: 'Heavy rain and active storms usually send deer to thick cover. If you go, expect little movement until things calm down.',
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
@@ -830,14 +830,14 @@ export function getDetailedConditionExplanation(
   if (hasRainBreak || (isPostStorm && weatherCode <= 3)) {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Unfavorable Post-Rain Conditions',
-        detail: 'Although the rain has stopped, other negative factors (such as extreme temperatures or highly unfavorable wind directions) are keeping active travel extremely low.',
+        headline: 'It is not a good time to hunt — Unfavorable Post-Rain Conditions',
+        detail: 'The rain quit, but heat, wind, or another rough condition is still keeping deer movement low.',
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Great time to hunt - Rain Just Stopped',
-      detail: 'The rain has stopped and skies are clearing. The sudden break in precipitation triggers deer to leave bedding cover immediately to feed, stretch, and groom.',
+      headline: 'It is a great time to go hunting — Rain Just Stopped',
+      detail: 'The rain quit and the sky is clearing — a classic time for deer to step out, feed, and stretch.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -846,14 +846,14 @@ export function getDetailedConditionExplanation(
   if (weatherCode === 61 || weatherCode === 63) {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Active Steady Rain',
-        detail: 'Steady rain is falling, and other negative parameters have combined to keep deer firmly bedded down in heavy shelter.',
+        headline: 'It is not a good time to hunt — Active Steady Rain',
+        detail: 'Steady rain is falling, and deer are likely tucked into thick cover. Wait for it to let up before expecting much movement.',
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Fair time to hunt - Active Rain',
-      detail: 'Steady rain dampens scent and silences woods, but keeps deer bedded in thick cover. Be positioned and ready for a surge as soon as the rain eases up.',
+      headline: 'It is an okay time to hunt — Active Rain',
+      detail: 'Rain quiets the woods, but deer usually stay tucked in. Be ready for them to step out when the rain eases.',
       badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
     };
   }
@@ -862,14 +862,14 @@ export function getDetailedConditionExplanation(
   if (weatherCode === 51 || weatherCode === 53 || weatherCode === 55 || weatherCode === 45 || weatherCode === 48) {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Low Activity with Drizzle/Fog',
-        detail: 'Despite quiet damp ground, extremely warm temperatures or bad wind alignments are canceling out any potential feeding activity.',
+        headline: 'It is not a good time to hunt — Low Activity with Drizzle/Fog',
+        detail: 'The damp ground helps, but warm weather or bad wind is still working against deer movement.',
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Good time to hunt - Light Drizzle & Fog',
-      detail: 'Light drizzle and damp ground silence footsteps while high humidity and overcast conditions encourage deer to travel openly before dark.',
+      headline: 'It is a good time to hunt — Light Drizzle & Fog',
+      detail: 'Light drizzle can quiet your footsteps, and cloudy skies may keep deer moving before dark.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -878,14 +878,14 @@ export function getDetailedConditionExplanation(
   if (weatherCode >= 71 && weatherCode <= 75) {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Stormy Snowfall Conditions',
-        detail: 'Active snowfall is occurring, but severe swirling wind gusts or intense temperature dips have forced deer to seek deep security cover.',
+        headline: 'It is not a good time to hunt — Stormy Snowfall Conditions',
+        detail: 'Snow is falling, but hard wind or a sharp temperature drop may have deer holed up in thick cover.',
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Good time to hunt - Active Snowfall',
-      detail: 'Fresh snowfall and cold air trigger metabolic feeding surges before and after snow accumulation along field edges and timber cuts.',
+      headline: 'It is a good time to hunt — Active Snowfall',
+      detail: 'Fresh snow and cold air can get deer moving along field edges and timber cuts before and after the snow.',
       badgeColor: 'bg-sky-500/15 text-sky-400 border-sky-500/30'
     };
   }
@@ -893,8 +893,8 @@ export function getDetailedConditionExplanation(
   // 6. High Heat (tempF >= 78°F)
   if (tempF >= 78) {
     return {
-      headline: 'Poor time to hunt - High Heat Warning',
-      detail: `Unseasonably warm temperatures (${tempF}°F) suppress daytime deer travel. Deer stay bedded in dense shade near water sources until dusk.`,
+      headline: 'It is not a good time to hunt — High Heat Warning',
+      detail: `Too-warm conditions (${tempF}°F) keep deer bedded in shade near water until dusk.`,
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
@@ -902,24 +902,24 @@ export function getDetailedConditionExplanation(
   // 7. High Gusty Winds (windMph >= 18)
   if (windMph >= 18) {
     return {
-      headline: 'Poor time to hunt - High Swirling Winds' ,
-      detail: `Strong gusty winds (${windMph} mph) create extremely noisy woods and unstable swirling scent corridors, shutting down active daytime movement.`,
+      headline: 'It is not a good time to hunt — High Swirling Winds' ,
+      detail: `Strong, gusty wind (${windMph} mph) makes the woods noisy and swirls your scent. Deer usually stay in thick cover.`,
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
 
-  // 8. Barometric Pressure Trends
+  // 8. Barometer Trends
   if (pressureTrend === 'rapid_drop') {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Front Swirling Winds',
-        detail: 'The barometer is dropping, but other severe negative parameters like poor wind direction or high heat are holding deer bedded.',
+        headline: 'It is not a good time to hunt — Front Swirling Winds',
+        detail: 'The barometer is dropping, but heat or bad wind is still keeping deer bedded down.',
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Great time to hunt - Barometer Falling Rapidly',
-      detail: 'Rapidly falling barometric pressure ahead of a weather front prompts deer to move heavily to feed before bad weather arrives.',
+      headline: 'It is a great time to go hunting — Barometer Falling Rapidly',
+      detail: 'A falling barometer before a front can get deer moving and feeding before bad weather arrives.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -927,14 +927,14 @@ export function getDetailedConditionExplanation(
   if (pressureTrend === 'rapid_rise') {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Ineffective Rising Barometer',
-        detail: 'Pressure is rising post-front, but severe heat or bad winds are canceling out the standard feeding surge.',
+        headline: 'It is not a good time to hunt — Ineffective Rising Barometer',
+        detail: 'The barometer is rising after the front, but heat or bad wind is canceling out the usual movement boost.',
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Great time to hunt - Barometer Rising Post-Front',
-      detail: 'Rising barometric pressure behind a passing weather front brings clear, high-pressure air that stimulates active daylight feeding movement.',
+      headline: 'It is a great time to go hunting — Barometer Rising Post-Front',
+      detail: 'Clear air behind a passing front can put deer on their feet and feeding in daylight.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -943,14 +943,14 @@ export function getDetailedConditionExplanation(
   if (tempDrop >= 8) {
     if (score < 46) {
       return {
-        headline: 'Poor time to hunt - Suppressed Cold Front',
-        detail: `The temperature dropped by ${tempDrop}°F, but other negative weather patterns or poor wind directions have suppressed deer travel.`,
+        headline: 'It is not a good time to hunt — Suppressed Cold Front',
+        detail: `The temperature dropped by ${tempDrop}°F, but other weather problems or bad wind are still holding deer back.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
-      headline: 'Great time to hunt - Cold Front Hit',
-      detail: `A sharp 24-hour temperature drop of ${tempDrop}°F triggers a cold front surge, prompting bucks to move heavily in daylight to generate thermal energy.`,
+      headline: 'It is a great time to go hunting — Cold Front Hit',
+      detail: `A sharp 24-hour drop of ${tempDrop}°F can put bucks on their feet and moving in daylight.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -960,26 +960,26 @@ export function getDetailedConditionExplanation(
   // copy never contradicts the dial rating.
   if (score >= RATING_THRESHOLDS.excellent) {
     return {
-      headline: 'Great time to hunt - Top-Tier Conditions',
-      detail: 'Almost every factor lines up. A cold front, post-storm clearing, or ideal seasonal conditions are converging for a top-tier window.',
+      headline: 'It is a great time to go hunting — Top-Tier Conditions',
+      detail: 'Most of the signs line up. A front, clearing sky, or cool seasonal weather gives you a strong window in the woods.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   } else if (score >= RATING_THRESHOLDS.good) {
     return {
-      headline: 'Great time to hunt - Ideal Weather Alignment',
-      detail: 'Cool temperatures, favorable barometric pressure, and steady wind vectors align to create optimal atmospheric conditions for daylight deer travel.',
+      headline: 'It is a great time to go hunting — Ideal Weather Alignment',
+      detail: 'Cool weather, a helpful barometer, and steady wind give deer a good reason to move in daylight.',
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   } else if (score >= RATING_THRESHOLDS.fair) {
     return {
-      headline: 'Good time to hunt - Moderate Weather Conditions',
-      detail: 'Steady weather parameters. Focus on key twilight transition hours when temperatures cool and thermal winds stabilize.',
+      headline: 'It is a good time to hunt — Moderate Weather Conditions',
+      detail: 'Nothing dramatic is happening with the weather. Focus on first light and the last hour before dark.',
       badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
     };
   } else {
     return {
-      headline: 'Poor time to hunt - Unfavorable Weather Conditions',
-      detail: 'Warm air temperatures, stagnant pressure, or erratic wind currents limit open daylight travel. Target dense security bedding cover.',
+      headline: 'It is not a good time to hunt — Unfavorable Weather Conditions',
+      detail: 'Warm weather, a flat barometer, or swirling wind can limit daylight movement. Hunt near thick bedding cover if you go.',
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }

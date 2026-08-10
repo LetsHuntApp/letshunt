@@ -155,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <g
                   fill={
                     theme === 'hunting'
-                      ? isDark ? '#9b9568' : '#c85a17'
+                      ? isDark ? '#c77942' : '#c85a17'
                       : theme === 'olive'
                       ? '#556b2f'
                       : '#10b981'

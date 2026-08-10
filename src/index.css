@@ -608,10 +608,10 @@ rect:focus {
 .dark.hunting {
   --hunting-bg: #201c17;
   --hunting-text: #e8dfd2;
-  --hunting-accent: #9b9568;
-  --hunting-accent-hover: #b4ad7b;
+  --hunting-accent: #c77942;
+  --hunting-accent-hover: #da9560;
   --hunting-border: #5b4c3a;
-  --hunting-highlight: #b6a16d;
+  --hunting-highlight: #d48a4f;
   --hunting-card: #2d261e;
   color: var(--hunting-text);
 }
@@ -631,25 +631,25 @@ rect:focus {
 .dark.hunting [class*="text-slate-400"] { color: #a99988 !important; }
 .dark.hunting [class*="text-slate-500"] { color: #8a7967 !important; }
 
-/* Woodland green replaces the generic emerald accent in dark Hunting, while
-   amber indicators become muted brass instead of saturated orange. */
+/* A muted campfire orange replaces the generic green accent in dark Hunting,
+   while the walnut surfaces stay quiet and grounded. */
 .dark.hunting [class*="text-emerald-400"],
-.dark.hunting [class*="text-emerald-300"] { color: #aeb98a !important; }
+.dark.hunting [class*="text-emerald-300"] { color: #d08a4d !important; }
 .dark.hunting [class*="bg-emerald-400"],
 .dark.hunting [class*="bg-emerald-500"],
-.dark.hunting [class*="bg-emerald-600"] { background-color: #71804d !important; }
-.dark.hunting [class*="text-amber-"] { color: #b8a875 !important; }
-.dark.hunting [class*="bg-amber-"] { background-color: #806d48 !important; }
-.dark.hunting [class*="border-amber-"] { border-color: #9b8556 !important; }
+.dark.hunting [class*="bg-emerald-600"] { background-color: #a85e32 !important; }
+.dark.hunting [class*="text-amber-"] { color: #c98349 !important; }
+.dark.hunting [class*="bg-amber-"] { background-color: #9a572f !important; }
+.dark.hunting [class*="border-amber-"] { border-color: #c47740 !important; }
 
 /* Existing light-theme hex utilities can still be emitted by Hunting-only
    controls in dark mode; neutralize those orange values at the theme boundary. */
 .dark.hunting [class*="bg-[#c85a17]"],
 .dark.hunting [class*="bg-[#e08a5a]"],
-.dark.hunting [class*="bg-[#a34610]"] { background-color: #817b58 !important; }
+.dark.hunting [class*="bg-[#a34610]"] { background-color: #a65d35 !important; }
 .dark.hunting [class*="text-[#c85a17]"],
 .dark.hunting [class*="text-[#e08a5a]"],
-.dark.hunting [class*="text-[#a34610]"] { color: #b2a873 !important; }
+.dark.hunting [class*="text-[#a34610]"] { color: #d08a4d !important; }
 .dark.hunting [class*="border-[#c85a17]"],
 .dark.hunting [class*="border-[#e08a5a]"],
-.dark.hunting [class*="border-[#a34610]"] { border-color: #9b8b61 !important; }
+.dark.hunting [class*="border-[#a34610]"] { border-color: #c47742 !important; }

@@ -710,8 +710,8 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
     // consistent with getRatingFromScore used by the dial and cards.
     const rating: 'Poor' | 'Fair' | 'Good' | 'Great' = getRatingFromScore(score);
     const verdict = isPrimeDay(score)
-      ? 'Prime hunting conditions with optimal wind and barometric pressure.'
-      : 'Moderate conditions. Focus on transition areas.';
+      ? "Get in the woods — it's a great day! The wind and barometer are lining up."
+      : "It's an okay day to hunt. Focus on the edges between bedding and feeding areas.";
 
     const hourly: HourlyForecast[] = [];
     for (let h = 0; h < 24; h++) {
@@ -786,10 +786,10 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       rating,
       verdict,
       factors: [
-        { name: 'Barometric Trend', score: 20, maxScore: 25, description: 'Stable pressure reading.', status: 'optimal' },
-        { name: 'Wind Condition', score: 25, maxScore: 30, description: `${windDirectionText} breeze (${windSpeedMaxMph} mph)`, status: 'optimal' },
+        { name: 'Barometer', score: 20, maxScore: 25, description: 'The barometer is steady.', status: 'optimal' },
+        { name: 'Wind & Scent', score: 25, maxScore: 30, description: `${windDirectionText} breeze (${windSpeedMaxMph} mph)`, status: 'optimal' },
         { name: 'Temperature', score: 15, maxScore: 20, description: `Comfortable range (${minTemp}° - ${maxTemp}°)`, status: 'good' },
-        { name: 'Solunar', score: 10, maxScore: 15, description: 'Favorable Crescent moon phase.', status: 'good' },
+        { name: 'Moon Activity', score: 10, maxScore: 15, description: 'The moon looks favorable for movement.', status: 'good' },
       ],
       morningPrime: '6:15 AM - 9:30 AM',
       eveningPrime: '4:45 PM - 7:15 PM',

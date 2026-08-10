@@ -3858,7 +3858,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <span className="text-slate-500">·</span>
                 <span className={`inline-flex items-center gap-0.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
                   <Sparkles className="w-2.5 h-2.5" />
-                  {currentHourForecast?.isPrimeWindow ? 'Prime window' : `${currentHourForecast?.temp ?? '--'}°`}
+                  {currentHourForecast?.isPrimeWindow ? 'Best movement window' : `${currentHourForecast?.temp ?? '--'}°`}
                 </span>
               </div>
             </div>

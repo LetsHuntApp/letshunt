@@ -164,7 +164,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
             </span>
             {currentHourData?.isPrimeWindow && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 text-white font-black rounded-full text-[9px] uppercase tracking-wider flex-shrink-0 animate-pulse shadow-xs">
-                <Zap className="w-2.5 h-2.5" /> Prime Hunt
+                <Zap className="w-2.5 h-2.5" /> Best Hunt
               </span>
             )}
           </div>

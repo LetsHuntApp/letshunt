@@ -137,7 +137,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           </div>
           <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${textPrimary}`}>Welcome to LetsHunt</h1>
           <p className={`text-xs mt-1 ${textSecondary}`}>
-            Whitetail deer movement forecasts powered by weather, barometric pressure & solunar science.
+            Simple deer movement forecasts built from weather, the barometer, wind, and moon times.
           </p>
 
           {/* Progress dots */}
@@ -171,7 +171,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>7-Day Movement Forecast</div>
                   <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
-                    Every day gets a 0–100 hunt score with prime morning/evening windows, cold front & barometer alerts, and solunar times.
+                    Every day gets a simple 0–100 hunt score, best morning/evening windows, cold-front and barometer alerts, plus moon times.
                   </div>
                 </div>
               </div>
@@ -195,7 +195,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>Get Alerts</div>
                   <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
-                    Optional push notifications for cold fronts, rain breaks & prime days — even when the app is closed.
+                    Optional push notifications for cold fronts, rain breaks, and best hunting days — even when the app is closed.
                   </div>
                 </div>
               </div>

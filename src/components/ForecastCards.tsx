@@ -259,9 +259,9 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
   const getPressureTrendIcon = (trend: DailyForecast['pressureTrend']) => {
     switch (trend) {
       case 'rapid_drop':
-        return <ArrowDownRight className="w-4 h-4 text-emerald-500" title="Rapid Barometric Drop" />;
+        return <ArrowDownRight className="w-4 h-4 text-emerald-500" title="Barometer falling fast" />;
       case 'rapid_rise':
-        return <ArrowUpRight className="w-4 h-4 text-emerald-500" title="Rapid Barometric Rise Post-Front" />;
+        return <ArrowUpRight className="w-4 h-4 text-emerald-500" title="Barometer rising after a front" />;
       case 'rising':
         return <TrendingUp className="w-4 h-4 text-sky-500" title="Barometer Rising" />;
       case 'falling':
@@ -428,7 +428,7 @@ const getScoreBadgeColor = (score: number) => {
             </div>
             <div className="min-w-0">
               <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
-                <span>Best Day</span>
+                <span>Best Day to Hunt</span>
                 {isPrimeDay(bestDayScore) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-600 dark:text-amber-300 border border-amber-500/35">
                     <Sparkles className="w-2.5 h-2.5" /> Prime
@@ -445,8 +445,8 @@ const getScoreBadgeColor = (score: number) => {
               </div>
               <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {bestDayPeak.isHourly
-                  ? `Peak movement window: ${bestDayPeak.score}/100 at ${bestDayPeak.label}`
-                  : `Overall movement score: ${bestDayPeak.score}/100`}
+                  ? `Best movement window: ${bestDayPeak.score}/100 at ${bestDayPeak.label}`
+                  : `Overall deer movement: ${bestDayPeak.score}/100`}
               </div>
             </div>
           </div>
@@ -467,7 +467,7 @@ const getScoreBadgeColor = (score: number) => {
       }`}>
         <h2 className={`text-base sm:text-lg font-black flex items-center gap-2 transition-colors duration-300 ${headerTextColor} ${headerShadow}`}>
           <Calendar className={`w-5 h-5 shrink-0 ${headerIconColor}`} />
-          <span>{isExtendedView ? '14-Day Deer Hunting Forecast' : '7-Day Deer Hunting Forecast'}</span>
+          <span>{isExtendedView ? '14-Day Deer Forecast' : '7-Day Deer Forecast'}</span>
         </h2>
         <div className="flex flex-col items-end gap-0.5">
           {lastRefreshed && (
@@ -477,7 +477,7 @@ const getScoreBadgeColor = (score: number) => {
             </span>
           )}
           <span className={`text-[10px] sm:text-[13px] font-medium transition-colors duration-300 ${headerTextColor} opacity-75`}>
-            Tap any day to expand full hourly & solar details
+            Tap a day for hourly weather and moon times
           </span>
         </div>
       </div>
@@ -628,7 +628,7 @@ const getScoreBadgeColor = (score: number) => {
                               ? 'bg-slate-800/60 text-slate-400 border-slate-700/50'
                               : 'bg-slate-100 text-slate-500 border-slate-200'
                           }`}
-                          title={`Max Rain Probability: ${maxPrecipProb}%`}
+                          title={`Highest chance of rain: ${maxPrecipProb}%`}
                         >
                           <Droplets className="w-3 h-3 text-cyan-500 shrink-0" />
                           <span>{maxPrecipProb}% precip</span>
@@ -639,7 +639,7 @@ const getScoreBadgeColor = (score: number) => {
                       </span>
                       <span className="text-[10px] sm:text-[11px] font-extrabold block text-emerald-600 dark:text-emerald-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
                         <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span>Best Hunt: {getBestHuntTime(day)}</span>
+                        <span>Best time to hunt: {getBestHuntTime(day)}</span>
                       </span>
                       <span className="text-[10px] sm:text-[11px] font-extrabold block text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
                         {renderRutIcon(dayRut.iconName, "w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0")}
@@ -649,7 +649,7 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
                 </div>
 
-                {/* Right side: keep Prime -> View forecast -> Score in one compact row. */}
+                {/* Right side: keep Prime -> See forecast -> Score in one compact row. */}
                 <div className="flex w-full max-w-full flex-nowrap items-center overflow-x-auto scrollbar-none sm:w-auto shrink-0 ml-auto">
                   <div className="ml-auto flex flex-nowrap items-center gap-1.5 sm:gap-2.5 shrink-0">
                     {/* Badges container stays on one line so Prime never pushes the action or score down. */}
@@ -668,10 +668,10 @@ const getScoreBadgeColor = (score: number) => {
                     {isPrime && (
                       <button
                         type="button"
-                        aria-label={`Explain why ${day.dayName} is a prime day`}
+                        aria-label={`Explain why ${day.dayName} is a best day`}
                         aria-expanded={isPrimeExplainerOpen}
                         aria-controls={`prime-explainer-${day.date}`}
-                        title="Why is this a prime day?"
+                        title="Why is this a best day?"
                         onClick={(e) => {
                           e.stopPropagation();
                           setExpandedPrimeDate(isPrimeExplainerOpen ? null : day.date);
@@ -679,7 +679,7 @@ const getScoreBadgeColor = (score: number) => {
                         className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
                       >
                         <Award className="w-3 h-3 fill-slate-950 shrink-0" />
-                        <span>Prime</span>
+                        <span>Best Day</span>
                         <ChevronDown className={`w-3 h-3 transition-transform ${isPrimeExplainerOpen ? 'rotate-180' : ''}`} />
                       </button>
                     )}
@@ -709,7 +709,7 @@ const getScoreBadgeColor = (score: number) => {
                       }`}
                     >
                       <Maximize2 className="w-3.5 h-3.5 shrink-0" />
-                      <span>View forecast</span>
+                      <span>See forecast</span>
                     </button>
                   )}
 
@@ -746,7 +746,7 @@ const getScoreBadgeColor = (score: number) => {
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.2 }}
                   role="region"
-                  aria-label={`${day.dayName} prime day explanation`}
+                  aria-label={`${day.dayName} best-day explanation`}
                   onClick={(e) => e.stopPropagation()}
                   className={`mx-3.5 sm:mx-4 mb-3 overflow-hidden rounded-xl border px-3 py-3 text-xs backdrop-blur-sm ${
                     isDark
@@ -762,9 +762,9 @@ const getScoreBadgeColor = (score: number) => {
                     <div className="flex items-start gap-2">
                       <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                       <div>
-                        <p className="font-black uppercase tracking-wider">Why this is a prime day</p>
+                        <p className="font-black uppercase tracking-wider">Why this is a best-day forecast</p>
                         <p className="mt-1 leading-relaxed opacity-85">
-                          The forecast reaches {primeScore}/100{peakHour && primeScore === peakHour.huntScore ? ` at ${getHour12Label(new Date(peakHour.timestamp).getHours())}` : ''}, crossing the engine's 95+ Prime threshold.
+                          The forecast reaches {primeScore}/100{peakHour && primeScore === peakHour.huntScore ? ` at ${getHour12Label(new Date(peakHour.timestamp).getHours())}` : ''}, crossing the 95+ best-day mark.
                         </p>
                       </div>
                     </div>
@@ -779,7 +779,7 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
 
                   <div className="mt-2.5 space-y-2 border-t border-current/15 pt-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider opacity-70">Strongest positive contributors</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider opacity-70">What is helping the hunt</p>
                     {primeReasons.length > 0 ? primeReasons.map((factor) => (
                       <div key={factor.name} className="flex items-start justify-between gap-3">
                         <div className="min-w-0">

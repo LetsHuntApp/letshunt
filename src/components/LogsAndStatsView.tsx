@@ -721,7 +721,7 @@ const cardBgLight = hasCustomBackground
               Logs & Hunting Statistics
             </h1>
             <p className={`text-xs mt-1 max-w-2xl ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Log your harvested deer, track stands & shooting times, and analyze patterns across peak rut dates, hourly feeding spikes, and stand productivity rankings.
+              Log your harvests, track stands and times, and see which weather, hours, and spots lead to more deer.
             </p>
           </div>
 
@@ -756,7 +756,7 @@ const cardBgLight = hasCustomBackground
 
           <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
             <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Peak Kill Hour
+              Best Harvest Hour
             </span>
             <div className="text-base sm:text-lg font-black text-emerald-500 mt-1">{peakTimeInfo.timeStr}</div>
           </div>
@@ -814,7 +814,7 @@ const cardBgLight = hasCustomBackground
             steps={[
               { title: 'Add a harvest', description: 'Pick the date & time, gender, points, weight, and weapon — takes under a minute.' },
               { title: 'Auto-fill the weather', description: 'Tap the weather button and the exact temp, wind speed & direction at your harvest are fetched from history.' },
-              { title: 'Unlock the analytics', description: 'Peak kill-hour graphs, buck/doe ratios, top stand rankings & seasonal date charts fill in automatically.' },
+              { title: 'Unlock the analytics', description: 'Best harvest-hour graphs, buck/doe ratios, top stand rankings, and seasonal charts fill in automatically.' },
             ]}
             ctaLabel="Log First Harvest"
             onCta={handleOpenNewLogModal}
@@ -844,7 +844,7 @@ const cardBgLight = hasCustomBackground
                   </span>
                 </div>
                 <p className={`text-xs mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Shows what exact hour of the day most deer were harvested. Highlights early morning (6-9 AM) and evening prime feeding windows (4-7 PM).
+                  Shows what hour of the day most deer were harvested, including the best morning (6–9 AM) and evening (4–7 PM) windows.
                 </p>
               </div>
 
@@ -868,8 +868,8 @@ const cardBgLight = hasCustomBackground
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                               <p className="font-extrabold text-emerald-400">{data.label} (Hour {data.hour}:00)</p>
                               <p className="mt-1 font-bold">{data.count} Deer Shot</p>
-                              {data.isMorningPrime && <span className="text-[10px] text-amber-300 inline-flex items-center gap-1"><Sun className="w-3 h-3" /> Morning Prime Window</span>}
-                              {data.isEveningPrime && <span className="text-[10px] text-purple-300 inline-flex items-center gap-1"><Moon className="w-3 h-3" /> Evening Prime Window</span>}
+                              {data.isMorningPrime && <span className="text-[10px] text-amber-300 inline-flex items-center gap-1"><Sun className="w-3 h-3" /> Morning Best Window</span>}
+                              {data.isEveningPrime && <span className="text-[10px] text-purple-300 inline-flex items-center gap-1"><Moon className="w-3 h-3" /> Evening Best Window</span>}
                             </div>
                           );
                         }
@@ -899,7 +899,7 @@ const cardBgLight = hasCustomBackground
                   </span>
                 </div>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                  Peak Hour: {peakTimeInfo.timeStr} ({peakTimeInfo.count} kills)
+                  Best Hour: {peakTimeInfo.timeStr} ({peakTimeInfo.count} kills)
                 </span>
               </div>
             </div>
@@ -1000,7 +1000,7 @@ const cardBgLight = hasCustomBackground
                   </span>
                 </div>
                 <p className={`text-xs mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Harvest frequency broken down by hunting month (early season pre-rut through November peak rut and late season).
+                  Harvests by hunting month, from early season through the rut and late season.
                 </p>
               </div>
 
@@ -1349,11 +1349,11 @@ const cardBgLight = hasCustomBackground
                     <h3 className="text-base font-black tracking-tight">Harvest Wind Direction</h3>
                   </div>
                   <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
-                    Cardinal Vector
+                    Wind Direction
                   </span>
                 </div>
                 <p className={`text-xs mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  Harvest breakdown by cardinal wind vector direction (N, NE, E, SE, S, SW, W, NW).
+                  Harvests grouped by wind direction (N, NE, E, SE, S, SW, W, NW).
                 </p>
               </div>
 

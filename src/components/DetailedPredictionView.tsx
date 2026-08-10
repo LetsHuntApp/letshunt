@@ -122,14 +122,14 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-800/10 dark:ring-emerald-500/10',
-        stroke: isDark ? '#34d399' : '#047857', // emerald-400 vs emerald-700
+        stroke: isDark ? (theme === 'hunting' ? '#d08a4d' : '#34d399') : '#047857', // campfire orange for dark Hunting, pine green otherwise
       };
     } else if (score >= RATING_THRESHOLDS.good) { // Good - Sage Green (emerald-500/600)
       return {
         bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
         border: 'border-emerald-500/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
-        stroke: isDark ? '#10b981' : '#059669', // emerald-500 vs emerald-600
+        stroke: isDark ? (theme === 'hunting' ? '#c77942' : '#10b981') : '#059669', // campfire orange for dark Hunting, pine green otherwise
       };
     } else if (score >= RATING_THRESHOLDS.fair) { // Fair - Warm Amber/Ochre (amber-500/600)
       return {
@@ -149,6 +149,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   };
 
   const colors = getScoreColorClasses(activeScore);
+  const chartAccent = isDark && theme === 'hunting' ? '#c77942' : '#10b981';
   const rutInfo = getRutPhase(day.date, location);
 
   // Setup 24-hour Hunt Score Chart parameters
@@ -196,7 +197,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
 
         <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
           <Calendar className="w-4 h-4" />
-          <span>{day.dayName}, {day.dateFormatted} Detailed Prediction</span>
+          <span>{day.dayName}, {day.dateFormatted} Day Details</span>
         </div>
       </div>
 
@@ -285,7 +286,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
                 style={{ color: colors.stroke }}
               >
-                SCORE
+                HUNT SCORE
               </div>
             </div>
           </div>
@@ -295,7 +296,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                Hunting Tactical Plan
+                Today's Hunting Plan
               </span>
               <div className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs transition-all flex items-center gap-1 ${
                 isExcellentDay
@@ -321,7 +322,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               </button>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-              {day.dayName === 'Today' ? 'Today\'s' : `${day.dayName}'s`} Tactical Guide
+              {day.dayName === 'Today' ? 'Today\'s' : `${day.dayName}'s`} Hunting Guide
             </h1>
           </div>
 
@@ -344,7 +345,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             <RutPhaseIcon iconName={rutInfo.iconName} className="w-7 h-7 mt-0.5 flex-shrink-0" />
             <div>
               <div className="font-extrabold text-[12px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                Rut Phase: {rutInfo.name} ({rutInfo.description})
+                Rut: {rutInfo.name} ({rutInfo.description})
               </div>
               <p className={`mt-1 font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                 {rutInfo.hunterTip}
@@ -371,21 +372,21 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2"><TrendingUp className="w-4 h-4" /> 24-Hour Deer Movement Score Chart</span>
+                  <span className="inline-flex items-center gap-2"><TrendingUp className="w-4 h-4" /> When Deer May Move</span>
                 </h3>
                 <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Movement index from 0-100. Select times on the chart or the slider to inspect tactical details.
+                  A simple 0–100 guide to when deer may move. Tap a time or use the slider to see what is happening.
                 </p>
               </div>
 
               <div className="flex items-center gap-3 text-[11px] font-semibold">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-emerald-500/25 border border-emerald-500 inline-block" />
-                  <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Prime Window</span>
+                  <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Best Window</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-1 bg-emerald-500 rounded-full inline-block" />
-                  <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Deer Score</span>
+                  <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Movement Score</span>
                 </div>
               </div>
             </div>
@@ -394,13 +395,13 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-auto min-w-[550px] select-none">
                 <defs>
                   <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                    <stop offset="0%" stopColor={chartAccent} stopOpacity="0.3" />
+                    <stop offset="100%" stopColor={chartAccent} stopOpacity="0.0" />
                   </linearGradient>
 
                   <linearGradient id="primeWindowGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+                    <stop offset="0%" stopColor={chartAccent} stopOpacity="0.2" />
+                    <stop offset="100%" stopColor={chartAccent} stopOpacity="0.02" />
                   </linearGradient>
                 </defs>
 
@@ -447,7 +448,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 <path d={areaD} fill="url(#scoreGrad)" />
 
                 {/* Main Movement Score Line */}
-                <path d={pathD} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <path d={pathD} fill="none" stroke={chartAccent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
                 {/* Interactive Hourly Dots */}
                 {points.map((pt, i) => {
@@ -474,7 +475,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                         cx={pt.x}
                         cy={pt.y}
                         r={isCurrentlyHovered || isCurrentSelected ? 6.5 : pt.isPrime ? 4 : 2}
-                        fill={isCurrentlyHovered || isCurrentSelected ? '#3b82f6' : pt.isPrime ? '#10b981' : '#64748b'}
+                        fill={isCurrentlyHovered || isCurrentSelected ? '#3b82f6' : pt.isPrime ? chartAccent : '#64748b'}
                         stroke={isDark ? '#0f172a' : '#ffffff'}
                         strokeWidth={isCurrentlyHovered || isCurrentSelected ? 2.5 : 1}
                       />
@@ -583,10 +584,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             >
               <div>
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> Deer Movement Factor Breakdown</span>
+                  <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> What may get deer moving</span>
                 </h3>
                 <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Atmospheric, lunar, and regional variables driving the tactical score
+                  Weather, moon, wind, and local details behind this hunt score
                 </p>
               </div>
 
@@ -615,7 +616,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                                 : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}
                           >
-                            {factor.status.toUpperCase()}
+                            {factor.status === 'optimal' ? 'Best' : factor.status === 'good' ? 'Good' : factor.status === 'poor' ? 'Tough' : 'Normal'}
                           </span>
                         </div>
                         <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{factor.description}</p>
@@ -643,7 +644,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           }`}>
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
             <span className="leading-normal">
-              Wind Map Display: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted}){selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}</span>
+              Wind & Scent: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted}){selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}</span>
             </span>
           </div>
           
@@ -667,35 +668,35 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             }`}
           >
             <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-4">
-              ⏱️ Solunar & Activity Times
+              ⏱️ Moon & Best Activity Times
             </h4>
 
             <div className="space-y-3.5 text-xs">
               <div className="flex items-center justify-between pb-3 border-b border-slate-500/10">
-                <span className="font-semibold text-slate-400">Moon Phase:</span>
+                <span className="font-semibold text-slate-400">Moon:</span>
                 <span className="font-black text-right">{day.solunar?.moonPhaseName} ({Math.round(day.solunar?.moonIllumination || 0)}%)</span>
               </div>
 
               <div className="flex items-center justify-between pb-3 border-b border-slate-500/10">
-                <span className="font-semibold text-slate-400">AM Peak Window:</span>
+                <span className="font-semibold text-slate-400">Morning Hunt:</span>
                 <span className="font-black text-emerald-500">{day.morningPrime}</span>
               </div>
 
               <div className="flex items-center justify-between pb-3 border-b border-slate-500/10">
-                <span className="font-semibold text-slate-400">PM Peak Window:</span>
+                <span className="font-semibold text-slate-400">Evening Hunt:</span>
                 <span className="font-black text-amber-500">{day.eveningPrime}</span>
               </div>
 
               {day.solunar?.major1 && (
                 <div className="flex flex-col gap-1 pb-3 border-b border-slate-500/10">
-                  <span className="font-semibold text-slate-400">Major Solunar Transit:</span>
+                  <span className="font-semibold text-slate-400">Best Moon Window:</span>
                   <span className="font-bold text-slate-300">{day.solunar.major1}</span>
                 </div>
               )}
 
               {day.solunar?.minor1 && (
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-slate-400">Minor Solunar Transit:</span>
+                  <span className="font-semibold text-slate-400">Other Moon Window:</span>
                   <span className="font-bold text-slate-400">{day.solunar.minor1}</span>
                 </div>
               )}

@@ -164,7 +164,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
             }`}>
               <Compass className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span>
-                Regional Timing Adjusted for <strong className="text-slate-200 dark:text-slate-100">{location.name} {location.admin1 ? `(${location.admin1})` : ''}</strong> based on latitude & seasonal rut zone.
+                Timing adjusted for <strong className="text-slate-200 dark:text-slate-100">{location.name} {location.admin1 ? `(${location.admin1})` : ''}</strong> based on latitude & seasonal rut zone.
               </span>
             </div>
           )}
@@ -175,7 +175,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
               isDark ? 'text-slate-300' : 'text-slate-700'
             }`}>
               <Target className="w-4 h-4 text-emerald-500" />
-              <span>Tactical Execution Guide</span>
+              <span>How to Hunt This Phase</span>
             </h4>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

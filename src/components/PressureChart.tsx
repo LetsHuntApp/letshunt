@@ -138,7 +138,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h3 className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center flex-wrap gap-x-2 gap-y-1">
-            <span className="inline-flex items-center gap-2"><Activity className="w-4 h-4" /> Precipitation & Barometric Pressure Trend</span>
+            <span className="inline-flex items-center gap-2"><Activity className="w-4 h-4" /> Rain & Barometer</span>
             {selectedDayName && (
               <span
                 className={`text-xs px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider border ${
@@ -150,14 +150,14 @@ export const PressureChart: React.FC<PressureChartProps> = ({
             )}
           </h3>
           <p className={`text-xs sm:text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            24-hour barometric pressure curve and rain precipitation forecast overlaid with prime stand windows
+            The last 24 hours of rain and barometer readings, with the best hunting windows marked
           </p>
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 text-xs font-bold flex-wrap">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-emerald-500/30 border border-emerald-500 inline-block" />
-            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Prime Hours</span>
+            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Best Hunt Hours</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3.5 h-1 bg-amber-500 rounded-full inline-block" />
@@ -441,7 +441,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         </div>
       ) : (
         <p className={`text-xs text-center mt-2.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-          Hover or tap any hour on the graph to inspect precipitation, barometric pressure, wind, and deer movement score.
+          Hover or tap any hour to see rain, the barometer, wind, and when deer may move.
         </p>
       )}
     </div>

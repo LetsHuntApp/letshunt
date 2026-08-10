@@ -370,7 +370,7 @@ export default function App() {
       if (loadSeqRef.current !== seq) return; // stale error, ignore
       console.error('Failed to fetch forecast:', err);
       if (!silent) {
-        setError('Failed to fetch real-time weather & barometric data. Please check connection and try again.');
+        setError('Could not load live weather data. Please check your connection and try again.');
       }
     } finally {
       if (loadSeqRef.current === seq) setLoading(false);
@@ -521,7 +521,7 @@ export default function App() {
       } ${
         themeMode === 'dark'
           ? themeVariant === 'hunting'
-            ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#817b58] selection:text-white'
+            ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#b66a38] selection:text-white'
             : themeVariant === 'olive'
             ? 'bg-[#1c2614] text-[#dde6cb] selection:bg-[#556b2f] selection:text-white'
             : 'bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950'
@@ -674,10 +674,10 @@ export default function App() {
             </div>
             <div>
               <h3 className={`text-base sm:text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Fetching Live Meteorological Data...
+                Checking today's hunting weather...
               </h3>
               <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Gathering Open-Meteo barometric pressure, cold front drops, wind vectors & solunar times for {currentLocation.name}.
+                Checking the barometer, temperature changes, wind, and moon times for {currentLocation.name}.
               </p>
             </div>
           </div>
@@ -714,14 +714,14 @@ export default function App() {
                 }`}>
                   <div className="min-w-0">
                     <div className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.16em] ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-700'}`}>
-                      Dashboard · Extended Outlook
+                      Dashboard · 14-Day Look Ahead
                     </div>
                     <h1 className="text-lg sm:text-2xl font-black flex items-center gap-2 mt-0.5">
                       <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
                       14-Day Deer Forecast
                     </h1>
                     <p className={`text-[11px] sm:text-xs mt-1 ${isDark ? 'text-slate-400' : 'opacity-70'}`}>
-                      Full outlook for {currentLocation.name}; days 8–14 are planning-grade guidance.
+                      A bigger-picture look at {currentLocation.name}; later days are a rough guide.
                     </p>
                   </div>
                   <button
