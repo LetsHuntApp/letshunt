@@ -653,3 +653,15 @@ rect:focus {
 .dark.hunting [class*="border-[#c85a17]"],
 .dark.hunting [class*="border-[#e08a5a]"],
 .dark.hunting [class*="border-[#a34610]"] { border-color: #c47742 !important; }
+
+/* Lucide icons inherit the Hunting accent family without recoloring semantic
+   weather/status text. Emerald and teal utility classes become the walnut /
+   campfire accent, while amber/orange icons use the Hunting highlight. */
+.hunting svg[class*="text-emerald-"],
+.hunting svg[class*="text-teal-"] {
+  color: var(--hunting-accent) !important;
+}
+.hunting svg[class*="text-amber-"],
+.hunting svg[class*="text-orange-"] {
+  color: var(--hunting-highlight) !important;
+}

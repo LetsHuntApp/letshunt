@@ -708,8 +708,6 @@ const cardBgLight = hasCustomBackground
             : `${cardBgLight} border-slate-200 text-slate-900`
         }`}
       >
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2">
@@ -1525,7 +1523,6 @@ const cardBgLight = hasCustomBackground
                         alt="Harvest Photo"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs font-black">
                         <span className="px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 flex items-center gap-1">
                           <Camera className="w-3 h-3 text-emerald-400" /> Photo Attached
