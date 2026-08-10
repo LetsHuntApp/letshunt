@@ -122,28 +122,28 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-800/10 dark:ring-emerald-500/10',
-        stroke: isDark ? (theme === 'hunting' ? '#d08a4d' : '#34d399') : '#047857', // campfire orange for dark Hunting, pine green otherwise
+        stroke: theme === 'hunting' ? (isDark ? '#8fae72' : '#1a6b3c') : isDark ? '#34d399' : '#047857', // theme-aware Great score color
       };
     } else if (score >= RATING_THRESHOLDS.good) { // Good - Sage Green (emerald-500/600)
       return {
         bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
         border: 'border-emerald-500/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
-        stroke: isDark ? (theme === 'hunting' ? '#c77942' : '#10b981') : '#059669', // campfire orange for dark Hunting, pine green otherwise
+        stroke: theme === 'hunting' ? (isDark ? '#769858' : '#4a8c5e') : isDark ? '#10b981' : '#059669', // theme-aware Good score color
       };
     } else if (score >= RATING_THRESHOLDS.fair) { // Fair - Warm Amber/Ochre (amber-500/600)
       return {
         bg: 'bg-amber-500/10 dark:bg-amber-500/15',
         border: 'border-amber-500/20 dark:border-amber-500/30',
         ring: 'ring-amber-500/10 dark:ring-amber-500/10',
-        stroke: '#d97706', // amber-600
+        stroke: theme === 'hunting' ? (isDark ? '#d08a4d' : '#c85a17') : '#d97706', // theme-aware Fair score color
       };
     } else { // Poor - Dusty Terracotta/Rose (rose-500/600)
       return {
         bg: 'bg-rose-500/10 dark:bg-rose-500/15',
         border: 'border-rose-500/20 dark:border-rose-500/30',
         ring: 'ring-rose-500/10 dark:ring-rose-500/10',
-        stroke: '#f43f5e', // rose-500
+        stroke: theme === 'hunting' ? (isDark ? '#c5675c' : '#8b3a3a') : '#f43f5e', // theme-aware Poor score color
       };
     }
   };

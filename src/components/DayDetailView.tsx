@@ -144,19 +144,49 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     return day.factors;
   }, [selectedHour, day, units, pressureUnit, location]);
 
-  const scoreStrokeColor = isDark
-    ? (currentScore >= RATING_THRESHOLDS.excellent ? (theme === 'hunting' ? '#d08a4d' : '#34d399') : currentScore >= RATING_THRESHOLDS.good ? (theme === 'hunting' ? '#c77942' : '#10b981') : currentScore >= RATING_THRESHOLDS.fair ? (theme === 'hunting' ? '#c98349' : '#d97706') : '#f43f5e')
-    : theme === 'hunting'
-    ? (currentScore >= RATING_THRESHOLDS.excellent ? '#1a6b3c' : currentScore >= RATING_THRESHOLDS.good ? '#4a8c5e' : currentScore >= RATING_THRESHOLDS.fair ? '#c85a17' : '#8b3a3a')
-    : (theme === 'olive' || theme === 'hunting')
-    ? (currentScore >= RATING_THRESHOLDS.excellent ? '#2d4a27' : currentScore >= RATING_THRESHOLDS.good ? '#556b2f' : currentScore >= RATING_THRESHOLDS.fair ? '#b87333' : '#8b3a3a')
-    : currentScore >= RATING_THRESHOLDS.excellent
-    ? '#047857' // emerald-700 (Pine Forest Green)
-    : currentScore >= RATING_THRESHOLDS.good
-    ? '#059669' // emerald-600
-    : currentScore >= RATING_THRESHOLDS.fair
-    ? '#d97706' // amber-600 (Warm Amber)
-    : '#f43f5e'; // rose-500 (Terracotta)
+  const scoreStrokeColor = (() => {
+    if (theme === 'hunting') {
+      if (isDark) {
+        if (currentScore >= RATING_THRESHOLDS.excellent) return '#8fae72';
+        if (currentScore >= RATING_THRESHOLDS.good) return '#769858';
+        if (currentScore >= RATING_THRESHOLDS.fair) return '#d08a4d';
+        return '#c5675c';
+      }
+      if (currentScore >= RATING_THRESHOLDS.excellent) return '#1a6b3c';
+      if (currentScore >= RATING_THRESHOLDS.good) return '#4a8c5e';
+      if (currentScore >= RATING_THRESHOLDS.fair) return '#c85a17';
+      return '#8b3a3a';
+    }
+
+    if (theme === 'olive') {
+      if (isDark) {
+        if (currentScore >= RATING_THRESHOLDS.excellent) return '#9aae71';
+        if (currentScore >= RATING_THRESHOLDS.good) return '#7f984e';
+        if (currentScore >= RATING_THRESHOLDS.fair) return '#c18a4d';
+        return '#c05a52';
+      }
+      if (currentScore >= RATING_THRESHOLDS.excellent) return '#2d4a27';
+      if (currentScore >= RATING_THRESHOLDS.good) return '#556b2f';
+      if (currentScore >= RATING_THRESHOLDS.fair) return '#b87333';
+      return '#8b3a3a';
+    }
+
+    if (isDark) {
+      if (currentScore >= RATING_THRESHOLDS.excellent) return '#34d399';
+      if (currentScore >= RATING_THRESHOLDS.good) return '#10b981';
+      if (currentScore >= RATING_THRESHOLDS.fair) return '#d97706';
+      return '#f43f5e';
+    }
+
+    if (currentScore >= RATING_THRESHOLDS.excellent) return '#047857';
+    if (currentScore >= RATING_THRESHOLDS.good) return '#059669';
+    if (currentScore >= RATING_THRESHOLDS.fair) return '#d97706';
+    return '#f43f5e';
+  })();
+
+  const scoreDialFrameStyle = theme === 'hunting'
+    ? { borderColor: scoreStrokeColor, outline: `4px solid ${scoreStrokeColor}55` }
+    : undefined;
 
   // The engine's condition explanation supplies semantic tone classes, but
   // those classes were tuned for dark mode. Remap the rationale surface to
@@ -257,11 +287,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           <div className="flex flex-col items-center sm:items-start gap-2 w-full lg:w-auto">
             <div className="flex flex-row items-center justify-center gap-3 sm:gap-5 flex-shrink-0 self-center sm:self-auto">
               {/* Circular Gauge Score */}
-              <div className={`relative flex items-center justify-center shrink-0 transition-all ${
+              <div style={scoreDialFrameStyle} className={`relative flex items-center justify-center shrink-0 transition-all ${
                 theme === 'hunting'
                   ? isDark
-                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#24170f]/[var(--card-opacity)] border-2 border-[#9a5a2c]/70 shadow-xl ring-4 ring-[#c85a17]/35'
-                    : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#eae1cf] border-2 border-[#c85a17] shadow-xl ring-4 ring-[#c85a17]/25'
+                    ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#24170f]/[var(--card-opacity)] border-2 shadow-xl'
+                    : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#eae1cf] border-2 shadow-xl'
                   : theme === 'olive'
                   ? isDark
                     ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 border-emerald-600/60 shadow-xl ring-4 ring-emerald-500/25'
