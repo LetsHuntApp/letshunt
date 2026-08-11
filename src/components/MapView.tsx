@@ -894,6 +894,20 @@ export const MapView: React.FC<MapViewProps> = ({
   const defaultLng = location.longitude;
   const [centerLat, setCenterLat] = useState(defaultLat);
   const [centerLng, setCenterLng] = useState(defaultLng);
+  // Refs let throttled gesture tile refreshes use the latest committed view
+  // without forcing a React render for every finger/mouse movement.
+  const centerLatRef = useRef(centerLat);
+  const centerLngRef = useRef(centerLng);
+  const zoomRef = useRef(zoom);
+
+  useEffect(() => {
+    centerLatRef.current = centerLat;
+    centerLngRef.current = centerLng;
+  }, [centerLat, centerLng]);
+
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
 
   // When location changes, update map center
   useEffect(() => {
@@ -953,10 +967,19 @@ export const MapView: React.FC<MapViewProps> = ({
   // CSS-transform panning: offset accumulates during drag and is applied
   // directly to the DOM (bypassing React state) for 60fps smoothness.
   const panOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Gesture tile refreshes periodically commit the currently visible map view
+  // while the CSS transform continues moving it. This keeps new tiles loading
+  // during a long pan/pinch instead of waiting for release.
+  const panTileRefreshRafRef = useRef<number | null>(null);
+  const pinchTileRefreshRafRef = useRef<number | null>(null);
+  const lastPanTileRefreshRef = useRef(0);
+  const lastPinchTileRefreshRef = useRef(0);
+  const latestPinchDistanceRef = useRef<number | null>(null);
   // CSS-transform zooming: scale accumulates during wheel/pinch and is applied
   // directly to the DOM. State is synced only after the gesture ends.
   const zoomScaleRef = useRef<number>(1);
-  const zoomSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelZoomRafRef = useRef<number | null>(null);
+  const wheelZoomDeltaRef = useRef(0);
   // CSS-transform rotation: angle in degrees, applied directly to the DOM
   // during two-finger rotation gestures for instant visual feedback.
   const rotationRef = useRef<number>(0);
@@ -984,6 +1007,14 @@ export const MapView: React.FC<MapViewProps> = ({
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (panTileRefreshRafRef.current !== null) cancelAnimationFrame(panTileRefreshRafRef.current);
+      if (pinchTileRefreshRafRef.current !== null) cancelAnimationFrame(pinchTileRefreshRafRef.current);
+      if (wheelZoomRafRef.current !== null) cancelAnimationFrame(wheelZoomRafRef.current);
+    };
+  }, []);
 
   // Measure map container size dynamically
   useEffect(() => {
@@ -1939,6 +1970,7 @@ export const MapView: React.FC<MapViewProps> = ({
     panOffsetRef.current.x += dx;
     panOffsetRef.current.y += dy;
     applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+    schedulePanTileRefresh();
 
     dragStartRef.current = { x: e.clientX, y: e.clientY };
   };
@@ -1962,6 +1994,83 @@ export const MapView: React.FC<MapViewProps> = ({
     };
   };
 
+  // Commit a slice of the live CSS pan into geographic state at a low rate.
+  // The transform is cleared only after the new center renders, so tiles can
+  // be requested during a long drag without making the finger movement janky.
+  const commitPanForTileRefresh = () => {
+    const offset = panOffsetRef.current;
+    if (offset.x === 0 && offset.y === 0) return;
+
+    const currentZoom = zoomRef.current;
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(currentZoom)));
+    const tileSize = 256 * Math.pow(2, currentZoom - panBaseZoom);
+    const centerTile = latLngToTileCoords(centerLatRef.current, centerLngRef.current, panBaseZoom);
+    const pannedCenter = getPannedCenterTile(centerTile, offset, tileSize, rotationRef.current);
+    const nextCenter = {
+      lng: tileXToLng(pannedCenter.x, panBaseZoom),
+      lat: tileYToLat(pannedCenter.y, panBaseZoom),
+    };
+
+    panOffsetRef.current = { x: 0, y: 0 };
+    centerLatRef.current = nextCenter.lat;
+    centerLngRef.current = nextCenter.lng;
+    flushSync(() => {
+      setCenterLat(nextCenter.lat);
+      setCenterLng(nextCenter.lng);
+    });
+    applyMapTransform(1, 0, 0, rotationRef.current);
+  };
+
+  const schedulePanTileRefresh = () => {
+    if (panTileRefreshRafRef.current !== null) return;
+    const refresh = () => {
+      panTileRefreshRafRef.current = null;
+      const now = Date.now();
+      if (now - lastPanTileRefreshRef.current < 90) {
+        panTileRefreshRafRef.current = requestAnimationFrame(refresh);
+        return;
+      }
+      lastPanTileRefreshRef.current = now;
+      commitPanForTileRefresh();
+    };
+    panTileRefreshRafRef.current = requestAnimationFrame(refresh);
+  };
+
+  // Commit the current pinch zoom baseline periodically. Resetting the CSS
+  // scale and pinch baseline after each commit lets React render the new zoom
+  // tiles while the next pinch segment continues smoothly from that point.
+  const commitPinchForTileRefresh = () => {
+    const initialZoom = initialZoomRef.current;
+    const latestDistance = latestPinchDistanceRef.current;
+    if (initialZoom === null || latestDistance === null) return;
+
+    const zoomOffset = Math.log2(zoomScaleRef.current);
+    if (Math.abs(zoomOffset) < 0.08) return;
+
+    const nextZoom = Math.min(MAX_ZOOM, Math.max(3, initialZoom + zoomOffset));
+    initialZoomRef.current = nextZoom;
+    pinchDistRef.current = latestDistance;
+    zoomScaleRef.current = 1;
+    zoomRef.current = nextZoom;
+    flushSync(() => setZoom(nextZoom));
+    applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+  };
+
+  const schedulePinchTileRefresh = () => {
+    if (pinchTileRefreshRafRef.current !== null) return;
+    const refresh = () => {
+      pinchTileRefreshRafRef.current = null;
+      const now = Date.now();
+      if (now - lastPinchTileRefreshRef.current < 90) {
+        pinchTileRefreshRafRef.current = requestAnimationFrame(refresh);
+        return;
+      }
+      lastPinchTileRefreshRef.current = now;
+      commitPinchForTileRefresh();
+    };
+    pinchTileRefreshRafRef.current = requestAnimationFrame(refresh);
+  };
+
   const handleMouseUp = (e: React.MouseEvent) => {
     if (!isDragging) return;
     setIsDragging(false);
@@ -1975,9 +2084,10 @@ export const MapView: React.FC<MapViewProps> = ({
     // CSS translation must be baked into the center with a MINUS sign.
     // The old positive sign applied the gesture twice and caused the map
     // to jump away from the finger on release.
-    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
-    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+    const currentZoom = zoomRef.current;
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(currentZoom)));
+    const tileSize = 256 * Math.pow(2, currentZoom - panBaseZoom);
+    const centerTile = latLngToTileCoords(centerLatRef.current, centerLngRef.current, panBaseZoom);
     const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
     const newX = pannedCenter.x;
     const newY = pannedCenter.y;
@@ -1998,6 +2108,8 @@ export const MapView: React.FC<MapViewProps> = ({
       lng: tileXToLng(newX, panBaseZoom),
       lat: tileYToLat(newY, panBaseZoom),
     };
+    centerLatRef.current = nextCenter.lat;
+    centerLngRef.current = nextCenter.lng;
     flushSync(() => {
       setCenterLng(nextCenter.lng);
       setCenterLat(nextCenter.lat);
@@ -2025,22 +2137,24 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
-  // Wheel zoom — debounced state update for smoothness.
-  // CSS scale() doesn't work for wheel zoom because tiles must actually
-  // change (different zoom level = different tile URLs). We debounce the
-  // setZoom call so rapid scroll ticks batch into fewer re-renders.
+  // Wheel zoom — batch events into the next animation frame instead of waiting
+  // for the wheel to stop. This keeps the tile grid moving with an active
+  // trackpad/mouse gesture while still limiting React work to one render/frame.
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    wheelZoomDeltaRef.current += e.deltaY < 0 ? 0.5 : -0.5;
 
-    if (zoomSyncTimerRef.current) clearTimeout(zoomSyncTimerRef.current);
-    zoomSyncTimerRef.current = setTimeout(() => {
-      if (e.deltaY < 0) {
-        setZoom((prev) => Math.min(MAX_ZOOM, prev + 0.5));
-      } else {
-        setZoom((prev) => Math.max(3, prev - 0.5));
-      }
-      zoomSyncTimerRef.current = null;
-    }, 50);
+    if (wheelZoomRafRef.current !== null) return;
+    wheelZoomRafRef.current = requestAnimationFrame(() => {
+      wheelZoomRafRef.current = null;
+      const delta = wheelZoomDeltaRef.current;
+      wheelZoomDeltaRef.current = 0;
+      if (delta === 0) return;
+
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(3, zoomRef.current + delta));
+      zoomRef.current = nextZoom;
+      setZoom(nextZoom);
+    });
   };
 
   // Keep browser viewport gestures from competing with the map's React
@@ -2152,6 +2266,8 @@ export const MapView: React.FC<MapViewProps> = ({
       }
       // Apply combined scale + rotation as CSS transform — no React re-render.
       applyMapTransform(newScale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+      latestPinchDistanceRef.current = currentDist;
+      schedulePinchTileRefresh();
       return;
     }
 
@@ -2167,6 +2283,7 @@ export const MapView: React.FC<MapViewProps> = ({
     panOffsetRef.current.x += dx;
     panOffsetRef.current.y += dy;
     applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+    schedulePanTileRefresh();
 
     dragStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
@@ -2197,9 +2314,10 @@ export const MapView: React.FC<MapViewProps> = ({
       // Sync any accumulated pan offset into React state using the same
       // screen-to-map conversion as one-finger release. This also keeps a
       // pinch that began after a short pan from carrying a stale offset.
-      const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
-      const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-      const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+      const currentZoom = zoomRef.current;
+      const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(currentZoom)));
+      const tileSize = 256 * Math.pow(2, currentZoom - panBaseZoom);
+      const centerTile = latLngToTileCoords(centerLatRef.current, centerLngRef.current, panBaseZoom);
       const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
       const newX = pannedCenter.x;
       const newY = pannedCenter.y;
@@ -2237,9 +2355,10 @@ export const MapView: React.FC<MapViewProps> = ({
     // Bake the accumulated pan offset into the geographic center. The
     // geographic center moves opposite to the finger's temporary CSS
     // translation: drag right => center west, drag down => center north.
-    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
-    const tileSize = 256 * Math.pow(2, zoom - panBaseZoom);
-    const centerTile = latLngToTileCoords(centerLat, centerLng, panBaseZoom);
+    const currentZoom = zoomRef.current;
+    const panBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(currentZoom)));
+    const tileSize = 256 * Math.pow(2, currentZoom - panBaseZoom);
+    const centerTile = latLngToTileCoords(centerLatRef.current, centerLngRef.current, panBaseZoom);
     const pannedCenter = getPannedCenterTile(centerTile, panOffsetRef.current, tileSize, rotationRef.current);
     const newX = pannedCenter.x;
     const newY = pannedCenter.y;
@@ -2254,6 +2373,8 @@ export const MapView: React.FC<MapViewProps> = ({
       lng: tileXToLng(newX, panBaseZoom),
       lat: tileYToLat(newY, panBaseZoom),
     };
+    centerLatRef.current = nextCenter.lat;
+    centerLngRef.current = nextCenter.lng;
     flushSync(() => {
       setCenterLng(nextCenter.lng);
       setCenterLat(nextCenter.lat);
@@ -2324,9 +2445,10 @@ export const MapView: React.FC<MapViewProps> = ({
   const actScale = Math.pow(2, zoom - baseZoom);
   const actTileSize = 256 * actScale;
   const actCoords = latLngToTileCoords(centerLat, centerLng, baseZoom);
-  // One tile of overscan covers normal pan release without creating the
-  // 100+ image elements the old four-tile padding generated on desktop.
-  const TILE_OVERSCAN = 1;
+  // Keep a two-tile loading ring around the viewport so ordinary pans reveal
+  // already-requested imagery instead of a blank edge. This is substantially
+  // smaller than the old four-tile ring while still behaving like a slippy map.
+  const TILE_OVERSCAN = 2;
   const actMinX = Math.floor(actCoords.x - halfWidth / actTileSize) - TILE_OVERSCAN;
   const actMaxX = Math.ceil(actCoords.x + halfWidth / actTileSize) + TILE_OVERSCAN;
   const actMinY = Math.floor(actCoords.y - halfHeight / actTileSize) - TILE_OVERSCAN;
