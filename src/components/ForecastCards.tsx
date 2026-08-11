@@ -676,9 +676,9 @@ const getScoreBadgeColor = (score: number) => {
                           e.stopPropagation();
                           setExpandedPrimeDate(isPrimeExplainerOpen ? null : day.date);
                         }}
-                        className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1"
+                        className={`bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 ${theme === 'hunting' ? 'text-white' : 'text-slate-950'} text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1`}
                       >
-                        <Award className="w-3 h-3 fill-slate-950 shrink-0" />
+                        <Award className="w-3 h-3 fill-current shrink-0" />
                         <span>Great Day</span>
                         <ChevronDown className={`w-3 h-3 transition-transform ${isPrimeExplainerOpen ? 'rotate-180' : ''}`} />
                       </button>
