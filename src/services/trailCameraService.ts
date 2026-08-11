@@ -1036,6 +1036,75 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   return imported.filter((photo): photo is TrailCameraPhoto => photo !== undefined);
 }
 
+// ---- App-lifetime import coordinator ----
+// TrailCameraView is mounted only while the Trail Cams app tab is selected. Keep
+// the active import here instead of in the component so switching app tabs or
+// minimizing the installed PWA does not tear down the upload/OCR job. Every
+// completed photo is already durable in IndexedDB, so returning to Trail Cams
+// can reload the gallery without losing work.
+export interface PhotoImportStatus {
+  importing: boolean;
+  completed: number;
+  total: number;
+}
+
+type PhotoImportListener = (status: PhotoImportStatus) => void;
+
+let photoImportStatus: PhotoImportStatus = { importing: false, completed: 0, total: 0 };
+let activePhotoImport: Promise<TrailCameraPhoto[]> | null = null;
+const photoImportListeners = new Set<PhotoImportListener>();
+
+function publishPhotoImportStatus(status: PhotoImportStatus): void {
+  photoImportStatus = status;
+  photoImportListeners.forEach((listener) => listener(status));
+}
+
+export function subscribeToPhotoImport(listener: PhotoImportListener): () => void {
+  photoImportListeners.add(listener);
+  listener(photoImportStatus);
+  return () => photoImportListeners.delete(listener);
+}
+
+export function startPhotoImport(
+  files: FileList | File[],
+  defaultLocation?: TrailCameraLocation,
+): Promise<TrailCameraPhoto[]> {
+  if (activePhotoImport) return activePhotoImport;
+
+  const fileArray = Array.from(files);
+  publishPhotoImportStatus({ importing: true, completed: 0, total: fileArray.length });
+
+  activePhotoImport = (async () => {
+    try {
+      const imported = await importPhotos(fileArray, (completed, total) => {
+        publishPhotoImportStatus({ importing: true, completed, total });
+      });
+
+      // Assign as part of the app-lifetime job. This must not depend on the
+      // TrailCameraView still being mounted when a user changes app tabs.
+      if (defaultLocation) {
+        for (const photo of imported) {
+          if (!photo.cameraLocationId) {
+            await updatePhoto(photo.id, {
+              cameraLocationId: defaultLocation.id,
+              cameraLocationName: defaultLocation.name,
+              latitude: defaultLocation.latitude,
+              longitude: defaultLocation.longitude,
+            });
+          }
+        }
+      }
+
+      return imported;
+    } finally {
+      publishPhotoImportStatus({ importing: false, completed: fileArray.length, total: fileArray.length });
+      activePhotoImport = null;
+    }
+  })();
+
+  return activePhotoImport;
+}
+
 
 
 // ---- Photo CRUD ----

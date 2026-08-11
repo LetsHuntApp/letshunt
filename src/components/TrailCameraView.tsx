@@ -9,7 +9,8 @@ import { TrailCameraAnalytics } from './TrailCameraAnalytics';
 import { TrailCameraTargetManager } from './TrailCameraTargetManager';
 import {
   getAllPhotos,
-  importPhotos,
+  startPhotoImport,
+  subscribeToPhotoImport,
   deletePhotos,
   updatePhoto,
   getCameraLocations,
@@ -155,6 +156,21 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     loadData();
   }, []);
 
+  // Keep import progress alive across Trail Cams sub-tabs and the app's main
+  // tabs. The coordinator lives in the service module, so this subscription
+  // can disappear and be recreated without interrupting the actual upload.
+  useEffect(() => {
+    return subscribeToPhotoImport((status) => {
+      setImporting(status.importing);
+      setImportProgress(status.importing && status.total > 0
+        ? { completed: status.completed, total: status.total }
+        : null);
+      if (!status.importing && status.total > 0) {
+        void loadData();
+      }
+    });
+  }, []);
+
   const loadData = async () => {
     try {
       const allPhotos = await getAllPhotos();
@@ -258,33 +274,17 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   // Import Handler
   const handleStartImport = async (files: FileList | File[]) => {
+    const defaultLoc = defaultLocId ? locations.find(l => l.id === defaultLocId) : locations[0];
     setImporting(true);
     setImportProgress({ completed: 0, total: files.length });
 
     try {
-      const imported = await importPhotos(files, (completed, total) => {
-        setImportProgress({ completed, total });
-      });
+      const imported = await startPhotoImport(files, defaultLoc);
 
       if (imported.length === 0) {
         showToast('No photos could be imported. Check console for details.');
       } else {
         showToast(`Imported ${imported.length} trail camera photo(s)!`);
-      }
-
-      // Auto assign to default location if unassigned
-      const defaultLoc = defaultLocId ? locations.find(l => l.id === defaultLocId) : locations[0];
-      if (defaultLoc) {
-        for (const p of imported) {
-          if (!p.cameraLocationId) {
-            await updatePhoto(p.id, {
-              cameraLocationId: defaultLoc.id,
-              cameraLocationName: defaultLoc.name,
-              latitude: defaultLoc.latitude,
-              longitude: defaultLoc.longitude,
-            });
-          }
-        }
       }
 
       const freshPhotos = await getAllPhotos();
