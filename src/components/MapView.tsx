@@ -1910,24 +1910,38 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   // Convert client/viewport coordinates to map lat/lng (shared by click + snap-preview math).
-  // IMPORTANT: divisor must match the ACTUAL rendered tile width at the current (possibly
-  // fractional) zoom — at z=16.5 tiles paint at 256*2^0.5 ≈ 362 CSS px, not 256. Using a
-  // hard-coded 256 made clicks/pan mis-target at fractional zoom.
-  const clientToLatLng = (clientX: number, clientY: number) => {
-    if (!mapContainerRef.current) return { lat: centerLat, lng: centerLng };
-    const rect = mapContainerRef.current.getBoundingClientRect();
-    const clickX = clientX - rect.left;
-    const clickY = clientY - rect.top;
+  // IMPORTANT: the tile canvas can be CSS-rotated during/after a two-finger gesture.
+  // Its transformed bounding rect is not the map's actual top-left, so use the
+  // untransformed parent bounds and inverse-rotate the finger coordinate first.
+  // The conversion zoom and tile size also must match the rounded zoom used by the
+  // tile renderer; otherwise fractional zooms place points noticeably off target.
+  const clientToLatLng = (
+    clientX: number,
+    clientY: number,
+    mapCenter: { lat: number; lng: number } = { lat: centerLat, lng: centerLng }
+  ) => {
+    if (!mapContainerRef.current) return mapCenter;
+
+    const map = mapContainerRef.current;
+    const layoutRect = map.parentElement?.getBoundingClientRect() || map.getBoundingClientRect();
+    const mapX = clientX - layoutRect.left;
+    const mapY = clientY - layoutRect.top;
+    const halfMapWidth = dimensions.width / 2;
+    const halfMapHeight = dimensions.height / 2;
+
+    // CSS transforms use the center of this full-screen canvas as their origin.
+    // Convert the viewport point back into the canvas's unrotated coordinate space.
+    const radians = (-rotationRef.current * Math.PI) / 180;
+    const screenX = mapX - halfMapWidth;
+    const screenY = mapY - halfMapHeight;
+    const clickX = halfMapWidth + screenX * Math.cos(radians) - screenY * Math.sin(radians);
+    const clickY = halfMapHeight + screenX * Math.sin(radians) + screenY * Math.cos(radians);
 
     const renderBaseZoom = Math.min(MAX_ZOOM, Math.max(2, Math.round(zoom)));
     const tileSize = 256 * Math.pow(2, zoom - renderBaseZoom);
-    // Tile elements are rendered at the rounded base zoom and scaled to the
-    // fractional `zoom`. Keep both the center coordinate and the conversion
-    // zoom at that same base zoom; mixing a `zoom` coordinate with a base-zoom
-    // pixel size shifts clicks (and pan release math) whenever zoom is .5.
-    const centerTile = latLngToTileCoords(centerLat, centerLng, renderBaseZoom);
-    const mouseTileX = centerTile.x + (clickX - dimensions.width / 2) / tileSize;
-    const mouseTileY = centerTile.y + (clickY - dimensions.height / 2) / tileSize;
+    const centerTile = latLngToTileCoords(mapCenter.lat, mapCenter.lng, renderBaseZoom);
+    const mouseTileX = centerTile.x + (clickX - halfMapWidth) / tileSize;
+    const mouseTileY = centerTile.y + (clickY - halfMapHeight) / tileSize;
 
     return {
       lat: tileYToLat(mouseTileY, renderBaseZoom),
@@ -2019,14 +2033,18 @@ export const MapView: React.FC<MapViewProps> = ({
     // intermediate frame where tiles are at OLD center coords with
     // identity translate — which is the "snap back then snap forward"
     // glitch (looks like the map races off on release).
+    const nextCenter = {
+      lng: tileXToLng(newX, panBaseZoom),
+      lat: tileYToLat(newY, panBaseZoom),
+    };
     flushSync(() => {
-      setCenterLng(tileXToLng(newX, panBaseZoom));
-      setCenterLat(tileYToLat(newY, panBaseZoom));
+      setCenterLng(nextCenter.lng);
+      setCenterLat(nextCenter.lat);
     });
     applyMapTransform(1, 0, 0, rotationRef.current);
 
     if (!hasMovedRef.current && mapContainerRef.current) {
-      const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY);
+      const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.clientX, e.clientY, nextCenter);
       handleMapClick(clickedLat, clickedLng);
     }
   };
@@ -2271,14 +2289,22 @@ export const MapView: React.FC<MapViewProps> = ({
     // the "map races across the screen on release" artifact. Only
     // after React has placed tiles at the new center do we strip the
     // translate. The two DOM updates collapse into a single paint.
+    const nextCenter = {
+      lng: tileXToLng(newX, panBaseZoom),
+      lat: tileYToLat(newY, panBaseZoom),
+    };
     flushSync(() => {
-      setCenterLng(tileXToLng(newX, panBaseZoom));
-      setCenterLat(tileYToLat(newY, panBaseZoom));
+      setCenterLng(nextCenter.lng);
+      setCenterLat(nextCenter.lat);
     });
     applyMapTransform(1, 0, 0, rotationRef.current);
 
     if (!hasMovedRef.current && mapContainerRef.current && e.changedTouches.length > 0) {
-      const { lat: clickedLat, lng: clickedLng } = clientToLatLng(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      const { lat: clickedLat, lng: clickedLng } = clientToLatLng(
+        e.changedTouches[0].clientX,
+        e.changedTouches[0].clientY,
+        nextCenter
+      );
       handleMapClick(clickedLat, clickedLng);
     }
   };
@@ -2515,7 +2541,7 @@ export const MapView: React.FC<MapViewProps> = ({
         <div
           ref={mapContainerRef}
           className="absolute inset-0 cursor-grab active:cursor-grabbing select-none touch-none"
-          style={{ willChange: 'transform' }}
+          style={{ willChange: 'transform', transformOrigin: 'center center' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
