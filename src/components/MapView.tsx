@@ -2584,11 +2584,13 @@ export const MapView: React.FC<MapViewProps> = ({
           mapStyle === 'satellite' ? 'bg-slate-950' : mapStyle === 'topo' ? 'bg-slate-900' : 'bg-slate-100'
         }`}
       >
-        {/* Slippy Tile Canvas */}
+        {/* Slippy Tile Canvas. Paint containment is intentionally disabled so
+            rotated tiles can extend beyond the unrotated canvas and be clipped
+            only by the outer map viewport. */}
         <div
           ref={mapContainerRef}
           className="absolute inset-0 cursor-grab active:cursor-grabbing select-none touch-none"
-          style={{ willChange: 'transform', transformOrigin: 'center center', contain: 'layout paint' }}
+          style={{ willChange: 'transform', transformOrigin: 'center center', contain: 'layout' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
