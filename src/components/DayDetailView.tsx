@@ -13,6 +13,7 @@ import {
   Sunset,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Moon,
   Clock,
   Compass,
@@ -262,31 +263,48 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? 'bg-amber-500 text-slate-950 border-amber-300'
     : 'bg-rose-500 text-white border-rose-400';
 
-  // Keep the Hunter scorecard badges on one field-guide palette. The rut
-  // phase remains semantically distinct, but no longer falls back to the
-  // generic jewel tones used by the other themes.
+  // Hunter badges use distinct field-guide colors so the score, rut phase,
+  // best window, and explanation controls each have their own visual role.
   const hunterExplanationBadgeClasses = isDark
-    ? 'bg-[#a65d35] text-white border-[#e08a5a]'
+    ? 'bg-[#7f4329] text-[#fff4e6] border-[#c47a4f]'
     : 'bg-[#c85a17] text-white border-[#e08a5a]';
+  const hunterBestHuntBadgeClasses = isDark
+    ? 'bg-[#33451f] text-[#e5efc8] border-[#71894b]'
+    : 'bg-[#556b2f] text-white border-[#8a9a5b]';
+  const hunterSelectedHourBadgeClasses = isDark
+    ? 'bg-[#3b2b1e] text-[#f3d4aa] border-[#8a5536]'
+    : 'bg-[#f0dfc2] text-[#6b421f] border-[#b87333]';
   const hunterRutBadgeClasses = (() => {
-    if (rutInfo.phaseId === 'summer' || rutInfo.phaseId === 'early') {
-      return isDark
-        ? 'bg-[#4a2b1b] text-white border-[#8a5536]'
-        : 'bg-[#4a8c5e] text-white border-[#74ad82]';
+    switch (rutInfo.phaseId) {
+      case 'summer':
+        return isDark
+          ? 'bg-[#2f3523] text-[#dce6b7] border-[#71894b]'
+          : 'bg-[#e5ead5] text-[#3f512b] border-[#7d9255]';
+      case 'early':
+        return isDark
+          ? 'bg-[#203b38] text-[#c5e0d8] border-[#5c8880]'
+          : 'bg-[#dcebe5] text-[#28534d] border-[#5c8880]';
+      case 'pre_rut':
+        return isDark
+          ? 'bg-[#4a2918] text-[#f4c38d] border-[#c8782f]'
+          : 'bg-[#f3d4aa] text-[#6d3213] border-[#c8782f]';
+      case 'peak_rut':
+        return isDark
+          ? 'bg-gradient-to-r from-[#7f2f16] to-[#b84e17] text-white border-[#f0a066]'
+          : 'bg-gradient-to-r from-[#a64016] to-[#d36b20] text-white border-[#f0a066]';
+      case 'lockdown':
+        return isDark
+          ? 'bg-[#40221e] text-[#f0b0a3] border-[#a85c4d]'
+          : 'bg-[#ead0c6] text-[#6a2c22] border-[#a85c4d]';
+      case 'post_rut':
+        return isDark
+          ? 'bg-[#203b38] text-[#b7d8d0] border-[#5c8880]'
+          : 'bg-[#d7e2df] text-[#27534f] border-[#5c8880]';
+      default:
+        return isDark
+          ? 'bg-[#303824] text-[#d5dfb1] border-[#7d8d5a]'
+          : 'bg-[#d9ddd0] text-[#3d4a2d] border-[#7d8d5a]';
     }
-    if (rutInfo.phaseId === 'pre_rut' || rutInfo.phaseId === 'peak_rut') {
-      return isDark
-        ? 'bg-[#a65d35] text-white border-[#e08a5a]'
-        : 'bg-[#c85a17] text-white border-[#e08a5a]';
-    }
-    if (rutInfo.phaseId === 'lockdown') {
-      return isDark
-        ? 'bg-[#4a2b1b] text-white border-[#8a5536]'
-        : 'bg-[#8b3a3a] text-white border-[#b56b6b]';
-    }
-    return isDark
-      ? 'bg-[#4a2b1b] text-white border-[#8a5536]'
-      : 'bg-[#556b2f] text-white border-[#8a9a5b]';
   })();
 
   return (
@@ -445,7 +463,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {selectedHour !== undefined && (
                 <span className={`font-extrabold px-1.5 py-0.5 rounded-lg border ${
                   theme === 'hunting'
-                    ? hunterExplanationBadgeClasses
+                    ? hunterSelectedHourBadgeClasses
                     : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/35'
                 }`}>
                   @ {getHour12Label(selectedHour)}
@@ -510,7 +528,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               <div className="flex items-center justify-center w-full">
                 <span className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider whitespace-nowrap border shadow-xs ${
                   theme === 'hunting'
-                    ? hunterExplanationBadgeClasses
+                    ? hunterBestHuntBadgeClasses
                     : 'bg-emerald-500/15 border-emerald-500/35 text-emerald-600 dark:text-emerald-400'
                 }`}>
                   <Crosshair className="w-3.5 h-3.5" /> Best Hunt: {getBestHuntTime(day)}
@@ -532,7 +550,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     showWeatherExplanation
                       ? isDark
                         ? theme === 'hunting'
-                          ? 'bg-[#a65d35] text-white border-[#e08a5a] hover:bg-[#b87342]'
+                          ? `${hunterExplanationBadgeClasses} hover:bg-[#9a5233]`
                           : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
                         : theme === 'hunting'
                         ? `${hunterExplanationBadgeClasses} hover:bg-[#b87342]`
@@ -598,12 +616,24 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   onClick={scrollToWindPlotter}
                   aria-label="Scroll to the Wind and Stand Scent Plotter"
                   title="View Wind & Stand Scent Plotter"
-                  className={`appearance-none text-left w-full cursor-pointer p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-sky-500/60 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}
+                  className={`group appearance-none text-left w-full cursor-pointer p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:-translate-y-0.5 hover:border-sky-500/70 hover:shadow-md active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/70 min-w-0 ${
+                    theme === 'hunting'
+                      ? isDark
+                        ? 'bg-[#203b38]/80 border-[#5c8880]/70 hover:bg-[#294943]'
+                        : 'bg-[#edf3ed]/90 border-[#5c8880]/60 shadow-xs hover:bg-[#e1ece3]'
+                      : isDark
+                      ? 'bg-slate-950/[var(--card-opacity)] border-slate-800'
+                      : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'
+                  }`}
                 >
                   <Wind className="w-4 h-4 text-sky-500 flex-shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Wind</span>
+                    <span className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-sky-700/80 dark:text-sky-300/80">Wind · tap to view</span>
                     <span className="block text-xs font-black truncate">{currentWindSummary}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[8px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                    <span className="hidden sm:inline">View</span>
+                    <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </button>
 
