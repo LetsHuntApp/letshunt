@@ -364,7 +364,7 @@ function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
   });
 }
 
-// ---- Binarize a canvas region for OCR (auto-threshold from mean) ----
+// ---- Binarize a canvas region for OCR (adaptive threshold) ----
 function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number, invert: boolean): string | null {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
@@ -381,16 +381,38 @@ function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, thr
 
 // ---- Adaptive (Otsu) binarization — finds the threshold that maximizes
 // between-class variance. Picks the right cutoff no matter how dark or
-// bright the timestamp bar is, which is the big blind spot of the
-// mean-based threshold we used before.----
-function computeMeanGray(ctx: CanvasRenderingContext2D, w: number, h: number): number {
-  const imgData = ctx.getImageData(0, 0, w, h);
-  const data = imgData.data;
-  let sum = 0;
+// bright the timestamp bar is, instead of guessing from the image mean.
+function computeOtsuThreshold(ctx: CanvasRenderingContext2D, w: number, h: number): number {
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const histogram = new Array<number>(256).fill(0);
   for (let i = 0; i < data.length; i += 4) {
-    sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    histogram[gray]++;
   }
-  return sum / (data.length / 4);
+
+  const total = w * h;
+  let sumAll = 0;
+  for (let i = 0; i < histogram.length; i++) sumAll += i * histogram[i];
+
+  let weightBackground = 0;
+  let sumBackground = 0;
+  let bestVariance = -1;
+  let bestThreshold = 128;
+  for (let threshold = 0; threshold < histogram.length; threshold++) {
+    weightBackground += histogram[threshold];
+    if (weightBackground === 0) continue;
+    const weightForeground = total - weightBackground;
+    if (weightForeground === 0) break;
+    sumBackground += threshold * histogram[threshold];
+    const meanBackground = sumBackground / weightBackground;
+    const meanForeground = (sumAll - sumBackground) / weightForeground;
+    const betweenClassVariance = weightBackground * weightForeground * (meanBackground - meanForeground) ** 2;
+    if (betweenClassVariance > bestVariance) {
+      bestVariance = betweenClassVariance;
+      bestThreshold = threshold;
+    }
+  }
+  return bestThreshold;
 }
 
 // ---- Focused OCR Date Extraction (timestamp bar only) ----
@@ -435,13 +457,14 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     return { dateTime: result.iso, timeDefaulted: result.timeDefaulted };
   };
 
-  // Majority consensus: given all valid OCR results across strips/strategies,
-  // pick the date that appears most often, then the best time for that date.
+  // Majority consensus: gather every valid result across all strips and
+  // preprocessing strategies, then resolve the date and timestamp separately.
+  // The timestamp vote is by minute so a camera's optional seconds field does
+  // not split otherwise-identical reads into unrelated candidates.
   const resolveConsensus = (results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }>): { dateTime: string; timeDefaulted: boolean } | undefined => {
     if (results.length === 0) return undefined;
     if (results.length === 1) return { dateTime: results[0].dateTime, timeDefaulted: results[0].timeDefaulted };
 
-    // Group by date (YYYY-MM-DD)
     const byDate = new Map<string, typeof results>();
     for (const r of results) {
       const dateKey = r.dateTime.slice(0, 10);
@@ -449,7 +472,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       byDate.get(dateKey)!.push(r);
     }
 
-    // Find the most common date. On ties, prefer the date with more
+    // Date consensus comes first. On ties, prefer the date with more
     // time-complete entries (not timeDefaulted).
     let bestDate = '';
     let bestCount = 0;
@@ -466,20 +489,48 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     }
 
     const bestEntries = byDate.get(bestDate)!;
-    // Prefer: time not defaulted, then most specific time (not 12:00:00)
-    bestEntries.sort((a, b) => {
-      if (a.timeDefaulted !== b.timeDefaulted) return a.timeDefaulted ? 1 : -1;
-      const aTime = a.dateTime.slice(11, 19);
-      const bTime = b.dateTime.slice(11, 19);
-      if (aTime !== '12:00:00' && bTime === '12:00:00') return -1;
-      if (aTime === '12:00:00' && bTime !== '12:00:00') return 1;
-      return 0;
-    });
+    // A date-only read is useful for date consensus but must never outvote a
+    // real time read. Only fall back to defaulted entries when every read for
+    // the winning date is missing its time.
+    const timedEntries = bestEntries.filter(entry => !entry.timeDefaulted);
+    const entriesForTime = timedEntries.length > 0 ? timedEntries : bestEntries;
+    const byTime = new Map<string, typeof bestEntries>();
+    for (const entry of entriesForTime) {
+      // Keep defaulted noon separate from a genuinely OCR-read 12:00 time.
+      const timeKey = entry.timeDefaulted ? '__defaulted__' : entry.dateTime.slice(11, 16);
+      if (!byTime.has(timeKey)) byTime.set(timeKey, []);
+      byTime.get(timeKey)!.push(entry);
+    }
 
-    const winner = bestEntries[0];
-    const agreeCount = bestEntries.length;
+    // Timestamp consensus is the most common hour/minute among real time reads.
+    // Ties prefer a read with non-zero seconds because it contains more timestamp information.
+    let winningTimeKey = '';
+    let winningEntries: typeof bestEntries = [];
+    for (const [timeKey, entries] of byTime) {
+      const currentIsDefaulted = timeKey === '__defaulted__';
+      const winningIsDefaulted = winningTimeKey === '__defaulted__';
+      const currentHasSeconds = entries.some(e => e.dateTime.slice(17, 19) !== '00');
+      const winningHasSeconds = winningEntries.some(e => e.dateTime.slice(17, 19) !== '00');
+      if (entries.length > winningEntries.length ||
+          (entries.length === winningEntries.length && winningIsDefaulted && !currentIsDefaulted) ||
+          (entries.length === winningEntries.length && currentIsDefaulted === winningIsDefaulted && currentHasSeconds && !winningHasSeconds)) {
+        winningTimeKey = timeKey;
+        winningEntries = entries;
+      }
+    }
+
+    // Within the winning minute, prefer a non-defaulted and most-specific read.
+    const winner = [...winningEntries].sort((a, b) => {
+      if (a.timeDefaulted !== b.timeDefaulted) return a.timeDefaulted ? 1 : -1;
+      const aHasSeconds = a.dateTime.slice(17, 19) !== '00';
+      const bHasSeconds = b.dateTime.slice(17, 19) !== '00';
+      if (aHasSeconds !== bHasSeconds) return aHasSeconds ? -1 : 1;
+      return 0;
+    })[0];
+
+    const agreeCount = winningEntries.length;
     const totalCount = results.length;
-    console.warn(`[OCR] Consensus: ${bestDate} wins (${agreeCount}/${totalCount} agree) — ${agreeCount === totalCount ? 'UNANIMOUS' : agreeCount >= totalCount * 0.5 ? 'MAJORITY' : 'PLURALITY'} — timeDefaulted=${winner.timeDefaulted}`);
+    console.warn(`[OCR] Consensus: ${bestDate} ${winningTimeKey} wins (${agreeCount}/${totalCount} agree) — ${agreeCount === totalCount ? 'UNANIMOUS' : agreeCount >= totalCount * 0.5 ? 'MAJORITY' : 'PLURALITY'} — timeDefaulted=${winner.timeDefaulted}`);
     return { dateTime: winner.dateTime, timeDefaulted: winner.timeDefaulted };
   };
 
@@ -495,9 +546,10 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     { hRatio: 0.18, targetH: 240, label: '18%-240' },
   ];
 
-  // Try the cheapest OCR strategy first and stop as soon as a valid timestamp
-  // is found. Most trail-cam timestamp bars are readable from the first pass;
-  // the inverted and binarized passes remain fallbacks for harder photos.
+  // Run every preprocessing strategy for every strip so consensus can reject
+  // a single noisy OCR read. This is intentionally exhaustive: the previous
+  // speed optimization returned on the first valid parse and reduced timestamp
+  // accuracy on roughly one in five photos.
   const tryStrip = async (
     worker: any,
     hRatio: number,
@@ -532,35 +584,43 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     // Draw the bottom strip of the ORIGINAL image at the up-scaled size
     ctx.drawImage(img, 0, cropY, img.width, cropH, 0, 0, canvasW, targetH);
 
+    // A transient Tesseract recognition error on one preprocessing variant
+    // must not discard the other variants or the remaining strips.
+    const recognize = async (source: string, stage: string): Promise<string> => {
+      try {
+        return (await worker.recognize(source)).data.text || '';
+      } catch (error) {
+        console.warn(`[OCR] ${stage} recognition failed; continuing with other variants:`, error);
+        return '';
+      }
+    };
+
     // ─ Strategy A: raw (colour) image — works when contrast is high ─
-    const rawText = (await worker.recognize(tmp.toDataURL('image/png'))).data.text;
+    const rawText = await recognize(tmp.toDataURL('image/png'), `${label} raw`);
     rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
     if (r) {
       console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
       results.push({ ...r, label: `${label} raw` });
-      return;
     }
 
     // ─ Strategy B: invert (white-on-dark → black-on-white) ─
     invertCanvas(tmp, ctx);
-    const invText = (await worker.recognize(tmp.toDataURL('image/png'))).data.text;
+    const invText = await recognize(tmp.toDataURL('image/png'), `${label} inverted`);
     rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
     if (r) {
       console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
       results.push({ ...r, label: `${label} inv` });
-      return;
     }
 
     // ─ Strategy C: binarize the inverted image ─
-    const meanGray = computeMeanGray(ctx, canvasW, targetH);
-    const thresh = Math.min(180, Math.max(100, meanGray * 0.5));
+    const thresh = computeOtsuThreshold(ctx, canvasW, targetH);
     const bwUrl = binarizeForOCR(ctx, canvasW, targetH, thresh, false);
     if (bwUrl) {
-      const bwText = (await worker.recognize(bwUrl)).data.text;
+      const bwText = await recognize(bwUrl, `${label} binarized`);
       rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
       console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
@@ -581,21 +641,14 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
     try {
       // ── Phase 1: PSM 7 (single uniform line — best for timestamp bars) ──
-      // Start with the narrowest timestamp strip and stop at the first valid
-      // read. This avoids paying for up to twelve OCR passes per photo.
+      // Run every strip and preprocessing strategy before resolving consensus.
+      // A single valid result is not trusted over the other reads.
       console.warn('[OCR] Setting PSM=7');
       await worker.setParameters({ tessedit_pageseg_mode: '7' });
       const psm7Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
       for (let si = 0; si < strips.length; si++) {
         const { hRatio, targetH, label } = strips[si];
         await tryStrip(worker, hRatio, targetH, `PSM7 ${label}`, psm7Results);
-        if (psm7Results.length > 0) {
-          const consensus = resolveConsensus(psm7Results);
-          if (consensus) {
-            console.warn(`[OCR] PSM7 result: ${consensus.dateTime}${consensus.timeDefaulted ? ' (time defaulted)' : ''}`);
-            return { dateTime: consensus.dateTime, timeDefaulted: consensus.timeDefaulted, rawTexts };
-          }
-        }
         await new Promise((r) => setTimeout(r, 0));
       }
 
@@ -606,20 +659,14 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       }
 
       // ── Phase 2: PSM 3 (auto page segmentation — fallback for wider timestamp bars) ──
-      // Only run if PSM7 produced NO results at all.
+      // Use the same exhaustive collection and consensus fallback when PSM7
+      // could not produce a valid timestamp.
       console.warn('[OCR] No PSM7 results — falling back to PSM=3');
       await worker.setParameters({ tessedit_pageseg_mode: '3' });
       const psm3Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
       for (let si = 0; si < strips.length; si++) {
         const { hRatio, targetH, label } = strips[si];
         await tryStrip(worker, hRatio, targetH, `PSM3 ${label}`, psm3Results);
-        if (psm3Results.length > 0) {
-          const consensus3 = resolveConsensus(psm3Results);
-          if (consensus3) {
-            console.warn(`[OCR] PSM3 result: ${consensus3.dateTime}${consensus3.timeDefaulted ? ' (time defaulted)' : ''}`);
-            return { dateTime: consensus3.dateTime, timeDefaulted: consensus3.timeDefaulted, rawTexts };
-          }
-        }
         await new Promise((r) => setTimeout(r, 0));
       }
 
