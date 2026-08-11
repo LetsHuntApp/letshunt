@@ -972,7 +972,7 @@ export function getDetailedConditionExplanation(
     };
   } else if (score >= RATING_THRESHOLDS.fair) {
     return {
-      headline: 'It is a good time to hunt — Moderate Weather Conditions',
+      headline: "It's an okay time to hunt — Moderate Weather Conditions",
       detail: 'Nothing dramatic is happening with the weather. Focus on first light and the last hour before dark.',
       badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
     };
