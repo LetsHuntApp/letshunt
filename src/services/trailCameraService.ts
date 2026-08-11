@@ -365,7 +365,7 @@ function loadImageForOCR(file: File): Promise<HTMLImageElement | null> {
 }
 
 // ---- Binarize a canvas region for OCR (adaptive threshold) ----
-function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number, invert: boolean): string | null {
+function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, threshold: number, invert: boolean): HTMLCanvasElement | null {
   const imgData = ctx.getImageData(0, 0, w, h);
   const data = imgData.data;
   for (let i = 0; i < data.length; i += 4) {
@@ -376,7 +376,10 @@ function binarizeForOCR(ctx: CanvasRenderingContext2D, w: number, h: number, thr
     data[i + 2] = bw;
   }
   ctx.putImageData(imgData, 0, 0);
-  return ctx.canvas.toDataURL('image/png');
+  // Tesseract accepts HTMLCanvasElement directly. Avoid encoding every OCR
+  // variant as a large base64 PNG; the pixels are unchanged and the caller
+  // awaits recognition before mutating this canvas for the next variant.
+  return ctx.canvas;
 }
 
 // ---- Adaptive (Otsu) binarization — finds the threshold that maximizes
@@ -586,7 +589,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
     // A transient Tesseract recognition error on one preprocessing variant
     // must not discard the other variants or the remaining strips.
-    const recognize = async (source: string, stage: string): Promise<string> => {
+    const recognize = async (source: string | HTMLCanvasElement, stage: string): Promise<string> => {
       try {
         return (await worker.recognize(source)).data.text || '';
       } catch (error) {
@@ -596,7 +599,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     };
 
     // ─ Strategy A: raw (colour) image — works when contrast is high ─
-    const rawText = await recognize(tmp.toDataURL('image/png'), `${label} raw`);
+    const rawText = await recognize(tmp, `${label} raw`);
     rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
@@ -607,7 +610,7 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
     // ─ Strategy B: invert (white-on-dark → black-on-white) ─
     invertCanvas(tmp, ctx);
-    const invText = await recognize(tmp.toDataURL('image/png'), `${label} inverted`);
+    const invText = await recognize(tmp, `${label} inverted`);
     rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
     console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
@@ -618,9 +621,9 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
     // ─ Strategy C: binarize the inverted image ─
     const thresh = computeOtsuThreshold(ctx, canvasW, targetH);
-    const bwUrl = binarizeForOCR(ctx, canvasW, targetH, thresh, false);
-    if (bwUrl) {
-      const bwText = await recognize(bwUrl, `${label} binarized`);
+    const bwCanvas = binarizeForOCR(ctx, canvasW, targetH, thresh, false);
+    if (bwCanvas) {
+      const bwText = await recognize(bwCanvas, `${label} binarized`);
       rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
       console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
@@ -887,25 +890,44 @@ export async function matchWeatherForPhoto(photo: TrailCameraPhoto): Promise<His
 // ---- Import Photos ----
 export async function importPhotos(files: FileList | File[], onProgress?: (completed: number, total: number) => void): Promise<TrailCameraPhoto[]> {
   const fileArray = Array.from(files);
-  const imported: TrailCameraPhoto[] = [];
+  // Keep the returned list in file-selection order even though OCR workers
+  // finish photos independently.
+  const imported: Array<TrailCameraPhoto | undefined> = new Array(files.length);
   let completedCount = 0;
 
-  // Pre-create a single Tesseract worker to reuse across all photos.
+  // Pre-create a small Tesseract worker pool. Each photo still runs the exact
+  // same exhaustive OCR variants and consensus, but separate workers let two
+  // photos be recognized at once instead of queueing the whole upload behind
+  // one worker. Keep the pool capped at two so mobile devices do not thrash.
   // The default CDN (jsdelivr @v7.0.0) loads correctly; explicit
   // workerPath/corePath/langPath configurations with wrong version
   // numbers were causing spurious NetworkErrors before the fallback.
-  let ocrWorker: any = undefined;
-  try {
-    const { createWorker } = await import('tesseract.js');
-    ocrWorker = await createWorker('eng');
-    console.log('[OCR] ✓ Tesseract worker initialized');
-  } catch (ocrInitErr) {
-    console.error(
-      '[OCR] ⚠️  TESSERACT.JS FAILED TO INITIALIZE — EVERY PHOTO WILL SHOW "OCR Failed".\n' +
-      'Underlying error:', ocrInitErr, '\n\n' +
-      'Check the Network tab in DevTools for failed requests.\n' +
-      'You can still tap any "OCR Failed" badge in the gallery to set the date manually.'
-    );
+  const availableCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2;
+  const desiredWorkerCount = Math.min(2, fileArray.length, availableCores);
+  const ocrWorkers: any[] = [];
+  if (desiredWorkerCount > 0) {
+    try {
+      const { createWorker } = await import('tesseract.js');
+      for (let workerIndex = 0; workerIndex < desiredWorkerCount; workerIndex++) {
+        try {
+          ocrWorkers.push(await createWorker('eng'));
+        } catch (workerErr) {
+          console.warn(`[OCR] Worker ${workerIndex + 1}/${desiredWorkerCount} failed to initialize:`, workerErr);
+        }
+      }
+      if (ocrWorkers.length > 0) {
+        console.log(`[OCR] ✓ ${ocrWorkers.length} Tesseract worker${ocrWorkers.length === 1 ? '' : 's'} initialized`);
+      }
+    } catch (ocrInitErr) {
+      console.error('[OCR] Failed to load Tesseract.js:', ocrInitErr);
+    }
+    if (ocrWorkers.length === 0) {
+      console.error(
+        '[OCR] ⚠️ TESSERACT.JS FAILED TO INITIALIZE — EVERY PHOTO WILL SHOW "OCR Failed".\n' +
+        'Check the Network tab in DevTools for failed requests.\n' +
+        'You can still tap any "OCR Failed" badge in the gallery to set the date manually.'
+      );
+    }
   }
 
   // Open a single DB connection for the entire import batch.
@@ -918,15 +940,14 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     console.error('[import] Failed to open IndexedDB:', dbErr);
   }
 
-  // ---- Process photos one at a time ----
-  // Tesseract uses one worker, so running multiple photo jobs at once only
-  // makes completion order noisy and causes React to batch progress updates.
-  // A single job keeps the progress bar honest: every completed photo emits
-  // exactly one progress update while the OCR worker stays fully utilized.
-  const CONCURRENCY = 1;
+  // ---- Process photos with one dedicated worker per concurrent job ----
+  // Each worker owns its setParameters/recognize sequence, so parallel jobs
+  // cannot change one another's PSM mode or compromise OCR consensus.
+  // A workerless fallback still processes filename dates and stores the images.
+  const CONCURRENCY = Math.max(1, ocrWorkers.length);
   let nextIndex = 0;
 
-  const processOne = async (): Promise<void> => {
+  const processOne = async (ocrWorker: any): Promise<void> => {
     while (nextIndex < fileArray.length) {
       const i = nextIndex++;
       const file = fileArray[i];
@@ -993,7 +1014,7 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
           await putInStore(FULL_IMAGES_STORE, { id, blob: file, thumbnailUrl: thumbnailDataUrl || '' });
         }
 
-        imported.push(photo);
+        imported[i] = photo;
       } catch (err) {
         console.warn(`Skipping file "${file.name}":`, err);
       }
@@ -1003,19 +1024,22 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
     }
   };
 
-  // Run one worker for the import batch. The shared-index loop remains here
-  // so the progress callback and cleanup behavior stay unchanged.
+  // Run the bounded worker pool. The shared-index loop keeps progress updates
+  // and cleanup behavior unchanged while preserving each photo's full OCR pass.
   await Promise.all(
-    Array.from({ length: Math.min(CONCURRENCY, fileArray.length) }, () => processOne())
+    Array.from(
+      { length: Math.min(CONCURRENCY, fileArray.length) },
+      (_, workerIndex) => processOne(ocrWorkers[workerIndex])
+    )
   );
 
   // Clean up
   try { db?.close(); } catch { /* ignore */ }
-  if (ocrWorker) {
-    try { await ocrWorker.terminate(); } catch { /* ignore */ }
+  for (const worker of ocrWorkers) {
+    try { await worker.terminate(); } catch { /* ignore */ }
   }
 
-  return imported;
+  return imported.filter((photo): photo is TrailCameraPhoto => photo !== undefined);
 }
 
 
