@@ -409,7 +409,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               <Calendar className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>{day.dayName}, {day.dateFormatted}</span>
               {selectedHour !== undefined && (
-                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold bg-emerald-500/10 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded-lg border border-emerald-500/35">
+                <span className={`font-extrabold px-1.5 py-0.5 rounded-lg border ${
+                  theme === 'hunting'
+                    ? 'text-white bg-[#4a8c5e] border-[#74ad82]'
+                    : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/35'
+                }`}>
                   @ {getHour12Label(selectedHour)}
                 </span>
               )}
