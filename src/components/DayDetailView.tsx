@@ -550,7 +550,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowWeatherExplanation((prev) => !prev)}
-                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
+                  className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
                     showWeatherExplanation
                       ? isDark
                         ? theme === 'hunting'
