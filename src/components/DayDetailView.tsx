@@ -470,7 +470,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
               {/* Centered Best Hunt Time Badge */}
               <div className="flex items-center justify-center w-full">
-                <span className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider whitespace-nowrap bg-emerald-500/15 border border-emerald-500/35 text-emerald-600 dark:text-emerald-400 shadow-xs">
+                <span className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider whitespace-nowrap border shadow-xs ${
+                  theme === 'hunting'
+                    ? 'bg-[#4a8c5e] border-[#74ad82] text-white'
+                    : 'bg-emerald-500/15 border-emerald-500/35 text-emerald-600 dark:text-emerald-400'
+                }`}>
                   <Crosshair className="w-3.5 h-3.5" /> Best Hunt: {getBestHuntTime(day)}
                 </span>
               </div>
@@ -489,16 +493,20 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
                     showWeatherExplanation
                       ? isDark
-                        ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
+                        ? theme === 'hunting'
+                          ? 'bg-[#a65d35] text-white border-[#e08a5a] hover:bg-[#b87342]'
+                          : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
                         : theme === 'hunting'
-                        ? 'bg-[#c85a17]/15 text-[#7a3208] border-[#c85a17]/40 hover:bg-[#c85a17]/25'
+                        ? 'bg-[#c85a17] text-white border-[#e08a5a] hover:bg-[#b34e12]'
                         : theme === 'olive'
                         ? 'bg-[#556b2f]/15 text-[#3d4f21] border-[#556b2f]/40 hover:bg-[#556b2f]/25'
                         : 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
                       : isDark
-                      ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:bg-emerald-500/20'
+                      ? theme === 'hunting'
+                        ? 'bg-[#a65d35] text-white border-[#e08a5a] hover:bg-[#b87342]'
+                        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:bg-emerald-500/20'
                       : theme === 'hunting'
-                      ? 'bg-[#c85a17]/10 text-[#8b3f12] border-[#c85a17]/30 hover:bg-[#c85a17]/20'
+                      ? 'bg-[#c85a17] text-white border-[#e08a5a] hover:bg-[#b34e12]'
                       : theme === 'olive'
                       ? 'bg-[#556b2f]/10 text-[#466126] border-[#556b2f]/30 hover:bg-[#556b2f]/20'
                       : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
