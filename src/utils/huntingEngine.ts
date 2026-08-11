@@ -749,7 +749,7 @@ export function calculateHuntScore(params: {
 
   totalScore += scentScore;
   factors.push({
-    name: 'Scent & Ground Noise',
+    name: 'Humidity & Scent',
     score: scentScore,
     maxScore: 6,
     description: scentDesc,
