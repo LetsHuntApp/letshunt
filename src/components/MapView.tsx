@@ -2044,6 +2044,11 @@ export const MapView: React.FC<MapViewProps> = ({
     const latestDistance = latestPinchDistanceRef.current;
     if (initialZoom === null || latestDistance === null) return;
 
+    // Rotation-only gestures still need to invalidate the tile grid. The CSS
+    // transform updates every touch frame, but this throttled state update is
+    // what lets React mount the extra corner tiles needed by the rotated view.
+    setRotationDisplay(rotationRef.current);
+
     const zoomOffset = Math.log2(zoomScaleRef.current);
     if (Math.abs(zoomOffset) < 0.08) return;
 
@@ -2401,7 +2406,16 @@ export const MapView: React.FC<MapViewProps> = ({
   // one low-resolution overview layer are mounted in the DOM.
   const allTileElements = useMemo<React.ReactNode[]>(() => {
     const tiles: React.ReactNode[] = [];
-  // Low-zoom regional overview layer (zIndex: 1)
+    // A rotated viewport exposes the corners of this local, axis-aligned tile
+    // rectangle. Expand each half-axis by the rotated rectangle's projection
+    // instead of assuming the unrotated viewport bounds are sufficient.
+    const rotationRadians = (rotationDisplay * Math.PI) / 180;
+    const absCos = Math.abs(Math.cos(rotationRadians));
+    const absSin = Math.abs(Math.sin(rotationRadians));
+    const renderedHalfWidth = absCos * halfWidth + absSin * halfHeight;
+    const renderedHalfHeight = absSin * halfWidth + absCos * halfHeight;
+
+    // Low-zoom regional overview layer (zIndex: 1)
   // Guarantees 100% background satellite coverage for the entire region. The
   // zoom is capped relative to the current level so the scaled tiles never
   // exceed ~2.9k CSS px — the old fixed z12 cap blew up to 32k px at z19,
@@ -2413,10 +2427,10 @@ export const MapView: React.FC<MapViewProps> = ({
     const ovTileSize = 256 * ovScale;
     const ovCoords = latLngToTileCoords(centerLat, centerLng, overviewZoom);
 
-    const ovMinX = Math.floor(ovCoords.x - halfWidth / ovTileSize) - 2;
-    const ovMaxX = Math.ceil(ovCoords.x + halfWidth / ovTileSize) + 2;
-    const ovMinY = Math.floor(ovCoords.y - halfHeight / ovTileSize) - 2;
-    const ovMaxY = Math.ceil(ovCoords.y + halfHeight / ovTileSize) + 2;
+    const ovMinX = Math.floor(ovCoords.x - renderedHalfWidth / ovTileSize) - 2;
+    const ovMaxX = Math.ceil(ovCoords.x + renderedHalfWidth / ovTileSize) + 2;
+    const ovMinY = Math.floor(ovCoords.y - renderedHalfHeight / ovTileSize) - 2;
+    const ovMaxY = Math.ceil(ovCoords.y + renderedHalfHeight / ovTileSize) + 2;
 
     for (let tx = ovMinX; tx <= ovMaxX; tx++) {
       for (let ty = ovMinY; ty <= ovMaxY; ty++) {
@@ -2449,10 +2463,10 @@ export const MapView: React.FC<MapViewProps> = ({
   // already-requested imagery instead of a blank edge. This is substantially
   // smaller than the old four-tile ring while still behaving like a slippy map.
   const TILE_OVERSCAN = 2;
-  const actMinX = Math.floor(actCoords.x - halfWidth / actTileSize) - TILE_OVERSCAN;
-  const actMaxX = Math.ceil(actCoords.x + halfWidth / actTileSize) + TILE_OVERSCAN;
-  const actMinY = Math.floor(actCoords.y - halfHeight / actTileSize) - TILE_OVERSCAN;
-  const actMaxY = Math.ceil(actCoords.y + halfHeight / actTileSize) + TILE_OVERSCAN;
+  const actMinX = Math.floor(actCoords.x - renderedHalfWidth / actTileSize) - TILE_OVERSCAN;
+  const actMaxX = Math.ceil(actCoords.x + renderedHalfWidth / actTileSize) + TILE_OVERSCAN;
+  const actMinY = Math.floor(actCoords.y - renderedHalfHeight / actTileSize) - TILE_OVERSCAN;
+  const actMaxY = Math.ceil(actCoords.y + renderedHalfHeight / actTileSize) + TILE_OVERSCAN;
 
   for (let tx = actMinX; tx <= actMaxX; tx++) {
     for (let ty = actMinY; ty <= actMaxY; ty++) {
@@ -2476,7 +2490,7 @@ export const MapView: React.FC<MapViewProps> = ({
   }
 
     return tiles;
-  }, [centerLat, centerLng, zoom, dimensions.width, dimensions.height, mapStyle, halfWidth, halfHeight]);
+  }, [centerLat, centerLng, zoom, rotationDisplay, dimensions.width, dimensions.height, mapStyle, halfWidth, halfHeight]);
 
   // Convert lat/lng to map container pixel coordinates
   const latLngToPixel = useCallback(
