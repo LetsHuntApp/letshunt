@@ -193,13 +193,9 @@ interface MapTileProps {
   size: number;
   zIndex?: number;
   z: number;
-  tx: number;
-  ty: number;
-  mapStyle: string;
-  onTileLoaded?: (key: string, src: string, z: number, tx: number, ty: number, mapStyle: string) => void;
 }
 
-const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx, ty, mapStyle, onTileLoaded }: MapTileProps) => {
+const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z }: MapTileProps) => {
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -224,20 +220,18 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx,
     // watermark, or a solid no-data tile) that never fires onError because the
     // response is a successful image. Detect those and advance the fallback
     // chain instead of painting a bright box over the map.
-    if (isEsriErrorTile(imgRef.current)) {
+    // Error-image inspection requires a synchronous canvas readback. Esri's
+    // unsupported-zoom response is only relevant at the service ceiling, so
+    // avoid paying that main-thread cost for every normal tile load.
+    if (z >= MAX_ZOOM && isEsriErrorTile(imgRef.current)) {
       handleError();
       return;
     }
     setLoaded(true);
-    if (onTileLoaded) {
-      onTileLoaded(tileKey, src, z, tx, ty, mapStyle);
-    }
   };
 
-  // opacity 0 until the tile actually decodes: a tile that exhausts its URL
-  // attempts stays invisible so the scaled overview/cache tiers show through
-  // instead of painting a black hole, and successful tiles cross-fade in for
-  // a smooth professional zoom feel.
+  // Opacity stays at zero until the tile decodes so a failed request reveals
+  // the low-resolution overview instead of painting a black hole.
   return (
     <img
       src={src}
@@ -256,7 +250,6 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z, tx,
         height: `${Math.ceil(size + 2.5)}px`,
         zIndex,
         opacity: loaded ? 1 : 0,
-        transition: 'opacity 0.25s ease',
       }}
     />
   );
@@ -880,42 +873,10 @@ export const MapView: React.FC<MapViewProps> = ({
   // One shared hourly weather control for wind + forecast precipitation.
   const [showHourlyWeather, setShowHourlyWeather] = useState(false);
 
-  // Persistent tile cache across zoom levels. Bounded so a long session never
-  // accumulates hundreds of <img> layers; eviction drops the oldest entries
-  // (Map preserves insertion order) beyond the cap.
-  const cachedTilesRef = useRef<Map<string, { z: number; tx: number; ty: number; src: string; style: string }>>(new Map());
-  const [tileCacheVersion, setTileCacheVersion] = useState(0);
-  const tileCacheRafRef = useRef<number | null>(null);
-  const MAX_CACHED_TILES = 800;
-
-  const handleTileLoaded = useCallback((key: string, src: string, z: number, tx: number, ty: number, style: string) => {
-    if (!cachedTilesRef.current.has(key)) {
-      cachedTilesRef.current.set(key, { z, tx, ty, src, style });
-      while (cachedTilesRef.current.size > MAX_CACHED_TILES) {
-        const oldestKey = cachedTilesRef.current.keys().next().value;
-        if (oldestKey === undefined) break;
-        cachedTilesRef.current.delete(oldestKey);
-      }
-    }
-    // Batch cache-driven re-renders to one per animation frame. A full MapView
-    // re-render on every single tile load is what made zoom/pan feel janky.
-    if (tileCacheRafRef.current !== null) return;
-    tileCacheRafRef.current = requestAnimationFrame(() => {
-      tileCacheRafRef.current = null;
-      setTileCacheVersion((v) => v + 1);
-    });
-  }, []);
-
-  // Cancel any pending cache-batch frame if the map unmounts (tab switch away
-  // from Map) — never touch state after unmount.
-  useEffect(() => {
-    return () => {
-      if (tileCacheRafRef.current !== null) {
-        cancelAnimationFrame(tileCacheRafRef.current);
-        tileCacheRafRef.current = null;
-      }
-    };
-  }, []);
+  // Tile images remain available through the browser's HTTP cache. Avoiding a
+  // second in-memory <img> cache layer keeps hundreds of stale DOM images from
+  // competing with the current tile set and eliminates cache-load re-renders of
+  // the entire map overlay.
 
   useEffect(() => {
     safeSet('letshunt_show_preferred_wind', showPreferredWind.toString());
@@ -2314,15 +2275,12 @@ export const MapView: React.FC<MapViewProps> = ({
   const halfWidth = dimensions.width / 2;
   const halfHeight = dimensions.height / 2;
 
-  // Wrap the entire 3-tier tile-element build in useMemo so unrelated state
-  // changes (drawing polygons, opening dropdowns, slider scrubs) don't churn
-  // dozens of fresh React elements per render. Without this memo, every
-  // re-render allocated new `urls` arrays inside MapTile props, defeating
-  // React.memo on MapTile and forcing hundreds of <img> re-mounts on each
-  // pan step on lower-end devices.
+  // Keep tile-element allocation isolated from unrelated map UI state. The
+  // browser HTTP cache handles revisited tiles; only the current viewport and
+  // one low-resolution overview layer are mounted in the DOM.
   const allTileElements = useMemo<React.ReactNode[]>(() => {
     const tiles: React.ReactNode[] = [];
-  // Tier 1: Low-zoom regional overview layer (zIndex: 1)
+  // Low-zoom regional overview layer (zIndex: 1)
   // Guarantees 100% background satellite coverage for the entire region. The
   // zoom is capped relative to the current level so the scaled tiles never
   // exceed ~2.9k CSS px — the old fixed z12 cap blew up to 32k px at z19,
@@ -2356,69 +2314,23 @@ export const MapView: React.FC<MapViewProps> = ({
             size={ovTileSize}
             zIndex={1}
             z={overviewZoom}
-            tx={tx}
-            ty={ty}
-            mapStyle={mapStyle}
-            onTileLoaded={handleTileLoaded}
           />
         );
       }
     }
   }
 
-  // Tier 2: Persistent cached loaded satellite tiles from memory (zIndex: 2)
-  // Scaled smoothly to match the current viewport so zero space appears while zooming/panning.
-  // Include tiles within 2 zoom levels so there's always background coverage during transitions.
-  cachedTilesRef.current.forEach((cached, key) => {
-    if (cached.style === mapStyle && Math.abs(cached.z - baseZoom) <= 2) {
-      const scale = Math.pow(2, zoom - cached.z);
-      const tileSize = 256 * scale;
-      const tileCoords = latLngToTileCoords(centerLat, centerLng, cached.z);
-      const tileLeft = halfWidth + (cached.tx - tileCoords.x) * tileSize;
-      const tileTop = halfHeight + (cached.ty - tileCoords.y) * tileSize;
-
-      if (
-        tileLeft + tileSize >= -160 &&
-        tileLeft <= dimensions.width + 160 &&
-        tileTop + tileSize >= -160 &&
-        tileTop <= dimensions.height + 160
-      ) {
-        tiles.push(
-          <img
-            key={`cached-bg-${key}`}
-            src={cached.src}
-            alt=""
-            draggable={false}
-            decoding="async"
-            onError={(e) => {
-              // A cached tile re-request can fail if the browser evicted its
-              // entry mid-session; hide it so the overview tier shows through
-              // instead of a broken-image icon.
-              e.currentTarget.style.opacity = '0';
-            }}
-            className="absolute object-cover border-none select-none pointer-events-none"
-            style={{
-              left: `${tileLeft}px`,
-              top: `${tileTop}px`,
-              width: `${Math.ceil(tileSize + 2.5)}px`,
-              height: `${Math.ceil(tileSize + 2.5)}px`,
-              zIndex: 2,
-            }}
-          />
-        );
-      }
-    }
-  });
-
-  // Tier 3: Active current zoom level layer (zIndex: 5)
+  // Active current zoom level layer (zIndex: 5)
   const actScale = Math.pow(2, zoom - baseZoom);
   const actTileSize = 256 * actScale;
   const actCoords = latLngToTileCoords(centerLat, centerLng, baseZoom);
-
-  const actMinX = Math.floor(actCoords.x - halfWidth / actTileSize) - 4;
-  const actMaxX = Math.ceil(actCoords.x + halfWidth / actTileSize) + 4;
-  const actMinY = Math.floor(actCoords.y - halfHeight / actTileSize) - 4;
-  const actMaxY = Math.ceil(actCoords.y + halfHeight / actTileSize) + 4;
+  // One tile of overscan covers normal pan release without creating the
+  // 100+ image elements the old four-tile padding generated on desktop.
+  const TILE_OVERSCAN = 1;
+  const actMinX = Math.floor(actCoords.x - halfWidth / actTileSize) - TILE_OVERSCAN;
+  const actMaxX = Math.ceil(actCoords.x + halfWidth / actTileSize) + TILE_OVERSCAN;
+  const actMinY = Math.floor(actCoords.y - halfHeight / actTileSize) - TILE_OVERSCAN;
+  const actMaxY = Math.ceil(actCoords.y + halfHeight / actTileSize) + TILE_OVERSCAN;
 
   for (let tx = actMinX; tx <= actMaxX; tx++) {
     for (let ty = actMinY; ty <= actMaxY; ty++) {
@@ -2436,17 +2348,13 @@ export const MapView: React.FC<MapViewProps> = ({
           size={actTileSize}
           zIndex={5}
           z={baseZoom}
-          tx={tx}
-          ty={ty}
-          mapStyle={mapStyle}
-          onTileLoaded={handleTileLoaded}
         />
       );
     }
   }
 
     return tiles;
-  }, [centerLat, centerLng, zoom, dimensions.width, dimensions.height, mapStyle, tileCacheVersion, halfWidth, halfHeight, handleTileLoaded, cachedTilesRef]);
+  }, [centerLat, centerLng, zoom, dimensions.width, dimensions.height, mapStyle, halfWidth, halfHeight]);
 
   // Convert lat/lng to map container pixel coordinates
   const latLngToPixel = useCallback(
@@ -2507,7 +2415,10 @@ export const MapView: React.FC<MapViewProps> = ({
     const travel = Math.hypot(w, h) + margin * 2;
     const speed = Math.max(45, mph * 34); // px per second
     const dur = travel / speed;
-    const count = Math.max(90, Math.min(280, Math.round((w * h) / 2200)));
+    // SVG animation is the most expensive optional map overlay: each streak
+    // contains two paths and its own compositor animation. Keep the effect
+    // atmospheric without making hundreds of animated nodes compete with tiles.
+    const count = Math.max(48, Math.min(120, Math.round((w * h) / 5000)));
     // deterministic hash so streak positions stay put across slider scrubs
     const hash = (n: number) => {
       const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
@@ -2541,7 +2452,7 @@ export const MapView: React.FC<MapViewProps> = ({
         <div
           ref={mapContainerRef}
           className="absolute inset-0 cursor-grab active:cursor-grabbing select-none touch-none"
-          style={{ willChange: 'transform', transformOrigin: 'center center' }}
+          style={{ willChange: 'transform', transformOrigin: 'center center', contain: 'layout paint' }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
