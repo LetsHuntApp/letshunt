@@ -9,7 +9,7 @@ import {
   sendTestNotification,
   showSystemNotification,
 } from '../services/notificationService';
-import { subscribeUserToPush, unsubscribeUserFromPush, getPushServerUrl, DEFAULT_PUSH_SERVER_URL, sendTestClosedAppPush } from '../services/pushService';
+import { subscribeUserToPush, unsubscribeUserFromPush, sendTestClosedAppPush } from '../services/pushService';
 import {
   Settings,
   MapPin,
@@ -278,12 +278,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   );
 
   const permissionLabel = !supported
-    ? 'Not supported on this browser'
+    ? 'Alerts are not available in this browser'
     : permissionState === 'granted'
-    ? 'Permission granted — alerts active'
+    ? 'Alerts are ready'
     : permissionState === 'denied'
-    ? 'Blocked by browser — enable in site settings'
-    : 'Tap Enable and allow notifications in the browser prompt';
+    ? 'Notifications are turned off in your browser'
+    : 'Tap to turn on weather alerts';
 
   const ensurePermissionGranted = async (): Promise<NotificationPermission | 'unsupported'> => {
     let perm = getPermissionState();
@@ -341,7 +341,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleBackgroundPushTest = async () => {
     setIsBackgroundTesting(true);
-    setBgTestStatus({ kind: 'waking', message: 'Preparing browser subscription…' });
+    setBgTestStatus({ kind: 'waking', message: 'Getting your alerts ready…' });
     try {
       const result = await sendTestClosedAppPush(
         { name: currentLocation.name, latitude: currentLocation.latitude, longitude: currentLocation.longitude },
@@ -354,15 +354,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           severeWeather: notificationPrefs.severeWeather,
         },
         units,      (state, info) => {
-          if (state === 'waking') setBgTestStatus({ kind: 'waking', message: info || 'Waking up push server…' });
-          else if (state === 'sending') setBgTestStatus({ kind: 'sending', message: info || 'Sending web-push…' });
+          if (state === 'waking') setBgTestStatus({ kind: 'waking', message: info || 'Getting your alerts ready…' });
+          else if (state === 'sending') setBgTestStatus({ kind: 'sending', message: info || 'Sending a test alert…' });
         });
       setBgTestStatus({
         kind: result.ok ? 'success' : 'error',
         message: result.message,
       });
       if (result.ok) {
-        showToast('Background test push delivered ✓');
+        showToast('Closed-app test alert sent ✓');
       }
     } catch (e: any) {
       setBgTestStatus({ kind: 'error', message: e?.message || 'Unexpected error' });
@@ -400,12 +400,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         units
       ).then((ok) => {
         if (ok) {
-          showToast('Weather alerts enabled — including background push when the app is closed.');
+          showToast('Weather alerts are on.');
         } else {
-          showToast('Weather alerts enabled. Background push requires the companion server — foreground alerts still work.');
+          showToast('Weather alerts are on.');
         }
       }).catch(() => {
-        showToast('Weather alerts enabled. Background push requires the companion server — foreground alerts still work.');
+        showToast('Weather alerts are on.');
       });
     } else if (perm === 'denied') {
       showToast('Notifications are blocked by the browser. Enable them in your site settings.');
@@ -723,14 +723,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
               <BellRing className="w-5 h-5 text-emerald-500" />
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Push Notifications & Weather Alerts
+                Weather Alerts
               </h2>
             </div>
 
             <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Get alerted when weather may get deer moving — cold fronts, weather changes, breaks in the rain,
-              and prime hunting days. Alerts fire while LetsHunt is open, as an installed app running
-              in the background, <strong>or even when the app is fully closed</strong> (via background push).
+              Get a heads-up when weather may get deer moving — cold fronts, weather changes, breaks in the rain,
+              and the best hunting days. Alerts can reach you even when LetsHunt is closed.
               On Android, also allow notifications for LetsHunt in your device Settings.
             </p>
 
@@ -742,7 +741,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             >
               <div className="min-w-0">
                 <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  Enable Push Notifications
+                  Get Weather Alerts
                 </div>
                 <div className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{permissionLabel}</div>
               </div>
@@ -810,61 +809,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
 
-            {/* Push server URL — preconfigured to the deployed server; only needed
-                for custom/self-hosted deployments. */}
-            <div className="pt-1">
-              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Push Server URL <span className="text-[10px] font-normal normal-case tracking-normal text-slate-500">(for background alerts when app is closed)</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  defaultValue={localStorage.getItem('letshunt_push_server_url') || getPushServerUrl()}
-                  placeholder={DEFAULT_PUSH_SERVER_URL}
-                  onChange={(e) => {
-                    const val = e.target.value.trim();
-                    if (val) {
-                      localStorage.setItem('letshunt_push_server_url', val);
-                    } else {
-                      localStorage.removeItem('letshunt_push_server_url');
-                    }
-                  }}
-                  className={`flex-1 px-3 py-2 rounded-xl border text-xs ${
-                    isDark
-                      ? 'bg-slate-950 border-slate-800 text-slate-200 placeholder-slate-600 focus:border-emerald-500'
-                      : 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-emerald-600'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const url = getPushServerUrl().replace(/\/+$/, '');
-                    try {
-                      const res = await fetch(`${url}/health`);
-                      if (res.ok) {
-                        const data = await res.json();
-                        showToast(`Push server online — ${data.subscriptions ?? '?'} subscriptions`);
-                      } else {
-                        showToast('Server responded but health check failed.');
-                      }
-                    } catch {
-                      showToast('Could not reach the push server. Is it deployed?');
-                    }
-                  }}
-                  className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all ${isDark ? 'bg-slate-950 border-slate-800 hover:border-emerald-500 text-slate-200' : 'bg-slate-50 border-slate-200 hover:border-emerald-600 text-slate-800'}`}
-                >
-                  Test
-                </button>
-              </div>
-              <p className={`text-[10px] mt-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                Preconfigured to <span className="font-semibold text-emerald-500">{DEFAULT_PUSH_SERVER_URL}</span> — no setup needed.
-                Only change this if you host your own push server.
-              </p>
-            </div>
-
-            {/* Foreground test button — fires immediately through the service
-                worker while LetsHunt is open. Cheap sanity check for the
-                permission + SW registration pipeline. */}
+            {/* Quick test while the app is open. */}
             <button
               onClick={async () => {
                 let sent = await sendTestNotification();
@@ -890,35 +835,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               } ${!supported || permissionState === 'denied' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <BellRing className="w-4 h-4 text-emerald-500" />
-              Send Test Notification
+              Send Test Alert
             </button>
 
-            {/* Background (closed-app) test button — drives the *server-side*
-                push pipeline. If this delivers while LetsHunt is closed, the
-                whole VAPID → subscription → browser vendor → service-worker
-                flow is wired up correctly. The button above does not test
-                that path. */}
+            {/* Test alerts while the app is closed. */}
             <div className={`rounded-2xl border p-3.5 space-y-3 ${isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex items-start gap-2">
                 <Send className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDark ? 'text-sky-400' : 'text-sky-600'}`} />
                 <div className="flex-1">
                   <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Test Closed-App Notifications
+                    Test Alerts When App Is Closed
                   </div>
                   <div className={`text-[10px] mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Sends a real <strong>web push from the Render server</strong> through your browser's
-                    push service. If LetsHunt is currently open you should see a notification within
-                    seconds, and the same OS pipeline delivers it when LetsHunt is closed — the
-                    browser's push service just routes pushes to the installed PWA service worker
-                    regardless of whether the app is in the foreground.
-                    {!notificationPrefs.enabled && (
-                      <>
-                        {' '}
-                        <strong>Heads-up:</strong> this also re-registers your subscription on the
-                        server, so weather alerts will continue to arrive even with the master toggle
-                        off until you disable them again.
-                      </>
-                    )}
+                    Sends a quick test alert so you know your weather alerts are ready.
+                    Close LetsHunt after tapping the button to make sure alerts can reach you while you are away.
                   </div>
                 </div>
               </div>
@@ -937,7 +867,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-                {isBackgroundTesting ? 'Sending Background Test…' : 'Send Background Test (app closed)'}
+                {isBackgroundTesting ? 'Sending Test Alert…' : 'Send Test Alert (app closed)'}
               </button>
 
               {bgTestStatus.kind !== 'idle' && (
@@ -967,36 +897,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               )}
 
-              {/* Render free-tier warning — only show if user is on the
-                  default server URL. Self-hosted users can ignore. */}
-              {(typeof window !== 'undefined'
-                ? (localStorage.getItem('letshunt_push_server_url') || getPushServerUrl())
-                : getPushServerUrl()) === DEFAULT_PUSH_SERVER_URL && (
-                <div
-                  className={`rounded-xl border px-3 py-2 text-[10px] leading-relaxed flex items-start gap-2 ${
-                    isDark
-                      ? 'bg-amber-950/30 border-amber-500/30 text-amber-200'
-                      : 'bg-amber-50 border-amber-200 text-amber-900'
-                  }`}
-                >
-                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                  <span>
-                    <strong>Closed-app push is keeping the server awake.</strong>{' '}
-                    Render's free web service sleeps after ~15&nbsp;minutes of inactivity,
-                    which is the #1 reason background alerts go silent. Point any free
-                    external pinger at{' '}
-                    <code className="px-1 rounded bg-amber-500/10">{getPushServerUrl()}/health</code>
-                    {' '}every 10&nbsp;minutes — easy options:{' '}
-                    <a className="underline font-bold" href="https://cron-job.org" target="_blank" rel="noopener noreferrer">cron-job.org</a>
-                    {' '}(1‑min granularity, free) or{' '}
-                    <a className="underline font-bold" href="https://uptimerobot.com" target="_blank" rel="noopener noreferrer">UptimeRobot</a>
-                    {' '}(5‑min granularity, free).{' '}
-                    <a className="underline font-bold" href="https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onschedule" target="_blank" rel="noopener noreferrer">GitHub Actions</a>
-                    {' '}is another option if you don&apos;t want yet another account.
-                    Render also offers a managed cron job (~$1/month minimum).
-                  </span>
-                </div>
-              )}
             </div>
           </div>
 

@@ -227,6 +227,7 @@ function detectAlerts(raw, prefs, isMetric) {
         const hourLabel = new Date(hourly.time[i]).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
         alerts.push({
           id: `rain_break_${dateStr}_${i}`,
+          type: 'rain_break',
           title: `☔ Break in the Rain ${dayName}`,
           body: `${dateFormatted} ${hourLabel} — rain lets up. Deer surge out to feed and stretch. Prime setup window.`,
         });
@@ -287,7 +288,19 @@ async function sendPush(subscription, payload) {
 
 // ── Main check loop ──────────────────────────────────────────────────────────
 
+let checkInFlight = false;
+
 async function checkAndNotify() {
+  if (checkInFlight) return;
+  checkInFlight = true;
+  try {
+    await checkAndNotifyNow();
+  } finally {
+    checkInFlight = false;
+  }
+}
+
+async function checkAndNotifyNow() {
   const subs = loadSubscriptions();
   if (subs.length === 0) {
     console.log(`[push-server] No subscriptions to check.`);
@@ -416,6 +429,11 @@ app.post('/unsubscribe', (req, res) => {
 // point UptimeRobot / cron-job.org at this URL as a dropping-in replacement.
 app.get('/health', (req, res) => {
   const subs = loadSubscriptions();
+  // The free-tier keep-alive pinger also becomes a reliable scheduler tick.
+  // This avoids depending on setInterval timing after Render wakes the service.
+  if (req.get('x-keep-alive') === '1') {
+    checkAndNotify().catch((err) => console.error('[push-server] Keep-alive check failed:', err));
+  }
   res.json({ ok: true, subscriptions: subs.length, uptime: process.uptime() });
 });
 

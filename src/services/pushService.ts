@@ -46,14 +46,26 @@ function setStoredVapidKey(key: string): void {
 }
 
 /**
- * Resolve the service-worker registration only if one actually exists.
- * Unlike `navigator.serviceWorker.ready`, this never hangs when no SW is
- * registered (e.g. local development, where we intentionally skip SW
- * registration) — it resolves to null instead.
+ * Resolve the service-worker registration when it already exists or while the
+ * production app is finishing its first registration. The timeout keeps local
+ * development (where SW registration is intentionally skipped) from hanging.
  */
 async function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
-  return (await navigator.serviceWorker.getRegistration()) ?? null;
+  const existing = await navigator.serviceWorker.getRegistration();
+  if (existing) return existing;
+
+  // The app registers sw.js on window load. If a hunter enables alerts during
+  // that first visit, wait briefly for the registration instead of failing
+  // because the service worker has not finished installing yet.
+  try {
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 15000)),
+    ]);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -285,7 +297,7 @@ export async function sendTestClosedAppPush(
   onStateChange?: (state: 'waking' | 'sending', info?: string) => void
 ): Promise<BackgroundTestResult> {
   if (!isPushSupported()) {
-    return { ok: false, reachedServer: false, message: 'Push API not supported in this browser.' };
+    return { ok: false, reachedServer: false, message: 'Alerts are not available in this browser.' };
   }
 
   let subscription: PushSubscriptionJSON | null;
@@ -301,18 +313,18 @@ export async function sendTestClosedAppPush(
     return {
       ok: false,
       reachedServer: false,
-      message: "No active push subscription in this browser. Toggle 'Enable Push Notifications' on once, then try this test again.",
+      message: 'Alerts are not set up yet. Turn Weather Alerts off and back on, then try the test again.',
     };
   }
 
-  onStateChange?.('waking', 'Waking up push server (cold start on Render free plan can take ~30s)…');
+  onStateChange?.('waking', 'Getting your alerts ready…');
 
   // Generous timeout — Render free-tier cold starts regularly take 25-40s to
   // boot, and a 10s timeout here would just look broken to the user.
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60_000);
   try {
-    onStateChange?.('sending', 'Sending web-push through your browser\'s push service…');
+    onStateChange?.('sending', 'Sending a test alert…');
     const url = `${getPushServerUrl()}/send-test`;
     const body: Record<string, unknown> = { subscription };
     if (location) body.location = location;
@@ -340,20 +352,18 @@ export async function sendTestClosedAppPush(
         reachedServer: true,
         status: res.status,
         message:
-          'Test push sent! The browser push service has accepted it. The OS will deliver the notification within seconds — ' +
-          'it should appear even if LetsHunt is closed or the screen is locked.',
+          'Test alert sent. Close LetsHunt now — you should still receive the alert within seconds.',
       };
     }
 
     // Map common server errors to friendly copy
-    const reason = data?.message || data?.error || `Server responded ${res.status}`;
     if (res.status === 410 || (data && data.error === 'subscription_expired')) {
       return {
         ok: false,
         reachedServer: true,
         status: res.status,
         message:
-          'This browser subscription is no longer valid (server reported it as expired). Open LetsHunt, flip the master toggle off and back on to register a fresh subscription.',
+          'Your alert connection needs refreshing. Turn Weather Alerts off and back on, then try again.',
       };
     }
     if (data && data.error === 'push_send_failed') {
@@ -362,7 +372,7 @@ export async function sendTestClosedAppPush(
         reachedServer: true,
         status: res.status,
         message:
-          'Server reached, but web-push refused the send. The server likely has new VAPID keys while the browser still holds an old subscription — toggle alerts off then back on once.',
+          'Your alert connection needs refreshing. Turn Weather Alerts off and back on, then try again.',
       };
     }
     if (res.status === 0 || /failed to fetch|networkerror/i.test(String(data?.message || ''))) {
@@ -370,10 +380,15 @@ export async function sendTestClosedAppPush(
         ok: false,
         reachedServer: false,
         message:
-          "Couldn't reach the push server. On Render's free tier the service sleeps after 15 minutes — first request takes ~30s to cold-start.",
+          "The alert service is waking up. Please try the test again in a few seconds.",
       };
     }
-    return { ok: false, reachedServer: true, status: res.status, message: reason };
+    return {
+      ok: false,
+      reachedServer: true,
+      status: res.status,
+      message: 'The alert service could not send that test. Please turn Weather Alerts off and back on, then try again.',
+    };
   } catch (err: any) {
     clearTimeout(timeoutId);
     const isAbort = err?.name === 'AbortError';
@@ -382,16 +397,14 @@ export async function sendTestClosedAppPush(
         ok: false,
         reachedServer: false,
         message:
-          'Push server did not respond within 60s. Render free tier cold-starts take 25-40s — try again, or check the Render dashboard for the service status.',
+          'The alert service did not respond in time. Please try again in a few seconds.',
       };
     }
     return {
       ok: false,
       reachedServer: false,
       message:
-        "Couldn't reach the push server (" +
-        (err?.message || 'network error') +
-        '). Is it deployed and reachable?',
+        'The alert service could not be reached. Please try again in a few seconds.',
     };
   }
 }

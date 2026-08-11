@@ -22,4 +22,4 @@ jobs:
       - name: Ping push server health endpoint
         run: |
           echo "Pinging https://letshunt-push.onrender.com/health"
-          curl -sf "https://letshunt-push.onrender.com/health" || echo "Server not reachable — may be starting up or not yet deployed."
+          curl -sf -H "x-keep-alive: 1" "https://letshunt-push.onrender.com/health" || echo "Server not reachable — may be starting up or not yet deployed."
