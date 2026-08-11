@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DailyForecast, Location, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit } from '../types';
 import { WindCompass } from './WindCompass';
 import { PressureChart } from './PressureChart';
@@ -54,6 +54,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const [showFactors, setShowFactors] = useState(true);
   const [hoveredHourIdx, setHoveredHourIdx] = useState<number | null>(null);
   const [isRutModalOpen, setIsRutModalOpen] = useState(false);
+  const movementChartScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -194,6 +195,26 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   // Determine active point (either hovered hour or selected hour)
   const activeIdx = hoveredHourIdx !== null ? hoveredHourIdx : selectedHour;
   const activePoint = points[activeIdx] || null;
+
+  // Keep the selected slider hour visible on narrow screens. The SVG has a
+  // minimum width, so the chart can overflow horizontally on phones; follow
+  // the selected point just like PressureChart does for its hourly graph.
+  useEffect(() => {
+    const container = movementChartScrollRef.current;
+    const selectedPoint = points[selectedHour];
+    if (!container || !selectedPoint) return;
+
+    const pointPx = (selectedPoint.x / chartWidth) * container.scrollWidth;
+    const targetScrollLeft = Math.max(
+      0,
+      Math.min(container.scrollWidth - container.clientWidth, pointPx - container.clientWidth / 2)
+    );
+
+    container.scrollTo({
+      left: targetScrollLeft,
+      behavior: 'auto',
+    });
+  }, [selectedHour, points, chartWidth]);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn">
@@ -400,7 +421,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               </div>
             </div>
 
-            <div className="relative w-full overflow-x-auto">
+            <div ref={movementChartScrollRef} className="relative w-full overflow-x-auto">
               <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-auto min-w-[550px] select-none">
                 <defs>
                   <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
