@@ -117,6 +117,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     document.getElementById('wind-plotter')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const scrollToPressureChart = () => {
+    document.getElementById('barometer-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const condExplanation = getDetailedConditionExplanation(day, hourData, units, pressureUnit);
 
   const isExcellentDay = currentScore >= RATING_THRESHOLDS.excellent;
@@ -519,7 +523,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     <span className="w-2 h-2 rounded-full bg-white/90 animate-pulse motion-reduce:animate-none flex-shrink-0" />
                   )}
                   <RutPhaseIcon iconName={rutInfo.iconName} className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span>{rutInfo.name}</span>
+                  <span>Rut: {rutInfo.name}</span>
                   <Info className="w-4 h-4 sm:w-5 sm:h-5 opacity-80 shrink-0" />
                 </button>
               </div>
@@ -637,18 +641,36 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </span>
                 </button>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
+                <button
+                  type="button"
+                  onClick={scrollToPressureChart}
+                  aria-label="Scroll to the Rain and Barometer chart"
+                  title="View Rain & Barometer chart"
+                  className={`group appearance-none text-left w-full cursor-pointer p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:-translate-y-0.5 hover:border-purple-500/70 hover:shadow-md active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70 min-w-0 ${
+                    theme === 'hunting'
+                      ? isDark
+                        ? 'bg-[#3b2b1e]/80 border-[#b87333]/70 hover:bg-[#4a3020]'
+                        : 'bg-[#f3eadb]/90 border-[#b87333]/60 shadow-xs hover:bg-[#ecdfca]'
+                      : isDark
+                      ? 'bg-slate-950/[var(--card-opacity)] border-slate-800'
+                      : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'
+                  }`}
+                >
                   <Gauge className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Barometer</div>
-                    <div className="text-xs font-black truncate">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-purple-700/80 dark:text-purple-300/80">Barometer · tap to view</span>
+                    <span className="block text-xs font-black truncate">
                       {hourData 
                         ? (pressureUnit === 'inHg' ? `${hourData.pressureInHg} inHg` : `${hourData.pressureHpa} hPa`)
                         : (pressureUnit === 'inHg' ? `${day.pressureAvgInHg} inHg` : `${day.pressureAvgHpa} hPa`)
                       }
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[8px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                    <span className="hidden sm:inline">View</span>
+                    <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </button>
 
                 <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
                   <Sunrise className="w-4 h-4 text-amber-500 flex-shrink-0" />
