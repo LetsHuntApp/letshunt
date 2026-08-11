@@ -159,13 +159,13 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   const scoreStrokeColor = (() => {
     if (theme === 'hunting') {
       if (isDark) {
-        if (currentScore >= RATING_THRESHOLDS.excellent) return '#8fae72';
-        if (currentScore >= RATING_THRESHOLDS.good) return '#769858';
+        if (currentScore >= RATING_THRESHOLDS.excellent) return '#556b2f';
+        if (currentScore >= RATING_THRESHOLDS.good) return '#556b2f';
         if (currentScore >= RATING_THRESHOLDS.fair) return '#d08a4d';
         return '#c5675c';
       }
-      if (currentScore >= RATING_THRESHOLDS.excellent) return '#1a6b3c';
-      if (currentScore >= RATING_THRESHOLDS.good) return '#4a8c5e';
+      if (currentScore >= RATING_THRESHOLDS.excellent) return '#556b2f';
+      if (currentScore >= RATING_THRESHOLDS.good) return '#556b2f';
       if (currentScore >= RATING_THRESHOLDS.fair) return '#c85a17';
       return '#8b3a3a';
     }
@@ -253,9 +253,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
   const ratingBadgeClasses = theme === 'hunting'
     ? isExcellentDay
-      ? 'bg-[#1a6b3c] text-white border-[#2f7d4c]'
+      ? 'bg-[#556b2f] text-white border-[#556b2f]'
       : isGoodDay
-      ? 'bg-[#4a8c5e] text-white border-[#74ad82]'
+      ? 'bg-[#556b2f] text-white border-[#556b2f]'
       : isModerateDay
       ? 'bg-[#c85a17] text-white border-[#e08a5a]'
       : 'bg-[#8b3a3a] text-white border-[#b56b6b]'
@@ -267,14 +267,14 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? 'bg-amber-500 text-slate-950 border-amber-300'
     : 'bg-rose-500 text-white border-rose-400';
 
-  // Hunter badges use distinct field-guide colors so the score, rut phase,
+  // Hunter badges use one consistent field-guide green for every green state,
   // best window, and explanation controls each have their own visual role.
   const hunterExplanationBadgeClasses = isDark
     ? 'bg-[#7f4329] text-[#fff4e6] border-[#c47a4f]'
     : 'bg-[#c85a17] text-white border-[#e08a5a]';
   const hunterBestHuntBadgeClasses = isDark
-    ? 'bg-[#33451f] text-[#e5efc8] border-[#71894b]'
-    : 'bg-[#556b2f] text-white border-[#8a9a5b]';
+    ? 'bg-[#556b2f] text-white border-[#556b2f]'
+    : 'bg-[#556b2f] text-white border-[#556b2f]';
   const hunterSelectedHourBadgeClasses = isDark
     ? 'bg-[#3b2b1e] text-[#f3d4aa] border-[#8a5536]'
     : 'bg-[#f0dfc2] text-[#6b421f] border-[#b87333]';
@@ -282,8 +282,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     switch (rutInfo.phaseId) {
       case 'summer':
         return isDark
-          ? 'bg-[#2f3523] text-[#dce6b7] border-[#71894b]'
-          : 'bg-[#e5ead5] text-[#3f512b] border-[#7d9255]';
+          ? 'bg-[#556b2f] text-white border-[#556b2f]'
+          : 'bg-[#556b2f] text-white border-[#556b2f]';
       case 'early':
         return isDark
           ? 'bg-[#203b38] text-[#c5e0d8] border-[#5c8880]'
@@ -306,8 +306,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           : 'bg-[#d7e2df] text-[#27534f] border-[#5c8880]';
       default:
         return isDark
-          ? 'bg-[#303824] text-[#d5dfb1] border-[#7d8d5a]'
-          : 'bg-[#d9ddd0] text-[#3d4a2d] border-[#7d8d5a]';
+          ? 'bg-[#556b2f] text-white border-[#556b2f]'
+          : 'bg-[#556b2f] text-white border-[#556b2f]';
     }
   })();
 

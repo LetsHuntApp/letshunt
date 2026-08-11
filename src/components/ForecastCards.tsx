@@ -294,8 +294,8 @@ export const ForecastCards: React.FC<ForecastCardsProps> = ({
 
 const getScoreBadgeColor = (score: number) => {
     if (theme === 'hunting') {
-      if (score >= RATING_THRESHOLDS.excellent) return 'bg-[#1a6b3c] text-white border-[#1a6b3c] shadow-sm';
-      if (score >= RATING_THRESHOLDS.good) return 'bg-[#4a8c5e] text-white border-[#4a8c5e] shadow-sm';
+      if (score >= RATING_THRESHOLDS.excellent) return 'bg-[#556b2f] text-white border-[#556b2f] shadow-sm';
+      if (score >= RATING_THRESHOLDS.good) return 'bg-[#556b2f] text-white border-[#556b2f] shadow-sm';
       if (score >= RATING_THRESHOLDS.fair) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
     } else if ((theme === 'olive' || theme === 'hunting')) {
@@ -326,7 +326,7 @@ const getScoreBadgeColor = (score: number) => {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-700 ring-2 ring-emerald-700/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
-          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#1a6b3c] ring-2 ring-[#1a6b3c]/40 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
+          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#556b2f] ring-2 ring-[#556b2f]/40 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#2d4a27] ring-2 ring-[#556b2f]/40 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-emerald-600 ring-2 ring-emerald-600/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
@@ -345,7 +345,7 @@ const getScoreBadgeColor = (score: number) => {
         return isDark
           ? `bg-slate-900/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/40 shadow-lg shadow-emerald-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
-          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#4a8c5e] ring-2 ring-[#4a8c5e]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
+          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#556b2f] ring-2 ring-[#556b2f]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#556b2f] ring-2 ring-[#556b2f]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
           : `bg-white/[var(--card-opacity)] border-emerald-500 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/5 scale-[1.01] z-10 ${glass}`;
@@ -415,7 +415,7 @@ const getScoreBadgeColor = (score: number) => {
             isDark
               ? 'bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-emerald-500/50 ring-1 ring-emerald-500/20'
               : theme === 'hunting'
-              ? 'bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#1a6b3c]/50 text-[#2a1b0e]'
+              ? 'bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#556b2f]/50 text-[#2a1b0e]'
               : (theme === 'olive' || theme === 'hunting')
               ? 'bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#556b2f]/50 text-[#1e2e1b]'
               : 'bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-300 shadow-sm'
@@ -427,7 +427,7 @@ const getScoreBadgeColor = (score: number) => {
               <Award className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 text-slate-950" />
             </div>
             <div className="min-w-0">
-              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#1a6b3c]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
+              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#556b2f]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
                 <span>Great Day to Hunt</span>
                 {isPrimeDay(bestDayScore) && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-600 dark:text-amber-300 border border-amber-500/35">

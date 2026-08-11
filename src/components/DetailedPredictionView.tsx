@@ -123,14 +123,14 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-800/10 dark:ring-emerald-500/10',
-        stroke: theme === 'hunting' ? (isDark ? '#8fae72' : '#1a6b3c') : isDark ? '#34d399' : '#047857', // theme-aware Great score color
+        stroke: theme === 'hunting' ? '#556b2f' : isDark ? '#34d399' : '#047857', // theme-aware Great score color
       };
     } else if (score >= RATING_THRESHOLDS.good) { // Good - Sage Green (emerald-500/600)
       return {
         bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
         border: 'border-emerald-500/20 dark:border-emerald-500/30',
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
-        stroke: theme === 'hunting' ? (isDark ? '#769858' : '#4a8c5e') : isDark ? '#10b981' : '#059669', // theme-aware Good score color
+        stroke: theme === 'hunting' ? '#556b2f' : isDark ? '#10b981' : '#059669', // theme-aware Good score color
       };
     } else if (score >= RATING_THRESHOLDS.fair) { // Fair - Warm Amber/Ochre (amber-500/600)
       return {
@@ -153,9 +153,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const chartAccent = isDark && theme === 'hunting' ? '#c77942' : '#10b981';
   const ratingBadgeClasses = theme === 'hunting'
     ? isExcellentDay
-      ? 'bg-[#1a6b3c] text-white ring-2 ring-[#2f7d4c]/40'
+      ? 'bg-[#556b2f] text-white ring-2 ring-[#556b2f]/40'
       : isGoodDay
-      ? 'bg-[#4a8c5e] text-white ring-2 ring-[#74ad82]/35'
+      ? 'bg-[#556b2f] text-white ring-2 ring-[#556b2f]/35'
       : isModerateDay
       ? 'bg-[#c85a17] text-white ring-2 ring-[#e08a5a]/35'
       : 'bg-[#8b3a3a] text-white ring-2 ring-[#b56b6b]/35'

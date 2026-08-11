@@ -387,6 +387,43 @@ rect:focus {
   --hunting-border: #d4c4a8;
   --hunting-highlight: #d9631e;
   --hunting-card: #eae1cf;
+  --hunting-green: #556b2f;
+
+  /* Keep every semantic green utility on one field-guide hunter green.
+     Opacity utilities still control tint strength; only the hue is shared. */
+  --color-green-50: var(--hunting-green);
+  --color-green-100: var(--hunting-green);
+  --color-green-200: var(--hunting-green);
+  --color-green-300: var(--hunting-green);
+  --color-green-400: var(--hunting-green);
+  --color-green-500: var(--hunting-green);
+  --color-green-600: var(--hunting-green);
+  --color-green-700: var(--hunting-green);
+  --color-green-800: var(--hunting-green);
+  --color-green-900: var(--hunting-green);
+  --color-green-950: var(--hunting-green);
+  --color-emerald-50: var(--hunting-green);
+  --color-emerald-100: var(--hunting-green);
+  --color-emerald-200: var(--hunting-green);
+  --color-emerald-300: var(--hunting-green);
+  --color-emerald-400: var(--hunting-green);
+  --color-emerald-500: var(--hunting-green);
+  --color-emerald-600: var(--hunting-green);
+  --color-emerald-700: var(--hunting-green);
+  --color-emerald-800: var(--hunting-green);
+  --color-emerald-900: var(--hunting-green);
+  --color-emerald-950: var(--hunting-green);
+  --color-lime-50: var(--hunting-green);
+  --color-lime-100: var(--hunting-green);
+  --color-lime-200: var(--hunting-green);
+  --color-lime-300: var(--hunting-green);
+  --color-lime-400: var(--hunting-green);
+  --color-lime-500: var(--hunting-green);
+  --color-lime-600: var(--hunting-green);
+  --color-lime-700: var(--hunting-green);
+  --color-lime-800: var(--hunting-green);
+  --color-lime-900: var(--hunting-green);
+  --color-lime-950: var(--hunting-green);
 
   /* Oswald gives the Hunting variant a compact, field-guide / backwoods
      silhouette without changing typography in Standard or Olive. */
@@ -631,13 +668,13 @@ rect:focus {
 .dark.hunting [class*="text-slate-400"] { color: #a99988 !important; }
 .dark.hunting [class*="text-slate-500"] { color: #8a7967 !important; }
 
-/* A muted campfire orange replaces the generic green accent in dark Hunting,
-   while the walnut surfaces stay quiet and grounded. */
+/* Keep amber/orange semantic accents warm in dark Hunting while all green
+   utilities use the shared field-guide green. */
 .dark.hunting [class*="text-emerald-400"],
-.dark.hunting [class*="text-emerald-300"] { color: #d08a4d !important; }
+.dark.hunting [class*="text-emerald-300"] { color: var(--hunting-green) !important; }
 .dark.hunting [class*="bg-emerald-400"],
 .dark.hunting [class*="bg-emerald-500"],
-.dark.hunting [class*="bg-emerald-600"] { background-color: #a85e32 !important; }
+.dark.hunting [class*="bg-emerald-600"] { background-color: var(--hunting-green) !important; }
 .dark.hunting [class*="text-amber-"] { color: #c98349 !important; }
 .dark.hunting [class*="bg-amber-"] { background-color: #9a572f !important; }
 .dark.hunting [class*="border-amber-"] { border-color: #c47740 !important; }
@@ -655,9 +692,11 @@ rect:focus {
 .dark.hunting [class*="border-[#a34610]"] { border-color: #c47742 !important; }
 
 /* Lucide icons inherit the Hunting accent family without recoloring semantic
-   weather/status text. Emerald and teal utility classes become the walnut /
-   campfire accent, while amber/orange icons use the Hunting highlight. */
-.hunting svg[class*="text-emerald-"],
+   weather/status text. Emerald icons use the shared hunter green, teal keeps
+   its separate rut/weather meaning, and amber/orange icons use the highlight. */
+.hunting svg[class*="text-emerald-"] {
+  color: var(--hunting-green) !important;
+}
 .hunting svg[class*="text-teal-"] {
   color: var(--hunting-accent) !important;
 }
@@ -678,4 +717,41 @@ rect:focus {
 .dark.hunting [class*="bg-[#c85a17]"],
 .dark.hunting [class*="bg-[#a34610]"] {
   color: #fff !important;
+}
+
+/* A few Hunter controls use explicit field-guide hex utilities instead of
+   Tailwind's semantic green tokens. Normalize those accents to the same green
+   without changing the Olive theme or the Hunter's rust/teal semantics. */
+.hunting [class*="text-[#1a6b3c]"],
+.hunting [class*="text-[#4a8c5e]"],
+.hunting [class*="text-[#2d4a27]"],
+.hunting [class*="text-[#3d4f21]"],
+.hunting [class*="text-[#3d5a2a]"],
+.hunting [class*="text-[#8a9a5b]"],
+.hunting [class*="text-[#71894b]"],
+.hunting [class*="text-[#7d9255]"],
+.hunting [class*="text-[#7d8d5a]"] {
+  color: var(--hunting-green) !important;
+}
+.hunting [class*="bg-[#1a6b3c]"],
+.hunting [class*="bg-[#4a8c5e]"],
+.hunting [class*="bg-[#2d4a27]"],
+.hunting [class*="bg-[#33451f]"],
+.hunting [class*="bg-[#2f3523]"],
+.hunting [class*="bg-[#303824]"] {
+  background-color: var(--hunting-green) !important;
+}
+.hunting [class*="border-[#1a6b3c]"],
+.hunting [class*="border-[#4a8c5e]"],
+.hunting [class*="border-[#2d4a27]"],
+.hunting [class*="border-[#8a9a5b]"],
+.hunting [class*="border-[#71894b]"],
+.hunting [class*="border-[#7d9255]"],
+.hunting [class*="border-[#7d8d5a]"] {
+  border-color: var(--hunting-green) !important;
+}
+.hunting [class*="ring-[#1a6b3c]"],
+.hunting [class*="ring-[#4a8c5e]"],
+.hunting [class*="ring-[#2d4a27]"] {
+  --tw-ring-color: var(--hunting-green) !important;
 }
