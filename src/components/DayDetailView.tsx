@@ -108,6 +108,13 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   const currentWindDeg = hourData ? hourData.windDirectionDeg : day.windDirectionDeg;
   const currentWindSpeed = hourData ? hourData.windSpeedMph : day.windSpeedMaxMph;
   const currentWindText = hourData ? hourData.windDirectionText : day.windDirectionText;
+  const currentWindSummary = hourData
+    ? `${units === 'imperial' ? `${hourData.windSpeedMph} mph` : `${hourData.windSpeedKmh} km/h`} ${hourData.windDirectionText}`
+    : `${units === 'imperial' ? `${day.windSpeedMaxMph} mph` : `${day.windSpeedMaxKmh} km/h`} ${day.windDirectionText}`;
+
+  const scrollToWindPlotter = () => {
+    document.getElementById('wind-plotter')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const condExplanation = getDetailedConditionExplanation(day, hourData, units, pressureUnit);
 
@@ -586,17 +593,19 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
+                <button
+                  type="button"
+                  onClick={scrollToWindPlotter}
+                  aria-label="Scroll to the Wind and Stand Scent Plotter"
+                  title="View Wind & Stand Scent Plotter"
+                  className={`appearance-none text-left w-full cursor-pointer p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-sky-500/60 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}
+                >
                   <Wind className="w-4 h-4 text-sky-500 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Wind</div>
-                    <div className="text-xs font-black truncate">
-                      {hourData
-                        ? `${units === 'imperial' ? `${hourData.windSpeedMph} mph` : `${hourData.windSpeedKmh} km/h`} ${hourData.windDirectionText}`
-                        : `${units === 'imperial' ? `${day.windSpeedMaxMph} mph` : `${day.windSpeedMaxKmh} km/h`} ${day.windDirectionText}`}
-                    </div>
-                  </div>
-                </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Wind</span>
+                    <span className="block text-xs font-black truncate">{currentWindSummary}</span>
+                  </span>
+                </button>
 
                 <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
                   <Gauge className="w-4 h-4 text-purple-500 flex-shrink-0" />

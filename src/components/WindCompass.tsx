@@ -275,7 +275,8 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
   return (
     <div
-      className={`flex flex-col rounded-2xl border shadow-md transition-colors overflow-hidden ${
+      id="wind-plotter"
+      className={`flex flex-col rounded-2xl border shadow-md transition-colors overflow-hidden scroll-mt-6 ${
         isDark
           ? `${hasCustomBackground ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md' : 'bg-slate-900/90'} border-slate-800 text-slate-100`
           : theme === 'hunting'

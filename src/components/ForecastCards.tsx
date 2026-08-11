@@ -637,9 +637,9 @@ const getScoreBadgeColor = (score: number) => {
                       <span className={`text-xs font-bold block leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {cardWeatherDesc}
                       </span>
-                      <span className="text-[10px] sm:text-[11px] font-extrabold block text-emerald-600 dark:text-emerald-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
+                      <span className="text-[10px] sm:text-[11px] font-extrabold flex w-full max-w-full items-start gap-1 leading-snug text-emerald-600 dark:text-emerald-400 mt-0.5 whitespace-normal">
                         <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span>Best time to hunt: {getBestHuntTime(day)}</span>
+                        <span className="min-w-0 break-words">Best time to hunt: {getBestHuntTime(day)}</span>
                       </span>
                       <span className="text-[10px] sm:text-[11px] font-extrabold block text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
                         {renderRutIcon(dayRut.iconName, "w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0")}
