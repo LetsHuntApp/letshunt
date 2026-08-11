@@ -119,33 +119,37 @@ export function getMoonPhase(date: Date): { phase: number; illumination: number;
 // ---- Thumbnail Generation ----
 // Returns a JPEG data-URL directly (avoids the toBlob → FileReader round-trip
 // that the old generateThumbnail + blobToDataURL pipeline required).
+function createThumbnailDataURL(img: HTMLImageElement, maxWidth = 300): string | null {
+  try {
+    const canvas = document.createElement('canvas');
+    let w = img.width;
+    let h = img.height;
+    // Downscale in steps for very large images to avoid browser canvas limits
+    const MAX_DIM = 4096;
+    if (w > MAX_DIM || h > MAX_DIM) {
+      const scale = MAX_DIM / Math.max(w, h);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+    }
+    const scale = maxWidth / Math.max(w, h);
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return null;
+  }
+}
+
 function generateThumbnailDataURL(file: File, maxWidth = 300): Promise<string | null> {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      try {
-        const canvas = document.createElement('canvas');
-        let w = img.width;
-        let h = img.height;
-        // Downscale in steps for very large images to avoid browser canvas limits
-        const MAX_DIM = 4096;
-        if (w > MAX_DIM || h > MAX_DIM) {
-          const scale = MAX_DIM / Math.max(w, h);
-          w = Math.round(w * scale);
-          h = Math.round(h * scale);
-        }
-        const scale = maxWidth / Math.max(w, h);
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { resolve(null); return; }
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
-      } catch {
-        resolve(null);
-      }
+      resolve(createThumbnailDataURL(img, maxWidth));
     };
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -432,13 +436,14 @@ function computeOtsuThreshold(ctx: CanvasRenderingContext2D, w: number, h: numbe
 // black-on-white which Tesseract handles natively), then feed it through
 // PSM 7 (single line) followed by PSM 3 (auto).
 //
-// Every OCR result is logged via console.debug so you can open DevTools and
-// see exactly what Tesseract returns at each stage.
-async function extractDateFromImageOCR(file: File, existingWorker?: any): Promise<{dateTime?: string, timeDefaulted?: boolean, rawTexts: string[]}> {
+// Only failures are logged; per-variant logging made large imports needlessly
+// expensive and flooded the console.
+async function extractDateFromImageOCR(file: File, existingWorker?: any, sourceImage?: HTMLImageElement): Promise<{dateTime?: string, timeDefaulted?: boolean, rawTexts: string[]}> {
   const rawTexts: string[] = [];
-  const img = await loadImageForOCR(file);
+  // The thumbnail and OCR used to decode each file independently. Reuse the
+  // already-decoded image from the import worker when available.
+  const img = sourceImage || await loadImageForOCR(file);
   if (!img) return { rawTexts };
-  console.warn(`[OCR] Image: ${img.width}x${img.height}`);
 
   // Inline helper: invert every pixel of a canvas in-place (white↔black swap)
   const invertCanvas = (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
@@ -531,9 +536,6 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       return 0;
     })[0];
 
-    const agreeCount = winningEntries.length;
-    const totalCount = results.length;
-    console.warn(`[OCR] Consensus: ${bestDate} ${winningTimeKey} wins (${agreeCount}/${totalCount} agree) — ${agreeCount === totalCount ? 'UNANIMOUS' : agreeCount >= totalCount * 0.5 ? 'MAJORITY' : 'PLURALITY'} — timeDefaulted=${winner.timeDefaulted}`);
     return { dateTime: winner.dateTime, timeDefaulted: winner.timeDefaulted };
   };
 
@@ -563,9 +565,10 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     const cropH = Math.round(img.height * hRatio);
     const cropY = img.height - cropH;
 
-    // Cap canvas width at 8192 to prevent Tesseract's internal scaler
-    // from destroying ultra-wide images (21K+ px) into "2×36" thumbnails.
-    const MAX_CANVAS_W = 8192;
+    // Cap the OCR strip at 4096px. The timestamp characters remain large
+    // enough for Tesseract, while avoiding multi-megapixel recognition passes
+    // on modern 4K/8K trail-cam photos.
+    const MAX_CANVAS_W = 4096;
     let canvasW = Math.round(img.width * (targetH / cropH));
     if (canvasW > MAX_CANVAS_W) {
       const scale = MAX_CANVAS_W / canvasW;
@@ -601,10 +604,8 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     // ─ Strategy A: raw (colour) image — works when contrast is high ─
     const rawText = await recognize(tmp, `${label} raw`);
     rawTexts.push(`[${label} raw] ${rawText.slice(0, 200)}`);
-    console.warn(`[OCR] ${label} raw: "${rawText.slice(0, 200)}"`);
     let r = checkResult(parseOCRTextToISO(rawText));
     if (r) {
-      console.warn(`[OCR] ✓ raw ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
       results.push({ ...r, label: `${label} raw` });
     }
 
@@ -612,10 +613,8 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     invertCanvas(tmp, ctx);
     const invText = await recognize(tmp, `${label} inverted`);
     rawTexts.push(`[${label} inv] ${invText.slice(0, 200)}`);
-    console.warn(`[OCR] ${label} inverted: "${invText.slice(0, 200)}"`);
     r = checkResult(parseOCRTextToISO(invText));
     if (r) {
-      console.warn(`[OCR] ✓ inverted ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
       results.push({ ...r, label: `${label} inv` });
     }
 
@@ -625,10 +624,8 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
     if (bwCanvas) {
       const bwText = await recognize(bwCanvas, `${label} binarized`);
       rawTexts.push(`[${label} bw] ${bwText.slice(0, 200)}`);
-      console.warn(`[OCR] ${label} binarized: "${bwText.slice(0, 200)}"`);
       r = checkResult(parseOCRTextToISO(bwText));
       if (r) {
-        console.warn(`[OCR] ✓ binarized ${label}: ${r.dateTime}${r.timeDefaulted ? ' (time defaulted)' : ''}`);
         results.push({ ...r, label: `${label} bw` });
       }
     }
@@ -646,7 +643,6 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
       // ── Phase 1: PSM 7 (single uniform line — best for timestamp bars) ──
       // Run every strip and preprocessing strategy before resolving consensus.
       // A single valid result is not trusted over the other reads.
-      console.warn('[OCR] Setting PSM=7');
       await worker.setParameters({ tessedit_pageseg_mode: '7' });
       const psm7Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
       for (let si = 0; si < strips.length; si++) {
@@ -657,14 +653,12 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
       const consensus = resolveConsensus(psm7Results);
       if (consensus) {
-        console.warn(`[OCR] PSM7 consensus: ${consensus.dateTime}${consensus.timeDefaulted ? ' (time defaulted)' : ''}`);
         return { dateTime: consensus.dateTime, timeDefaulted: consensus.timeDefaulted, rawTexts };
       }
 
       // ── Phase 2: PSM 3 (auto page segmentation — fallback for wider timestamp bars) ──
       // Use the same exhaustive collection and consensus fallback when PSM7
       // could not produce a valid timestamp.
-      console.warn('[OCR] No PSM7 results — falling back to PSM=3');
       await worker.setParameters({ tessedit_pageseg_mode: '3' });
       const psm3Results: Array<{ dateTime: string; timeDefaulted: boolean; label: string }> = [];
       for (let si = 0; si < strips.length; si++) {
@@ -675,7 +669,6 @@ async function extractDateFromImageOCR(file: File, existingWorker?: any): Promis
 
       const consensus3 = resolveConsensus(psm3Results);
       if (consensus3) {
-        console.warn(`[OCR] PSM3 consensus: ${consensus3.dateTime}${consensus3.timeDefaulted ? ' (time defaulted)' : ''}`);
         return { dateTime: consensus3.dateTime, timeDefaulted: consensus3.timeDefaulted, rawTexts };
       }
     } finally {
@@ -895,29 +888,31 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   const imported: Array<TrailCameraPhoto | undefined> = new Array(files.length);
   let completedCount = 0;
 
-  // Pre-create a small Tesseract worker pool. Each photo still runs the exact
-  // same exhaustive OCR variants and consensus, but separate workers let two
-  // photos be recognized at once instead of queueing the whole upload behind
-  // one worker. Keep the pool capped at two so mobile devices do not thrash.
+  // Pre-create an adaptive Tesseract worker pool. Each photo still runs the
+  // same exhaustive OCR variants and consensus, while desktop CPUs can process
+  // more photos in parallel without making low-core mobile devices thrash.
   // The default CDN (jsdelivr @v7.0.0) loads correctly; explicit
   // workerPath/corePath/langPath configurations with wrong version
   // numbers were causing spurious NetworkErrors before the fallback.
   const availableCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2;
-  const desiredWorkerCount = Math.min(2, fileArray.length, availableCores);
+  const maxWorkers = availableCores >= 8 ? 4 : availableCores >= 4 ? 3 : 2;
+  const filesNeedingOcr = fileArray.filter((file) => !validateFilenameDate(parseDateFromFilename(file.name))).length;
+  const desiredWorkerCount = Math.min(maxWorkers, filesNeedingOcr, availableCores);
   const ocrWorkers: any[] = [];
   if (desiredWorkerCount > 0) {
     try {
       const { createWorker } = await import('tesseract.js');
-      for (let workerIndex = 0; workerIndex < desiredWorkerCount; workerIndex++) {
-        try {
-          ocrWorkers.push(await createWorker('eng'));
-        } catch (workerErr) {
-          console.warn(`[OCR] Worker ${workerIndex + 1}/${desiredWorkerCount} failed to initialize:`, workerErr);
-        }
-      }
-      if (ocrWorkers.length > 0) {
-        console.log(`[OCR] ✓ ${ocrWorkers.length} Tesseract worker${ocrWorkers.length === 1 ? '' : 's'} initialized`);
-      }
+      const workerResults = await Promise.all(
+        Array.from({ length: desiredWorkerCount }, async (_, workerIndex) => {
+          try {
+            return await createWorker('eng');
+          } catch (workerErr) {
+            console.warn(`[OCR] Worker ${workerIndex + 1}/${desiredWorkerCount} failed to initialize:`, workerErr);
+            return null;
+          }
+        })
+      );
+      ocrWorkers.push(...workerResults.filter((worker): worker is any => worker !== null));
     } catch (ocrInitErr) {
       console.error('[OCR] Failed to load Tesseract.js:', ocrInitErr);
     }
@@ -954,23 +949,24 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
       const id = `cam_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 8)}`;
 
       try {
-        // Run thumbnail generation and OCR concurrently — they are
-        // completely independent (thumbnail uses canvas, OCR uses the
-        // Tesseract worker).
+        const filenameDate = validateFilenameDate(parseDateFromFilename(file.name));
+        // Decode the source image once and share it between thumbnail and OCR.
+        // The previous code created two object URLs and decoded every photo
+        // twice before recognition even began.
+        const decodedImage = await loadImageForOCR(file);
+        const thumbnailPromise = decodedImage
+          ? Promise.resolve().then(() => createThumbnailDataURL(decodedImage, 300))
+          : generateThumbnailDataURL(file, 300);
         const [thumbnailDataUrl, ocrResult] = await Promise.all([
-          generateThumbnailDataURL(file, 300),
+          thumbnailPromise,
           (async () => {
             // Date extraction: ONLY OCR reads the timestamp bar (or filename pattern).
             // We NEVER use file.lastModified as a fallback — it represents the file's
             // copy/download time, not the capture time.
-            let dateTime: string | undefined = validateFilenameDate(parseDateFromFilename(file.name));
+            let dateTime: string | undefined = filenameDate;
             if (!dateTime && ocrWorker) {
-              console.warn(`[OCR] Attempting OCR for "${file.name}"...`);
-              const result = await extractDateFromImageOCR(file, ocrWorker);
-              console.warn(`[OCR] Result for "${file.name}": ${result.dateTime || 'FAILED — no date set'}${result.timeDefaulted ? ' (time defaulted to 12:00 PM)' : ''} (${result.rawTexts.length} attempts)`);
+              const result = await extractDateFromImageOCR(file, ocrWorker, decodedImage || undefined);
               return { dateTime: result.dateTime, timeDefaulted: result.timeDefaulted, rawTexts: result.rawTexts };
-            } else if (!ocrWorker) {
-              console.warn(`[OCR] No worker available for "${file.name}" — skipping OCR`);
             }
             return { dateTime, timeDefaulted: undefined as boolean | undefined, rawTexts: [] as string[] };
           })(),
@@ -994,8 +990,6 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
           isFavorite: false,
           rawOcrText,
         };
-
-        console.warn(`[cam] Imported "${file.name}" → dateTime=${dateTime || 'NONE'} timeDefaulted=${timeDefaulted || false} (filename=${!!parseDateFromFilename(file.name)}, ocr=${!!(dateTime && !parseDateFromFilename(file.name))})`);
 
         // Write both stores in a SINGLE transaction instead of two
         // separate putInStore calls (each of which opened its own connection).
