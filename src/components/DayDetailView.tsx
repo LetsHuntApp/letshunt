@@ -255,6 +255,33 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     ? 'bg-amber-500 text-slate-950 border-amber-300'
     : 'bg-rose-500 text-white border-rose-400';
 
+  // Keep the Hunter scorecard badges on one field-guide palette. The rut
+  // phase remains semantically distinct, but no longer falls back to the
+  // generic jewel tones used by the other themes.
+  const hunterExplanationBadgeClasses = isDark
+    ? 'bg-[#a65d35] text-white border-[#e08a5a]'
+    : 'bg-[#c85a17] text-white border-[#e08a5a]';
+  const hunterRutBadgeClasses = (() => {
+    if (rutInfo.phaseId === 'summer' || rutInfo.phaseId === 'early') {
+      return isDark
+        ? 'bg-[#4a2b1b] text-white border-[#8a5536]'
+        : 'bg-[#4a8c5e] text-white border-[#74ad82]';
+    }
+    if (rutInfo.phaseId === 'pre_rut' || rutInfo.phaseId === 'peak_rut') {
+      return isDark
+        ? 'bg-[#a65d35] text-white border-[#e08a5a]'
+        : 'bg-[#c85a17] text-white border-[#e08a5a]';
+    }
+    if (rutInfo.phaseId === 'lockdown') {
+      return isDark
+        ? 'bg-[#4a2b1b] text-white border-[#8a5536]'
+        : 'bg-[#8b3a3a] text-white border-[#b56b6b]';
+    }
+    return isDark
+      ? 'bg-[#4a2b1b] text-white border-[#8a5536]'
+      : 'bg-[#556b2f] text-white border-[#8a9a5b]';
+  })();
+
   return (
     <div className="w-full space-y-3 sm:space-y-4 animate-fadeIn">
       {/* Hero Overview Header Card */}
@@ -411,7 +438,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {selectedHour !== undefined && (
                 <span className={`font-extrabold px-1.5 py-0.5 rounded-lg border ${
                   theme === 'hunting'
-                    ? 'text-white bg-[#4a8c5e] border-[#74ad82]'
+                    ? hunterExplanationBadgeClasses
                     : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/35'
                 }`}>
                   @ {getHour12Label(selectedHour)}
@@ -460,7 +487,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsRutModalOpen(true)}
-                  className={`inline-flex shrink-0 items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 rounded-xl text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${rutInfo.badgeStyle}`}
+                  className={`inline-flex shrink-0 items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 rounded-xl text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${theme === 'hunting' ? hunterRutBadgeClasses : rutInfo.badgeStyle}`}
                   title="Click for Rut Phase Breakdown & Hunter Tips"
                 >
                   {rutInfo.phaseId === 'peak_rut' && (
@@ -476,7 +503,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               <div className="flex items-center justify-center w-full">
                 <span className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider whitespace-nowrap border shadow-xs ${
                   theme === 'hunting'
-                    ? 'bg-[#4a8c5e] border-[#74ad82] text-white'
+                    ? hunterExplanationBadgeClasses
                     : 'bg-emerald-500/15 border-emerald-500/35 text-emerald-600 dark:text-emerald-400'
                 }`}>
                   <Crosshair className="w-3.5 h-3.5" /> Best Hunt: {getBestHuntTime(day)}
@@ -501,7 +528,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                           ? 'bg-[#a65d35] text-white border-[#e08a5a] hover:bg-[#b87342]'
                           : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
                         : theme === 'hunting'
-                        ? 'bg-[#c85a17] text-white border-[#e08a5a] hover:bg-[#b34e12]'
+                        ? `${hunterExplanationBadgeClasses} hover:bg-[#b87342]`
                         : theme === 'olive'
                         ? 'bg-[#556b2f]/15 text-[#3d4f21] border-[#556b2f]/40 hover:bg-[#556b2f]/25'
                         : 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
@@ -510,7 +537,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                         ? 'bg-[#a65d35] text-white border-[#e08a5a] hover:bg-[#b87342]'
                         : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:bg-emerald-500/20'
                       : theme === 'hunting'
-                      ? 'bg-[#c85a17] text-white border-[#e08a5a] hover:bg-[#b34e12]'
+                      ? `${hunterExplanationBadgeClasses} hover:bg-[#b34e12]`
                       : theme === 'olive'
                       ? 'bg-[#556b2f]/10 text-[#466126] border-[#556b2f]/30 hover:bg-[#556b2f]/20'
                       : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
