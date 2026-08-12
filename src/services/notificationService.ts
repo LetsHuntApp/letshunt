@@ -117,8 +117,8 @@ export async function showSystemNotification(title: string, body: string, tag = 
   // image shown on the notification itself.
   const options: NotificationOptions = {
     body,
-    icon: './icon-192-v7.png',
-    badge: './icon-192-v7.png',
+    icon: './hunt-icon-120.png',
+    badge: './hunt-icon-120.png',
     tag,
   };
 

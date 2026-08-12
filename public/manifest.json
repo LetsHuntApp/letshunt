@@ -12,29 +12,33 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "./splash-logo-1024.png?v=3",
+      "src": "./hunt-icon-120.png",
       "type": "image/png",
-      "sizes": "1024x1024",
+      "sizes": "120x120",
       "purpose": "any"
     },
     {
-      "src": "./icon-192-v7.png",
+      "src": "./icon-192-v8.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
-
     {
-      "src": "./icon-512-v7.png",
+      "src": "./icon-512-v8.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
-
     {
-      "src": "./apple-touch-icon-v7.png",
+      "src": "./apple-touch-icon-v8.png",
       "type": "image/png",
       "sizes": "180x180",
+      "purpose": "any"
+    },
+    {
+      "src": "./splash-logo-1024.png?v=4",
+      "type": "image/png",
+      "sizes": "1024x1024",
       "purpose": "any"
     }
   ]

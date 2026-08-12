@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Location, ThemeMode, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
 import { MapPin, Search, Compass, Check, X, Target, CloudSun, BellRing, ArrowRight, ChevronLeft } from 'lucide-react';
-import { DeerIcon } from './DeerIcon';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -132,9 +131,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
             <X className="w-4 h-4" />
           </button>
 
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg flex items-center justify-center mb-3">
-            <DeerIcon className="w-10 h-10 text-white" />
-          </div>
+          <img
+            src="./hunt-icon-120.png"
+            alt="LetsHunt"
+            className="w-16 h-16 mx-auto rounded-2xl shadow-lg object-cover mb-3"
+          />
           <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${textPrimary}`}>Welcome to LetsHunt</h1>
           <p className={`text-xs mt-1 ${textSecondary}`}>
             Simple deer movement forecasts built from weather, the barometer, wind, and moon times.

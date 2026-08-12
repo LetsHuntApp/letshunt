@@ -1,12 +1,13 @@
-const CACHE_NAME = 'letshunt-v18';
+const CACHE_NAME = 'letshunt-v19';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './splash-logo-1024.png?v=3',
-  './icon-192-v7.png',
-  './icon-512-v7.png',
-  './apple-touch-icon-v7.png'
+  './splash-logo-1024.png?v=4',
+  './icon-192-v8.png',
+  './icon-512-v8.png',
+  './apple-touch-icon-v8.png',
+  './hunt-icon-120.png'
 ];
 
 self.addEventListener('install', (event) => {

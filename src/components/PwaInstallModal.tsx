@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Smartphone, Share, PlusSquare, Download, CheckCircle, X, Globe, Apple, Chrome } from 'lucide-react';
+import { Share, PlusSquare, Download, CheckCircle, X, Globe, Apple, Chrome } from 'lucide-react';
 
 interface PwaInstallModalProps {
   isOpen: boolean;
@@ -28,9 +28,11 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-              <Smartphone className="w-5 h-5" />
-            </div>
+            <img
+              src="./hunt-icon-120.png"
+              alt="LetsHunt"
+              className="w-10 h-10 rounded-xl object-cover"
+            />
             <div>
               <h3 className="text-base font-extrabold text-white">Turn Into Web App</h3>
               <p className="text-xs text-slate-400">Add to Home Screen for instant stand access</p>
