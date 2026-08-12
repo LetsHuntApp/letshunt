@@ -3096,7 +3096,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     setIsDrawingPath(false);
                     setShowAddDropdown(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-emerald-500/15 hover:text-emerald-400 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-transparent hover:bg-transparent transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60"
                 >
                   <Crosshair className="w-5 h-5" />
                   <div>
@@ -3107,7 +3107,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                 <button
                   onClick={handleStartDrawPolygon}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-amber-500/15 hover:text-amber-400 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-transparent hover:bg-transparent transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60"
                 >
                   <Wheat className="w-5 h-5" />
                   <div>
@@ -3118,7 +3118,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                 <button
                   onClick={handleStartDrawPropertyBoundary}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-rose-500/15 hover:text-rose-400 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-transparent hover:bg-transparent transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60"
                 >
                   <Home className="w-5 h-5" />
                   <div>
@@ -3129,7 +3129,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                 <button
                   onClick={handleStartDrawPath}
-                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-sky-500/15 hover:text-sky-400 transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-2 bg-transparent hover:bg-transparent transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60"
                 >
                   <Route className="w-5 h-5" />
                   <div>
