@@ -529,26 +529,30 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                   }
                 }}
                 onContextMenu={(e) => e.preventDefault()}
-                className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 cursor-pointer shadow-lg aspect-square flex flex-col justify-between select-none ${tc.photoCard(isSelected)}`}
+                className={`group relative rounded-2xl overflow-visible border transition-all duration-200 cursor-pointer shadow-lg aspect-square flex flex-col justify-between select-none ${tc.photoCard(isSelected)}`}
                 style={{ WebkitTouchCallout: 'none' } as React.CSSProperties}
               >
-                {/* Image Background */}
-                {thumbUrl ? (
-                  <img
-                    src={thumbUrl}
-                    alt={photo.fileName}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className={`absolute inset-0 ${tc.loadingBg} animate-pulse flex items-center justify-center text-xs text-slate-500`}>
-                    Loading...
-                  </div>
-                )}
+                {/* Keep the photo art clipped to the card while allowing controls
+                    such as the target menu to escape the card bounds. */}
+                <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                  {/* Image Background */}
+                  {thumbUrl ? (
+                    <img
+                      src={thumbUrl}
+                      alt={photo.fileName}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className={`absolute inset-0 ${tc.loadingBg} animate-pulse flex items-center justify-center text-xs text-slate-500`}>
+                      Loading...
+                    </div>
+                  )}
 
-                {/* Gradient Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+                  {/* Gradient Overlays */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+                </div>
 
                 {/* Top Card Bar */}
                 <div className="relative p-2 flex items-start justify-between z-10">
@@ -581,7 +585,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                           <Star className={`w-4 h-4 ${photo.isFavorite ? 'fill-slate-950' : ''}`} />
                         </button>
                         {targets.length > 0 && (
-                          <div className="relative">
+                          <div className={`relative ${activeTagPhotoId === photo.id ? 'z-50' : ''}`}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
