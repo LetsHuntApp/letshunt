@@ -199,6 +199,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
   const scoreDialFrameStyle = theme === 'hunting'
     ? { borderColor: scoreStrokeColor, outline: `4px solid ${scoreStrokeColor}55` }
+    : theme === 'light' || theme === 'dark'
+    ? { borderColor: scoreStrokeColor, outline: `4px solid ${scoreStrokeColor}33` }
     : undefined;
 
   // The engine's condition explanation supplies semantic tone classes, but
@@ -353,7 +355,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   ? isDark
                     ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 border-emerald-600/60 shadow-xl ring-4 ring-emerald-500/25'
                     : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#f2efe4] border-2 border-[#556b2f] shadow-xl ring-4 ring-[#556b2f]/25'
-                  : 'w-32 h-32 sm:w-36 sm:h-36'
+                  : isDark
+                  ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-slate-950/[var(--card-opacity)] border-2 shadow-xl'
+                  : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-white/[var(--card-opacity)] border-2 shadow-lg'
               }`}>
                 {/* SVG Circle Track */}
                 <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -373,7 +377,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     r="40"
                     fill="transparent"
                     stroke={scoreStrokeColor}
-                    strokeWidth={theme === 'hunting' || theme === 'olive' ? "10" : "8"}
+                    strokeWidth="10"
                     strokeDasharray={`${2 * Math.PI * 40}`}
                     strokeDashoffset={`${2 * Math.PI * 40 * (1 - currentScore / 100)}`}
                     strokeLinecap="round"
@@ -382,11 +386,13 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 </svg>
                 <div className="text-center z-10 flex flex-col items-center justify-center">
                   <DeerIcon
-                    className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
+                    className={`fill-current -mb-0.5 ${
+                      theme === 'light' || theme === 'dark' ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-9 h-9 sm:w-11 sm:h-11'
+                    }`}
                     style={{ color: scoreStrokeColor, fill: scoreStrokeColor }}
                   />
                   <div
-                    className={`font-black tracking-tight leading-none ${theme === 'hunting' || theme === 'olive' ? 'text-3xl sm:text-4xl' : 'text-2xl sm:text-3xl'}`}
+                    className="font-black tracking-tight leading-none text-3xl sm:text-4xl"
                     style={{ color: scoreStrokeColor }}
                   >
                     {currentScore}
