@@ -40,7 +40,6 @@ const LOCAL_STORAGE_KEYS = {
   pins: 'letshunt_saved_pins',
   polygons: 'letshunt_saved_polygons',
   paths: 'letshunt_saved_paths',
-  pushServerUrl: 'letshunt_push_server_url',
   mapStyle: 'letshunt_map_style',
   showPreferredWind: 'letshunt_show_preferred_wind',
   showScentCone: 'letshunt_show_scent_cone',
@@ -84,7 +83,6 @@ export interface LetsHuntBackup {
     bgOpacity: number;
     bgBlur: number;
     notificationPrefs: NotificationPrefs;
-    pushServerUrl: string;
   };
   logs: DeerKillLog[];
   map: {
@@ -188,7 +186,6 @@ export async function exportBackupData(): Promise<{ json: string; summary: Backu
       bgOpacity: numOr(LOCAL_STORAGE_KEYS.bgOpacity, 90),
       bgBlur: numOr(LOCAL_STORAGE_KEYS.bgBlur, 12),
       notificationPrefs: getNotificationPrefs(),
-      pushServerUrl: safeGet(LOCAL_STORAGE_KEYS.pushServerUrl) || '',
     },
     logs: readJSON<DeerKillLog[]>(LOCAL_STORAGE_KEYS.logs, []),
     map: {
@@ -286,11 +283,6 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
   if (typeof settings.bgOpacity === 'number') safeSet(LOCAL_STORAGE_KEYS.bgOpacity, String(settings.bgOpacity));
   if (typeof settings.bgBlur === 'number') safeSet(LOCAL_STORAGE_KEYS.bgBlur, String(settings.bgBlur));
   if (settings.notificationPrefs) saveNotificationPrefs(settings.notificationPrefs);
-  if (settings.pushServerUrl) {
-    safeSet(LOCAL_STORAGE_KEYS.pushServerUrl, settings.pushServerUrl);
-  } else {
-    safeRemove(LOCAL_STORAGE_KEYS.pushServerUrl);
-  }
 
   // Harvest logs + map layers
   if (Array.isArray(backup.logs)) safeSet(LOCAL_STORAGE_KEYS.logs, JSON.stringify(backup.logs));

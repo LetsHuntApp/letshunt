@@ -1,4 +1,4 @@
-const CACHE_NAME = 'letshunt-v17';
+const CACHE_NAME = 'letshunt-v18';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -6,9 +6,7 @@ const ASSETS_TO_CACHE = [
   './splash-logo-1024.png?v=3',
   './icon-192-v7.png',
   './icon-512-v7.png',
-  './apple-touch-icon-v7.png',
-  './push-icon-192.png',
-  './push-badge-96.png'
+  './apple-touch-icon-v7.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -36,36 +34,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Push notifications: LetsHunt currently schedules alerts locally from the app
-// (see src/services/notificationService.ts). These handlers make the service
-// worker ready for server-sent pushes if a push backend is added later.
-self.addEventListener('push', (event) => {
-  let title = 'LetsHunt';
-  let body = 'A weather alert is brewing for your hunting grounds.';
-  let url = './';
-  let tag = 'letshunt-alert';
-  try {
-    if (event.data) {
-      const data = event.data.json();
-      title = data.title || title;
-      body = data.body || body;
-      url = data.url || url;
-      tag = data.tag || tag;
-    }
-  } catch (err) {
-    if (event.data) body = event.data.text() || body;
-  }
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: './push-icon-192.png',
-      badge: './push-badge-96.png',
-      tag,
-      data: { url },
-    })
-  );
-});
-
+// Local weather alerts are shown from the app while it is open (see
+// src/services/notificationService.ts). Clicking one of those notifications
+// brings LetsHunt back to the foreground.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = (event.notification.data && event.notification.data.url) || './';

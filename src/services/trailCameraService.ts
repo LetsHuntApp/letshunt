@@ -691,12 +691,12 @@ export async function reRunOcrOnPhotos(
   let updated = 0;
   let stillFailed = 0;
 
-  let ocrWorker: any = undefined;
-  try {
-    const { createWorker } = await import('tesseract.js');
-    ocrWorker = await createWorker('eng');
-  } catch (ocrInitErr) {
-    console.warn('[OCR] reRunOcrOnPhotos: failed to init worker. Underlying error:', ocrInitErr);
+  // Reuse the shared warm pool instead of creating (and re-downloading) a
+  // fresh Tesseract worker — this flow had the same start-of-job stall.
+  await ensureOcrPool(1);
+  const ocrWorker = ocrPool[0];
+  if (!ocrWorker) {
+    console.warn('[OCR] reRunOcrOnPhotos: failed to init worker.');
     throw new Error(
       'Re-OCR unavailable: the OCR engine failed to initialize. Check Network for blocked CDN requests and try again.'
     );
@@ -729,7 +729,7 @@ export async function reRunOcrOnPhotos(
     await new Promise((r) => setTimeout(r, 0));
   }
 
-  try { await ocrWorker.terminate(); } catch { /* ignore */ }
+  // Pool workers are shared and kept warm for future batches — do not terminate.
   return { updated, stillFailed };
 }
 
@@ -880,6 +880,73 @@ export async function matchWeatherForPhoto(photo: TrailCameraPhoto): Promise<His
   return data;
 }
 
+// ---- Shared OCR worker pool ----
+// Creating a Tesseract worker downloads the OCR core + English language data
+// (~10+ MB on the first run) and takes several seconds. Previously the import
+// awaited pool creation before touching a single photo — which is exactly the
+// "waits for a few seconds, then suddenly everything processes at once" stall.
+// The pool is created eagerly (warmUpOcrEngine), shared across imports, and
+// grown on demand, so the import fast path never blocks on it.
+const ocrPool: any[] = [];
+let ocrPoolGrowing: Promise<void> | null = null;
+
+async function ensureOcrPool(targetCount: number): Promise<void> {
+  if (ocrPool.length >= targetCount) return;
+  if (ocrPoolGrowing) {
+    await ocrPoolGrowing;
+    // The awaited grow may have been for a smaller target; top up if needed.
+    if (ocrPool.length >= targetCount) return;
+  }
+  const missing = targetCount - ocrPool.length;
+  if (missing <= 0) return;
+
+  // Claim the grow slot synchronously so concurrent callers queue up instead
+  // of creating duplicate workers.
+  let resolveGrow!: () => void;
+  ocrPoolGrowing = new Promise<void>((resolve) => { resolveGrow = resolve; });
+  (async () => {
+    try {
+      const { createWorker } = await import('tesseract.js');
+      const batch = await Promise.all(
+        Array.from({ length: missing }, async (_, workerIndex) => {
+          try {
+            return await createWorker('eng');
+          } catch (workerErr) {
+            console.warn(`[OCR] Worker ${ocrPool.length + workerIndex + 1}/${targetCount} failed to initialize:`, workerErr);
+            return null;
+          }
+        })
+      );
+      ocrPool.push(...batch.filter((worker): worker is any => worker !== null));
+      if (ocrPool.length === 0) {
+        console.error(
+          '[OCR] ⚠️ TESSERACT.JS FAILED TO INITIALIZE — EVERY PHOTO WILL SHOW "OCR Failed".\n' +
+          'Check the Network tab in DevTools for failed requests.\n' +
+          'You can still tap any "OCR Failed" badge in the gallery to set the date manually.'
+        );
+      }
+    } catch (ocrInitErr) {
+      console.error('[OCR] Failed to load Tesseract.js:', ocrInitErr);
+    } finally {
+      ocrPoolGrowing = null;
+      resolveGrow();
+    }
+  })();
+  await ocrPoolGrowing;
+}
+
+/**
+ * Start warming the shared OCR worker pool in the background (fire-and-forget).
+ * Call it when the Trail Cams tab opens so the engine is usually ready by the
+ * time the user picks files — eliminating the multi-second stall at the start
+ * of the first import while Tesseract downloads its core + language data.
+ */
+export function warmUpOcrEngine(): void {
+  const availableCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2;
+  const maxWorkers = availableCores >= 8 ? 4 : availableCores >= 4 ? 3 : 2;
+  void ensureOcrPool(maxWorkers).catch(() => {});
+}
+
 // ---- Import Photos ----
 export async function importPhotos(files: FileList | File[], onProgress?: (completed: number, total: number) => void): Promise<TrailCameraPhoto[]> {
   const fileArray = Array.from(files);
@@ -888,42 +955,18 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   const imported: Array<TrailCameraPhoto | undefined> = new Array(files.length);
   let completedCount = 0;
 
-  // Pre-create an adaptive Tesseract worker pool. Each photo still runs the
-  // same exhaustive OCR variants and consensus, while desktop CPUs can process
-  // more photos in parallel without making low-core mobile devices thrash.
-  // The default CDN (jsdelivr @v7.0.0) loads correctly; explicit
-  // workerPath/corePath/langPath configurations with wrong version
-  // numbers were causing spurious NetworkErrors before the fallback.
+  // Warm up the shared OCR worker pool IN THE BACKGROUND. It must not gate the
+  // import: photos whose filenames already carry a timestamp are processed
+  // immediately, and only photos that genuinely need OCR wait for a worker —
+  // by which time the pool is usually ready anyway (it also starts warming the
+  // moment the Trail Cams tab opens, see warmUpOcrEngine).
   const availableCores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 2 : 2;
   const maxWorkers = availableCores >= 8 ? 4 : availableCores >= 4 ? 3 : 2;
   const filesNeedingOcr = fileArray.filter((file) => !validateFilenameDate(parseDateFromFilename(file.name))).length;
   const desiredWorkerCount = Math.min(maxWorkers, filesNeedingOcr, availableCores);
-  const ocrWorkers: any[] = [];
-  if (desiredWorkerCount > 0) {
-    try {
-      const { createWorker } = await import('tesseract.js');
-      const workerResults = await Promise.all(
-        Array.from({ length: desiredWorkerCount }, async (_, workerIndex) => {
-          try {
-            return await createWorker('eng');
-          } catch (workerErr) {
-            console.warn(`[OCR] Worker ${workerIndex + 1}/${desiredWorkerCount} failed to initialize:`, workerErr);
-            return null;
-          }
-        })
-      );
-      ocrWorkers.push(...workerResults.filter((worker): worker is any => worker !== null));
-    } catch (ocrInitErr) {
-      console.error('[OCR] Failed to load Tesseract.js:', ocrInitErr);
-    }
-    if (ocrWorkers.length === 0) {
-      console.error(
-        '[OCR] ⚠️ TESSERACT.JS FAILED TO INITIALIZE — EVERY PHOTO WILL SHOW "OCR Failed".\n' +
-        'Check the Network tab in DevTools for failed requests.\n' +
-        'You can still tap any "OCR Failed" badge in the gallery to set the date manually.'
-      );
-    }
-  }
+  const warmupPromise = desiredWorkerCount > 0
+    ? ensureOcrPool(desiredWorkerCount)
+    : Promise.resolve();
 
   // Open a single DB connection for the entire import batch.
   // Reusing one connection avoids the per-photo overhead of opening a new
@@ -936,13 +979,14 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   }
 
   // ---- Process photos with one dedicated worker per concurrent job ----
-  // Each worker owns its setParameters/recognize sequence, so parallel jobs
-  // cannot change one another's PSM mode or compromise OCR consensus.
-  // A workerless fallback still processes filename dates and stores the images.
-  const CONCURRENCY = Math.max(1, ocrWorkers.length);
+  // Each slot owns its pool worker for the whole batch, so parallel jobs
+  // cannot interleave setParameters/recognize calls on a worker and
+  // compromise OCR consensus. Slots run the filename-date fast path without
+  // waiting for the pool to be ready.
+  const CONCURRENCY = Math.max(1, desiredWorkerCount);
   let nextIndex = 0;
 
-  const processOne = async (ocrWorker: any): Promise<void> => {
+  const processOne = async (workerIndex: number): Promise<void> => {
     while (nextIndex < fileArray.length) {
       const i = nextIndex++;
       const file = fileArray[i];
@@ -964,9 +1008,15 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
             // We NEVER use file.lastModified as a fallback — it represents the file's
             // copy/download time, not the capture time.
             let dateTime: string | undefined = filenameDate;
-            if (!dateTime && ocrWorker) {
-              const result = await extractDateFromImageOCR(file, ocrWorker, decodedImage || undefined);
-              return { dateTime: result.dateTime, timeDefaulted: result.timeDefaulted, rawTexts: result.rawTexts };
+            if (!dateTime) {
+              // Only a photo that actually needs OCR waits on the pool — the
+              // rest of the batch keeps flowing while it warms up.
+              await warmupPromise;
+              const ocrWorker = ocrPool[workerIndex];
+              if (ocrWorker) {
+                const result = await extractDateFromImageOCR(file, ocrWorker, decodedImage || undefined);
+                return { dateTime: result.dateTime, timeDefaulted: result.timeDefaulted, rawTexts: result.rawTexts };
+              }
             }
             return { dateTime, timeDefaulted: undefined as boolean | undefined, rawTexts: [] as string[] };
           })(),
@@ -1023,15 +1073,14 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
   await Promise.all(
     Array.from(
       { length: Math.min(CONCURRENCY, fileArray.length) },
-      (_, workerIndex) => processOne(ocrWorkers[workerIndex])
+      (_, workerIndex) => processOne(workerIndex)
     )
   );
 
-  // Clean up
+  // Clean up. The shared OCR pool is intentionally NOT terminated here — it is
+  // reused by the next import (and by reRunOcrOnPhotos) so the engine stays
+  // warm instead of re-downloading the core + language data for every batch.
   try { db?.close(); } catch { /* ignore */ }
-  for (const worker of ocrWorkers) {
-    try { await worker.terminate(); } catch { /* ignore */ }
-  }
 
   return imported.filter((photo): photo is TrailCameraPhoto => photo !== undefined);
 }

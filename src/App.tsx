@@ -30,7 +30,6 @@ import {
   isNotificationSupported,
   getPermissionState,
 } from './services/notificationService';
-import { subscribeUserToPush, isPushSupported } from './services/pushService';
 import { Header } from './components/Header';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
@@ -390,32 +389,6 @@ export default function App() {
     }, 5 * 60 * 1000);
     return () => window.clearInterval(intervalId);
   }, [currentLocation, units, pressureUnit]);
-
-  // Self-healing background push: whenever the app opens (or location/prefs
-  // change) while alerts are enabled, re-register the subscription with the
-  // push server. Render's free tier wipes subscriptions.json on every restart,
-  // so this re-registration is what keeps closed-app alerts working after the
-  // server comes back up — no manual toggle needed.
-  useEffect(() => {
-    if (!notificationPrefs.enabled) return;
-    if (!isPushSupported() || getPermissionState() !== 'granted') return;
-    subscribeUserToPush(
-      {
-        name: currentLocation.name,
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-      },
-      {
-        leadTimeHours: notificationPrefs.leadTimeHours,
-        coldFront: notificationPrefs.coldFront,
-        weatherFront: notificationPrefs.weatherFront,
-        rainBreak: notificationPrefs.rainBreak,
-        primeDay: notificationPrefs.primeDay,
-        severeWeather: notificationPrefs.severeWeather,
-      },
-      units
-    ).catch(() => {});
-  }, [notificationPrefs, currentLocation, units]);
 
   const handleToggleTheme = () => {
     // Mobile cycle button only flips the variant — light/dark is handled

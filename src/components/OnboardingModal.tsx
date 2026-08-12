@@ -195,7 +195,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>Get Alerts</div>
                   <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
-                    Optional push notifications for cold fronts, rain breaks, and best hunting days — even when the app is closed.
+                    Optional weather alerts for cold fronts, rain breaks, and best hunting days.
                   </div>
                 </div>
               </div>

@@ -29,9 +29,6 @@ API key required.
   analytics, target tagging, and data-backed insights.
 - **Harvest log** with buck/doe breakdown by month and by stand plus
   per-stand stats.
-- **Push notifications** that fire even with the app closed via a small
-  companion Node/Express server (`server/push-server.js`) with VAPID
-  rotation handling.
 - **PWA** installable to a phone home screen; theme variants × light/dark
   with custom background upload; JSON backup/restore of all local data.
 
@@ -47,9 +44,6 @@ API key required.
 - **Astronomy:** [`astronomy-engine`](https://github.com/cosinekitty/astronomy)
   (added in Batch 2) for real lunar transit/moonrise/moonset-based
   solunar periods.
-- **Push:** Node + Express + `web-push` (in `server/`). Background push
-  delivery is kept alive by the free-tier-friendly Render cron in
-  `server/keep-alive.js` + `render.cron-example.yaml`.
 
 ## Run locally
 
@@ -72,23 +66,6 @@ npm run build     # production build into dist/
 npm run start     # preview the production build
 ```
 
-### Push notification server (optional)
-
-LetsHunt can fire weather alerts even when the app is closed, but it requires
-a small backend. To run the companion server locally:
-
-```bash
-cd server
-npm install
-# First run will generate vapid.json; for production set
-# VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY as env vars instead.
-node push-server.js
-```
-
-Then in the LetsHunt web app, open Settings → Notifications and supply the
-URL of your local push server. See `render.yaml` / `render.cron-example.yaml`
-for one-click deployment to Render free tier.
-
 ## Documentation
 
 - `forecast-batches/` — engine-side improvement specs. **Batches 1 and 2
@@ -96,7 +73,6 @@ for one-click deployment to Render free tier.
   humidity/scent factor, wind-gust penalty, real astronomy-based solunar).
   Batches 3–6 are still planning documents waiting to be applied.
 - `changes.md` — running changelog of what's actually shipped.
-- `server/` — push notification companion service.
 
 ## Contributing
 

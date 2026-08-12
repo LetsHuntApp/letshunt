@@ -11,6 +11,7 @@ import {
   getAllPhotos,
   startPhotoImport,
   subscribeToPhotoImport,
+  warmUpOcrEngine,
   deletePhotos,
   updatePhoto,
   getCameraLocations,
@@ -154,6 +155,15 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // Load photos & locations on mount
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Warm the OCR engine in the background shortly after the Trail Cams tab
+  // opens, so the first photo import starts instantly instead of stalling
+  // while Tesseract downloads its core + language data (~10+ MB first run).
+  // The import itself also kicks this off, so this is purely a head start.
+  useEffect(() => {
+    const t = window.setTimeout(() => warmUpOcrEngine(), 1500);
+    return () => window.clearTimeout(t);
   }, []);
 
   // Keep import progress alive across Trail Cams sub-tabs and the app's main

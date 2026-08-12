@@ -9,7 +9,6 @@ import {
   sendTestNotification,
   showSystemNotification,
 } from '../services/notificationService';
-import { subscribeUserToPush, unsubscribeUserFromPush, sendTestClosedAppPush } from '../services/pushService';
 import {
   Settings,
   MapPin,
@@ -40,9 +39,6 @@ import {
   Download,
   Upload,
   Loader2,
-  Send,
-  AlertCircle,
-  Activity,
   Trees,
 } from 'lucide-react';
 import { DeerIcon } from './DeerIcon';
@@ -164,10 +160,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [permissionState, setPermissionState] = useState<NotificationPermission | 'unsupported'>(() => getPermissionState());
   const supported = isNotificationSupported();
-  const [isBackgroundTesting, setIsBackgroundTesting] = useState(false);
-  const [bgTestStatus, setBgTestStatus] = useState<{ kind: 'idle' | 'waking' | 'sending' | 'success' | 'error'; message: string }>(
-    { kind: 'idle', message: '' }
-  );
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -339,43 +331,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
-  const handleBackgroundPushTest = async () => {
-    setIsBackgroundTesting(true);
-    setBgTestStatus({ kind: 'waking', message: 'Getting your alerts ready…' });
-    try {
-      const result = await sendTestClosedAppPush(
-        { name: currentLocation.name, latitude: currentLocation.latitude, longitude: currentLocation.longitude },
-        {
-          leadTimeHours: notificationPrefs.leadTimeHours,
-          coldFront: notificationPrefs.coldFront,
-          weatherFront: notificationPrefs.weatherFront,
-          rainBreak: notificationPrefs.rainBreak,
-          primeDay: notificationPrefs.primeDay,
-          severeWeather: notificationPrefs.severeWeather,
-        },
-        units,      (state, info) => {
-          if (state === 'waking') setBgTestStatus({ kind: 'waking', message: info || 'Getting your alerts ready…' });
-          else if (state === 'sending') setBgTestStatus({ kind: 'sending', message: info || 'Sending a test alert…' });
-        });
-      setBgTestStatus({
-        kind: result.ok ? 'success' : 'error',
-        message: result.message,
-      });
-      if (result.ok) {
-        showToast('Closed-app test alert sent ✓');
-      }
-    } catch (e: any) {
-      setBgTestStatus({ kind: 'error', message: e?.message || 'Unexpected error' });
-    } finally {
-      setIsBackgroundTesting(false);
-    }
-  };
-
   const handleMasterToggle = async (next: boolean) => {
     if (!next) {
       onNotificationPrefsChange({ ...notificationPrefs, enabled: false });
-      // Unsubscribe from background push so alerts stop when the app is closed
-      unsubscribeUserFromPush().catch(() => {});
       showToast('Weather alerts turned off.');
       return;
     }
@@ -384,29 +342,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
     if (perm === 'granted') {
       onNotificationPrefsChange({ ...notificationPrefs, enabled: true });
-      // Subscribe to background push — alerts will fire even when the app is closed.
-      // Don't block the UI on this; if the push server isn't reachable (e.g. local
-      // dev or not yet deployed), foreground alerts still work.
-      subscribeUserToPush(
-        { name: currentLocation.name, latitude: currentLocation.latitude, longitude: currentLocation.longitude },
-        {
-          leadTimeHours: notificationPrefs.leadTimeHours,
-          coldFront: notificationPrefs.coldFront,
-          weatherFront: notificationPrefs.weatherFront,
-          rainBreak: notificationPrefs.rainBreak,
-          primeDay: notificationPrefs.primeDay,
-          severeWeather: notificationPrefs.severeWeather,
-        },
-        units
-      ).then((ok) => {
-        if (ok) {
-          showToast('Weather alerts are on.');
-        } else {
-          showToast('Weather alerts are on.');
-        }
-      }).catch(() => {
-        showToast('Weather alerts are on.');
-      });
+      showToast('Weather alerts are on.');
     } else if (perm === 'denied') {
       showToast('Notifications are blocked by the browser. Enable them in your site settings.');
     } else {
@@ -716,7 +652,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* Section 2: Preferences & Units */}
         <div className="space-y-6">
-          {/* Push Notifications & Weather Alerts Card */}
+          {/* Weather Alerts Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
           ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
           : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
@@ -729,8 +665,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               Get a heads-up when weather may get deer moving — cold fronts, weather changes, breaks in the rain,
-              and the best hunting days. Alerts can reach you even when LetsHunt is closed.
-              On Android, also allow notifications for LetsHunt in your device Settings.
+              and the best hunting days — while the app is open.
             </p>
 
             {/* Master toggle */}
@@ -838,66 +773,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               Send Test Alert
             </button>
 
-            {/* Test alerts while the app is closed. */}
-            <div className={`rounded-2xl border p-3.5 space-y-3 ${isDark ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex items-start gap-2">
-                <Send className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isDark ? 'text-sky-400' : 'text-sky-600'}`} />
-                <div className="flex-1">
-                  <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Test Alerts When App Is Closed
-                  </div>
-                  <div className={`text-[10px] mt-0.5 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    Sends a quick test alert so you know your weather alerts are ready.
-                    Close LetsHunt after tapping the button to make sure alerts can reach you while you are away.
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={handleBackgroundPushTest}
-                disabled={isBackgroundTesting || !supported || permissionState === 'denied'}
-                className={`w-full py-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all ${
-                  isDark
-                    ? 'bg-sky-950/40 border-sky-500/40 text-sky-200 hover:border-sky-400 hover:bg-sky-950/70'
-                    : 'bg-sky-50 border-sky-300 text-sky-800 hover:border-sky-500 hover:bg-sky-100'
-                } ${isBackgroundTesting || !supported || permissionState === 'denied' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                {isBackgroundTesting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                {isBackgroundTesting ? 'Sending Test Alert…' : 'Send Test Alert (app closed)'}
-              </button>
-
-              {bgTestStatus.kind !== 'idle' && (
-                <div
-                  className={`flex items-start gap-2 rounded-xl border px-3 py-2 text-[11px] leading-relaxed ${
-                    bgTestStatus.kind === 'success'
-                      ? isDark
-                        ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                        : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                      : bgTestStatus.kind === 'error'
-                      ? isDark
-                        ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
-                        : 'bg-rose-50 border-rose-300 text-rose-900'
-                      : isDark
-                      ? 'bg-sky-950/40 border-sky-500/40 text-sky-200'
-                      : 'bg-sky-50 border-sky-300 text-sky-900'
-                  }`}
-                >
-                  {bgTestStatus.kind === 'waking' || bgTestStatus.kind === 'sending' ? (
-                    <Activity className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 animate-pulse" />
-                  ) : bgTestStatus.kind === 'success' ? (
-                    <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                  )}
-                  <span>{bgTestStatus.message}</span>
-                </div>
-              )}
-
-            </div>
           </div>
 
           {/* Unit System Card */}
