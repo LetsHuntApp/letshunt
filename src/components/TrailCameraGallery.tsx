@@ -555,7 +555,13 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                 </div>
 
                 {/* Top Card Bar */}
-                <div className="relative p-2 flex items-start justify-between z-10">
+                {/* NOTE: intentionally no z-index on this bar. A z-index here
+                    would create a stacking context that traps the target
+                    dropdown's z-50, letting the bottom info bar (also z-10,
+                    later in the DOM) paint over it. Leaving the bar z-auto
+                    lets the open dropdown's z-50 compete at the grid level,
+                    above every thumbnail's overlay text. */}
+                <div className="relative p-2 flex items-start justify-between">
                   <div className="flex items-center gap-1">
                     {isSelectMode ? (
                       <button
