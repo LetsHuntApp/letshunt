@@ -882,10 +882,11 @@ export default function App() {
 
       {/* Mobile Bottom Navigation Bar */}
       <nav
+        data-bottom-nav="true"
         className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-colors duration-200 ${
           isDark
             ? themeVariant === 'hunting'
-              ? 'bg-[#201c17] border-[#5b4c3a] text-[#e8dfd2]'
+              ? 'bg-slate-950 border-slate-800/60 text-slate-100'
               : themeVariant === 'olive'
               ? 'bg-[#1c2614] border-[#2c3d1f] text-[#dde6cb]'
               : 'bg-slate-950 border-slate-800/60 text-slate-100'

@@ -782,3 +782,32 @@ rect:focus {
 .dark.hunting [class*="bg-[#556b2f]"] svg[class*="text-[#556b2f]"] {
   color: #f4eee1 !important;
 }
+
+/* Keep the dark Hunter mobile navigation in the same flat, single-surface
+   style as the other themes. The global Hunter color rules otherwise turn
+   each active utility into an opaque tab-sized block. */
+.dark.hunting [data-bottom-nav] {
+  background-color: rgb(2 6 23 / 0.96) !important;
+  border-top-color: rgba(30, 41, 59, 0.6) !important;
+  color: #f1f5f9 !important;
+}
+.dark.hunting [data-bottom-nav] > button {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.dark.hunting [data-bottom-nav] > button[class*="bg-emerald-"] {
+  background-color: rgb(85 107 47 / 0.18) !important;
+  color: #d8c8a8 !important;
+}
+.dark.hunting [data-bottom-nav] > button[class*="bg-amber-"] {
+  background-color: rgb(245 158 11 / 0.1) !important;
+  color: #fbbf24 !important;
+}
+.dark.hunting [data-bottom-nav] > button[class*="bg-sky-"] {
+  background-color: rgb(14 165 233 / 0.1) !important;
+  color: #38bdf8 !important;
+}
+.dark.hunting [data-bottom-nav] > button[class*="bg-slate-"] {
+  background-color: rgba(51, 65, 85, 0.4) !important;
+  color: #e2e8f0 !important;
+}
