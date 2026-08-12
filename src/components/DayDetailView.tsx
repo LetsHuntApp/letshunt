@@ -146,6 +146,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
         // the hour so the factor panel always agrees with the dial's score.
         hasRainBreak: h.weatherDesc === 'Rain Break (Dry Window)',
         solunar: day.solunar,
+        solunarRating: h.solunarRating,
         hour: selectedHour,
         isPrimeWindow: h.isPrimeWindow,
         units,

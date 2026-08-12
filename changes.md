@@ -1,5 +1,36 @@
 # Changes Log
 
+## Batch 4 — Score Calibration, Prime-Window Daily Scoring & Real Solunar Windows
+
+- **The dial no longer pegs at 99.** Recalibrated every factor in
+  `calculateHuntScore` (baseline 50 → 46; per-factor maxes trimmed:
+  Temperature 15→6, Trend 8→5, Wind 10→7, Barometer 6→4, Rain 12→7,
+  Time-of-Day 16→9, Rut 8→6, Moon 5→6, Humidity 6→4). A normal mild
+  autumn morning prime hour now lands ~75–80 (Good) instead of 95–99, and
+  only a genuinely exceptional alignment — cold front, rain break, major
+  moon window, ideal wind, and the like — clears 90. `RATING_THRESHOLDS`
+  and every UI band are untouched, so ratings stay consistent app-wide.
+- **The daily score now reflects the hours you'll actually hunt.**
+  `weatherService` builds the daily outlook from the morning/evening prime
+  windows instead of the day's extremes: the temperature (and its deviation
+  vs the 30-day climate normal), the representative weather code, humidity,
+  peak gust, and the rain-break / post-storm flags are all prime-window
+  scoped. A 90°F afternoon no longer tanks a day whose 6–9 AM window is a
+  perfect 62°F, and rain that broke at 2 PM no longer earns a "rain break"
+  bonus for a rained-on morning hunt.
+- **Real solunar windows now feed the score, and the midnight bug is dead.**
+  `calculateSolunar` emits exact epoch-ms windows (`solunarWindows`) beside
+  the display strings. `getSolunarRating` and the daily prime-overlap check
+  compare against those timestamps, so a major window running 11 PM → 1 AM
+  correctly rates the post-midnight hours High (previously the end time was
+  re-parsed onto the same calendar day, making the window invisible). Hourly
+  scores earn a Moon Activity bonus when the hour sits inside a major (+3) /
+  minor (+1) window; the daily score earns a smaller bonus (+2 / +1) when a
+  window overlaps the morning or evening prime windows. Windows that cross
+  midnight now display "…(next day)".
+- DayDetailView / DetailedPredictionView recompute the factor panel with the
+  hour's stored solunar rating so the breakdown always agrees with the dial.
+
 ## Rut badge prominence + Olive/Hunting card theme consistency
 
 - **Rut status badge is now prominent & readable on every theme.** All rut

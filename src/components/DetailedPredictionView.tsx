@@ -88,6 +88,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       // the hour so the factor panel always agrees with the dial's score.
       hasRainBreak: hourData.weatherDesc === 'Rain Break (Dry Window)',
       solunar: day.solunar,
+      solunarRating: hourData.solunarRating,
       hour: selectedHour,
       isPrimeWindow: hourData.isPrimeWindow,
       units,

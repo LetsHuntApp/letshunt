@@ -178,6 +178,21 @@ export function formatTimeRange12h(start: Date | string, end: Date | string): st
 }
 
 /**
+ * Display a 2-hour solunar window. When the window crosses midnight the end
+ * time belongs to the next day, so append "(next day)" — otherwise a hunter
+ * could read "11:00 PM - 1:00 AM" as a backwards range.
+ */
+function formatSolunarRange(start: Date, end: Date): string {
+  const crossesMidnight = end.getDate() !== start.getDate();
+  const base = formatTimeRange12h(start, end);
+  return crossesMidnight ? `${base} (next day)` : base;
+}
+
+function toWindowMs(start: Date | null, end: Date | null): { start: number; end: number } | undefined {
+  return start && end ? { start: start.getTime(), end: end.getTime() } : undefined;
+}
+
+/**
  * Calculates Solunar times & moon phase for a given date and location.
  *
  * Batch 2: now uses real lunar astronomy (transit, rise/set) via
@@ -250,12 +265,21 @@ export function calculateSolunar(dateStr: string, lat: number, lon: number, sunr
     moonPhase: moonTimes.moonPhase ?? fallbackPhase,
     moonPhaseName: moonTimes.moonPhaseName ?? fallbackPhaseName,
     moonIllumination: moonTimes.moonIllumination ?? fallbackIllumination,
-    major1: major1Start && major1End ? formatTimeRange12h(major1Start, major1End) : formatTimeRange12h(fallbackMajor1Start, fallbackMajor1End),
-    major2: major2Start && major2End ? formatTimeRange12h(major2Start, major2End) : formatTimeRange12h(fallbackMajor2Start, fallbackMajor2End),
-    minor1: minor1Start && minor1End ? formatTimeRange12h(minor1Start, minor1End) : formatTimeRange12h(fallbackMinor1Start, fallbackMinor1End),
-    minor2: minor2Start && minor2End ? formatTimeRange12h(minor2Start, minor2End) : formatTimeRange12h(fallbackMinor2Start, fallbackMinor2End),
+    major1: major1Start && major1End ? formatSolunarRange(major1Start, major1End) : formatSolunarRange(fallbackMajor1Start, fallbackMajor1End),
+    major2: major2Start && major2End ? formatSolunarRange(major2Start, major2End) : formatSolunarRange(fallbackMajor2Start, fallbackMajor2End),
+    minor1: minor1Start && minor1End ? formatSolunarRange(minor1Start, minor1End) : formatSolunarRange(fallbackMinor1Start, fallbackMinor1End),
+    minor2: minor2Start && minor2End ? formatSolunarRange(minor2Start, minor2End) : formatSolunarRange(fallbackMinor2Start, fallbackMinor2End),
     sunrise: sunriseTime,
     sunset: sunsetTime,
+    // Exact epoch-ms windows so scoring/rating never re-parse the display
+    // strings (which breaks windows that cross midnight). Falls back to the
+    // heuristic windows whenever real astronomy produced no dates.
+    solunarWindows: {
+      major1: toWindowMs(major1Start, major1End) ?? toWindowMs(fallbackMajor1Start, fallbackMajor1End),
+      major2: toWindowMs(major2Start, major2End) ?? toWindowMs(fallbackMajor2Start, fallbackMajor2End),
+      minor1: toWindowMs(minor1Start, minor1End) ?? toWindowMs(fallbackMinor1Start, fallbackMinor1End),
+      minor2: toWindowMs(minor2Start, minor2End) ?? toWindowMs(fallbackMinor2Start, fallbackMinor2End),
+    },
   };
 }
 
@@ -286,6 +310,11 @@ export function calculateHuntScore(params: {
   solunar: SolunarInfo;
   hour?: number;
   isPrimeWindow?: boolean;
+  /** Solunar activity for this hour/day: 'High' = inside a major moon window
+   *  (overhead/underfoot), 'Medium' = inside a minor window (rise/set). For
+   *  the daily call, 'High' means a major window falls inside the morning or
+   *  evening prime windows. Feeds the Moon Activity factor's window bonus. */
+  solunarRating?: 'High' | 'Medium' | 'Normal';
   units?: UnitSystem;
   pressureUnit?: PressureUnit;
   dateStr?: string;
@@ -336,46 +365,46 @@ export function calculateHuntScore(params: {
     const deltaF = params.tempDeltaF as number;
     const roundingPositive = (n: number) => Math.round(Math.abs(n));
     if (deltaF >= 12) {
-      tempScore = -20;
+      tempScore = -12;
       tempStatus = 'poor';
       tempDesc = `Too warm for good daylight movement (+${roundingPositive(deltaF)}${tempUnitStr} above recent normal). High heat suppresses daylight travel.`;
     } else if (deltaF >= 6) {
-      tempScore = -10;
+      tempScore = -7;
       tempStatus = 'poor';
       tempDesc = `Warmer than normal (+${roundingPositive(deltaF)}${tempUnitStr}). Daylight movement may be lighter.`;
     } else if (deltaF > -6) {
       // within ±6°F of normal
-      tempScore = 5;
+      tempScore = 3;
       tempStatus = 'good';
       tempDesc = `Near seasonal normal (${deltaF >= 0 ? '+' : ''}${Math.round(deltaF)}${tempUnitStr}). Typical activity expected.`;
     } else if (deltaF > -14) {
-      tempScore = 10;
+      tempScore = 6;
       tempStatus = 'optimal';
       tempDesc = `Below seasonal normal (-${roundingPositive(deltaF)}${tempUnitStr}). Cooler air drives active feeding.`;
     } else {
       // Very cold anomaly — movement bonus still applies but cap strength so
       // extreme cold doesn't fake a perfect score.
-      tempScore = 5;
+      tempScore = 2;
       tempStatus = 'good';
       tempDesc = `Far below seasonal normal (-${roundingPositive(deltaF)}${tempUnitStr}). Cold-front surge, but extreme cold can also suppress travel.`;
     }
   } else {
     // Legacy absolute thresholds (Batch 1 fallback when no climate normal).
     if (maxTempCheckF >= 78) {
-      tempScore = -20;
+      tempScore = -12;
       tempStatus = 'poor';
       tempDesc = `Too warm for good daylight movement (${maxTempDisp}${tempUnitStr}). Heat keeps deer bedded down during the day; deer remain bedded in shaded cover.`;
     } else if (maxTempCheckF >= 73) {
-      tempScore = -10;
+      tempScore = -7;
       tempStatus = 'poor';
       tempDesc = `Warm temperature (${maxTempDisp}${tempUnitStr}). Daylight movement may be lighter.`;
     } else if (maxTempCheckF >= 66) {
-      tempScore = 5;
+      tempScore = 3;
       tempStatus = 'good';
       tempDesc = `Moderate temperature (${maxTempDisp}${tempUnitStr}). Normal seasonal activity expected.`;
     } else {
       // <= 65°F (18°C)
-      tempScore = 15;
+      tempScore = 6;
       tempStatus = 'optimal';
       tempDesc = `Cool, crisp weather (${maxTempDisp}${tempUnitStr}). The kind of weather that gets deer moving in daylight.`;
     }
@@ -385,7 +414,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Temperature',
     score: tempScore,
-    maxScore: 15,
+    maxScore: 6,
     description: tempDesc,
     status: tempStatus,
   });
@@ -398,23 +427,23 @@ export function calculateHuntScore(params: {
   let trendStatus: ScoreFactor['status'] = 'neutral';
 
   if (tempDropCheckF >= 15) {
-    trendScore = 8;
+    trendScore = 5;
     trendStatus = 'optimal';
     trendDesc = `Big cold front! A sharp temperature drop of ${tempDropVal}${tempUnitStr} triggers massive feeding movement.`;
   } else if (tempDropCheckF >= 9) {
-    trendScore = 6;
+    trendScore = 4;
     trendStatus = 'optimal';
     trendDesc = `Cooling off fast! Temperature drop of ${tempDropVal}${tempUnitStr} (5–10°C) encourages active daylight travel.`;
   } else if (tempDropCheckF >= 4) {
-    trendScore = 3;
+    trendScore = 2;
     trendStatus = 'good';
     trendDesc = `A little cooling favors deer movement.`;
   } else if (tempDropCheckF <= -9) {
-    trendScore = -6;
+    trendScore = -4;
     trendStatus = 'poor';
     trendDesc = `Rapid warming trend (+${Math.abs(tempDropVal)}${tempUnitStr}). Sudden heat spike suppresses daylight activity.`;
   } else if (tempDropCheckF <= -5) {
-    trendScore = -3;
+    trendScore = -2;
     trendStatus = 'poor';
     trendDesc = `Warming trend (+${Math.abs(tempDropVal)}${tempUnitStr} increase) reduces open daytime movement.`;
   } else {
@@ -427,7 +456,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Temperature Change',
     score: trendScore,
-    maxScore: 8,
+    maxScore: 5,
     description: trendDesc,
     status: trendStatus,
   });
@@ -442,36 +471,36 @@ export function calculateHuntScore(params: {
   const windKmh = Math.round(params.windMph * 1.60934);
 
   if (windKmh >= 8 && windKmh <= 20) { // 5 to 12.5 mph
-    windScore = 10;
+    windScore = 7;
     windStatus = 'optimal';
     windDesc = `Ideal light to moderate wind (${windDisp} ${windUnitStr}). Provides steady scent stream without making deer skittish.`;
   } else if (windKmh < 5) { // < 3 mph
-    windScore = -6;
+    windScore = -4;
     windStatus = 'poor';
     windDesc = `Dead-calm wind (${windDisp} ${windUnitStr}). Your scent can hang around you and tip off deer.`;
   } else if (windKmh > 30) { // > 19 mph
-    windScore = -12;
+    windScore = -8;
     windStatus = 'poor';
     windDesc = `Hard wind (${windDisp} ${windUnitStr}). Swirling scent and noisy woods push deer into thick cover.`;
   } else if (windKmh >= 5 && windKmh < 8) {
-    windScore = 3;
+    windScore = 2;
     windStatus = 'good';
     windDesc = `Light breeze (${windDisp} ${windUnitStr}). Minimal wind noise; good for undetected movement.`;
   } else { // 21 to 30 km/h
-    windScore = -3;
+    windScore = -2;
     windStatus = 'neutral';
     windDesc = `Breezy conditions (${windDisp} ${windUnitStr}). Focus on lee-sides of ridges and sheltered oak thickets.`;
   }
 
   // Gust penalty (Batch 1). Apply only when the sustained wind itself is
   // not already penalised as "strong" — strong sustained + gusts would
-  // double-count. Cap the penalty at -4 so a gust spike can't outweigh a
+  // double-count. Cap the penalty at -3 so a gust spike can't outweigh a
   // calm-wind penalty.
   if (typeof params.windGustMph === 'number' && Number.isFinite(params.windGustMph)) {
     const gustMph = params.windGustMph as number;
     const gustDelta = Math.round(gustMph - params.windMph);
     if (gustDelta > 15 && windKmh <= 30) {
-      const gustPenalty = -4;
+      const gustPenalty = -3;
       windScore += gustPenalty;
       windDesc = windDesc
         ? `${windDesc} Gusts to ${Math.round(gustMph)} mph (-${Math.abs(gustPenalty)}).`
@@ -484,7 +513,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Wind & Scent',
     score: windScore,
-    maxScore: 10,
+    maxScore: 7,
     description: windDesc,
     status: windStatus,
   });
@@ -498,23 +527,23 @@ export function calculateHuntScore(params: {
   const isStormCode = params.weatherCode === 63 || params.weatherCode === 65 || params.weatherCode >= 95;
 
   if (params.pressureTrend === 'rapid_rise' || (params.pressureInHg >= 30.00 && params.pressureTrend === 'rising')) {
-    baroScore = 6;
+    baroScore = 4;
     baroStatus = 'optimal';
     baroDesc = `High or rising barometer (${pressDisp} ${pressUnitStr}). Clear post-front stability triggers heavy daylight movement.`;
   } else if (params.pressureTrend === 'rapid_drop' && isStormCode) {
-    baroScore = -6;
+    baroScore = -4;
     baroStatus = 'poor';
     baroDesc = `Barometer falling fast (${pressDisp} ${pressUnitStr}) before a heavy storm. Deer may stay tucked in until it passes.`;
   } else if (params.pressureTrend === 'rapid_drop' || params.pressureTrend === 'falling') {
-    baroScore = 4;
+    baroScore = 3;
     baroStatus = 'good';
     baroDesc = `Falling barometer (${pressDisp} ${pressUnitStr}). Pre-front shift prompts deer to feed before rain.`;
   } else if (params.pressureInHg >= 29.90) {
-    baroScore = 3;
+    baroScore = 2;
     baroStatus = 'good';
     baroDesc = `High barometer (${pressDisp} ${pressUnitStr}). Clear, steady weather is usually a good sign for deer movement.`;
   } else if (params.pressureInHg < 29.70) {
-    baroScore = -3;
+    baroScore = -2;
     baroStatus = 'poor';
     baroDesc = `Low barometer (${pressDisp} ${pressUnitStr}). Deer may move less in daylight.`;
   } else {
@@ -527,7 +556,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Barometer',
     score: baroScore,
-    maxScore: 6,
+    maxScore: 4,
     description: baroDesc,
     status: baroStatus,
   });
@@ -550,7 +579,7 @@ export function calculateHuntScore(params: {
                                    params.weatherCode >= 95;
 
   if ((params.hasRainBreak || params.isPostStorm) && !isCurrentlyPrecipitating) {
-    precipScore = 8;
+    precipScore = 6;
     precipStatus = 'optimal';
     precipDesc = 'Rain just quit and the woods are clearing. Deer often step out to feed and stretch right after a break.';
   } else if (params.weatherCode === 51 || params.weatherCode === 53 || params.weatherCode === 55 || params.weatherCode === 45 || params.weatherCode === 48) {
@@ -558,15 +587,15 @@ export function calculateHuntScore(params: {
     precipStatus = 'optimal';
     precipDesc = 'Light drizzle and mist can quiet your footsteps and keep deer moving under cloudy skies.';
   } else if (params.weatherCode >= 71 && params.weatherCode <= 75) {
-    precipScore = 4;
+    precipScore = 3;
     precipStatus = 'good';
     precipDesc = 'Active snowfall. Fresh snow and cold air trigger metabolic feeding surges near field edges.';
   } else if (params.weatherCode === 65 || params.weatherCode >= 95) {
-    precipScore = -12;
+    precipScore = -8;
     precipStatus = 'poor';
     precipDesc = 'Heavy rain and lightning usually send deer to thick cover.';
   } else if (params.weatherCode === 61 || params.weatherCode === 63) {
-    precipScore = -4;
+    precipScore = -3;
     precipStatus = 'poor';
     precipDesc = 'Steady rain usually keeps deer tucked into thick cover until it lets up.';
   } else {
@@ -579,7 +608,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Rain & Snow',
     score: precipScore,
-    maxScore: 12,
+    maxScore: 7,
     description: precipDesc,
     status: precipStatus,
   });
@@ -595,16 +624,16 @@ export function calculateHuntScore(params: {
   if (isHourly) {
     const hr = params.hour!;
     if (params.isPrimeWindow) {
-      timeScore = 16;
+      timeScore = 9;
       timeStatus = 'optimal';
       timeDesc = `Best window (${hourLabel})! First 2 hours after sunrise or last 2 hours before sunset are peak travel hours.`;
     } else if (hr >= 11 && hr <= 14) {
       if (isPeakRut) {
-        timeScore = 3;
+        timeScore = 2;
         timeStatus = 'good';
         timeDesc = `Midday shift during Peak Rut (${hourLabel}). Bucks actively cruise bedding areas all day seeking estrous does.`;
       } else {
-        timeScore = -8;
+        timeScore = -5;
         timeStatus = 'poor';
         timeDesc = `Midday lull (${hourLabel}). Outside the rut, deer remain bedded in deep security cover during warm midday hours.`;
       }
@@ -614,7 +643,7 @@ export function calculateHuntScore(params: {
       timeDesc = `An ordinary movement hour (${hourLabel}). Moon phase: ${params.solunar.moonPhaseName}.`;
     }
   } else {
-    timeScore = 6;
+    timeScore = 4;
     timeStatus = 'good';
     timeDesc = `First light and the last hour before dark are your best bets. Moon phase: ${params.solunar.moonPhaseName}.`;
   }
@@ -623,7 +652,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Best Time of Day',
     score: timeScore,
-    maxScore: 16,
+    maxScore: 9,
     description: timeDesc,
     status: timeStatus,
   });
@@ -635,7 +664,7 @@ export function calculateHuntScore(params: {
 
   if (rutInfo) {
     if (rutInfo.phaseId === 'peak_rut' || rutInfo.phaseId === 'pre_rut') {
-      rutScore = 8;
+      rutScore = 6;
       rutStatus = 'optimal';
       rutDesc = `Active rut (${rutInfo.name}): Pre-rut scraping, seeking, and chasing frenzy! Daylight buck movement is at its seasonal peak.`;
     } else if (rutInfo.phaseId === 'lockdown') {
@@ -661,7 +690,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Rut & Buck Movement',
     score: rutScore,
-    maxScore: 8,
+    maxScore: 6,
     description: rutDesc,
     status: rutStatus,
   });
@@ -677,28 +706,48 @@ export function calculateHuntScore(params: {
   const moonIllumination = params.solunar?.moonIllumination !== undefined ? params.solunar.moonIllumination : 0;
 
   if (moonPhaseName === 'Full Moon') {
-    solunarScore = 5;
+    solunarScore = 3;
     solunarStatus = 'optimal';
     solunarDesc = `Full Moon (${moonIllumination}% illumination). Strong moon conditions can increase movement around the listed best moon windows.`;
   } else if (moonPhaseName === 'New Moon') {
-    solunarScore = 3;
+    solunarScore = 2;
     solunarStatus = 'good';
     solunarDesc = `New Moon (${moonIllumination}% illumination). Favorable dark-night conditions support normal dawn and dusk movement.`;
   } else if (moonPhaseName === 'Waxing Gibbous' || moonPhaseName === 'Waning Gibbous') {
-    solunarScore = 2;
+    solunarScore = 1;
     solunarStatus = 'good';
     solunarDesc = `Gibbous moon (${moonIllumination}% illumination). Moderate solunar lift, especially near the best moon windows.`;
   } else {
-    solunarScore = 1;
+    solunarScore = 0;
     solunarStatus = 'neutral';
     solunarDesc = `${moonPhaseName} (${moonIllumination}% brightness). The moon is only a small clue today, so watch the weather and wind first.`;
   }
+
+  // Batch 4: the real solunar windows (moon overhead/underfoot = major,
+  // moonrise/moonset = minor) now feed the score instead of phase alone.
+  // Hourly calls bump hours that fall inside a window; the daily call bumps
+  // days where a window overlaps the morning/evening prime windows.
+  let windowBonus = 0;
+  if (params.solunarRating === 'High') {
+    windowBonus = isHourly ? 3 : 2;
+    solunarStatus = 'optimal';
+    solunarDesc = isHourly
+      ? `Inside a MAJOR moon window (moon overhead or underfoot) at ${hourLabel}. ${solunarDesc}`
+      : `A major moon window (moon overhead or underfoot) falls inside your morning or evening hunt. ${solunarDesc}`;
+  } else if (params.solunarRating === 'Medium') {
+    windowBonus = 1;
+    solunarStatus = 'good';
+    solunarDesc = isHourly
+      ? `Inside a MINOR moon window (moonrise or moonset) at ${hourLabel}. ${solunarDesc}`
+      : `A minor moon window (moonrise or moonset) falls inside your morning or evening hunt. ${solunarDesc}`;
+  }
+  solunarScore += windowBonus;
 
   totalScore += solunarScore;
   factors.push({
     name: 'Moon Activity',
     score: solunarScore,
-    maxScore: 5,
+    maxScore: 6,
     description: solunarDesc,
     status: solunarStatus,
   });
@@ -716,15 +765,15 @@ export function calculateHuntScore(params: {
     const humidity = params.humidity as number;
     const fogCode = params.weatherCode === 45 || params.weatherCode === 48;
     if (humidity >= 75 && humidity <= 95) {
-      scentScore = 6;
+      scentScore = 4;
       scentStatus = 'optimal';
       scentDesc = `Damp air (${Math.round(humidity)}%) can hold scent close and soften ground noise.`;
     } else if (humidity >= 60 && humidity < 75) {
-      scentScore = 3;
+      scentScore = 2;
       scentStatus = 'good';
       scentDesc = `Moderately damp air (${Math.round(humidity)}%) usually gives you workable scent conditions.`;
     } else if (humidity > 95 && fogCode) {
-      scentScore = 3;
+      scentScore = 2;
       scentStatus = 'good';
       scentDesc = `Foggy and very humid (${Math.round(humidity)}%) — woods stay still but visibility drops.`;
     } else if (humidity > 95) {
@@ -732,7 +781,7 @@ export function calculateHuntScore(params: {
       scentStatus = 'neutral';
       scentDesc = `Very humid (${Math.round(humidity)}%) without fog. Scent holds but conditions feel heavy.`;
     } else if (humidity < 35) {
-      scentScore = -3;
+      scentScore = -2;
       scentStatus = 'poor';
       scentDesc = `Dry air (${Math.round(humidity)}%) — crunchy leaves and sinking scent work against you.`;
     } else {
@@ -751,7 +800,7 @@ export function calculateHuntScore(params: {
   factors.push({
     name: 'Humidity & Scent',
     score: scentScore,
-    maxScore: 6,
+    maxScore: 4,
     description: scentDesc,
     status: scentStatus,
   });
@@ -1178,6 +1227,22 @@ export function getSolunarRating(
   timestamp: number,
   solunar: SolunarInfo
 ): 'High' | 'Medium' | 'Normal' {
+  // Preferred path: exact epoch-ms windows from real astronomy. These stay
+  // correct across midnight boundaries (e.g. a window that runs 11 PM → 1 AM
+  // the next day), which re-parsing the display strings could never handle
+  // because the end time would be stamped onto the same calendar day.
+  const windows = solunar.solunarWindows;
+  if (windows) {
+    const inRange = (r?: { start: number; end: number }) =>
+      r !== undefined && timestamp >= r.start && timestamp <= r.end;
+    if (inRange(windows.major1) || inRange(windows.major2)) return 'High';
+    if (inRange(windows.minor1) || inRange(windows.minor2)) return 'Medium';
+    return 'Normal';
+  }
+
+  // Legacy fallback (offline synthetic forecast): parse the display strings
+  // against the hour's own date. Only safe because those hard-coded windows
+  // never cross midnight.
   const date = new Date(timestamp);
   const major1 = parseSolunarTimeRange(solunar.major1, date);
   const major2 = parseSolunarTimeRange(solunar.major2, date);

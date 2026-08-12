@@ -70,6 +70,19 @@ export interface SolunarInfo {
   minor2: string; // e.g. "12:35 PM - 01:35 PM"
   sunrise: string;
   sunset: string;
+  /**
+   * Exact epoch-ms windows for each solunar period, computed from real
+   * astronomy in `calculateSolunar`. Scoring and `getSolunarRating` compare
+   * against these timestamps directly instead of re-parsing the display
+   * strings (which broke windows that cross midnight). Absent on legacy /
+   * fallback data — callers then fall back to string parsing.
+   */
+  solunarWindows?: {
+    major1?: { start: number; end: number };
+    major2?: { start: number; end: number };
+    minor1?: { start: number; end: number };
+    minor2?: { start: number; end: number };
+  };
 }
 
 export interface HourlyForecast {

@@ -383,40 +383,108 @@ export async function fetch5DayHuntingForecast(
       (timestamp >= morningStart.getTime() && timestamp <= morningEnd.getTime()) ||
       (timestamp >= eveningStart.getTime() && timestamp <= eveningEnd.getTime());
 
+    // Batch 4: score the daily outlook from the conditions the hunter will
+    // actually sit in — the morning/evening prime windows — instead of the
+    // day's extremes. A 90°F afternoon must not tank a day whose 6-9 AM
+    // window is a perfect 62°F, and rain at 2 PM shouldn't hide the fact
+    // that the prime windows are also wet.
+    const primeHourIndices = dayHourlyRaw.time
+      .map((time: string, idx: number) => ({ timestamp: new Date(time).getTime(), idx }))
+      .filter(({ timestamp }) => isPrimeTimestamp(timestamp))
+      .map(({ idx }) => idx);
+
+    // Average temperature across prime windows (in °F).
+    const primeTempF = primeHourIndices
+      .map((idx) => celsiusToFahrenheit(dayHourlyRaw.temp[idx]))
+      .filter((t: number) => Number.isFinite(t));
+    const primeAvgTempF = average(primeTempF.length ? primeTempF : [rawMaxTempF]);
+
+    // Representative weather code across only the prime-window hours.
+    const primeCodes = primeHourIndices
+      .map((idx) => dayHourlyRaw.weatherCode[idx])
+      .filter((c: number) => typeof c === 'number' && Number.isFinite(c));
+    const primeWeatherCode = computeRepresentativeDailyWeather(primeCodes, weatherCode).code;
+
+    // Average humidity and peak gust across prime windows (fall back to the
+    // full-day values when no prime hours carry data).
+    const primeHumidityValid = primeHourIndices
+      .map((idx) => dayHourlyRaw.humidity[idx])
+      .filter((v: any) => typeof v === 'number' && Number.isFinite(v));
+    const primeHumidity = primeHumidityValid.length > 0
+      ? Math.round(primeHumidityValid.reduce((a: number, b: number) => a + b, 0) / primeHumidityValid.length)
+      : humidityAvg;
+    const primeGustKmh = primeHourIndices
+      .map((idx) => dayHourlyRaw.gust[idx])
+      .filter((v: any) => typeof v === 'number' && Number.isFinite(v));
+    const primeGustMph = primeGustKmh.length > 0 ? kmhToMph(Math.max(...primeGustKmh)) : gustMaxMph;
+
+    // Rain-break / post-storm signals scoped to the prime windows: only a
+    // dry prime hour right after rain (or a day that cleared before prime
+    // time) earns the movement surge — not rain that broke at 2 PM.
+    const primeRainBreak = primeHourIndices.some((idx) => {
+      const recentRain = dayHourlyRaw.precip.slice(Math.max(0, idx - 3), idx).some((p: number) => p >= 0.2);
+      return recentRain && (dayHourlyRaw.precip[idx] || 0) < 0.1;
+    });
+    const lastPrimeIdx = primeHourIndices.length ? Math.max(...primeHourIndices) : -1;
+    const allPrimeDry = primeHourIndices.every((idx) => (dayHourlyRaw.precip[idx] || 0) < 0.1);
+    const primeIsPostStorm = isPostStorm && lastRainIdx >= 0 && lastRainIdx < lastPrimeIdx && allPrimeDry;
+
+    // Temperature deviation for the daily dial is now vs the prime-window
+    // average, not the day's max.
+    const primeTempDeltaF = normalMaxF !== null ? primeAvgTempF - normalMaxF : null;
+
+    // Whether a real solunar window overlaps the morning/evening prime
+    // windows — the daily Moon Activity factor rewards this overlap.
+    const primeSolunarRating: 'High' | 'Medium' | 'Normal' = (() => {
+      const w = solunar.solunarWindows;
+      if (!w) return 'Normal';
+      const morningMs = morningStart.getTime();
+      const morningEndMs = morningEnd.getTime();
+      const eveningMs = eveningStart.getTime();
+      const eveningEndMs = eveningEnd.getTime();
+      const overlaps = (r?: { start: number; end: number }) => {
+        if (!r) return false;
+        return (r.start <= morningEndMs && r.end >= morningMs) ||
+               (r.start <= eveningEndMs && r.end >= eveningMs);
+      };
+      if (overlaps(w.major1) || overlaps(w.major2)) return 'High';
+      if (overlaps(w.minor1) || overlaps(w.minor2)) return 'Medium';
+      return 'Normal';
+    })();
+
     // Daily maximum wind is often a brief gust. Score the daily outlook using
     // the average wind during the actual morning/evening hunting windows.
-    const primeWindKmh = dayHourlyRaw.time
-      .map((time: string, idx: number) => ({ timestamp: new Date(time).getTime(), wind: dayHourlyRaw.windSpeed[idx] }))
-      .filter(({ timestamp }) => isPrimeTimestamp(timestamp))
-      .map(({ wind }) => wind)
-      .filter((wind: number) => Number.isFinite(wind));
+    const primeWindKmh = primeHourIndices
+      .map((idx) => dayHourlyRaw.windSpeed[idx])
+      .filter((w: number) => Number.isFinite(w));
     const scoringWindMph = kmhToMph(average(primeWindKmh.length ? primeWindKmh : dayHourlyRaw.windSpeed));
 
     // Calculate Hunt Score
-    const maxTemp = units === 'imperial' ? rawMaxTempF : Math.round(rawMaxTempC);
     const minTemp = units === 'imperial' ? rawMinTempF : Math.round(rawMinTempC);
     const tempDrop = units === 'imperial' ? tempDrop24h : Math.round((tempDrop24h * 5) / 9);
 
     const { score, rating, verdict, factors } = calculateHuntScore({
       tempDrop24h: tempDrop,
-      maxTempF: maxTemp,
+      maxTempF: units === 'imperial' ? primeAvgTempF : Math.round(((primeAvgTempF - 32) * 5) / 9),
       minTempF: minTemp,
       pressureInHg: pressureAvgInHg,
       pressureTrend,
       windMph: scoringWindMph,
-      weatherCode,
-      isPostStorm,
-      hasRainBreak,
+      weatherCode: primeWeatherCode,
+      isPostStorm: primeIsPostStorm,
+      hasRainBreak: primeRainBreak,
       solunar,
+      solunarRating: primeSolunarRating,
       units,
       pressureUnit,
       dateStr,
       location,
-      // Batch 1: deviation-based temperature scoring (falls back gracefully
-      // when the climate normal is unavailable), humidity factor, gust penalty.
-      tempDeltaF,
-      humidity: humidityAvg,
-      windGustMph: gustMaxMph,
+      // Batch 1 + 4: deviation-based temperature scoring (falls back
+      // gracefully when the climate normal is unavailable), humidity factor,
+      // gust penalty — all now measured across the prime windows.
+      tempDeltaF: primeTempDeltaF,
+      humidity: primeHumidity,
+      windGustMph: primeGustMph,
     });
 
     // Build Prime Time windows (Morning 30m before sunrise to +2.5h; Evening 2.5h before sunset to dusk)
@@ -464,6 +532,10 @@ export async function fetch5DayHuntingForecast(
       const isRainBreakHour = recentRain && (dayHourlyRaw.precip[idx] || 0) < 0.1;
       const hourlyPressureTrend = getPressureTrend(dayHourlyRaw.pressure, idx);
 
+      // Batch 4: the hour's solunar rating (major/minor window membership)
+      // feeds both the Moon Activity score factor and the stored rating.
+      const hSolunarRating = getSolunarRating(hDate.getTime(), solunar);
+
       // Calculate exact hourly hunt score using 9-factor model (Batch 1: humidity + gusts)
       const { score: hScore } = calculateHuntScore({
         tempDrop24h: hTempDrop24h,
@@ -476,6 +548,7 @@ export async function fetch5DayHuntingForecast(
         isPostStorm: isPostStorm && isRainBreakHour,
         hasRainBreak: isRainBreakHour,
         solunar,
+        solunarRating: hSolunarRating,
         hour,
         isPrimeWindow,
         units,
@@ -508,7 +581,7 @@ export async function fetch5DayHuntingForecast(
         weatherDesc: isRainBreakHour ? 'Rain Break (Dry Window)' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
         huntScore: hScore,
         isPrimeWindow,
-        solunarRating: getSolunarRating(hDate.getTime(), solunar),
+        solunarRating: hSolunarRating,
       };
     });
 
@@ -786,10 +859,10 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       rating,
       verdict,
       factors: [
-        { name: 'Barometer', score: 20, maxScore: 25, description: 'The barometer is steady.', status: 'optimal' },
-        { name: 'Wind & Scent', score: 25, maxScore: 30, description: `${windDirectionText} breeze (${windSpeedMaxMph} mph)`, status: 'optimal' },
-        { name: 'Temperature', score: 15, maxScore: 20, description: `Comfortable range (${minTemp}° - ${maxTemp}°)`, status: 'good' },
-        { name: 'Moon Activity', score: 10, maxScore: 15, description: 'The moon looks favorable for movement.', status: 'good' },
+        { name: 'Barometer', score: 2, maxScore: 4, description: 'The barometer is steady.', status: 'good' },
+        { name: 'Wind & Scent', score: 7, maxScore: 7, description: `${windDirectionText} breeze (${windSpeedMaxMph} mph)`, status: 'optimal' },
+        { name: 'Temperature', score: 3, maxScore: 6, description: `Comfortable range (${minTemp}° - ${maxTemp}°)`, status: 'good' },
+        { name: 'Moon Activity', score: 2, maxScore: 6, description: 'The moon looks favorable for movement.', status: 'good' },
       ],
       morningPrime: '6:15 AM - 9:30 AM',
       eveningPrime: '4:45 PM - 7:15 PM',
