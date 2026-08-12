@@ -122,6 +122,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   };
 
   const condExplanation = getDetailedConditionExplanation(day, hourData, units, pressureUnit);
+  const weatherExplanationLabel = `${selectedHour !== undefined ? 'Why is this hour' : 'Why is this day'} ${currentRating === 'Fair' ? 'only fair' : currentRating.toLowerCase()}?`;
 
   const isExcellentDay = currentScore >= RATING_THRESHOLDS.excellent;
   const isGoodDay = currentScore >= RATING_THRESHOLDS.good && currentScore < RATING_THRESHOLDS.excellent;
@@ -574,7 +575,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   title="Click to view weather factors driving this score"
                 >
                   <Info className="w-3.5 h-3.5" />
-                  <span>{showWeatherExplanation ? 'Hide the details ▲' : 'Why is this a good (or bad) hunt? ▼'}</span>
+                  <span>{showWeatherExplanation ? 'Hide the details ▲' : `${weatherExplanationLabel} ▼`}</span>
                 </button>
               </div>
 

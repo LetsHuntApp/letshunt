@@ -755,3 +755,30 @@ rect:focus {
 .hunting [class*="ring-[#2d4a27]"] {
   --tw-ring-color: var(--hunting-green) !important;
 }
+
+/* Dark Hunting contrast repair: the shared hunter green remains the only
+   green surface/accent, but green text utilities cannot also be used as the
+   foreground on walnut cards or green controls. Use warm field-guide paper
+   ink for those foregrounds so icons, score labels, and navigation tabs stay
+   legible without reintroducing multiple green shades. */
+.dark.hunting [class*="text-emerald-"],
+.dark.hunting [class*="text-green-"],
+.dark.hunting [class*="text-lime-"],
+.dark.hunting [class*="text-[#556b2f]"],
+.dark.hunting [class*="text-[#3d4f21]"],
+.dark.hunting [class*="text-[#2d4a27]"] {
+  color: #d8c8a8 !important;
+}
+
+/* A green control needs a light icon even when the icon carries its own
+   semantic green class. This covers score chips, buttons, and active tabs. */
+.dark.hunting [class*="bg-emerald-"][class*="text-emerald-"],
+.dark.hunting [class*="bg-green-"][class*="text-green-"],
+.dark.hunting [class*="bg-lime-"][class*="text-lime-"],
+.dark.hunting [class*="bg-[#556b2f]"][class*="text-[#556b2f]"],
+.dark.hunting [class*="bg-emerald-"] svg[class*="text-emerald-"],
+.dark.hunting [class*="bg-green-"] svg[class*="text-green-"],
+.dark.hunting [class*="bg-lime-"] svg[class*="text-lime-"],
+.dark.hunting [class*="bg-[#556b2f]"] svg[class*="text-[#556b2f]"] {
+  color: #f4eee1 !important;
+}
