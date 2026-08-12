@@ -817,11 +817,28 @@ export function getDetailedConditionExplanation(
     // last few hours (lastRainHour check) or the day is a post-storm day.
     : (day.hasRainBreak === true && day.isPostStorm);
 
+  // Unit-aware display helpers so every explanation cites the real numbers
+  // in the user's chosen units. (temp / tempDrop24h are already stored in
+  // those units; wind and pressure have raw mph/kmh and inHg/hPa values.)
+  const isMetric = units === 'metric';
+  const tempUnit = isMetric ? '°C' : '°F';
+  const windVal = Math.round(hourData
+    ? (isMetric ? hourData.windSpeedKmh : hourData.windSpeedMph)
+    : (isMetric ? day.windSpeedMaxKmh : day.windSpeedMaxMph));
+  const windUnit = isMetric ? 'km/h' : 'mph';
+  const tempVal = Math.round(tempF);
+  const tempDropVal = Math.round(tempDrop);
+  const pressureVal = pressureUnit === 'hPa'
+    ? Math.round(hourData ? hourData.pressureHpa : day.pressureAvgHpa)
+    : (hourData ? hourData.pressureInHg : day.pressureAvgInHg);
+  const pressureUnitLabel = pressureUnit === 'hPa' ? 'hPa' : 'inHg';
+  const weatherDesc = (hourData ? hourData.weatherDesc : day.weatherDesc) || 'stormy weather';
+
   // 1. Heavy Rain & Storms (Codes 65, 95, 96, 99)
   if (weatherCode === 65 || weatherCode >= 95) {
     return {
       headline: 'It is not a good time to hunt — Heavy Rain & Storms',
-      detail: 'Heavy rain and active storms usually send deer to thick cover. If you go, expect little movement until things calm down.',
+      detail: `Heavy rain and active storms (${weatherDesc.toLowerCase()}) push deer into thick cover. If you go, expect little movement until it calms down.`,
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
@@ -831,13 +848,13 @@ export function getDetailedConditionExplanation(
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Unfavorable Post-Rain Conditions',
-        detail: 'The rain quit, but heat, wind, or another rough condition is still keeping deer movement low.',
+        detail: `The rain quit, but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are still keeping deer movement low. Hunt thick cover.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is a great time to go hunting — Rain Just Stopped',
-      detail: 'The rain quit and the sky is clearing — a classic time for deer to step out, feed, and stretch.',
+      detail: `Rain just let up and skies are clearing — with ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind, deer step out to feed and stretch.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -847,13 +864,13 @@ export function getDetailedConditionExplanation(
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Active Steady Rain',
-        detail: 'Steady rain is falling, and deer are likely tucked into thick cover. Wait for it to let up before expecting much movement.',
+        detail: `${weatherDesc} is falling steadily and deer are tucked into thick cover — wait for it to let up before expecting movement.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is an okay time to hunt — Active Rain',
-      detail: 'Rain quiets the woods, but deer usually stay tucked in. Be ready for them to step out when the rain eases.',
+      detail: `Rain quiets the woods, but deer usually stay tucked in — be ready for them to step out the moment the rain eases.`,
       badgeColor: 'bg-amber-500/15 text-amber-400 border-amber-500/30'
     };
   }
@@ -863,13 +880,13 @@ export function getDetailedConditionExplanation(
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Low Activity with Drizzle/Fog',
-        detail: 'The damp ground helps, but warm weather or bad wind is still working against deer movement.',
+        detail: `The damp ground helps, but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are still working against deer movement.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is a good time to hunt — Light Drizzle & Fog',
-      detail: 'Light drizzle can quiet your footsteps, and cloudy skies may keep deer moving before dark.',
+      detail: `Light drizzle (${weatherDesc.toLowerCase()}) quiets your footsteps and the overcast keeps deer moving — a steady ${windVal} ${windUnit} wind keeps your scent predictable.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -879,31 +896,31 @@ export function getDetailedConditionExplanation(
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Stormy Snowfall Conditions',
-        detail: 'Snow is falling, but hard wind or a sharp temperature drop may have deer holed up in thick cover.',
+        detail: `Snow is falling, but a ${windVal} ${windUnit} wind and a ${tempDropVal}${tempUnit} temperature drop have deer holed up in thick cover.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is a good time to hunt — Active Snowfall',
-      detail: 'Fresh snow and cold air can get deer moving along field edges and timber cuts before and after the snow.',
+      detail: `Fresh snow and ${tempVal}${tempUnit} air push deer along field edges and timber cuts — expect movement before and after the snow.`,
       badgeColor: 'bg-sky-500/15 text-sky-400 border-sky-500/30'
     };
   }
 
-  // 6. High Heat (tempF >= 78°F)
-  if (tempF >= 78) {
+  // 6. High Heat (tempF >= 78°F / 26°C)
+  if (tempF >= (isMetric ? 26 : 78)) {
     return {
       headline: 'It is not a good time to hunt — High Heat Warning',
-      detail: `Too-warm conditions (${tempF}°F) keep deer bedded in shade near water until dusk.`,
+      detail: `Too-warm conditions (${tempVal}${tempUnit}) keep deer bedded in shade near water until dusk.`,
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
 
-  // 7. High Gusty Winds (windMph >= 18)
-  if (windMph >= 18) {
+  // 7. High Gusty Winds (windMph >= 18 / 29 km/h)
+  if (windMph >= (isMetric ? 29 : 18)) {
     return {
       headline: 'It is not a good time to hunt — High Swirling Winds' ,
-      detail: `Strong, gusty wind (${windMph} mph) makes the woods noisy and swirls your scent. Deer usually stay in thick cover.`,
+      detail: `Strong, gusty wind (${windVal} ${windUnit}) makes the woods noisy and swirls your scent — deer usually stay in thick cover.`,
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
@@ -913,13 +930,13 @@ export function getDetailedConditionExplanation(
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Front Swirling Winds',
-        detail: 'The barometer is dropping, but heat or bad wind is still keeping deer bedded down.',
+        detail: `The barometer is dropping (${pressureVal} ${pressureUnitLabel}), but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are still keeping deer bedded down.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is a great time to go hunting — Barometer Falling Rapidly',
-      detail: 'A falling barometer before a front can get deer moving and feeding before bad weather arrives.',
+      detail: `The barometer is falling (${pressureVal} ${pressureUnitLabel}) ahead of a front — deer feed hard before the bad weather arrives.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
@@ -928,46 +945,76 @@ export function getDetailedConditionExplanation(
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Ineffective Rising Barometer',
-        detail: 'The barometer is rising after the front, but heat or bad wind is canceling out the usual movement boost.',
+        detail: `The barometer is rising (${pressureVal} ${pressureUnitLabel}) after the front, but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are canceling the movement boost.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is a great time to go hunting — Barometer Rising Post-Front',
-      detail: 'Clear air behind a passing front can put deer on their feet and feeding in daylight.',
+      detail: `The barometer is rising (${pressureVal} ${pressureUnitLabel}) behind the front — clear, stable air puts deer on their feet feeding in daylight.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
 
-  // 9. Cold Front Hit
-  if (tempDrop >= 8) {
+  // 9. Cold Front Hit (tempDrop >= 8°F / 4°C)
+  if (tempDrop >= (isMetric ? 4 : 8)) {
     if (score < 46) {
       return {
         headline: 'It is not a good time to hunt — Suppressed Cold Front',
-        detail: `The temperature dropped by ${tempDrop}°F, but other weather problems or bad wind are still holding deer back.`,
+        detail: `The temperature dropped ${tempDropVal}${tempUnit} in 24h, but other weather problems or bad wind are still holding deer back.`,
         badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
       };
     }
     return {
       headline: 'It is a great time to go hunting — Cold Front Hit',
-      detail: `A sharp 24-hour drop of ${tempDrop}°F can put bucks on their feet and moving in daylight.`,
+      detail: `A sharp 24-hour drop of ${tempDropVal}${tempUnit} puts bucks on their feet in daylight — a classic cold-front surge.`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   }
 
-  // 10. Default Score-Based Explanations
+  // 10. Default Score-Based Explanations — cite the exact conditions driving
+  // the score instead of generic copy.
   // Batch 3: aligned to the centralised RATING_THRESHOLDS so the headline
   // copy never contradicts the dial rating.
+  const windZoneText = isMetric ? '6–19 km/h' : '4–12 mph';
+  const windIdeal = windMph >= 4 && windMph <= 12;
+  const drivers: string[] = [];
+  if (tempDrop >= (isMetric ? 4 : 8)) {
+    drivers.push(`${tempDropVal}${tempUnit} drop in temperature over 24h`);
+  } else if (tempDrop >= (isMetric ? 2 : 4)) {
+    drivers.push(`a ${tempDropVal}${tempUnit} cooling trend`);
+  }
+  if (windIdeal) {
+    drivers.push(`${windVal} ${windUnit} wind (moderate — ideal ${windZoneText})`);
+  }
+  // Note: 'rapid_drop' / 'rapid_rise' already returned in the barometer
+  // branch above, so only 'rising' / 'falling' / 'steady' can reach here.
+  if (pressureTrend === 'rising') {
+    drivers.push(`the barometer climbing to ${pressureVal} ${pressureUnitLabel}`);
+  } else if (pressureTrend === 'falling') {
+    drivers.push(`the barometer easing down to ${pressureVal} ${pressureUnitLabel}`);
+  }
+  if (hasRainBreak || (isPostStorm && weatherCode <= 3)) {
+    drivers.push('rain that just let up');
+  }
+  if (drivers.length === 0) {
+    drivers.push(`${tempVal}${tempUnit} air`); // fallback so the copy is never empty
+  }
+  const driversText = drivers.length > 1
+    ? `${drivers.slice(0, -1).join(', ')} and ${drivers[drivers.length - 1]}`
+    : drivers[0];
+  const primeText = `Best windows: ${day.morningPrime} and ${day.eveningPrime}.`;
+
   if (score >= RATING_THRESHOLDS.excellent) {
     return {
       headline: 'It is a great time to go hunting — Top-Tier Conditions',
-      detail: 'Most of the signs line up. A front, clearing sky, or cool seasonal weather gives you a strong window in the woods.',
+      detail: `${driversText} — ideal conditions for deer movement. ${primeText}`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   } else if (score >= RATING_THRESHOLDS.good) {
     return {
       headline: 'It is a great time to go hunting — Ideal Weather Alignment',
-      detail: 'Cool weather, a helpful barometer, and steady wind give deer a good reason to move in daylight.',
+      detail: `${driversText} — a solid reason for deer to move in daylight. ${primeText}`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
   } else if (score >= RATING_THRESHOLDS.fair) {
