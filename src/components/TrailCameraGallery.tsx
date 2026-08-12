@@ -581,7 +581,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                             e.stopPropagation();
                             onToggleFavorite(photo);
                           }}
-                          className={`p-2 rounded-xl transition-all backdrop-blur-md touch-manipulation ${
+                          className={`p-2 rounded-xl flex items-center justify-center transition-all backdrop-blur-md touch-manipulation ${
                             photo.isFavorite
                               ? 'bg-amber-500 text-slate-950 shadow-md'
                               : 'bg-black/40 text-white/70 hover:text-amber-400 hover:bg-black/60 active:bg-amber-500/30'
@@ -597,7 +597,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                                 e.stopPropagation();
                                 setActiveTagPhotoId(activeTagPhotoId === photo.id ? null : photo.id);
                               }}
-                              className={`p-2 rounded-xl transition-all backdrop-blur-md touch-manipulation ${
+                              className={`p-2 rounded-xl flex items-center justify-center transition-all backdrop-blur-md touch-manipulation ${
                                 (photo.tags || []).length > 0
                                   ? 'bg-emerald-500 text-slate-950 shadow-md'
                                   : 'bg-black/40 text-white/70 hover:text-emerald-400 hover:bg-black/60 active:bg-emerald-500/30'
