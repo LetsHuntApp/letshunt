@@ -246,34 +246,21 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         className={`rounded-3xl border p-6 sm:p-8 flex flex-col items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden transition-all duration-300 ${
           isExcellentDay
             ? isDark
-              ? 'bg-gradient-to-br from-emerald-950/50 via-slate-900 to-slate-950 border-emerald-600/40 text-slate-100'
-              : 'bg-gradient-to-br from-emerald-50/95 via-white to-emerald-50/40 border-emerald-300 text-slate-900 shadow-sm'
+              ? 'bg-slate-900 border-emerald-600/40 text-slate-100'
+              : 'bg-emerald-50 border-emerald-300 text-slate-900 shadow-sm'
             : isGoodDay
             ? isDark
-              ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-slate-950 border-emerald-500/35 text-slate-100'
-              : 'bg-gradient-to-br from-emerald-50/90 via-white to-emerald-50/30 border-emerald-200 text-slate-900 shadow-sm'
+              ? 'bg-slate-900 border-emerald-500/35 text-slate-100'
+              : 'bg-emerald-50 border-emerald-200 text-slate-900 shadow-sm'
             : isModerateDay
             ? isDark
-              ? 'bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border-amber-500/40 text-slate-100'
-              : 'bg-gradient-to-br from-amber-50/90 via-white to-amber-50/30 border-amber-200 text-slate-900 shadow-sm'
+              ? 'bg-slate-900 border-amber-500/40 text-slate-100'
+              : 'bg-amber-50 border-amber-200 text-slate-900 shadow-sm'
             : isDark
-            ? 'bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-950 border-rose-500/40 text-slate-100'
-            : 'bg-gradient-to-br from-rose-50/90 via-white to-rose-50/30 border-rose-200 text-slate-900 shadow-sm'
+            ? 'bg-slate-900 border-rose-500/40 text-slate-100'
+            : 'bg-rose-50 border-rose-200 text-slate-900 shadow-sm'
         }`}
       >
-        {/* Glow backdrop */}
-        <div
-          className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl pointer-events-none transition-all duration-500 ${
-            isExcellentDay
-              ? 'bg-emerald-700/10'
-              : isGoodDay
-              ? 'bg-emerald-500/10'
-              : isModerateDay
-              ? 'bg-amber-500/10'
-              : 'bg-rose-500/10'
-          }`}
-        />
-
         {/* Keep the primary score immediately at the top of the hero, matching the dashboard hierarchy. */}
         <div className="flex flex-col items-center justify-center space-y-2 shrink-0 z-10">
           <div className="relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">

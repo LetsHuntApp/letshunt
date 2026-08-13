@@ -228,6 +228,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
     ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
     : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm';
 
+  const isHunterDark = theme === 'hunting' && isDark;
   const textPrimary = isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900';
   const textSecondary = isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500';
 
@@ -356,7 +357,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
             }`}>
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                  <div className={`text-xs font-black uppercase tracking-wider ${isHunterDark ? 'text-white' : isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
                     Active HuntClub
                   </div>
                   <div className={`text-sm font-extrabold truncate ${textPrimary}`}>{activeClub.name}</div>

@@ -155,6 +155,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // `theme` string, which collapses to the variant name for olive/hunting/
   // (standard / olive / hunting) so the whole Settings view flips correctly in dark mode.
   const isDark = themeMode === 'dark';
+  const isHunterDark = themeVariant === 'hunting' && isDark;
 
   // Search debounced
   useEffect(() => {
@@ -378,7 +379,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-full text-xs font-black uppercase tracking-wider">
+              <span className={`px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/40 rounded-full text-xs font-black uppercase tracking-wider ${isHunterDark ? 'text-white' : 'text-emerald-400'}`}>
                 Default
               </span>
             </div>
@@ -417,7 +418,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     disabled={isLocating}
                     className={`ml-1 px-2.5 py-1 rounded-lg flex items-center gap-1 text-xs font-bold uppercase transition-colors ${
                       isDark
-                        ? 'bg-emerald-950/80 text-emerald-400 hover:bg-emerald-900 border border-emerald-800/60'
+                        ? `bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-800/60 ${isHunterDark ? 'text-white' : 'text-emerald-400'}`
                         : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300'
                     }`}
                   >
@@ -523,7 +524,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                             {fav.name}
                           </span>
                           {isCurrentActive && (
-                            <span className="px-1.5 py-0.2 bg-emerald-500 text-slate-950 rounded font-black text-[11px] uppercase">
+                            <span className={`px-1.5 py-0.2 bg-emerald-500 rounded font-black text-[11px] uppercase ${isHunterDark ? 'text-white' : 'text-slate-950'}`}>
                               Active
                             </span>
                           )}
@@ -542,7 +543,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           }}
                           className={`px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase transition-all ${
                             isCurrentActive
-                              ? 'bg-emerald-500 text-slate-950'
+                              ? `bg-emerald-500 ${isHunterDark ? 'text-white' : 'text-slate-950'}`
                               : isDark
                               ? 'bg-slate-800 text-slate-200 hover:bg-slate-700'
                               : 'bg-slate-200 text-slate-800 hover:bg-slate-300'
@@ -556,7 +557,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                           onClick={() => onSetDefaultLocation(fav)}
                           className={`p-1.5 rounded-lg border transition-all ${
                             isCurrentDefault
-                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                              ? `bg-emerald-500/20 border-emerald-500/40 ${isHunterDark ? 'text-white' : 'text-emerald-400'}`
                               : isDark
                               ? 'bg-slate-900 text-slate-400 hover:text-slate-200 border-slate-800'
                               : 'bg-slate-100 text-slate-500 hover:text-slate-900 border-slate-200'
@@ -1000,7 +1001,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 disabled={isExporting}
                 className={`p-3.5 rounded-2xl border flex items-center justify-center gap-2 text-xs font-black transition-all ${
                   isDark
-                    ? 'bg-emerald-950/50 border-emerald-500/60 text-emerald-300 hover:bg-emerald-900'
+                    ? `bg-emerald-950/50 border-emerald-500/60 hover:bg-emerald-900 ${isHunterDark ? 'text-white' : 'text-emerald-300'}`
                     : 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
                 } ${isExporting ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
               >
