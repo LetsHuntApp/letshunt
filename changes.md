@@ -1,5 +1,28 @@
 # Changes Log
 
+## Batch 10 — Usability: Decluttered Header & Larger Mobile Text/Touch Targets
+
+- **Header simplified to the essentials.** Removed the quick units (°F/°C)
+  toggle and the theme-cycle (Sun) button from the header on every screen
+  size. The header now shows only the logo, GPS locate, and location search;
+  units and theme were already reachable in Settings under clearly labeled
+  "Unit System" and "Theme & Interface" sections, so switching °F/°C or
+  Standard/Olive/Hunter is one tap away in one place instead of two.
+- **Icon-only header controls now have accessible names.** The GPS button,
+  the location star (save to grounds), and the home (set default) button got
+  real `aria-label`s, and the search input is labeled — tooltips alone were
+  invisible on touch devices.
+- **Minimum text size raised across the app.** Swept every sub-12px class in
+  the 21 component files: the old `text-[8px]`/`text-[9px]`/`text-[10px]`/
+  `text-[11px]` micro-labels are now 11px–12px (most content text is 12px,
+  i.e. `text-xs`). This matters for a hunting app used outdoors — bright
+  sunlight, gloves, low light.
+- **Bigger touch targets.** The header GPS button is now a 40px fixed-size
+  target, the search field is taller, the mobile bottom-nav buttons are
+  taller, the location-badge buttons (star/home) grew from ~20px to ~32px,
+  and small map/trail-cam inline buttons got more padding. Verified on the
+  running app: no horizontal overflow or clipped labels at mobile width.
+
 ## Batch 9 — Location Permission Prompt
 
 - **Added a clear location-access prompt on startup.** If the browser has not

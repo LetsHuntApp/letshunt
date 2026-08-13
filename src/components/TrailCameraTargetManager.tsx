@@ -99,7 +99,7 @@ export const TrailCameraTargetManager: React.FC<TargetManagerProps> = ({
             <div className="text-center py-5 rounded-xl border border-dashed opacity-80">
               <Crosshair className="w-5 h-5 mx-auto text-emerald-400" />
               <p className="text-xs font-bold mt-2">No targets yet</p>
-              <p className="text-[11px] opacity-60 mt-1 px-4">
+              <p className="text-xs opacity-60 mt-1 px-4">
                 Type a name above (like "Mature Buck" or "Target Doe") and tap + to create your first target.
               </p>
             </div>

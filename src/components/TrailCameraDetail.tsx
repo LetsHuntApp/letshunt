@@ -307,7 +307,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
           >
             <ZoomIn className="w-4 h-4" />
           </button>
-          <span className="text-[10px] font-black px-1 min-w-[36px] text-center">
+          <span className="text-xs font-black px-1 min-w-[36px] text-center">
             {Math.round(zoomLevel * 100)}%
           </span>
           <button
@@ -396,7 +396,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
           {/* Capture Date & Time — read-only or editable with manual picker */}
           <div className={`space-y-2 p-3 rounded-2xl ${cardBg} text-xs`}>
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+              <label className="text-xs font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-emerald-400" /> Capture Date & Time
               </label>
               {!isEditingDate && (
@@ -434,7 +434,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 {photo.dateTime && (
                   <button
                     onClick={handleClearDate}
-                    className="w-full py-1.5 text-rose-400 hover:text-white hover:bg-rose-600/80 text-[11px] font-bold rounded-xl border border-rose-500/30 flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full py-1.5 text-rose-400 hover:text-white hover:bg-rose-600/80 text-xs font-bold rounded-xl border border-rose-500/30 flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Eraser className="w-3.5 h-3.5" /> Clear Date (re-OCR or re-enter)
                   </button>
@@ -461,7 +461,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                   <span className="font-bold">{timeStr}</span>
                 </div>
                 {photo.dateTime && (
-                  <div className="text-[10px] opacity-50 font-mono pt-0.5">
+                  <div className="text-xs opacity-50 font-mono pt-0.5">
                     Stored as: {photo.dateTime}
                   </div>
                 )}
@@ -478,7 +478,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
 
           {/* Camera Location Selector */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+            <label className="text-xs font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-sky-400" /> Camera Spot
             </label>
             <div className="flex gap-2">
@@ -514,7 +514,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
               </button>
             </div>
             {photo.latitude && photo.longitude && (
-              <div className="text-[10px] font-mono opacity-60 flex items-center gap-1">
+              <div className="text-xs font-mono opacity-60 flex items-center gap-1">
                 <Target className="w-3 h-3" /> EXIF GPS: {photo.latitude.toFixed(4)}, {photo.longitude.toFixed(4)}
               </div>
             )}
@@ -522,11 +522,11 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
 
           {/* Target Tags */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+            <label className="text-xs font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
               <Crosshair className="w-3.5 h-3.5 text-emerald-400" /> Target Tags
             </label>
             {targets.length === 0 ? (
-              <p className="text-[10px] opacity-50 italic">No targets defined. Create some from the gallery view.</p>
+              <p className="text-xs opacity-50 italic">No targets defined. Create some from the gallery view.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {targets.map((t) => {
@@ -535,7 +535,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                     <button
                       key={t.id}
                       onClick={() => handleToggleTag(t.id)}
-                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold border transition-all ${
                         active
                           ? 'text-white shadow-md'
                           : 'opacity-60 hover:opacity-100'
@@ -557,7 +557,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
 
           {/* Historical Weather Info */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-wider opacity-70">
+            <label className="text-xs font-black uppercase tracking-wider opacity-70">
               Historical Weather Conditions
             </label>
 
@@ -566,7 +566,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Thermometer className="w-4 h-4 text-rose-400 flex-shrink-0" />
                   <div>
-                    <div className="opacity-60 text-[10px]">Temp</div>
+                    <div className="opacity-60 text-xs">Temp</div>
                     <div className="font-bold">{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</div>
                   </div>
                 </div>
@@ -574,7 +574,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Wind className="w-4 h-4 text-sky-400 flex-shrink-0" />
                   <div>
-                    <div className="opacity-60 text-[10px]">Wind</div>
+                    <div className="opacity-60 text-xs">Wind</div>
                     <div className="font-bold">{photo.weather.windDirection} {units === 'metric' ? `${photo.weather.windSpeedKmh}km/h` : `${photo.weather.windSpeedMph}mph`}</div>
                   </div>
                 </div>
@@ -582,7 +582,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Gauge className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   <div>
-                    <div className="opacity-60 text-[10px]">Pressure</div>
+                    <div className="opacity-60 text-xs">Pressure</div>
                     <div className="font-bold">{pressureUnit === 'hPa' ? `${photo.weather.pressureHpa} hPa` : `${photo.weather.pressureInHg} inHg`} ({photo.weather.pressureTrend})</div>
                   </div>
                 </div>
@@ -590,7 +590,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 <div className={`p-2.5 rounded-xl flex items-center gap-2 ${cardBg}`}>
                   <Droplets className="w-4 h-4 text-blue-400 flex-shrink-0" />
                   <div>
-                    <div className="opacity-60 text-[10px]">Humidity</div>
+                    <div className="opacity-60 text-xs">Humidity</div>
                     <div className="font-bold">{photo.weather.humidity}%</div>
                   </div>
                 </div>
@@ -598,13 +598,13 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 <div className={`p-2.5 rounded-xl flex items-center gap-2 col-span-2 ${cardBg}`}>
                   <Moon className="w-4 h-4 text-amber-300 flex-shrink-0" />
                   <div>
-                    <div className="opacity-60 text-[10px]">Moon Phase</div>
+                    <div className="opacity-60 text-xs">Moon Phase</div>
                     <div className="font-bold">{photo.weather.moonPhaseName} ({photo.weather.moonIllumination}% lit)</div>
                   </div>
                 </div>
 
                 <div className={`p-2.5 rounded-xl col-span-2 ${cardBg}`}>
-                  <div className="opacity-60 text-[10px]">Weather Condition</div>
+                  <div className="opacity-60 text-xs">Weather Condition</div>
                   <div className="font-bold">{photo.weather.weatherDesc}</div>
                 </div>
               </div>
@@ -618,7 +618,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
           {/* User Notes */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
+              <label className="text-xs font-black uppercase tracking-wider opacity-70 flex items-center gap-1">
                 <FileText className="w-3.5 h-3.5" /> Hunter Notes
               </label>
               {!isEditingNotes && (

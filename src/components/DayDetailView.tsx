@@ -402,14 +402,14 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     {currentScore}
                   </div>
                   <div
-                    className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                    className="text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
                     style={{ color: scoreStrokeColor }}
                   >
                     {isExcellentDay && <Star className="w-3 h-3" style={{ color: scoreStrokeColor, fill: scoreStrokeColor }} />}
                     <span>{getRatingFromScore(currentScore)}</span>
                   </div>
                   <div
-                    className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest -mt-0.5 opacity-90"
+                    className="text-xs sm:text-xs font-black uppercase tracking-widest -mt-0.5 opacity-90"
                     style={{ color: scoreStrokeColor }}
                   >
                     SCORE
@@ -425,10 +425,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   }`}
                 >
                   {/* Cardinal Labels */}
-                  <span className={`absolute top-1 text-[9px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>N</span>
-                  <span className={`absolute right-1.5 text-[9px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>E</span>
-                  <span className={`absolute bottom-1 text-[9px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>S</span>
-                  <span className={`absolute left-1.5 text-[9px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>W</span>
+                  <span className={`absolute top-1 text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>N</span>
+                  <span className={`absolute right-1.5 text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>E</span>
+                  <span className={`absolute bottom-1 text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>S</span>
+                  <span className={`absolute left-1.5 text-xs font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>W</span>
 
                   {/* Tick Marks */}
                   {[0, 45, 90, 135, 180, 225, 270, 315].map((tick) => (
@@ -449,10 +449,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                         : `${Math.round(hourData ? hourData.windSpeedMph : day.windSpeedMaxMph)}`
                       }
                     </span>
-                    <span className={`text-[8px] sm:text-[9px] font-bold opacity-80 uppercase leading-none mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <span className={`text-xs sm:text-xs font-bold opacity-80 uppercase leading-none mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       {units === 'metric' ? 'km/h' : 'mph'}
                     </span>
-                    <span className="text-[10px] sm:text-xs font-black tracking-tight leading-none text-emerald-500 mt-1">
+                    <span className="text-xs sm:text-xs font-black tracking-tight leading-none text-emerald-500 mt-1">
                       {currentWindText}
                     </span>
                   </div>
@@ -493,7 +493,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={onResetToToday}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shadow-sm transition-all cursor-pointer hover:scale-[1.02] active:scale-95 ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shadow-sm transition-all cursor-pointer hover:scale-[1.02] active:scale-95 ${
                     theme === 'hunting'
                       ? 'bg-[#c85a17] hover:bg-[#b34e12] text-white border-[#e08a5a]'
                       : theme === 'olive'
@@ -517,7 +517,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   while the larger layout keeps the fuller visual treatment. */}
               <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-1.5 w-[calc(100%+1rem)] -mx-2 sm:mx-0 sm:w-full overflow-visible">
                 <span
-                  className={`shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
+                  className={`shrink-0 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
                     ratingBadgeClasses
                   }`}
                 >
@@ -527,7 +527,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsRutModalOpen(true)}
-                  className={`inline-flex shrink-0 items-center gap-1 sm:gap-2 px-2 sm:px-3.5 py-1 sm:py-2 rounded-xl text-[10px] sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${theme === 'hunting' ? hunterRutBadgeClasses : rutInfo.badgeStyle}`}
+                  className={`inline-flex shrink-0 items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-[15px] font-black uppercase tracking-tight sm:tracking-wider border-2 whitespace-nowrap cursor-pointer hover:scale-[1.04] active:scale-95 transition-all shadow-lg shadow-black/20 ring-2 ring-white/25 hover:ring-white/50 ${theme === 'hunting' ? hunterRutBadgeClasses : rutInfo.badgeStyle}`}
                   title="Click for Rut Phase Breakdown & Hunter Tips"
                 >
                   {rutInfo.phaseId === 'peak_rut' && (
@@ -561,7 +561,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowWeatherExplanation((prev) => !prev)}
-                  className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
+                  className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
                     showWeatherExplanation
                       ? isDark
                         ? theme === 'hunting'
@@ -597,7 +597,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               {/* Specific Weather Score Rationale Box - Only shown when clicked */}
               {showWeatherExplanation && (
                 <div className={`w-full p-2.5 rounded-xl border ${weatherExplanationSurface} backdrop-blur-sm text-left mt-1 shadow-sm space-y-0.5`}>
-                  <div className={`text-[10px] font-black uppercase tracking-wider ${weatherExplanationHeading}`}>
+                  <div className={`text-xs font-black uppercase tracking-wider ${weatherExplanationHeading}`}>
                     Why the hunt looks this way
                   </div>
                   <p className={`text-xs font-medium leading-relaxed ${isDark ? 'text-slate-100' : theme === 'hunting' ? 'text-[#3f2414]' : theme === 'olive' ? 'text-[#2e4028]' : 'text-slate-800'}`}>
@@ -611,7 +611,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
                   {getWeatherIconComponent(currentIconName)}
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Condition</div>
+                    <div className="text-xs sm:text-xs font-bold uppercase tracking-wider opacity-60">Condition</div>
                     <div className="text-xs font-black truncate">{hourData ? hourData.weatherDesc : day.weatherDesc}</div>
                   </div>
                 </div>
@@ -619,7 +619,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
                   <Thermometer className="w-4 h-4 text-rose-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Temperature</div>
+                    <div className="text-xs sm:text-xs font-bold uppercase tracking-wider opacity-60">Temperature</div>
                     <div className="text-xs font-black truncate">
                       {hourData ? `${hourData.temp}°${units === 'imperial' ? 'F' : 'C'}` : `${day.maxTemp}° / ${day.minTemp}°${units === 'imperial' ? 'F' : 'C'}`}
                     </div>
@@ -643,10 +643,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 >
                   <Wind className="w-4 h-4 text-sky-500 flex-shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-sky-700/80 dark:text-sky-300/80">Wind · tap to view</span>
+                    <span className="block text-xs sm:text-xs font-bold uppercase tracking-wider text-sky-700/80 dark:text-sky-300/80">Wind · tap to view</span>
                     <span className="block text-xs font-black truncate">{currentWindSummary}</span>
                   </span>
-                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[8px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300">
                     <span className="hidden sm:inline">View</span>
                     <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
@@ -669,7 +669,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 >
                   <Gauge className="w-4 h-4 text-purple-500 flex-shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-purple-700/80 dark:text-purple-300/80">Barometer · tap to view</span>
+                    <span className="block text-xs sm:text-xs font-bold uppercase tracking-wider text-purple-700/80 dark:text-purple-300/80">Barometer · tap to view</span>
                     <span className="block text-xs font-black truncate">
                       {hourData 
                         ? (pressureUnit === 'inHg' ? `${hourData.pressureInHg} inHg` : `${hourData.pressureHpa} hPa`)
@@ -677,7 +677,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                       }
                     </span>
                   </span>
-                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[8px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                  <span className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">
                     <span className="hidden sm:inline">View</span>
                     <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
                   </span>
@@ -686,7 +686,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
                   <Sunrise className="w-4 h-4 text-amber-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Sunrise</div>
+                    <div className="text-xs sm:text-xs font-bold uppercase tracking-wider opacity-60">Sunrise</div>
                     <div className="text-xs font-black truncate">
                       {day.solunar?.sunrise || '6:30 AM'}
                     </div>
@@ -696,7 +696,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <div className={`p-1.5 sm:p-2 rounded-xl flex items-center gap-2 border transition-all hover:border-slate-500/40 min-w-0 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-white/[var(--card-opacity)] border-slate-200 shadow-xs'}`}>
                   <Sunset className="w-4 h-4 text-orange-500 flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider opacity-60">Sunset</div>
+                    <div className="text-xs sm:text-xs font-bold uppercase tracking-wider opacity-60">Sunset</div>
                     <div className="text-xs font-black truncate">
                       {day.solunar?.sunset || '6:45 PM'}
                     </div>
@@ -719,10 +719,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 </div>
                 <div>
                   <div className={`font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>Morning Hunt</div>
-                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">{day.morningPrime}</div>
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">{day.morningPrime}</div>
                 </div>
               </div>
-              <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold shrink-0">
+              <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold shrink-0">
                 Dawn Window
               </span>
             </div>
@@ -738,10 +738,10 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 </div>
                 <div>
                   <div className={`font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>Evening Hunt</div>
-                  <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">{day.eveningPrime}</div>
+                  <div className="text-xs text-amber-600 dark:text-amber-400 font-bold">{day.eveningPrime}</div>
                 </div>
               </div>
-              <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 font-bold shrink-0">
+              <span className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/30 font-bold shrink-0">
                 Dusk Window
               </span>
             </div>
@@ -784,7 +784,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                   <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> What may get deer moving</span>
                 </h3>
-                <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-xs sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   What is helping or hurting deer movement for {day.dayName === 'Today' ? 'Today' : day.dayName} ({day.dateFormatted})
                   {selectedHour !== undefined ? ` @ ${getHour12Label(selectedHour)}` : ''}
                 </p>
@@ -818,7 +818,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                         <div className="flex items-center gap-2">
                           <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{factor.name}</span>
                           <span
-                            className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                            className={`px-1.5 py-0.5 text-xs font-bold rounded ${
                               factor.status === 'optimal'
                                 ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40'
                                 : factor.status === 'good'
@@ -892,11 +892,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               }`}
             >
               <div>
-                <span className={`block text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Moon Brightness</span>
+                <span className={`block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Moon Brightness</span>
                 <span className={`font-black text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{day.solunar.moonIllumination}%</span>
               </div>
               <div className="text-right">
-                <span className={`block text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Sunrise / Sunset</span>
+                <span className={`block text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Sunrise / Sunset</span>
                 <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                   {day.solunar.sunrise} / {day.solunar.sunset}
                 </span>
@@ -911,9 +911,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               >
                 <div>
                   <span className="font-bold text-emerald-700 dark:text-emerald-300 block">Best Moon Window #1 (2 hrs)</span>
-                  <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{day.solunar.major1}</span>
+                  <span className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{day.solunar.major1}</span>
                 </div>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
+                <span className="text-xs bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
                   Good time to feed
                 </span>
               </div>
@@ -925,15 +925,15 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
               >
                 <div>
                   <span className="font-bold text-emerald-700 dark:text-emerald-300 block">Best Moon Window #2 (2 hrs)</span>
-                  <span className={`text-[11px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{day.solunar.major2}</span>
+                  <span className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{day.solunar.major2}</span>
                 </div>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
+                <span className="text-xs bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded">
                   Good time to feed
                 </span>
               </div>
 
               <div
-                className={`p-2 rounded-xl border flex items-center justify-between text-[11px] ${
+                className={`p-2 rounded-xl border flex items-center justify-between text-xs ${
                   isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
                 }`}
               >

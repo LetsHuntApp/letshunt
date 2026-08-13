@@ -112,7 +112,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
           {/* Instructions per OS */}
           {activeTab === 'ios' && (
             <div className="space-y-3 text-xs bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              <h4 className="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <h4 className="font-bold text-emerald-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
                 <Apple className="w-4 h-4" /> How to Add to iPhone Home Screen:
               </h4>
               <ol className="space-y-3 text-slate-300 list-decimal list-inside leading-relaxed">
@@ -140,7 +140,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
 
           {activeTab === 'android' && (
             <div className="space-y-3 text-xs bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              <h4 className="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <h4 className="font-bold text-emerald-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
                 <Chrome className="w-4 h-4" /> How to Add to Android Home Screen:
               </h4>
               <ol className="space-y-3 text-slate-300 list-decimal list-inside leading-relaxed">
@@ -162,7 +162,7 @@ export const PwaInstallModal: React.FC<PwaInstallModalProps> = ({
 
           {activeTab === 'desktop' && (
             <div className="space-y-3 text-xs bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              <h4 className="font-bold text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              <h4 className="font-bold text-emerald-400 uppercase tracking-wider text-xs flex items-center gap-1.5">
                 <Globe className="w-4 h-4" /> How to Install on PC or Mac:
               </h4>
               <ol className="space-y-3 text-slate-300 list-decimal list-inside leading-relaxed">

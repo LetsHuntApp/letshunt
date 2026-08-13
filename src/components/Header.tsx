@@ -10,9 +10,8 @@ import {              Compass,
               Map,
               ScrollText,
               Camera,
-              Sun,
             } from 'lucide-react';
-import { Location, UnitSystem, ThemeMode, ThemeVariantMode } from '../types';
+import { Location, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
 import horizontalLogoRaw from '../../letshunthorizontallogo.svg?raw';
 
@@ -21,12 +20,9 @@ interface HeaderProps {
   onSelectLocation: (loc: Location) => void;
   defaultLocation: Location;
   onSetDefaultLocation: (loc: Location) => void;
-  units: UnitSystem;
-  onToggleUnits: () => void;
   theme?: ThemeVariantMode;
   isDark?: boolean;
   hasCustomBackground?: boolean;
-  onToggleTheme: () => void;
   favorites: Location[];
   onToggleFavorite: (loc: Location) => void;
   onOpenGuide: () => void;
@@ -40,12 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectLocation,
   defaultLocation,
   onSetDefaultLocation,
-  units,
-  onToggleUnits,
   theme,
   isDark = theme === 'dark',
   hasCustomBackground = false,
-  onToggleTheme,
   favorites,
   onToggleFavorite,
   activeTab,
@@ -176,7 +169,8 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={handleGetCurrentLocation}
               disabled={isLocating}
-              className={`p-1.5 sm:p-2 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 border ${
+              aria-label={isLocating ? 'Locating…' : 'Locate my position via GPS'}
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 border ${
                 isDark
                   ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-emerald-400'
                   : theme === 'hunting'
@@ -187,47 +181,13 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
               title="Locate via GPS"
             >
-              <Compass className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLocating ? 'animate-spin' : ''}`} />
-            </button>
-
-            {/* Quick Units Toggle */}
-            <button
-              onClick={onToggleUnits}
-              title="Toggle units (°F/°C)"
-              className={`px-2 py-1.5 rounded-xl text-[11px] font-black border flex items-center gap-0.5 flex-shrink-0 transition-colors ${
-                isDark
-                  ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-emerald-400'
-                  : theme === 'hunting'
-                  ? 'bg-[#eae1cf] border-[#d4c4a8] hover:bg-[#e0d6c0] text-[#c85a17]'
-                  : (theme === 'olive' || theme === 'hunting')
-                  ? 'bg-[#efebd9] border-[#d8d2c0] hover:bg-[#e8e4d2] text-[#556b2f]'
-                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-emerald-600'
-              }`}
-            >
-              {units === 'imperial' ? '°F' : '°C'}
-            </button>
-
-            {/* Quick Theme Cycle */}
-            <button
-              onClick={onToggleTheme}
-              title="Cycle theme (Standard / Olive / Hunter)"
-              className={`p-1.5 sm:p-2 rounded-xl flex items-center justify-center border flex-shrink-0 transition-colors ${
-                isDark
-                  ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-amber-400'
-                  : theme === 'hunting'
-                  ? 'bg-[#eae1cf] border-[#d4c4a8] hover:bg-[#e0d6c0] text-[#c85a17]'
-                  : (theme === 'olive' || theme === 'hunting')
-                  ? 'bg-[#efebd9] border-[#d8d2c0] hover:bg-[#e8e4d2] text-[#556b2f]'
-                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-amber-600'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Compass className={`w-4.5 h-4.5 sm:w-5 sm:h-5 ${isLocating ? 'animate-spin' : ''}`} />
             </button>
 
             {/* Quick Search Box */}
             <div className="relative flex-1 max-w-[140px] sm:max-w-[220px] lg:max-w-[280px]" ref={searchContainerRef}>
               <div
-                className={`flex items-center border rounded-xl px-2 py-1 sm:py-1.5 transition-all ${
+                className={`flex items-center border rounded-xl px-2.5 py-2.5 sm:py-2 transition-all ${
                   isDark
                     ? 'bg-slate-900/[var(--card-opacity)] border-slate-800 focus-within:border-emerald-500'
 : theme === 'hunting'
@@ -237,14 +197,15 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'bg-slate-50 border-slate-200 focus-within:border-emerald-600'
                 }`}
               >
-                <Search className={`w-3 h-3 mr-1.5 flex-shrink-0 ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`} />
+                <Search className={`w-4 h-4 mr-1.5 flex-shrink-0 ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setShowDropdown(true)}
                   placeholder="Search location..."
-                  className={`w-full bg-transparent text-[11px] sm:text-xs focus:outline-none ${
+                  aria-label="Search for a location"
+                  className={`w-full bg-transparent text-xs sm:text-[13px] focus:outline-none ${
                     isDark
                       ? 'text-white placeholder-slate-500'
                       : theme === 'hunting'
@@ -293,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({
 <MapPin className={`w-3 h-3 flex-shrink-0 ${theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
                       <div className="truncate">
                         <span className="font-semibold">{loc.name}</span>
-                        <span className={`ml-1 text-[10px] ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
+                        <span className={`ml-1 text-[11px] ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
                           {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
                         </span>
                       </div>
@@ -312,14 +273,15 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'bg-emerald-500/10 border-emerald-500/20'
             }`}>
               <MapPin className={`w-3 h-3 flex-shrink-0 ${theme === 'hunting' ? 'text-[#c85a17]' : (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'}`} />
-              <span className={`text-[11px] font-bold truncate ${(theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-600 dark:text-emerald-400'}`}>
+              <span className={`text-xs font-bold truncate ${(theme === 'olive' || theme === 'hunting') ? 'text-[#2d4a27]' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {currentLocation.name}
               </span>
 
               {/* Set Default Button */}
               <button
                 onClick={() => onSetDefaultLocation(currentLocation)}
-                className={`p-0.5 rounded transition-colors ml-0.5 ${
+                aria-label={isCurrentDefault ? 'Default starting location' : 'Set as default starting location'}
+                className={`p-2 rounded-lg transition-colors ml-0.5 ${
                   isCurrentDefault
                     ? (theme === 'olive' || theme === 'hunting') ? 'text-[#556b2f]' : 'text-emerald-500'
                     : isDark
@@ -330,13 +292,14 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
                 title={isCurrentDefault ? 'Default Starting Location' : 'Set as Default Location'}
               >
-                <Home className={`w-2.5 h-2.5 ${isCurrentDefault ? 'fill-current' : ''}`} />
+                <Home className={`w-4 h-4 ${isCurrentDefault ? 'fill-current' : ''}`} />
               </button>
 
               {/* Save Location Star */}
               <button
                 onClick={() => onToggleFavorite(currentLocation)}
-                className={`p-0.5 rounded transition-colors ${
+                aria-label={isCurrentFav ? 'Remove from saved hunting grounds' : 'Save this location'}
+                className={`p-2 rounded-lg transition-colors ${
                   isCurrentFav
                     ? 'text-amber-500'
                     : isDark
@@ -347,7 +310,7 @@ export const Header: React.FC<HeaderProps> = ({
                 }`}
                 title={isCurrentFav ? 'Saved in Ground List' : 'Save Location'}
               >
-                <Star className={`w-2.5 h-2.5 ${isCurrentFav ? 'fill-current' : ''}`} />
+                <Star className={`w-4 h-4 ${isCurrentFav ? 'fill-current' : ''}`} />
               </button>
             </div>
           </div>
@@ -374,7 +337,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}>
               <button
                 onClick={() => onTabChange('dashboard')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'dashboard' || activeTab === 'details'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md scale-105' : 'bg-emerald-600 text-white shadow-md scale-105'
                     : isDark
@@ -390,7 +353,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('map')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'map'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md scale-105' : 'bg-emerald-600 text-white shadow-md scale-105'
                     : isDark
@@ -406,7 +369,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('logs')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'logs'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#b87333] text-white shadow-md scale-105' : 'bg-amber-500 text-slate-950 shadow-md scale-105'
                     : isDark
@@ -422,7 +385,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('trailcams')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'trailcams'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#4a7fb5] text-white shadow-md scale-105' : 'bg-sky-500 text-white shadow-md scale-105'
                     : isDark
@@ -438,7 +401,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               <button
                 onClick={() => onTabChange('settings')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'settings'
                     ? isDark
                       ? 'bg-slate-700 text-slate-200 shadow-md scale-105'

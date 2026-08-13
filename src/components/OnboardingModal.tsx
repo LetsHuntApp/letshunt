@@ -362,7 +362,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>7-Day Movement Forecast</div>
-                  <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
+                  <div className={`text-xs mt-0.5 leading-relaxed ${textSecondary}`}>
                     Every day gets a simple 0–100 hunt score, best morning/evening windows, cold-front and barometer conditions, plus moon times.
                   </div>
                 </div>
@@ -374,7 +374,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>Map Your Grounds</div>
-                  <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
+                  <div className={`text-xs mt-0.5 leading-relaxed ${textSecondary}`}>
                     Plot stands, bedding areas, food plots & travel routes, then get wind-matched stand recommendations.
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       <Check className="w-5 h-5 text-white" />
                     </div>
                     <div className="min-w-0">
-                      <div className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Signed in as</div>
+                      <div className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Signed in as</div>
                       <div className="text-sm font-extrabold truncate">{accountUser.email}</div>
                     </div>
                   </div>
@@ -453,14 +453,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   </div>
 
                   {authError && (
-                    <div className={`px-3.5 py-2.5 rounded-xl border text-[11px] font-semibold ${
+                    <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold ${
                       isDark ? 'bg-rose-950/40 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'
                     }`}>
                       {authError}
                     </div>
                   )}
                   {authInfo && (
-                    <div className={`px-3.5 py-2.5 rounded-xl border text-[11px] font-semibold ${
+                    <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold ${
                       isDark ? 'bg-sky-950/40 border-sky-800 text-sky-300' : 'bg-sky-50 border-sky-200 text-sky-700'
                     }`}>
                       {authInfo}
@@ -491,7 +491,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   setIsAccountSkipped(true);
                   setStep(2);
                 }}
-                className={`w-full py-2 text-[11px] font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
+                className={`w-full py-2 text-xs font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
               >
                 Skip for now — I'll set up an account later
               </button>
@@ -511,14 +511,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 </div>
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>What's a HuntClub?</div>
-                  <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
+                  <div className={`text-xs mt-0.5 leading-relaxed ${textSecondary}`}>
                     A shared hunting dataset — map pins, harvest logs, trail cam photos & settings. Join with a code to load a club's grounds, or start your own to share yours.
                   </div>
                 </div>
               </div>
 
               {!accountUser && isAccountSkipped && (
-                <div className={`px-3.5 py-2.5 rounded-xl border text-[11px] font-semibold ${
+                <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold ${
                   isDark ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'
                 }`}>
                   Joining or creating a HuntClub needs an account.{' '}
@@ -528,7 +528,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               {accountUser && myClubs.length > 0 && (
                 <div className="space-y-1.5">
-                  <div className={`text-[10px] font-black uppercase tracking-wider ${textSecondary}`}>Your clubs</div>
+                  <div className={`text-xs font-black uppercase tracking-wider ${textSecondary}`}>Your clubs</div>
                   {myClubs.map((club) => (
                     <button
                       key={club.id}
@@ -538,9 +538,9 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     >
                       <div className="min-w-0">
                         <div className={`text-xs font-extrabold truncate ${textPrimary}`}>{club.name}</div>
-                        <div className={`text-[10px] ${textSecondary}`}>Code: {club.inviteCode} · {club.role === 'owner' ? 'Owner' : 'Member'}</div>
+                        <div className={`text-xs ${textSecondary}`}>Code: {club.inviteCode} · {club.role === 'owner' ? 'Owner' : 'Member'}</div>
                       </div>
-                      <span className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                      <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
                         Load <ArrowRight className="w-3 h-3" />
                       </span>
                     </button>
@@ -572,7 +572,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
                   <div className="flex items-center gap-3 my-1">
                     <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>or</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${textSecondary}`}>or</span>
                     <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
                   </div>
 
@@ -602,7 +602,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               )}
 
               {clubError && (
-                <div className={`px-3.5 py-2.5 rounded-xl border text-[11px] font-semibold ${
+                <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold ${
                   isDark ? 'bg-rose-950/40 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'
                 }`}>
                   {clubError}
@@ -611,14 +611,14 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               <button
                 onClick={() => setStep(3)}
-                className={`w-full py-2 text-[11px] font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
+                className={`w-full py-2 text-xs font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
               >
                 Skip — start with a clean slate <ArrowRight className="w-3 h-3" />
               </button>
 
               <button
                 onClick={() => setStep(1)}
-                className={`w-full py-2 text-[11px] font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
+                className={`w-full py-2 text-xs font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
               >
                 <ChevronLeft className="w-3.5 h-3.5" /> Back
               </button>
@@ -665,7 +665,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         <MapPin className={`w-3.5 h-3.5 flex-shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
                         <div className="min-w-0">
                           <span className="font-semibold">{loc.name}</span>
-                          <span className={`ml-1 text-[10px] ${textSecondary}`}>
+                          <span className={`ml-1 text-xs ${textSecondary}`}>
                             {loc.admin1 ? `${loc.admin1}, ` : ''}{loc.country}
                           </span>
                         </div>
@@ -686,7 +686,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               <button
                 onClick={() => setStep(2)}
-                className={`w-full py-2 text-[11px] font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
+                className={`w-full py-2 text-xs font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
               >
                 <ChevronLeft className="w-3.5 h-3.5" /> Back
               </button>
@@ -705,11 +705,11 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <Check className="w-5 h-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <div className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                  <div className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
                     Your Hunting Grounds
                   </div>
                   <div className={`text-sm font-extrabold truncate ${textPrimary}`}>{selectedLoc?.name}</div>
-                  <div className={`text-[11px] truncate ${textSecondary}`}>
+                  <div className={`text-xs truncate ${textSecondary}`}>
                     {selectedLoc?.admin1 ? `${selectedLoc.admin1}, ` : ''}{selectedLoc?.country}
                   </div>
                 </div>
@@ -728,7 +728,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
               <button
                 onClick={() => setStep(3)}
-                className={`w-full py-2 text-[11px] font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
+                className={`w-full py-2 text-xs font-bold flex items-center justify-center gap-1 ${textSecondary} hover:underline`}
               >
                 <ChevronLeft className="w-3.5 h-3.5" /> Change location
               </button>

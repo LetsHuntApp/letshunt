@@ -427,10 +427,10 @@ const getScoreBadgeColor = (score: number) => {
               <Award className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 text-slate-950" />
             </div>
             <div className="min-w-0">
-              <div className={`text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#556b2f]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
+              <div className={`text-xs sm:text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#556b2f]' : theme === 'olive' ? 'text-[#2d4a27]' : 'text-emerald-700'}`}>
                 <span>Great Day to Hunt</span>
                 {isPrimeDay(bestDayScore) && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-600 dark:text-amber-300 border border-amber-500/35">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[11px] text-amber-600 dark:text-amber-300 border border-amber-500/35">
                     <Sparkles className="w-2.5 h-2.5" /> Great Day
                   </span>
                 )}
@@ -443,7 +443,7 @@ const getScoreBadgeColor = (score: number) => {
                   {bestDay.dateFormatted}
                 </span>
               </div>
-              <div className={`text-[11px] sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <div className={`text-xs sm:text-xs font-bold truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {bestDayPeak.isHourly
                   ? `Best movement window: ${bestDayPeak.score}/100 at ${bestDayPeak.label}`
                   : `Overall deer movement: ${bestDayPeak.score}/100`}
@@ -471,12 +471,12 @@ const getScoreBadgeColor = (score: number) => {
         </h2>
         <div className="flex flex-col items-end gap-0.5">
           {lastRefreshed && (
-            <span className={`text-[10px] font-bold flex items-center gap-1 transition-colors duration-300 ${headerTextColor}`}>
+            <span className={`text-xs font-bold flex items-center gap-1 transition-colors duration-300 ${headerTextColor}`}>
               <RefreshCw className="w-3 h-3 text-emerald-500 shrink-0" />
               <span>Last refreshed {lastRefreshed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
             </span>
           )}
-          <span className={`text-[10px] sm:text-[13px] font-medium transition-colors duration-300 ${headerTextColor} opacity-75`}>
+          <span className={`text-xs sm:text-[13px] font-medium transition-colors duration-300 ${headerTextColor} opacity-75`}>
             Tap a day for hourly weather and moon times
           </span>
         </div>
@@ -598,7 +598,7 @@ const getScoreBadgeColor = (score: number) => {
                     <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       {day.dateFormatted}
                     </span>
-                    <div className="mt-1 flex flex-col gap-0.5 text-[10px] sm:text-[11px] font-extrabold text-slate-600 dark:text-slate-300">
+                    <div className="mt-1 flex flex-col gap-0.5 text-xs sm:text-xs font-extrabold text-slate-600 dark:text-slate-300">
                       <span className="flex items-center gap-1 whitespace-nowrap" title="Sunrise">
                         <Sunrise className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                         <span>{day.solunar?.sunrise || '6:30 AM'}</span>
@@ -620,7 +620,7 @@ const getScoreBadgeColor = (score: number) => {
                           {day.maxTemp}° / {day.minTemp}°{units === 'imperial' ? 'F' : 'C'}
                         </span>
                         <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full border transition-colors ${
+                          className={`inline-flex items-center gap-1 text-xs font-black px-2 py-0.5 rounded-full border transition-colors ${
                             maxPrecipProb >= 40
                               ? 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border-cyan-500/40'
                               : maxPrecipProb > 0
@@ -638,11 +638,11 @@ const getScoreBadgeColor = (score: number) => {
                       <span className={`text-xs font-bold block leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         {cardWeatherDesc}
                       </span>
-                      <span className="text-[10px] sm:text-[11px] font-extrabold flex w-full max-w-full items-start gap-1 leading-snug text-emerald-600 dark:text-emerald-400 mt-0.5 whitespace-normal">
+                      <span className="text-xs sm:text-xs font-extrabold flex w-full max-w-full items-start gap-1 leading-snug text-emerald-600 dark:text-emerald-400 mt-0.5 whitespace-normal">
                         <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                         <span className="min-w-0 break-words">Best time to hunt: {getBestHuntTime(day)}</span>
                       </span>
-                      <span className="text-[10px] sm:text-[11px] font-extrabold block text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
+                      <span className="text-xs sm:text-xs font-extrabold block text-slate-500 dark:text-slate-400 mt-0.5 whitespace-nowrap flex items-center gap-1">
                         {renderRutIcon(dayRut.iconName, "w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0")}
                         <span>Rut: {dayRut.name}</span>
                       </span>
@@ -656,7 +656,7 @@ const getScoreBadgeColor = (score: number) => {
                     {/* Badges container stays on one line so Prime never pushes the action or score down. */}
                   <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 shrink-0 sm:flex-nowrap sm:gap-1.5">
                     {day.solunar?.moonPhaseName === 'Full Moon' && (
-                      <div className={`text-[10px] font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border whitespace-nowrap ${
+                      <div className={`text-xs font-black px-2 sm:px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1 border whitespace-nowrap ${
                         isDark
                           ? 'bg-amber-500/15 text-amber-300 border-amber-500/35'
                           : 'bg-amber-50 text-amber-800 border-amber-200'
@@ -677,7 +677,7 @@ const getScoreBadgeColor = (score: number) => {
                           e.stopPropagation();
                           setExpandedPrimeDate(isPrimeExplainerOpen ? null : day.date);
                         }}
-                        className={`bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 ${theme === 'hunting' ? 'text-white' : 'text-slate-950'} text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1`}
+                        className={`bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 ${theme === 'hunting' ? 'text-white' : 'text-slate-950'} text-[11px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-0.5 sm:gap-1 border border-amber-300 whitespace-nowrap transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1`}
                       >
                         <Award className="w-3 h-3 fill-current shrink-0" />
                         <span>Great Day</span>
@@ -699,7 +699,7 @@ const getScoreBadgeColor = (score: number) => {
                         e.stopPropagation();
                         onOpenDetails(day.date);
                       }}
-                      className={`group inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-1 sm:px-2.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                      className={`group inline-flex h-9 sm:h-10 shrink-0 items-center justify-center gap-1 rounded-lg border px-2 sm:px-3 text-[11px] sm:text-xs font-black uppercase tracking-wide transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
                         isDark
                           ? 'bg-slate-950/35 hover:bg-emerald-500/15 border-slate-700/70 text-emerald-300 focus-visible:ring-emerald-400 focus-visible:ring-offset-slate-900'
                           : theme === 'hunting'
@@ -725,7 +725,7 @@ const getScoreBadgeColor = (score: number) => {
                       <DeerIcon className="w-3.5 h-3.5 sm:w-5 sm:h-5 fill-current shrink-0" />
                       {cardScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current text-amber-350 shrink-0" />}
                       <span className="text-[13px] sm:text-base leading-none font-black">{cardScore}</span>
-                      <span className="text-[8px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
+                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold opacity-95 whitespace-nowrap">{cardRating}</span>
                     </div>
 
                     {/* Dropdown Arrow */}
@@ -781,7 +781,7 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
 
                   <div className="mt-2.5 space-y-2 border-t border-current/15 pt-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider opacity-70">What is helping the hunt</p>
+                    <p className="text-xs font-black uppercase tracking-wider opacity-70">What is helping the hunt</p>
                     {primeReasons.length > 0 ? primeReasons.map((factor) => (
                       <div key={factor.name} className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -795,7 +795,7 @@ const getScoreBadgeColor = (score: number) => {
                     )}
                   </div>
 
-                  <p className="mt-2.5 border-t border-current/15 pt-2.5 text-[10px] leading-relaxed opacity-70">
+                  <p className="mt-2.5 border-t border-current/15 pt-2.5 text-xs leading-relaxed opacity-70">
                     A Great Day means unusually favorable predicted movement conditions—not a guarantee of deer activity. Always verify wind direction, access, and local conditions.
                   </p>
                 </motion.div>
@@ -818,14 +818,14 @@ const getScoreBadgeColor = (score: number) => {
                   <div
                     data-testid="hour-now-chip"
                     aria-live="polite"
-                    className={`px-3.5 sm:px-4 min-h-[30px] sm:min-h-[34px] flex flex-wrap items-center gap-2 text-[10px] sm:text-xs font-bold select-none border-t pointer-events-none ${
+                    className={`px-3.5 sm:px-4 min-h-[30px] sm:min-h-[34px] flex flex-wrap items-center gap-2 text-xs sm:text-xs font-bold select-none border-t pointer-events-none ${
                       isDark ? 'border-slate-700/40 text-slate-400' : 'border-slate-200/80 text-slate-500'
                     }`}
                   >
                     {hourData && (differsFromDay ? (
                       <>
                         <span
-                          className={`uppercase tracking-wider text-[10px] sm:text-xs font-extrabold shrink-0 ${
+                          className={`uppercase tracking-wider text-xs sm:text-xs font-extrabold shrink-0 ${
                             isDark ? 'text-emerald-400' : 'text-emerald-600'
                           }`}
                         >
@@ -846,7 +846,7 @@ const getScoreBadgeColor = (score: number) => {
                       </>
                     ) : (
                       <span
-                        className={`uppercase tracking-wider text-[10px] sm:text-xs font-extrabold ${
+                        className={`uppercase tracking-wider text-xs sm:text-xs font-extrabold ${
                           isDark ? 'text-slate-400' : 'text-slate-500'
                         }`}
                       >
@@ -855,7 +855,7 @@ const getScoreBadgeColor = (score: number) => {
                     ))}
                     {hasSignificantColdFront && (
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-black uppercase tracking-wider whitespace-nowrap ${
                           isDark
                             ? 'bg-blue-500/20 text-blue-200 border-blue-400/40'
                             : 'bg-blue-50 text-blue-700 border-blue-200'
@@ -889,7 +889,7 @@ const getScoreBadgeColor = (score: number) => {
                   <div className="flex flex-wrap gap-1.5 mt-3.5 mb-3.5">
                     {/* Semi-rectangular Pill Style Badge for Rut Status */}
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-black rounded-lg border-2 ${dayRut.badgeStyle}`}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-black rounded-lg border-2 ${dayRut.badgeStyle}`}
                     >
                       {renderRutIcon(dayRut.iconName, "w-3.5 h-3.5 shrink-0")}
                       <span>Rut: {dayRut.name}</span>
@@ -1098,7 +1098,7 @@ const getScoreBadgeColor = (score: number) => {
                   <span>14-Day Hunting Forecast</span>
                 </h2>
                 <p
-                  className={`text-[11px] sm:text-xs mt-0.5 ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}
+                  className={`text-xs sm:text-xs mt-0.5 ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}
                 >
                   Extended outlook — confidence fades after day 7
                 </p>
@@ -1124,7 +1124,7 @@ const getScoreBadgeColor = (score: number) => {
             {/* Confidence caveat — visible only once per modal open so the
                 hunter knows the 8-14d scores are model guidance, not a guarantee. */}
             <div
-              className={`mx-4 sm:mx-6 mt-4 px-3 py-2 rounded-xl text-[11px] sm:text-xs font-semibold border flex items-start gap-2 ${
+              className={`mx-4 sm:mx-6 mt-4 px-3 py-2 rounded-xl text-xs sm:text-xs font-semibold border flex items-start gap-2 ${
                 isDark
                   ? 'bg-amber-500/10 border-amber-500/40 text-amber-200'
                   : theme === 'hunting'
@@ -1190,10 +1190,10 @@ const getScoreBadgeColor = (score: number) => {
                       }`}
                     >
                       <div className="flex flex-col items-center justify-center min-w-[3rem] sm:min-w-[3.5rem] text-center">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
+                        <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
                           {idx + 7 >= 8 ? `Day ${extendedIdx}` : dayName}
                         </span>
-                        <span className={`text-[11px] mt-0.5 font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-slate-600'}`}>
+                        <span className={`text-xs mt-0.5 font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-slate-600'}`}>
                           {day.dateFormatted}
                         </span>
                       </div>
@@ -1202,7 +1202,7 @@ const getScoreBadgeColor = (score: number) => {
                         <div className={`flex items-center gap-2 ${isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
                           <span className="text-sm font-black truncate">{day.weatherDesc}</span>
                         </div>
-                        <div className={`text-[11px] sm:text-xs font-semibold ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
+                        <div className={`text-xs sm:text-xs font-semibold ${isDark ? 'text-slate-400' : theme === 'hunting' ? 'text-[#8b7355]' : theme === 'olive' ? 'text-[#6e6a5e]' : 'text-slate-500'}`}>
                           {day.maxTemp}°/{day.minTemp}°
                           {units === 'imperial' ? 'F' : 'C'}
                           {' · '}
@@ -1213,7 +1213,7 @@ const getScoreBadgeColor = (score: number) => {
 
                       <div className={`px-2.5 py-1 rounded-lg border font-black text-xs flex flex-col items-center justify-center min-w-[3.2rem] ${ratingColor}`}>
                         <span className="text-base leading-none">{day.huntScore}</span>
-                        <span className="text-[9px] mt-0.5 opacity-80 uppercase tracking-wide">{rating}</span>
+                        <span className="text-[11px] mt-0.5 opacity-80 uppercase tracking-wide">{rating}</span>
                       </div>
 
                       <ChevronRight
@@ -1228,7 +1228,7 @@ const getScoreBadgeColor = (score: number) => {
             </div>
 
             <div
-              className={`px-4 sm:px-6 py-3 border-t text-[10px] sm:text-xs text-center ${isDark ? 'border-slate-700/60 text-slate-500' : 'border-slate-200 text-slate-500'}`}
+              className={`px-4 sm:px-6 py-3 border-t text-xs sm:text-xs text-center ${isDark ? 'border-slate-700/60 text-slate-500' : 'border-slate-200 text-slate-500'}`}
             >
               Tap any day to jump to the full prediction view.
             </div>
