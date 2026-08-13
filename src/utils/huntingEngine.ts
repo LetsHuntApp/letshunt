@@ -347,7 +347,6 @@ export function calculateHuntScore(params: {
 
   // Convert to Fahrenheit for threshold checking if inputs are metric
   const maxTempCheckF = isMetric ? Math.round((params.maxTempF * 9) / 5 + 32) : params.maxTempF;
-  const minTempCheckF = isMetric ? Math.round((params.minTempF * 9) / 5 + 32) : params.minTempF;
   const tempDropCheckF = isMetric ? Math.round((params.tempDrop24h * 9) / 5) : params.tempDrop24h;
 
   const pressUnitStr = isHpa ? 'hPa' : 'inHg';
@@ -356,67 +355,111 @@ export function calculateHuntScore(params: {
   const windUnitStr = isMetric ? 'km/h' : 'mph';
   const windDisp = isMetric ? Math.round(params.windMph * 1.60934) : params.windMph;
 
-  // Factor 1: Temperature (Cooler vs Hot, season-relative when tempDeltaF provided)
+  // Factor 1: Temperature & hunting context.
+  //
+  // Seasonal deviation answers: "Is this hour warmer or cooler than what is
+  // normal for this location and local clock hour?" Absolute context answers:
+  // "Is the actual temperature uncomfortable or restrictive even if the recent
+  // normal is also unusually warm/cold?" Both are needed for a hunting-time
+  // recommendation. A 95°F afternoon should not score as comfortable merely
+  // because the last 30 days were also hot.
   let tempScore = 0;
   let tempDesc = '';
   let tempStatus: ScoreFactor['status'] = 'neutral';
+  let absoluteTempAdjustment = 0;
+  let absoluteTempNote = '';
+
+  const absoluteTempF = maxTempCheckF;
+  if (absoluteTempF >= 95) {
+    absoluteTempAdjustment = -8;
+    absoluteTempNote = `Extreme heat (${maxTempDisp}${tempUnitStr}) makes a daylight sit less comfortable and usually narrows the best opportunity to shade, water, or last light.`;
+  } else if (absoluteTempF >= 85) {
+    absoluteTempAdjustment = -5;
+    absoluteTempNote = `Very warm conditions (${maxTempDisp}${tempUnitStr}) can reduce comfortable daylight hunting opportunity.`;
+  } else if (absoluteTempF >= 78) {
+    absoluteTempAdjustment = -2;
+    absoluteTempNote = `Warm conditions (${maxTempDisp}${tempUnitStr}) may shift the better hunt toward the edges of legal shooting time.`;
+  } else if (absoluteTempF <= 10) {
+    absoluteTempAdjustment = -3;
+    absoluteTempNote = `Severe cold (${maxTempDisp}${tempUnitStr}) can make a long sit difficult and concentrate the best opportunity around food and sheltered cover.`;
+  } else if (absoluteTempF <= 20) {
+    absoluteTempAdjustment = -1;
+    absoluteTempNote = `Very cold conditions (${maxTempDisp}${tempUnitStr}) are huntable but may make comfort, access, and sit length more difficult.`;
+  }
 
   const useSeasonRelative = typeof params.tempDeltaF === 'number' && Number.isFinite(params.tempDeltaF);
   if (useSeasonRelative) {
-    // Deviation from the location's 30-day rolling normal (Batch 1).
-    // Deer movement tracks deviation, not absolute degrees — a 72°F day in
-    // December and a 72°F day in September should not score identically.
+    // `tempDeltaF` is always stored in Fahrenheit, even when the app displays
+    // metric units. Convert only the explanation, never the thresholds.
     const deltaF = params.tempDeltaF as number;
-    const roundingPositive = (n: number) => Math.round(Math.abs(n));
+    const deltaDisplay = isMetric ? Math.round((deltaF * 5) / 9) : Math.round(deltaF);
+    const deltaUnit = isMetric ? '°C' : '°F';
+    const signedDelta = `${deltaDisplay >= 0 ? '+' : ''}${deltaDisplay}${deltaUnit}`;
+    const absoluteDelta = Math.abs(deltaDisplay);
+
     if (deltaF >= 12) {
       tempScore = -12;
       tempStatus = 'poor';
-      tempDesc = `Too warm for good daylight movement (+${roundingPositive(deltaF)}${tempUnitStr} above recent normal). High heat suppresses daylight travel.`;
+      tempDesc = `Much warmer than the normal for this local hour (${signedDelta}). Daylight hunting opportunity may be reduced.`;
     } else if (deltaF >= 6) {
       tempScore = -7;
       tempStatus = 'poor';
-      tempDesc = `Warmer than normal (+${roundingPositive(deltaF)}${tempUnitStr}). Daylight movement may be lighter.`;
+      tempDesc = `Warmer than the normal for this local hour (${signedDelta}). The better hunt may be near first or last light.`;
     } else if (deltaF > -6) {
-      // within ±6°F of normal
       tempScore = 3;
       tempStatus = 'good';
-      tempDesc = `Near seasonal normal (${deltaF >= 0 ? '+' : ''}${Math.round(deltaF)}${tempUnitStr}). Typical activity expected.`;
+      tempDesc = `Near the normal for this local hour (${signedDelta}). No strong temperature advantage or warning.`;
     } else if (deltaF > -14) {
       tempScore = 6;
       tempStatus = 'optimal';
-      tempDesc = `Below seasonal normal (-${roundingPositive(deltaF)}${tempUnitStr}). Cooler air drives active feeding.`;
+      tempDesc = `Cooler than the normal for this local hour (-${absoluteDelta}${deltaUnit}). This can improve daytime hunting comfort and opportunity.`;
     } else {
-      // Very cold anomaly — movement bonus still applies but cap strength so
-      // extreme cold doesn't fake a perfect score.
+      // Very cold anomalies get only a limited seasonal bonus. Absolute cold
+      // context below can reduce it when conditions become difficult to hunt.
       tempScore = 2;
       tempStatus = 'good';
-      tempDesc = `Far below seasonal normal (-${roundingPositive(deltaF)}${tempUnitStr}). Cold-front surge, but extreme cold can also suppress travel.`;
+      tempDesc = `Far below the normal for this local hour (-${absoluteDelta}${deltaUnit}). Cold can help, but extreme conditions may shorten a productive sit.`;
     }
   } else {
-    // Legacy absolute thresholds (Batch 1 fallback when no climate normal).
-    if (maxTempCheckF >= 78) {
-      tempScore = -12;
+    // If the climate request is unavailable, use conservative absolute context
+    // rather than pretending that a fixed temperature is seasonally optimal.
+    if (absoluteTempF >= 95) {
+      tempScore = -8;
       tempStatus = 'poor';
-      tempDesc = `Too warm for good daylight movement (${maxTempDisp}${tempUnitStr}). Heat keeps deer bedded down during the day; deer remain bedded in shaded cover.`;
-    } else if (maxTempCheckF >= 73) {
-      tempScore = -7;
+      tempDesc = `Extreme heat (${maxTempDisp}${tempUnitStr}) limits comfortable daylight hunting opportunity.`;
+    } else if (absoluteTempF >= 85) {
+      tempScore = -5;
       tempStatus = 'poor';
-      tempDesc = `Warm temperature (${maxTempDisp}${tempUnitStr}). Daylight movement may be lighter.`;
-    } else if (maxTempCheckF >= 66) {
-      tempScore = 3;
-      tempStatus = 'good';
-      tempDesc = `Moderate temperature (${maxTempDisp}${tempUnitStr}). Normal seasonal activity expected.`;
-    } else {
-      // <= 65°F (18°C)
+      tempDesc = `Very warm conditions (${maxTempDisp}${tempUnitStr}) may shift the better hunt toward last light.`;
+    } else if (absoluteTempF >= 78) {
+      tempScore = -2;
+      tempStatus = 'poor';
+      tempDesc = `Warm conditions (${maxTempDisp}${tempUnitStr}) can reduce comfortable daylight hunting opportunity.`;
+    } else if (absoluteTempF <= 20) {
+      tempScore = absoluteTempF <= 10 ? 0 : 2;
+      tempStatus = absoluteTempF <= 10 ? 'neutral' : 'good';
+      tempDesc = `Cold conditions (${maxTempDisp}${tempUnitStr}) can help concentrate opportunity but may make a long sit difficult.`;
+    } else if (absoluteTempF <= 65) {
       tempScore = 6;
       tempStatus = 'optimal';
-      tempDesc = `Cool, crisp weather (${maxTempDisp}${tempUnitStr}). The kind of weather that gets deer moving in daylight.`;
+      tempDesc = `Cool conditions (${maxTempDisp}${tempUnitStr}) are comfortable for a daylight hunt.`;
+    } else {
+      tempScore = 3;
+      tempStatus = 'good';
+      tempDesc = `Moderate conditions (${maxTempDisp}${tempUnitStr}) provide a workable hunting window.`;
     }
   }
 
+  // Keep this factor's range stable while ensuring an extreme actual
+  // temperature cannot be hidden by a favorable seasonal anomaly.
+  tempScore = Math.max(-12, Math.min(6, tempScore + (useSeasonRelative ? absoluteTempAdjustment : 0)));
+  if (absoluteTempAdjustment <= -5) tempStatus = 'poor';
+  else if (absoluteTempAdjustment < 0 && tempStatus === 'optimal') tempStatus = 'good';
+  if (absoluteTempNote) tempDesc = `${tempDesc} ${absoluteTempNote}`;
+
   totalScore += tempScore;
   factors.push({
-    name: 'Temperature',
+    name: 'Temperature & Hunting Context',
     score: tempScore,
     maxScore: 6,
     description: tempDesc,
@@ -1011,12 +1054,28 @@ export function getDetailedConditionExplanation(
     };
   }
 
-  // 6. High Heat (tempF >= 78°F / 26°C)
-  if (tempF >= (isMetric ? 26 : 78)) {
+  // 6. Absolute heat context. This is about the quality and comfort of a
+  // hunting sit, not a claim that deer stop moving entirely.
+  const tempAbsoluteF = isMetric ? (tempF * 9 / 5 + 32) : tempF;
+  if (tempAbsoluteF >= 95) {
     return {
-      headline: 'It is not a good time to hunt — High Heat Warning',
-      detail: `Too-warm conditions (${tempVal}${tempUnit}) keep deer bedded in shade near water until dusk.`,
+      headline: 'It is not a good time to hunt — Extreme Heat',
+      detail: `Extreme heat (${tempVal}${tempUnit}) makes a daylight sit uncomfortable and usually narrows the best opportunity to shade, water, or last light.`,
       badgeColor: 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+    };
+  }
+  if (tempAbsoluteF >= 85) {
+    return {
+      headline: score >= 76 ? 'It is a good time to hunt — Very Warm Conditions' : 'It may be a difficult hunt — Very Warm Conditions',
+      detail: `Very warm air (${tempVal}${tempUnit}) can make a long daylight sit less comfortable. Favor shade, water, and the edges of legal shooting time.`,
+      badgeColor: score >= 76 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+    };
+  }
+  if (tempAbsoluteF >= 78) {
+    return {
+      headline: score >= 46 ? 'It is a fair time to hunt — Warm Conditions' : 'It is not a good time to hunt — Warm Conditions',
+      detail: `Warm air (${tempVal}${tempUnit}) may shift the better hunt toward first or last legal light.`,
+      badgeColor: score >= 46 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
 

@@ -1,5 +1,22 @@
 # Changes Log
 
+## Batch 6 — Seasonal Temperature Context for Hunting Time
+
+- **Hourly temperature deviation now uses a seasonal local-hour baseline.**
+  The engine compares each forecast hour with a 31-day calendar window around
+  the forecast period from the previous five years, grouped by local clock hour.
+  Dawn is compared with dawn and dusk with dusk instead of using a recent hot or
+  cold stretch—or the day's afternoon maximum—as the definition of normal.
+- **Absolute temperature context now protects the hunting recommendation.**
+  Extreme heat, very warm conditions, and severe cold can reduce the quality or
+  comfort of a daylight sit even when they are close to the seasonal normal.
+  The score now combines seasonal deviation with conservative absolute-context
+  adjustments and explains the practical hunting impact in the user's units.
+- **Daily temperature change now reflects hunt windows.** The daily score uses
+  the average same-hour 24-hour change across the morning/evening prime hours,
+  rather than a max-temperature change from portions of the day the hunter may
+  never sit through.
+
 ## Batch 5 — Cloud Cover, Unit-Safe Best Hunt & Hourly Temperature Normals
 
 - **Cloud cover now influences the forecast.** Open-Meteo hourly cloud cover is
@@ -11,10 +28,10 @@
   the actual prime-window hours using their stored hunt scores. This removes the
   old raw-temperature subtraction that changed recommendations when switching
   between Fahrenheit and Celsius and could disagree with the score dial.
-- **Hourly temperatures now use hourly normals.** The climate lookup now averages
-  the previous 30 days by local clock hour. Dawn temperatures are compared with
-  typical dawn temperatures and dusk with typical dusk temperatures, rather than
-  every hour being compared with the daily maximum normal.
+- **Hourly temperatures now use hourly normals.** The climate lookup now compares
+  each local clock hour with a seasonal baseline instead of judging dawn against
+  the daily maximum normal.
+
 
 ## Batch 4 — Score Calibration, Prime-Window Daily Scoring & Real Solunar Windows
 
