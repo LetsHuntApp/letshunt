@@ -46,9 +46,19 @@ export function safeGetJSON<T>(key: string, fallback: T): T {
  * Write a string to localStorage. Returns `true` on success, `false` if
  * quota-exceeded / storage-blocked — callers can toast / log accordingly.
  */
+export const DATA_CHANGED_EVENT = 'letshunt:data-changed';
+
+/** Notify the app's cloud-sync coordinator after a local data mutation. */
+export function notifyDataChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
+  }
+}
+
 export function safeSet(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
+    notifyDataChanged();
     return true;
   } catch {
     return false;
@@ -69,7 +79,10 @@ export function safeSetJSON(key: string, value: unknown): boolean {
 }
 
 export function safeRemove(key: string): void {
-  try { localStorage.removeItem(key); } catch { /* storage blocked — nothing meaningful to do */ }
+  try {
+    localStorage.removeItem(key);
+    notifyDataChanged();
+  } catch { /* storage blocked — nothing meaningful to do */ }
 }
 
 /**

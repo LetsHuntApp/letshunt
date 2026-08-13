@@ -18,7 +18,8 @@ import {
 
 } from './types';
 import { fetch5DayHuntingForecast } from './services/weatherService';
-import { safeGetString, safeGetJSON, safeSet, safeSetJSON, safeRemove } from './utils/storage';
+import { safeGetString, safeGetJSON, safeSet, safeSetJSON, safeRemove, DATA_CHANGED_EVENT } from './utils/storage';
+import { getActiveClub, publishClubData } from './services/huntClubService';
 import { Header } from './components/Header';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
@@ -254,6 +255,59 @@ export default function App() {
       setToastMessage(null);
     }, 3500);
   };
+
+  // Keep a signed-in device's active HuntClub current without making the
+  // user remember to press a manual sync button. Local writes are debounced
+  // so a form or photo import produces one upload instead of many.
+  const autoSyncTimerRef = useRef<number | null>(null);
+  const autoSyncRunningRef = useRef(false);
+  const autoSyncQueuedRef = useRef(false);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const scheduleAutoSync = () => {
+      if (autoSyncTimerRef.current !== null) {
+        window.clearTimeout(autoSyncTimerRef.current);
+      }
+      autoSyncTimerRef.current = window.setTimeout(async () => {
+        autoSyncTimerRef.current = null;
+        if (disposed) return;
+
+        const activeClub = getActiveClub();
+        if (!activeClub) return;
+        if (autoSyncRunningRef.current) {
+          autoSyncQueuedRef.current = true;
+          return;
+        }
+
+        autoSyncRunningRef.current = true;
+        try {
+          await publishClubData(activeClub.id);
+        } catch (error) {
+          // Local data remains safe; the next local change will retry.
+          console.warn('[cloud sync] automatic sync failed:', error);
+        } finally {
+          autoSyncRunningRef.current = false;
+          if (autoSyncQueuedRef.current && !disposed) {
+            autoSyncQueuedRef.current = false;
+            scheduleAutoSync();
+          }
+        }
+      }, 1500);
+    };
+
+    window.addEventListener(DATA_CHANGED_EVENT, scheduleAutoSync);
+    // Reconcile any local changes made before this app session starts.
+    scheduleAutoSync();
+    return () => {
+      disposed = true;
+      window.removeEventListener(DATA_CHANGED_EVENT, scheduleAutoSync);
+      if (autoSyncTimerRef.current !== null) {
+        window.clearTimeout(autoSyncTimerRef.current);
+      }
+    };
+  }, []);
 
   // After a backup import (which reloads the page), surface a summary toast
   // once the app has re-initialized from the freshly restored localStorage.

@@ -21,7 +21,7 @@ import {
   type MyClub,
 } from '../services/huntClubService';
 import type { ActiveClub } from '../types';
-import { Loader2, LogIn, LogOut, KeyRound, Users, Upload, Download, Check, UserPlus, ShieldCheck } from 'lucide-react';
+import { Loader2, LogIn, LogOut, KeyRound, Users, Upload, Download, Check, UserPlus, ShieldCheck, Mail } from 'lucide-react';
 
 interface AccountSettingsCardProps {
   theme?: ThemeVariantMode;
@@ -273,26 +273,13 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
       {/* Signed-out */}
       {!user && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
+          <div className={`flex items-center justify-between px-1 text-[11px] ${textSecondary}`}>
+            <span>{authMode === 'signup' ? 'New to LetsHunt?' : 'Already have an account?'}</span>
             <button
-              onClick={() => { setAuthMode('signup'); setAuthError(null); }}
-              className={`py-2.5 rounded-xl border text-xs font-black transition-all ${
-                authMode === 'signup'
-                  ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-500'
-                  : isDark ? 'bg-slate-950/40 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}
+              onClick={() => { setAuthMode(authMode === 'signup' ? 'signin' : 'signup'); setAuthError(null); }}
+              className="font-black text-emerald-500 hover:underline"
             >
-              Create Account
-            </button>
-            <button
-              onClick={() => { setAuthMode('signin'); setAuthError(null); }}
-              className={`py-2.5 rounded-xl border text-xs font-black transition-all ${
-                authMode === 'signin'
-                  ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-500'
-                  : isDark ? 'bg-slate-950/40 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-              }`}
-            >
-              Sign In
+              {authMode === 'signup' ? 'Sign in' : 'Create an account'}
             </button>
           </div>
 
@@ -335,7 +322,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
             disabled={authBusy}
             className={`w-full py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-60 ${ghostBtn}`}
           >
-            <span className="text-emerald-500">✉</span> Send Me a Magic Link
+            <Mail className="w-4 h-4 text-emerald-500" /> Send Secret Link
           </button>
 
           <p className={`text-[11px] leading-relaxed ${textSecondary}`}>

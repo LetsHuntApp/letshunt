@@ -5,7 +5,7 @@ import { searchLocations } from '../services/weatherService';
 import { isSupabaseConfigured, getCurrentUser, onAuthStateChange, signUp, signInWithPassword, signInWithMagicLink } from '../services/supabaseService';
 import { createHuntClub, joinHuntClub, getMyClubs, setActiveClub, publishClubData, pullClubData, type MyClub } from '../services/huntClubService';
 import { safeSet } from '../utils/storage';
-import { MapPin, Search, Compass, Check, X, Target, CloudSun, BellRing, ArrowRight, ChevronLeft, Loader2, Users, KeyRound, UserPlus, LogIn, ShieldCheck, Sparkles } from 'lucide-react';
+import { MapPin, Search, Compass, Check, X, Target, CloudSun, BellRing, ArrowRight, ChevronLeft, Loader2, Users, KeyRound, UserPlus, LogIn, ShieldCheck, Sparkles, Mail } from 'lucide-react';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -417,26 +417,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               ) : (
                 <>
                   {/* Mode toggle */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className={`flex items-center justify-between px-1 text-[11px] ${textSecondary}`}>
+                    <span>{authMode === 'signup' ? 'New to LetsHunt?' : 'Already have an account?'}</span>
                     <button
-                      onClick={() => { setAuthMode('signup'); setAuthError(null); setAuthInfo(null); }}
-                      className={`py-2.5 rounded-xl border text-xs font-black transition-all ${
-                        authMode === 'signup'
-                          ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-500'
-                          : isDark ? 'bg-slate-950/40 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                      }`}
+                      onClick={() => { setAuthMode(authMode === 'signup' ? 'signin' : 'signup'); setAuthError(null); setAuthInfo(null); }}
+                      className="font-black text-emerald-500 hover:underline"
                     >
-                      Create Account
-                    </button>
-                    <button
-                      onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthInfo(null); }}
-                      className={`py-2.5 rounded-xl border text-xs font-black transition-all ${
-                        authMode === 'signin'
-                          ? 'bg-emerald-500/15 border-emerald-500/60 text-emerald-500'
-                          : isDark ? 'bg-slate-950/40 border-slate-800 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'
-                      }`}
-                    >
-                      Sign In
+                      {authMode === 'signup' ? 'Sign in' : 'Create an account'}
                     </button>
                   </div>
 
@@ -494,7 +481,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     disabled={authBusy}
                     className={`w-full py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 ${ghostBtn}`}
                   >
-                    <Sparkles className="w-4 h-4 text-emerald-500" /> Send Me a Magic Link
+                    <Mail className="w-4 h-4 text-emerald-500" /> Send Secret Link
                   </button>
                 </>
               )}

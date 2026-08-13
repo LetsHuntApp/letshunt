@@ -1,5 +1,11 @@
 # Changes Log
 
+## Batch 8 — Simplified Account Access & Automatic Cloud Sync
+
+- **Simplified the account controls.** Sign up/sign in is now a compact switch instead of two large mode buttons, and the magic-link action is labeled **Send Secret Link** with a Lucide mail icon in both login surfaces.
+- **Automatic HuntClub sync is now enabled.** When a signed-in device has an active HuntClub, local settings, map pins/zones/paths, harvest logs, trail-cam records, and new photo imports schedule a debounced upload automatically. The complete data bundle is saved to Supabase and full-resolution trail-cam photos are uploaded to the configured Backblaze B2 bucket.
+- **Sync remains offline-safe.** Local storage/IndexedDB stay usable when disconnected; failed cloud syncs are logged and retried by the next local change, while manual sync controls remain available in Settings.
+
 ## Batch 7 — Notification Pause & Cold Front Forecast Badge
 
 - **Removed weather notifications for now.** System-alert code, notification controls

@@ -82,7 +82,8 @@ Max age: 3600
   hunting buddies.
 - Photos: full-res images go to B2 under `{clubId}/{photoId}`; the JSON bundle
   (pins, logs, settings, thumbnails) lives in `hunt_club_data`. The app keeps
-  working fully offline — sync is an explicit action for now (continuous
-  background sync is the next phase).
+  working fully offline. When a signed-in user has an active HuntClub, local
+  changes automatically schedule a debounced sync to Supabase and B2; the
+  manual sync button remains available in Settings as a retry/force-sync option.
 - If you deploy the app somewhere other than `localhost`, add that origin to
   `ALLOWED_ORIGINS` at the top of `functions/b2-sign/index.ts` and re-deploy.

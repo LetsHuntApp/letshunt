@@ -1,4 +1,5 @@
 import { TrailCameraPhoto, TrailCameraFilterState, HistoricalWeatherData, TrailCameraLocation, TrailCameraTarget } from '../types';
+import { notifyDataChanged } from '../utils/storage';
 
 const DB_NAME = 'LetsHuntTrailCams';
 const DB_VERSION = 2;
@@ -68,7 +69,10 @@ function putInStore(storeName: string, value: any): Promise<void> {
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
     store.put(value);
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      notifyDataChanged();
+      resolve();
+    };
     tx.onerror = () => reject(tx.error);
   }));
 }
@@ -78,7 +82,10 @@ function deleteFromStore(storeName: string, id: string): Promise<void> {
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
     store.delete(id);
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => {
+      notifyDataChanged();
+      resolve();
+    };
     tx.onerror = () => reject(tx.error);
   }));
 }
@@ -1049,7 +1056,10 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
           tx.objectStore(PHOTOS_STORE).put(photo);
           tx.objectStore(FULL_IMAGES_STORE).put({ id, blob: file, thumbnailUrl: thumbnailDataUrl || '' });
           await new Promise<void>((resolve, reject) => {
-            tx.oncomplete = () => resolve();
+            tx.oncomplete = () => {
+              notifyDataChanged();
+              resolve();
+            };
             tx.onerror = () => reject(tx.error);
           });
         } else {

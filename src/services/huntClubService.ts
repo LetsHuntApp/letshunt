@@ -7,9 +7,9 @@
  * Backblaze B2); joining with an invite code pulls that bundle and imports it
  * locally, then reloads the app just like a manual restore.
  *
- * Local storage stays the source of truth while the app is offline; these
- * functions are the explicit "sync now" actions. Continuous background sync
- * is the next phase (see forecast-batches/06-accounts-cloud-sync.md).
+ * Local storage stays the source of truth while the app is offline; manual
+ * "sync now" actions remain available, and the app schedules a debounced sync
+ * whenever local data changes while an active club is selected.
  */
 import { supabase, getCurrentUser } from './supabaseService';
 import { exportBackupData, importBackupData, type BackupSummary } from './dataBackupService';
@@ -19,6 +19,7 @@ import type { ActiveClub, HuntClub, HuntClubRole, PublishResult } from '../types
 import { safeGetJSON, safeSetJSON, safeRemove } from '../utils/storage';
 
 const ACTIVE_CLUB_KEY = 'letshunt_active_club';
+const uploadedPhotoKeys = new Set<string>();
 
 // ---- Row mapping (snake_case DB → camelCase UI) ----
 interface ClubRow {
@@ -152,8 +153,15 @@ export async function publishClubData(
     try {
       const blob = await getFullImageBlob(p.id);
       if (blob) {
-        await uploadPhotoBlob(clubId, p.id, blob, blob.type);
-        uploadedPhotos++;
+        // Avoid re-uploading unchanged image bytes on every debounced settings,
+        // map, or log update. A new page session will verify the current bundle
+        // by uploading each photo once again.
+        const uploadKey = `${clubId}:${p.id}:${blob.size}:${blob.type}`;
+        if (!uploadedPhotoKeys.has(uploadKey)) {
+          await uploadPhotoBlob(clubId, p.id, blob, blob.type);
+          uploadedPhotoKeys.add(uploadKey);
+          uploadedPhotos++;
+        }
       }
       await supabase.from('trail_cam_photos').upsert(
         {
