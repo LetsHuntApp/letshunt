@@ -291,3 +291,44 @@ export interface DeerKillLog {
   notes?: string;
   createdAt: number;
 }
+
+// ---------------------------------------------------------------------------
+// Accounts & HuntClubs (Supabase) — Batch 6
+// ---------------------------------------------------------------------------
+
+/** A HuntClub: a named, shareable dataset (pins, logs, cams, settings). */
+export interface HuntClub {
+  id: string;
+  name: string;
+  inviteCode: string;
+  ownerId: string;
+  createdAt: string;
+}
+
+export interface HuntClubMember {
+  clubId: string;
+  userId: string;
+  role: 'owner' | 'member';
+  joinedAt: string;
+}
+
+/** The club the current device is attached to (persisted in localStorage). */
+export interface ActiveClub {
+  id: string;
+  name: string;
+  inviteCode: string;
+  ownerId: string;
+}
+
+export type HuntClubRole = 'owner' | 'member';
+
+/** Result shapes shared by the auth / club UI. */
+export interface ServiceError {
+  message: string;
+}
+
+export interface PublishResult {
+  uploadedPhotos: number;
+  dataBytes: number;
+  updatedAt: string;
+}

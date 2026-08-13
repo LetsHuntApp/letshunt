@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+# Supabase CLI local bookkeeping (linked-project info, etc.)
+supabase/.temp/

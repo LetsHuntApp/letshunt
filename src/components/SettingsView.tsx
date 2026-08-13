@@ -30,6 +30,7 @@ import {
 import { DeerIcon } from './DeerIcon';
 import { exportBackupData, importBackupData, downloadJson, defaultBackupFilename } from '../services/dataBackupService';
 import { PaperTexture } from './PaperTexture';
+import { AccountSettingsCard } from './AccountSettingsCard';
 
 // Downscale a user-provided background photo before persisting as a base64
 // data URL. The raw 4-MP+ photo would otherwise blow past the ~5 MB
@@ -334,6 +335,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
             </div>
       </div>
+
+      {/* Account & HuntClub (Supabase + Backblaze B2) */}
+      <AccountSettingsCard
+        theme={theme}
+        isDark={isDark}
+        showToast={showToast}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Section 1: Location & Hunting Grounds Management */}

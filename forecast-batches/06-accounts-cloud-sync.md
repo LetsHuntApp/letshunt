@@ -1,9 +1,11 @@
 # Batch 6 — Accounts & Cloud Sync (Roadmap)
 
-**Status:** Not started · **Scope:** project-wide (new backend + auth + sync layer) ·
+**Status:** In progress — Phases 0–2 partially shipped (Supabase auth + HuntClubs
+in onboarding, data bundle publish/pull, B2 photo storage via the `b2-sign` edge
+function). Remaining: continuous background sync (Phase 3), push server (Phase 4),
+launch hardening (Phase 5). · **Scope:** project-wide (new backend + auth + sync layer) ·
 **Nature:** this is a **design document / phased roadmap**, not a single apply-able diff.
-Expect multiple working sessions. Do not start this until batches 1–5 are in, unless the
-sync architecture is needed first for other reasons.
+Expect multiple working sessions.
 
 ## Goal
 
