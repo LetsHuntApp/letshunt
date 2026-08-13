@@ -335,8 +335,8 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   return (
     <div className="space-y-4">
       {/* Gallery Action Bar */}
-      <div className={`flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl ${tc.cardBg}`}>
-        <div className="flex items-center gap-2">
+      <div className={`flex flex-col gap-2 p-3 rounded-2xl ${tc.cardBg} sm:flex-row sm:flex-wrap sm:items-center sm:justify-between`}>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
               setIsSelectMode(!isSelectMode);
@@ -380,7 +380,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
         </div>
 
         {isSelectMode && selectedIds.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setAssignLocationModalOpen(true)}
               className="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-500 text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
@@ -735,24 +735,24 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className={`flex items-center justify-between p-3 rounded-2xl ${tc.paginationBg} text-xs font-bold`}>
+        <div className={`flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl ${tc.paginationBg} text-xs font-bold`}>
           <button
             disabled={currentPage === 1}
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
             style={{ backgroundColor: isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: isDark ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
           >
             <ChevronLeft className="w-4 h-4" /> Previous
           </button>
 
-          <span>
+          <span className="min-w-[140px] flex-1 text-center">
             Page {currentPage} of {totalPages} ({displayPhotos.length} photos)
           </span>
 
           <button
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
             style={{ backgroundColor: isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: isDark ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
           >
             Next <ChevronRight className="w-4 h-4" />

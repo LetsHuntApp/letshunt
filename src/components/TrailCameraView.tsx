@@ -627,7 +627,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
         </div>
 
         {/* Button row — Import + tab nav, always on a second line */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Compact "Import Photos" button — shown once photos already exist. */}
           {photos.length > 0 ? (
             <>
@@ -682,7 +682,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           ) : null}
 
           {/* Sub-Tab Navigation Buttons */}
-          <div className={`flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 ${
+          <div className={`flex w-full sm:w-auto items-center justify-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 max-w-full overflow-x-auto ${
             isDark
               ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80'
               : isHunting
@@ -693,7 +693,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           }`}>
             <button
               onClick={() => setActiveTab('gallery')}
-              className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex-1 sm:flex-none justify-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'gallery'
                   ? 'bg-emerald-500 text-slate-950 shadow-md'
                   : isDark
@@ -710,7 +710,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+              className={`flex-1 sm:flex-none justify-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'analytics'
                   ? 'bg-emerald-500 text-slate-950 shadow-md'
                   : isDark
@@ -751,14 +751,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               Compact single row on every breakpoint so Add sits directly to
               the right of the dropdown. */}
           <div className={`${cardBase} ${cardBg} flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs flex-wrap`}>
-            <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
+            <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
             </span>
             <select
               value={selectedSpotId}
               onChange={(e) => setSelectedSpotId(e.target.value)}
               title="Pick a spot — then use the buttons to set as default or delete it"
-              className={`flex-1 min-w-0 max-w-xs px-2.5 py-2 text-xs sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
+              className={`w-full sm:flex-1 min-w-0 sm:min-w-[160px] sm:max-w-xs px-2.5 py-2 text-xs sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
             >
               <option value="">
                 {allSpots.length === 0 ? '— No spots yet —' : '— Pick a spot —'}
@@ -776,7 +776,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <button
               onClick={() => setIsLocationModalOpen(true)}
               title="Add a new camera spot"
-              className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 shadow-sm flex-shrink-0 ${buttonPrimaryBg}`}
+              className={`flex-1 sm:flex-none justify-center px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 shadow-sm flex-shrink-0 ${buttonPrimaryBg}`}
             >
               <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Add</span>
@@ -808,7 +808,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                           : 'Mark selected spot as default')
                 }
                 disabled={!selectedSpotId || !!allSpots.find((s) => s.id === selectedSpotId)?._isMapPin}
-                className={`px-2.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-xs font-bold transition-all border cursor-pointer flex items-center gap-1 ${
+                className={`flex-1 sm:flex-none justify-center px-2.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-xs font-bold transition-all border cursor-pointer flex items-center gap-1 ${
                   !selectedSpotId || allSpots.find((s) => s.id === selectedSpotId)?._isMapPin
                     ? isDark
                       ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed opacity-60'
@@ -851,7 +851,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                         ? 'Map pins can\u2019t be deleted here'
                         : 'Delete selected spot')
                 }
-                className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 flex-shrink-0 ${
+                className={`flex-1 sm:flex-none justify-center px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 flex-shrink-0 ${
                   !selectedSpotId || allSpots.find((s) => s.id === selectedSpotId)?._isMapPin
                     ? isDark
                       ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed opacity-60'
@@ -874,14 +874,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               Compact single row on every breakpoint so Add sits directly to
               the right of the dropdown. */}
           <div className={`${cardBase} ${cardBg} flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs flex-wrap`}>
-            <span className="font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
+            <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
             </span>
             <select
               value={selectedTargetId}
               onChange={(e) => setSelectedTargetId(e.target.value)}
               title="Quick-view a target — colour-swatch is shown for each option"
-              className={`flex-1 min-w-0 max-w-xs px-2.5 py-2 text-xs sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
+              className={`w-full sm:flex-1 min-w-0 sm:min-w-[160px] sm:max-w-xs px-2.5 py-2 text-xs sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
             >
               <option value="">
                 {targets.length === 0 ? '— No targets yet —' : `— All targets (${targets.length}) —`}
@@ -899,7 +899,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <button
               onClick={() => setIsTargetManagerOpen(true)}
               title="Open the target manager to add, edit, recolour, or remove targets"
-              className={`px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 shadow-sm flex-shrink-0 ${buttonPrimaryBg}`}
+              className={`flex-1 sm:flex-none justify-center px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 shadow-sm flex-shrink-0 ${buttonPrimaryBg}`}
             >
               <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Add</span>
@@ -1035,7 +1035,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 return (
                   <div
                     key={photo.id}
-                    className={`flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border ${
+                    className={`flex flex-wrap items-center gap-3 p-2.5 sm:p-3 rounded-xl border ${
                       isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'
                     }`}
                   >
@@ -1065,13 +1065,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                         Date: {photo.dateTime ? new Date(photo.dateTime).toLocaleDateString() : 'Unknown'}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="w-full sm:w-auto flex items-center gap-2 flex-shrink-0">
                       <Clock className="w-3.5 h-3.5 text-amber-400" />
                       <input
                         type="datetime-local"
                         value={timeCorrectionValues[photo.id] || ''}
                         onChange={(e) => setTimeCorrectionValues(prev => ({ ...prev, [photo.id]: e.target.value }))}
-                        className={`px-2 py-1.5 rounded-lg text-xs font-bold border ${
+                        className={`w-full sm:w-auto min-w-0 px-2 py-1.5 rounded-lg text-xs font-bold border ${
                           isDark ? 'bg-slate-950 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-900'
                         }`}
                       />
@@ -1081,17 +1081,17 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               })}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/30">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2 border-t border-slate-700/30">
               <button
                 onClick={handleSkipTimeCorrections}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl ${buttonSecondaryBg}`}
+                className={`w-full sm:w-auto px-3 py-1.5 text-xs font-bold rounded-xl ${buttonSecondaryBg}`}
               >
                 Skip for Now
               </button>
               <button
                 onClick={handleSaveTimeCorrections}
                 disabled={savingCorrections}
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-60 flex items-center gap-1.5"
+                className="w-full sm:w-auto px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-60 flex items-center justify-center gap-1.5"
               >
                 <Save className="w-3.5 h-3.5" />
                 {savingCorrections ? 'Saving…' : `Save ${timeCorrectionPhotos.length} Time(s)`}

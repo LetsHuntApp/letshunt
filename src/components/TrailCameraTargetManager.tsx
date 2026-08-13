@@ -63,16 +63,26 @@ export const TrailCameraTargetManager: React.FC<TargetManagerProps> = ({
         </p>
 
         {/* Add New Target */}
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="text"
-            placeholder="Target name..."
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-            className={`flex-1 min-w-[120px] p-2 text-sm rounded-xl border outline-none ${inputBg}`}
-          />
-          <div className="flex flex-wrap gap-0.5 items-center">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Target name..."
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
+              className={`min-w-0 flex-1 p-2 text-sm rounded-xl border outline-none ${inputBg}`}
+            />
+            <button
+              onClick={handleAdd}
+              disabled={!newName.trim()}
+              className="shrink-0 p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-all"
+              aria-label="Add target"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1 items-center">
             {PRESET_COLORS.map((c) => (
               <button
                 key={c}
@@ -81,16 +91,10 @@ export const TrailCameraTargetManager: React.FC<TargetManagerProps> = ({
                   newColor === c ? 'border-white scale-125' : 'border-transparent'
                 }`}
                 style={{ backgroundColor: c }}
+                aria-label={`Choose target color ${c}`}
               />
             ))}
           </div>
-          <button
-            onClick={handleAdd}
-            disabled={!newName.trim()}
-            className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 transition-all shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Target List */}

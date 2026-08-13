@@ -86,9 +86,9 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
       }`}
     >
       {/* Top Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-          <div className="relative flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1 basis-full sm:basis-auto">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
             <input
               type="text"
@@ -143,7 +143,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
           )}
         </div>
 
-        <div className="text-xs font-bold opacity-70">
+        <div className="self-end whitespace-nowrap text-xs font-bold opacity-70 sm:self-auto">
           Showing {filteredPhotosCount} of {totalPhotosCount} photos
         </div>
       </div>
@@ -154,12 +154,12 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
           {/* Date Range */}
           <div className="space-y-1">
             <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Date Range</label>
-            <div className="flex items-center gap-1">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1">
               <input
                 type="date"
                 value={filter.dateStart || ''}
                 onChange={(e) => onFilterChange({ ...filter, dateStart: e.target.value || undefined })}
-                className={`w-full p-1.5 text-xs rounded-xl border ${
+                className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                   isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
                 }`}
               />
@@ -168,7 +168,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
                 type="date"
                 value={filter.dateEnd || ''}
                 onChange={(e) => onFilterChange({ ...filter, dateEnd: e.target.value || undefined })}
-                className={`w-full p-1.5 text-xs rounded-xl border ${
+                className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                   isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
                 }`}
               />
@@ -181,7 +181,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             <select
               value={filter.cameraLocationId || ''}
               onChange={(e) => onFilterChange({ ...filter, cameraLocationId: e.target.value || undefined })}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -200,7 +200,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             <select
               value={filter.targetId || ''}
               onChange={(e) => onFilterChange({ ...filter, targetId: e.target.value || undefined })}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -217,7 +217,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             <select
               value={filter.weatherConditions?.[0] || ''}
               onChange={(e) => onFilterChange({ ...filter, weatherConditions: e.target.value ? [e.target.value] : undefined })}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -234,7 +234,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             <select
               value={filter.windDirection || ''}
               onChange={(e) => onFilterChange({ ...filter, windDirection: e.target.value || undefined })}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -249,7 +249,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
                 const p = WIND_PRESETS[parseInt(e.target.value, 10)];
                 if (p) onFilterChange({ ...filter, windSpeedMin: p.min, windSpeedMax: p.max });
               }}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -269,7 +269,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
                 const p = TEMP_PRESETS[parseInt(e.target.value, 10)];
                 if (p) onFilterChange({ ...filter, tempMin: p.min, tempMax: p.max });
               }}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -289,7 +289,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
                 const p = PRESSURE_PRESETS[parseInt(e.target.value, 10)];
                 if (p) onFilterChange({ ...filter, pressureMin: p.min, pressureMax: p.max });
               }}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
@@ -306,7 +306,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             <select
               value={filter.moonPhase || ''}
               onChange={(e) => onFilterChange({ ...filter, moonPhase: e.target.value || undefined })}
-              className={`w-full p-1.5 text-xs rounded-xl border ${
+              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
                 isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
               }`}
             >
