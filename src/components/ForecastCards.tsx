@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DailyForecast, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit, Location } from '../types';
 import { DeerIcon } from './DeerIcon';
-import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, getPeakHuntScore, isPrimeDay, RATING_THRESHOLDS } from '../utils/huntingEngine';
+import { getHour12Label, getRatingFromScore, getWeatherDetails, getBestHuntTime, getBestStandForWind, getPeakHuntScore, isPrimeDay, isSignificantColdFront, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { getRutPhase } from '../utils/rutEngine';
 import { motion } from 'motion/react';
 import { PaperTexture } from './PaperTexture';
@@ -547,6 +547,7 @@ const getScoreBadgeColor = (score: number) => {
             .sort((a, b) => b.score - a.score)
             .slice(0, 3);
           const dayRut = getRutPhase(day.date, location);
+          const hasSignificantColdFront = isSignificantColdFront(day.tempDrop24h, units);
 
           // Calculate maximum precipitation probability for the day
           const maxPrecipProb = day.hourly && day.hourly.length > 0
@@ -806,21 +807,22 @@ const getScoreBadgeColor = (score: number) => {
                   AND desc so "Heavy Rain" vs "Light Showers" (both CloudRain)
                   still surfaces. Kept non-interactive (pointer-events none) so it
                   never intercepts the card's tap target. */}
-              {hourData && selectedHour !== undefined && (() => {
+              {((hourData && selectedHour !== undefined) || hasSignificantColdFront) && (() => {
                 // Bind the hour index for clean narrowing — avoids `selectedHour!`.
-                const hrDetails = getWeatherDetails(hourData.weatherCode);
-                const differsFromDay =
-                  hrDetails.icon !== day.weatherIcon || hrDetails.desc !== day.weatherDesc;
-                const hourIndex = selectedHour;
+                const hrDetails = hourData ? getWeatherDetails(hourData.weatherCode) : getWeatherDetails(day.weatherCode);
+                const differsFromDay = hourData && (
+                  hrDetails.icon !== day.weatherIcon || hrDetails.desc !== day.weatherDesc
+                );
+                const hourIndex = selectedHour ?? 0;
                 return (
                   <div
                     data-testid="hour-now-chip"
                     aria-live="polite"
-                    className={`px-3.5 sm:px-4 min-h-[30px] sm:min-h-[34px] flex items-center gap-2 text-[10px] sm:text-xs font-bold select-none border-t pointer-events-none ${
+                    className={`px-3.5 sm:px-4 min-h-[30px] sm:min-h-[34px] flex flex-wrap items-center gap-2 text-[10px] sm:text-xs font-bold select-none border-t pointer-events-none ${
                       isDark ? 'border-slate-700/40 text-slate-400' : 'border-slate-200/80 text-slate-500'
                     }`}
                   >
-                    {differsFromDay ? (
+                    {hourData && (differsFromDay ? (
                       <>
                         <span
                           className={`uppercase tracking-wider text-[10px] sm:text-xs font-extrabold shrink-0 ${
@@ -849,6 +851,20 @@ const getScoreBadgeColor = (score: number) => {
                         }`}
                       >
                         {hrDetails.desc} · {getHour12Label(hourIndex)}
+                      </span>
+                    ))}
+                    {hasSignificantColdFront && (
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${
+                          isDark
+                            ? 'bg-blue-500/20 text-blue-200 border-blue-400/40'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}
+                        title={`Significant 24-hour temperature drop: ${day.tempDrop24h}°${units === 'imperial' ? 'F' : 'C'}`}
+                        aria-label="Cold front forecast"
+                      >
+                        <Snowflake className="w-3 h-3 shrink-0" />
+                        <span>COLD FRONT!</span>
                       </span>
                     )}
                   </div>
@@ -879,7 +895,7 @@ const getScoreBadgeColor = (score: number) => {
                       <span>Rut: {dayRut.name}</span>
                     </span>
 
-                    {day.tempDrop24h >= 5 && (
+                    {hasSignificantColdFront && (
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border ${
                           isDark

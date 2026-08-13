@@ -2,14 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Location, UnitSystem, ThemeMode, ThemeVariant, ThemeVariantMode, PressureUnit } from '../types';
 import { searchLocations } from '../services/weatherService';
 import {
-  NotificationPrefs,
-  getPermissionState,
-  isNotificationSupported,
-  requestNotificationPermission,
-  sendTestNotification,
-  showSystemNotification,
-} from '../services/notificationService';
-import {
   Settings,
   MapPin,
   Home,
@@ -29,12 +21,6 @@ import {
   Radio,
   Gauge,
   Image as ImageIcon,
-  BellRing,
-  Snowflake,
-  CloudLightning,
-  CloudRain,
-  Wind,
-  Zap,
   Database,
   Download,
   Upload,
@@ -123,8 +109,6 @@ interface SettingsViewProps {
   onSetCustomBackgroundOpacity?: (opacity: number) => void;
   customBackgroundBlur?: number;
   onSetCustomBackgroundBlur?: (blur: number) => void;
-  notificationPrefs: NotificationPrefs;
-  onNotificationPrefsChange: (prefs: NotificationPrefs) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -155,11 +139,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSetCustomBackgroundOpacity,
   customBackgroundBlur = 12,
   onSetCustomBackgroundBlur,
-  notificationPrefs,
-  onNotificationPrefsChange,
 }) => {
-  const [permissionState, setPermissionState] = useState<NotificationPermission | 'unsupported'>(() => getPermissionState());
-  const supported = isNotificationSupported();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -205,13 +185,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Keep permission state in sync if the user changes it in browser settings mid-session
-  useEffect(() => {
-    const syncPermission = () => setPermissionState(getPermissionState());
-    window.addEventListener('focus', syncPermission);
-    return () => window.removeEventListener('focus', syncPermission);
-  }, []);
-
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
       showToast('Geolocation is not supported by your browser.');
@@ -242,14 +215,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     );
   };
 
-  const alertRows: { key: keyof Pick<NotificationPrefs, 'coldFront' | 'weatherFront' | 'rainBreak' | 'primeDay' | 'severeWeather'>; icon: React.ComponentType<{ className?: string }>; label: string; desc: string }[] = [
-    { key: 'coldFront', icon: Snowflake, label: 'Cold Fronts', desc: 'Sharp 24h temperature drops (~9°F / 5°C)' },
-    { key: 'weatherFront', icon: Wind, label: 'Weather Fronts', desc: 'The barometer changing quickly' },
-    { key: 'rainBreak', icon: CloudRain, label: 'Breaks in the Rain', desc: 'Dry windows right after rain trigger feeding surges' },
-    { key: 'primeDay', icon: Zap, label: 'Best Hunting Days', desc: 'The strongest deer movement windows' },
-    { key: 'severeWeather', icon: CloudLightning, label: 'Severe Weather', desc: 'Heavy rain & thunderstorm warnings' },
-  ];
-
   const renderToggle = (checked: boolean, onChange: (v: boolean) => void, disabled = false) => (
     <button
       type="button"
@@ -268,23 +233,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       />
     </button>
   );
-
-  const permissionLabel = !supported
-    ? 'Alerts are not available in this browser'
-    : permissionState === 'granted'
-    ? 'Alerts are ready'
-    : permissionState === 'denied'
-    ? 'Notifications are turned off in your browser'
-    : 'Tap to turn on weather alerts';
-
-  const ensurePermissionGranted = async (): Promise<NotificationPermission | 'unsupported'> => {
-    let perm = getPermissionState();
-    if (perm !== 'granted') {
-      perm = await requestNotificationPermission();
-      setPermissionState(perm);
-    }
-    return perm;
-  };
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -331,25 +279,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
-  const handleMasterToggle = async (next: boolean) => {
-    if (!next) {
-      onNotificationPrefsChange({ ...notificationPrefs, enabled: false });
-      showToast('Weather alerts turned off.');
-      return;
-    }
-
-    const perm = await ensurePermissionGranted();
-
-    if (perm === 'granted') {
-      onNotificationPrefsChange({ ...notificationPrefs, enabled: true });
-      showToast('Weather alerts are on.');
-    } else if (perm === 'denied') {
-      showToast('Notifications are blocked by the browser. Enable them in your site settings.');
-    } else {
-      showToast('Grant notification permission in the browser prompt to enable alerts.');
-    }
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-12">
       {/* Top Banner Header */}
@@ -390,7 +319,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   isDark ? 'text-slate-400' : 'text-slate-600'
                 }`}
               >
-                Manage hunting grounds, default location, unit preferences, and weather alerts.
+                Manage hunting grounds, default location, unit preferences, and forecast preferences.
               </p>
             </div>
           </div>
@@ -652,128 +581,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* Section 2: Preferences & Units */}
         <div className="space-y-6">
-          {/* Weather Alerts Card */}
-          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
-          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
-          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
-              <BellRing className="w-5 h-5 text-emerald-500" />
-              <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Weather Alerts
-              </h2>
-            </div>
-
-            <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Get a heads-up when weather may get deer moving — cold fronts, weather changes, breaks in the rain,
-              and the best hunting days — while the app is open.
-            </p>
-
-            {/* Master toggle */}
-            <div
-              className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
-                isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="min-w-0">
-                <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  Get Weather Alerts
-                </div>
-                <div className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{permissionLabel}</div>
-              </div>
-              {renderToggle(notificationPrefs.enabled, handleMasterToggle, !supported || permissionState === 'denied')}
-            </div>
-
-            {/* Event-type toggles */}
-            <div className={`space-y-1 rounded-2xl border divide-y ${isDark ? 'border-slate-800 divide-slate-800/70' : 'border-slate-200 divide-slate-100'}`}>
-              {alertRows.map((row) => {
-                const Icon = row.icon;
-                const checked = notificationPrefs[row.key];
-                return (
-                  <div key={row.key} className="flex items-center justify-between gap-3 px-3.5 py-3">
-                    <div className="min-w-0 flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 flex-shrink-0 ${checked ? 'text-emerald-500' : isDark ? 'text-slate-600' : 'text-slate-400'}`} />
-                      <div className="min-w-0">
-                        <div className={`text-xs font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{row.label}</div>
-                        <div className="text-[10px] text-slate-500 truncate">{row.desc}</div>
-                      </div>
-                    </div>
-                    {renderToggle(checked, (v) => onNotificationPrefsChange({ ...notificationPrefs, [row.key]: v }), !notificationPrefs.enabled)}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Lead time selector */}
-            <div>
-              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Alert Lead Time
-              </label>
-              <div className="grid grid-cols-3 gap-2.5">
-                {[24, 48, 72].map((hours) => (
-                  <button
-                    key={hours}
-                    disabled={!notificationPrefs.enabled}
-                    onClick={() => {
-                      onNotificationPrefsChange({ ...notificationPrefs, leadTimeHours: hours });
-                      if (notificationPrefs.enabled && permissionState === 'granted') {
-                        showSystemNotification(
-                          `Alerts Armed — next ${hours}h`,
-                          `Weather alerts active for ${currentLocation.name}. You'll be pinged when conditions change.`,
-                          `letshunt_lt_${hours}_${Date.now()}`
-                        );
-                      }
-                    }}
-                    className={`py-2 rounded-xl border text-xs font-black transition-all flex flex-col items-center ${
-                      notificationPrefs.leadTimeHours === hours
-                        ? isDark
-                          ? 'bg-emerald-950/50 border-emerald-500/60 ring-2 ring-emerald-500/30 text-white'
-                          : 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-500/20 text-slate-900'
-                        : notificationPrefs.enabled
-                        ? isDark
-                          ? 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
-                        : isDark
-                        ? 'bg-slate-950/40 border-slate-800 text-slate-600 opacity-60'
-                        : 'bg-slate-50 border-slate-200 text-slate-400 opacity-60'
-                    }`}
-                  >
-                    <span>{hours}h</span>
-                    <span className="text-[9px] font-semibold text-slate-500">{hours <= 24 ? 'Today & tomorrow' : hours <= 48 ? 'Next 2 days' : 'Next 3 days'}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick test while the app is open. */}
-            <button
-              onClick={async () => {
-                let sent = await sendTestNotification();
-                let perm = permissionState;
-                if (!sent && supported && perm !== 'denied') {
-                  perm = await ensurePermissionGranted();
-                  if (perm === 'granted') {
-                    sent = await sendTestNotification();
-                    onNotificationPrefsChange({ ...notificationPrefs, enabled: true });
-                  }
-                }
-                if (sent) {
-                  showToast('Test notification sent!');
-                } else if (perm === 'denied') {
-                  showToast('Notifications are blocked by the browser. Enable them in your site settings.');
-                } else {
-                  showToast('Grant notification permission to receive test alerts.');
-                }
-              }}
-              disabled={!supported || permissionState === 'denied'}
-              className={`w-full py-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all ${
-                isDark ? 'bg-slate-950/60 border-slate-800 text-slate-200 hover:border-emerald-500/60 hover:text-emerald-400' : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-emerald-500/60 hover:text-emerald-600'
-              } ${!supported || permissionState === 'denied' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <BellRing className="w-4 h-4 text-emerald-500" />
-              Send Test Alert
-            </button>
-
-          </div>
 
           {/* Unit System Card */}
           <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark

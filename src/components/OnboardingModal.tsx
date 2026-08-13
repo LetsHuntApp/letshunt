@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Location, ThemeMode, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
-import { MapPin, Search, Compass, Check, X, Target, CloudSun, BellRing, ArrowRight, ChevronLeft } from 'lucide-react';
+import { MapPin, Search, Compass, Check, X, Target, CloudSun, ArrowRight, ChevronLeft } from 'lucide-react';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -172,7 +172,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div>
                   <div className={`text-xs font-extrabold ${textPrimary}`}>7-Day Movement Forecast</div>
                   <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
-                    Every day gets a simple 0–100 hunt score, best morning/evening windows, cold-front and barometer alerts, plus moon times.
+                    Every day gets a simple 0–100 hunt score, best morning/evening windows, cold-front and barometer conditions, plus moon times.
                   </div>
                 </div>
               </div>
@@ -185,18 +185,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <div className={`text-xs font-extrabold ${textPrimary}`}>Map Your Grounds</div>
                   <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
                     Plot stands, bedding areas, food plots & travel routes, then get wind-matched stand recommendations.
-                  </div>
-                </div>
-              </div>
-
-              <div className={`p-3.5 rounded-2xl border flex items-start gap-3 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
-                <div className="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center shrink-0">
-                  <BellRing className="w-4.5 h-4.5 text-sky-500" />
-                </div>
-                <div>
-                  <div className={`text-xs font-extrabold ${textPrimary}`}>Get Alerts</div>
-                  <div className={`text-[11px] mt-0.5 leading-relaxed ${textSecondary}`}>
-                    Optional weather alerts for cold fronts, rain breaks, and best hunting days.
                   </div>
                 </div>
               </div>

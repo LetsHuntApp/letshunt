@@ -1,5 +1,16 @@
 # Changes Log
 
+## Batch 7 — Notification Pause & Cold Front Forecast Badge
+
+- **Removed weather notifications for now.** System-alert code, notification controls
+  in Settings, notification backup data, and the service-worker notification handler
+  are gone. The app remains focused on the in-app forecast and hunting plan.
+- **Added a clear cold-front forecast badge.** A day with a significant 24-hour
+  temperature drop (at least 9°F / 5°C) now shows a blue snowflake pill labeled
+  **COLD FRONT!** beside the hourly condition row at the bottom of its forecast
+  card. The shared threshold is unit-safe and uses the same drop that feeds the
+  hunting forecast.
+
 ## Batch 6 — Seasonal Temperature Context for Hunting Time
 
 - **Hourly temperature deviation now uses a seasonal local-hour baseline.**

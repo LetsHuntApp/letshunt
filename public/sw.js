@@ -1,4 +1,4 @@
-const CACHE_NAME = 'letshunt-v20';
+const CACHE_NAME = 'letshunt-v21';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -32,25 +32,6 @@ self.addEventListener('activate', (event) => {
         })
       );
     }).then(() => self.clients.claim())
-  );
-});
-
-// Local weather alerts are shown from the app while it is open (see
-// src/services/notificationService.ts). Clicking one of those notifications
-// brings LetsHunt back to the foreground.
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || './';
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if ('focus' in client) {
-          client.focus();
-          return;
-        }
-      }
-      if (clients.openWindow) return clients.openWindow(url);
-    })
   );
 });
 

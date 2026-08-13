@@ -120,6 +120,21 @@ export function isPrimeDay(score: number): boolean {
 }
 
 /**
+ * A significant cold front is a forecast temperature drop of about 9°F / 5°C
+ * over 24 hours. This shared threshold keeps the score, badges, and any other
+ * hunting-plan displays consistent across unit systems.
+ */
+export function isSignificantColdFront(
+  tempDrop24h: number | null | undefined,
+  units: UnitSystem
+): boolean {
+  if (tempDrop24h === null || tempDrop24h === undefined || !Number.isFinite(tempDrop24h)) {
+    return false;
+  }
+  return tempDrop24h >= (units === 'metric' ? 5 : 9);
+}
+
+/**
  * Returns the strongest movement opportunity available in a day, considering
  * both the daily summary and every hourly score. Best Day and Prime badges use
  * this same value so those labels cannot point at different days.

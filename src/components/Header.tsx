@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
   // (letshunthorizontallogo.svg) and recolor it per theme, so the header
   // stays theme-aware like the old hand-built inline SVG while the file
   // remains the single source of truth. The HUNT photo is the app icon
-  // everywhere else (PWA icons, favicon, notifications, splash).
+  // everywhere else (PWA icons, favicon, and splash screen).
   const logoAccent = theme === 'hunting'
     ? (isDark ? '#c77942' : '#c85a17')
     : theme === 'olive'

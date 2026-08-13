@@ -20,7 +20,6 @@ import {
   savePhotoWithThumbnail,
   saveTarget,
 } from './trailCameraService';
-import { NotificationPrefs, getNotificationPrefs, saveNotificationPrefs } from './notificationService';
 
 const BACKUP_TYPE = 'letshunt-backup';
 const BACKUP_VERSION = 1;
@@ -82,7 +81,6 @@ export interface LetsHuntBackup {
     customBackground: string | null;
     bgOpacity: number;
     bgBlur: number;
-    notificationPrefs: NotificationPrefs;
   };
   logs: DeerKillLog[];
   map: {
@@ -185,7 +183,6 @@ export async function exportBackupData(): Promise<{ json: string; summary: Backu
       customBackground: safeGet(LOCAL_STORAGE_KEYS.customBackground),
       bgOpacity: numOr(LOCAL_STORAGE_KEYS.bgOpacity, 90),
       bgBlur: numOr(LOCAL_STORAGE_KEYS.bgBlur, 12),
-      notificationPrefs: getNotificationPrefs(),
     },
     logs: readJSON<DeerKillLog[]>(LOCAL_STORAGE_KEYS.logs, []),
     map: {
@@ -282,7 +279,6 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
   }
   if (typeof settings.bgOpacity === 'number') safeSet(LOCAL_STORAGE_KEYS.bgOpacity, String(settings.bgOpacity));
   if (typeof settings.bgBlur === 'number') safeSet(LOCAL_STORAGE_KEYS.bgBlur, String(settings.bgBlur));
-  if (settings.notificationPrefs) saveNotificationPrefs(settings.notificationPrefs);
 
   // Harvest logs + map layers
   if (Array.isArray(backup.logs)) safeSet(LOCAL_STORAGE_KEYS.logs, JSON.stringify(backup.logs));

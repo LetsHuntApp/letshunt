@@ -19,17 +19,6 @@ import {
 } from './types';
 import { fetch5DayHuntingForecast } from './services/weatherService';
 import { safeGetString, safeGetJSON, safeSet, safeSetJSON, safeRemove } from './utils/storage';
-import {
-  NotificationPrefs,
-  getNotificationPrefs,
-  saveNotificationPrefs,
-  detectWeatherAlerts,
-  showSystemNotification,
-  wasNotified,
-  markNotified,
-  isNotificationSupported,
-  getPermissionState,
-} from './services/notificationService';
 import { Header } from './components/Header';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
@@ -130,13 +119,6 @@ export default function App() {
   const [favorites, setFavorites] = useState<Location[]>(() => {
     return safeGetJSON<Location[]>('letshunt_favorites', [FALLBACK_DEFAULT_LOCATION]);
   });
-
-  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(() => getNotificationPrefs());
-
-  const handleNotificationPrefsChange = (prefs: NotificationPrefs) => {
-    setNotificationPrefs(prefs);
-    saveNotificationPrefs(prefs);
-  };
 
   const [dailyForecast, setDailyForecast] = useState<DailyForecast[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -243,53 +225,6 @@ export default function App() {
   useEffect(() => {
     safeSetJSON('letshunt_favorites', favorites);
   }, [favorites]);
-
-  // Weather alert notifications: fire one separate system notification per
-  // upcoming event (cold fronts, baro shifts, rain breaks, prime days, severe weather).
-  //
-  // Lead-time feedback ("Alerts Armed") is handled directly by the SettingsView
-  // lead-time buttons calling showSystemNotification on every press, avoiding
-  // double-fire when the effect also reacts to the pref change.
-  const notificationTimersRef = useRef<number[]>([]);
-  // Guards events whose async show is still in-flight, so an effect re-run
-  // (forecast refresh, location change) can never double-fire the same alert
-  // while the first show is still awaiting the service worker.
-  const pendingNotifsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!dailyForecast.length || !notificationPrefs.enabled) return;
-    if (!isNotificationSupported() || Notification.permission !== 'granted') return;
-
-    const events = detectWeatherAlerts(dailyForecast, notificationPrefs, units);
-    const freshEvents = events.filter((e) => !wasNotified(e.id));
-    const timers: number[] = [];
-
-    // Each event gets its own notification. The event is only marked notified
-    // AFTER the system notification actually shows (Android can silently drop
-    // a page-context notification), so a dropped alert is retried instead of
-    // being consumed and lost. The pending set prevents duplicates across
-    // effect re-runs while a show is still in flight.
-    freshEvents.forEach((e, idx) => {
-      const timer = window.setTimeout(async () => {
-        if (wasNotified(e.id) || pendingNotifsRef.current.has(e.id)) return;
-        pendingNotifsRef.current.add(e.id);
-        try {
-          const shown = await showSystemNotification(e.title, e.body, e.id);
-          if (shown) markNotified(e.id);
-        } finally {
-          pendingNotifsRef.current.delete(e.id);
-        }
-      }, idx * 400);
-      timers.push(timer);
-    });
-
-    notificationTimersRef.current.push(...timers);
-
-    return () => {
-      notificationTimersRef.current.forEach((t) => window.clearTimeout(t));
-      notificationTimersRef.current = [];
-    };
-  }, [dailyForecast, notificationPrefs, units, currentLocation.name]);
 
   // Listen for PWA beforeinstallprompt event
   useEffect(() => {
@@ -532,7 +467,7 @@ export default function App() {
         }
       `}</style>
 
-      {/* Toast Banner Notification */}
+      {/* Toast Banner */}
       {toastMessage && (
         <div className="fixed bottom-[56px] sm:bottom-5 right-5 z-50 bg-emerald-500 text-slate-950 font-extrabold text-xs px-4 py-3 rounded-2xl shadow-2xl border border-emerald-300/60 flex items-center gap-2" style={{animation: 'toastIn 0.3s ease-out'}}>
           <CheckCircle className="w-4 h-4 fill-slate-950 text-emerald-300" />
@@ -599,8 +534,6 @@ export default function App() {
             onOpenPwaModal={() => setIsPwaModalOpen(true)}
             showToast={showToast}
             onSwitchToDashboard={() => setActiveTab('dashboard')}
-            notificationPrefs={notificationPrefs}
-            onNotificationPrefsChange={handleNotificationPrefsChange}
             customBackground={customBackground}
             onSetCustomBackground={setCustomBackground}
             customBackgroundOpacity={customBackgroundOpacity}
