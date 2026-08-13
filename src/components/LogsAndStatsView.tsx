@@ -711,7 +711,7 @@ const cardBgLight = hasCustomBackground
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                 <Trophy className="w-3 h-3" /> Harvest Journal & Analytics
               </span>
             </div>
@@ -737,14 +737,14 @@ const cardBgLight = hasCustomBackground
         {/* Quick Summary Stat Chips */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-200 dark:border-slate-800">
           <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Total Harvests
             </span>
             <div className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5">{totalHarvests}</div>
           </div>
 
           <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Bucks / Does Ratio
             </span>
             <div className="text-xl sm:text-2xl font-black text-emerald-500 mt-0.5">
@@ -753,14 +753,14 @@ const cardBgLight = hasCustomBackground
           </div>
 
           <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Best Harvest Hour
             </span>
             <div className="text-base sm:text-lg font-black text-emerald-500 mt-1">{peakTimeInfo.timeStr}</div>
           </div>
 
           <div className={`p-3 rounded-2xl border ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               #1 Stand Spot
             </span>
             <div className="text-xs sm:text-sm font-black text-emerald-500 mt-1 truncate">{topStand}</div>
@@ -837,7 +837,7 @@ const cardBgLight = hasCustomBackground
                       Shot Time Distribution (Hour of Harvest)
                     </h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     24h Movement
                   </span>
                 </div>
@@ -866,8 +866,8 @@ const cardBgLight = hasCustomBackground
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                               <p className="font-extrabold text-emerald-400">{data.label} (Hour {data.hour}:00)</p>
                               <p className="mt-1 font-bold">{data.count} Deer Shot</p>
-                              {data.isMorningPrime && <span className="text-[10px] text-amber-300 inline-flex items-center gap-1"><Sun className="w-3 h-3" /> Morning Best Window</span>}
-                              {data.isEveningPrime && <span className="text-[10px] text-purple-300 inline-flex items-center gap-1"><Moon className="w-3 h-3" /> Evening Best Window</span>}
+                              {data.isMorningPrime && <span className="text-xs text-amber-300 inline-flex items-center gap-1"><Sun className="w-3 h-3" /> Morning Best Window</span>}
+                              {data.isEveningPrime && <span className="text-xs text-purple-300 inline-flex items-center gap-1"><Moon className="w-3 h-3" /> Evening Best Window</span>}
                             </div>
                           );
                         }
@@ -887,7 +887,7 @@ const cardBgLight = hasCustomBackground
                 </ResponsiveContainer>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Morning (6-9 AM)
@@ -914,7 +914,7 @@ const cardBgLight = hasCustomBackground
                     <PieChartIcon className="w-5 h-5 text-emerald-500" />
                     <h3 className="text-base font-black tracking-tight">Bucks vs. Does Ratio</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     Gender
                   </span>
                 </div>
@@ -993,7 +993,7 @@ const cardBgLight = hasCustomBackground
                     <Calendar className="w-5 h-5 text-emerald-500" />
                     <h3 className="text-base font-black tracking-tight">Seasonal Date Distribution</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     By Month
                   </span>
                 </div>
@@ -1024,7 +1024,7 @@ const cardBgLight = hasCustomBackground
                             <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                               <p className="font-extrabold text-emerald-400">{data.month} Season</p>
                               <p className="font-bold mt-1">{data.Harvests} Total Harvests</p>
-                              <p className="text-[11px] text-slate-300 flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs text-slate-300 flex items-center gap-1.5 flex-wrap">
                                 <PawPrint className="w-3.5 h-3.5 text-emerald-400" /> {data.Bucks} Bucks
                                 <span className="opacity-40">|</span>
                                 <PawPrint className="w-3.5 h-3.5 text-sky-300" /> {data.Does} Does
@@ -1047,7 +1047,7 @@ const cardBgLight = hasCustomBackground
                 </ResponsiveContainer>
               </div>
 
-              <div className="text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <div className="text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
                 <span>Peak Rut: November usually holds highest buck activity</span>
                 <span className="font-bold text-emerald-500">{logs.length} Total Logged Kills</span>
               </div>
@@ -1065,7 +1065,7 @@ const cardBgLight = hasCustomBackground
                     <MapPin className="w-5 h-5 text-emerald-500" />
                     <h3 className="text-base font-black tracking-tight">Top Stand / Spot Rankings</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     Map Locations
                   </span>
                 </div>
@@ -1114,7 +1114,7 @@ const cardBgLight = hasCustomBackground
                 </ResponsiveContainer>
               </div>
 
-              <div className="text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <div className="text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
                 <span>Map Markers Linked: {mapPins.length} Active Stands</span>
                 {onNavigateToMap && (
                   <button
@@ -1142,7 +1142,7 @@ const cardBgLight = hasCustomBackground
                     <Calendar className="w-5 h-5 text-emerald-500" />
                     <h3 className="text-base font-black tracking-tight">Specific Harvest Dates</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     Day Calendar
                   </span>
                 </div>
@@ -1173,13 +1173,13 @@ const cardBgLight = hasCustomBackground
                               <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-700 text-xs">
                                 <p className="font-extrabold text-emerald-400 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {data.monthDay}</p>
                                 <p className="font-bold mt-1 text-sm">{data.count} Deer Harvested</p>
-                                <p className="text-[11px] text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <p className="text-xs text-slate-300 mt-0.5 flex items-center gap-1.5 flex-wrap">
                                   <PawPrint className="w-3.5 h-3.5 text-emerald-400" /> {data.bucks} Bucks
                                   <span className="opacity-40">|</span>
                                   <PawPrint className="w-3.5 h-3.5 text-sky-300" /> {data.does} Does
                                 </p>
                                 {data.datesList && data.datesList.length > 0 && (
-                                  <p className="text-[10px] text-slate-400 mt-1 border-t border-slate-800 pt-1">
+                                  <p className="text-xs text-slate-400 mt-1 border-t border-slate-800 pt-1">
                                     Logged on: {data.datesList.join(', ')}
                                   </p>
                                 )}
@@ -1206,7 +1206,7 @@ const cardBgLight = hasCustomBackground
                 )}
               </div>
 
-              <div className="text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <div className="text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
                 <span>Gold bars highlight dates with multiple harvests</span>
                 <span className="font-bold text-emerald-500">{specificDateChartData.length} Unique Harvest Days</span>
               </div>
@@ -1224,7 +1224,7 @@ const cardBgLight = hasCustomBackground
                     <Thermometer className="w-5 h-5 text-sky-500" />
                     <h3 className="text-base font-black tracking-tight">Temperature Range Distribution</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-sky-500/10 text-sky-500 border border-sky-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-sky-500/10 text-sky-500 border border-sky-500/20">
                     Weather
                   </span>
                 </div>
@@ -1265,7 +1265,7 @@ const cardBgLight = hasCustomBackground
                 </ResponsiveContainer>
               </div>
 
-              <div className="text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <div className="text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
                 <span>
                   {temperatureChartData.recordedCount > 0
                     ? `Logged in ${temperatureChartData.recordedCount} of ${logs.length} harvest logs`
@@ -1292,7 +1292,7 @@ const cardBgLight = hasCustomBackground
                     <Wind className="w-5 h-5 text-teal-500" />
                     <h3 className="text-base font-black tracking-tight">Wind Speed Distribution</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-teal-500/10 text-teal-500 border border-teal-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-teal-500/10 text-teal-500 border border-teal-500/20">
                     Wind Velocity
                   </span>
                 </div>
@@ -1328,7 +1328,7 @@ const cardBgLight = hasCustomBackground
                 </ResponsiveContainer>
               </div>
 
-              <div className="text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <div className="text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
                 <span>Light-to-moderate winds usually provide steady deer movement</span>
                 <span className="font-bold text-teal-400">{windAnalyticsData.speedRecordedCount} Logs Recorded</span>
               </div>
@@ -1346,7 +1346,7 @@ const cardBgLight = hasCustomBackground
                     <Wind className="w-5 h-5 text-indigo-500" />
                     <h3 className="text-base font-black tracking-tight">Harvest Wind Direction</h3>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                  <span className="text-xs font-bold uppercase px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
                     Wind Direction
                   </span>
                 </div>
@@ -1382,7 +1382,7 @@ const cardBgLight = hasCustomBackground
                 </ResponsiveContainer>
               </div>
 
-              <div className="text-[11px] pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <div className="text-xs pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-between">
                 <span>Helps evaluate wind direction strategy for stand placements</span>
                 <span className="font-bold text-indigo-400">{windAnalyticsData.dirRecordedCount} Direction Logs</span>
               </div>
@@ -1549,7 +1549,7 @@ const cardBgLight = hasCustomBackground
                       </div>
 
                       <span
-                        className="px-2.5 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider flex-shrink-0"
+                        className="px-2.5 py-1 rounded-xl text-xs font-black uppercase tracking-wider flex-shrink-0"
                         style={{
                           backgroundColor: `${GENDER_COLORS[log.gender] || '#10b981'}20`,
                           color: GENDER_COLORS[log.gender] || '#10b981',
@@ -1563,32 +1563,32 @@ const cardBgLight = hasCustomBackground
                     {/* Metadata Chips */}
                     <div className="flex flex-wrap gap-1.5 text-xs">
                       {log.age && (
-                        <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+                        <span className={`px-2 py-1 rounded-xl text-xs font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
                           Age: {log.age}
                         </span>
                       )}
                       {log.points !== undefined && (
-                        <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-amber-300' : 'bg-slate-100 border-slate-200 text-amber-700'}`}>
+                        <span className={`px-2 py-1 rounded-xl text-xs font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-amber-300' : 'bg-slate-100 border-slate-200 text-amber-700'}`}>
                           {log.points} Antler Points
                         </span>
                       )}
                       {log.weightLbs !== undefined && (
-                        <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
+                        <span className={`px-2 py-1 rounded-xl text-xs font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}`}>
                           {log.weightLbs} lbs
                         </span>
                       )}
                       {log.weapon && (
-                        <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-emerald-400' : 'bg-slate-100 border-slate-200 text-emerald-700'}`}>
+                        <span className={`px-2 py-1 rounded-xl text-xs font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-emerald-400' : 'bg-slate-100 border-slate-200 text-emerald-700'}`}>
                           {log.weapon}
                         </span>
                       )}
                       {log.temperature !== undefined && (
-                        <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-sky-300' : 'bg-slate-100 border-slate-200 text-sky-700'}`}>
+                        <span className={`px-2 py-1 rounded-xl text-xs font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-sky-300' : 'bg-slate-100 border-slate-200 text-sky-700'}`}>
                           <Thermometer className="w-3.5 h-3.5" /> {log.temperature}°{units === 'metric' ? 'C' : 'F'}
                         </span>
                       )}
                       {(log.windSpeed !== undefined || log.windDirection) && (
-                        <span className={`px-2 py-1 rounded-xl text-[11px] font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-teal-300' : 'bg-slate-100 border-slate-200 text-teal-700'}`}>
+                        <span className={`px-2 py-1 rounded-xl text-xs font-semibold border ${isDark ? 'bg-slate-950 border-slate-800 text-teal-300' : 'bg-slate-100 border-slate-200 text-teal-700'}`}>
                           <Wind className="w-3.5 h-3.5" /> {log.windDirection ? `${log.windDirection} ` : ''}{log.windSpeed !== undefined ? `${log.windSpeed} ${units === 'metric' ? 'km/h' : 'mph'}` : ''}
                         </span>
                       )}
@@ -1603,7 +1603,7 @@ const cardBgLight = hasCustomBackground
 
                   {/* Card Bottom Actions */}
                   <div className={`px-5 py-3 border-t flex items-center justify-between text-xs ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <span className="text-[10px] text-slate-400 font-mono">ID: #{log.id.slice(-6)}</span>
+                    <span className="text-xs text-slate-400 font-mono">ID: #{log.id.slice(-6)}</span>
 
                     <div className="flex items-center gap-2">
                       <button
@@ -1644,7 +1644,7 @@ const cardBgLight = hasCustomBackground
           >
             <div className="flex items-center justify-between border-b pb-4 border-slate-200 dark:border-slate-800">
               <div>
-                <span className="text-[10px] font-black uppercase text-emerald-500 tracking-wider">
+                <span className="text-xs font-black uppercase text-emerald-500 tracking-wider">
                   Deer Harvest Log
                 </span>
                 <h3 className="text-xl font-black mt-0.5">
@@ -1684,7 +1684,7 @@ const cardBgLight = hasCustomBackground
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
                   <span>Stand / Hunting Spot *</span>
                   {mapPins.length > 0 && (
-                    <span className="text-[10px] text-emerald-500 font-bold">
+                    <span className="text-xs text-emerald-500 font-bold">
                       {mapPins.length} Map Markers Available
                     </span>
                   )}
@@ -1865,7 +1865,7 @@ const cardBgLight = hasCustomBackground
                     type="button"
                     onClick={handleAutoFillWeather}
                     disabled={isFetchingWeather}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm active:scale-95"
                     title="Auto-fill temperature and wind data based on selected harvest date and time"
                   >
                     {isFetchingWeather ? (
@@ -1885,7 +1885,7 @@ const cardBgLight = hasCustomBackground
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Temperature */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Temp ({units === 'metric' ? '°C' : '°F'})
                     </label>
                     <input
@@ -1903,7 +1903,7 @@ const cardBgLight = hasCustomBackground
 
                   {/* Wind Speed */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Wind Speed ({units === 'metric' ? 'km/h' : 'mph'})
                     </label>
                     <input
@@ -1922,7 +1922,7 @@ const cardBgLight = hasCustomBackground
 
                   {/* Wind Direction */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Wind Direction
                     </label>
                     <select
@@ -1994,7 +1994,7 @@ const cardBgLight = hasCustomBackground
                   >
                     <Upload className="w-6 h-6 text-emerald-500" />
                     <span className="text-xs font-bold">Click to Upload Deer Photo</span>
-                    <span className="text-[10px] text-slate-500">Supports JPEG, PNG, WEBP (Saved locally)</span>
+                    <span className="text-xs text-slate-500">Supports JPEG, PNG, WEBP (Saved locally)</span>
                   </button>
                 )}
               </div>

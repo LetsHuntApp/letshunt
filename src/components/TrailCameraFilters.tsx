@@ -124,7 +124,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             <Filter className="w-3.5 h-3.5" />
             <span>Filters</span>
             {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center">
+              <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center">
                 {activeFilterCount}
               </span>
             )}
@@ -153,7 +153,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
         <div className="mt-4 pt-4 border-t border-slate-700/40 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           {/* Date Range */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Date Range</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Date Range</label>
             <div className="flex items-center gap-1">
               <input
                 type="date"
@@ -177,7 +177,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Camera Location */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Camera Location</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Camera Location</label>
             <select
               value={filter.cameraLocationId || ''}
               onChange={(e) => onFilterChange({ ...filter, cameraLocationId: e.target.value || undefined })}
@@ -196,7 +196,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Target Tag */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Target Tag</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Target Tag</label>
             <select
               value={filter.targetId || ''}
               onChange={(e) => onFilterChange({ ...filter, targetId: e.target.value || undefined })}
@@ -213,7 +213,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Weather Condition */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Weather Condition</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Weather Condition</label>
             <select
               value={filter.weatherConditions?.[0] || ''}
               onChange={(e) => onFilterChange({ ...filter, weatherConditions: e.target.value ? [e.target.value] : undefined })}
@@ -230,7 +230,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Wind */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Wind</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Wind</label>
             <select
               value={filter.windDirection || ''}
               onChange={(e) => onFilterChange({ ...filter, windDirection: e.target.value || undefined })}
@@ -262,7 +262,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Temperature */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Temperature</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Temperature</label>
             <select
               value={activeTempPreset === -1 ? '-1' : String(activeTempPreset)}
               onChange={(e) => {
@@ -282,7 +282,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Pressure */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Barometric Pressure</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Barometric Pressure</label>
             <select
               value={activePressurePreset === -1 ? '-1' : String(activePressurePreset)}
               onChange={(e) => {
@@ -302,7 +302,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
           {/* Moon Phase */}
           <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-[10px]">Moon Phase</label>
+            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Moon Phase</label>
             <select
               value={filter.moonPhase || ''}
               onChange={(e) => onFilterChange({ ...filter, moonPhase: e.target.value || undefined })}

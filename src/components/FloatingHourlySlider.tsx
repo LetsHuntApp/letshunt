@@ -163,7 +163,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
               Hourly Hunt
             </span>
             {currentHourData?.isPrimeWindow && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 text-white font-black rounded-full text-[9px] uppercase tracking-wider flex-shrink-0 animate-pulse shadow-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex-shrink-0 animate-pulse shadow-xs">
                 <Zap className="w-2.5 h-2.5" /> Best Hunt
               </span>
             )}
@@ -172,7 +172,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
           {!isNow && (
             <button
               onClick={() => { handleHourChange(currentLocalHour); onResetToToday?.(); }}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black transition-all border flex-shrink-0 ${
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-black transition-all border flex-shrink-0 ${
                 isDark
                   ? theme === 'hunting' ? 'bg-[#4a2b1b] hover:bg-[#613620] text-[#f0ba7a] border-[#8a5536]'
                   : theme === 'olive' ? 'bg-[#2e3b20] hover:bg-[#3c4d28] text-[#c0d094] border-[#556b2f]'
@@ -264,7 +264,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         </div>
 
         {/* Time Scale Ticks */}
-        <div className="flex justify-between text-[9px] sm:text-[10px] font-black text-slate-400 px-1 mt-1 leading-none select-none">
+        <div className="flex justify-between text-[11px] sm:text-xs font-black text-slate-400 px-1 mt-1 leading-none select-none">
           <span>12 AM</span>
           <span>3 AM</span>
           <span className="text-emerald-600 dark:text-emerald-400">6 AM Dawn</span>

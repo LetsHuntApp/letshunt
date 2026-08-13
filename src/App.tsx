@@ -481,12 +481,9 @@ export default function App() {
         onSelectLocation={(loc) => setCurrentLocation(loc)}
         defaultLocation={defaultLocation}
         onSetDefaultLocation={handleSetDefaultLocation}
-        units={units}
-        onToggleUnits={() => setUnits(units === 'imperial' ? 'metric' : 'imperial')}
         theme={theme}
         isDark={isDark}
         hasCustomBackground={!!customBackground}
-        onToggleTheme={handleToggleTheme}
         favorites={favorites}
         onToggleFavorite={handleToggleFavorite}
         onOpenGuide={() => setIsGuideOpen(true)}
@@ -619,14 +616,14 @@ export default function App() {
                     : 'bg-white/[var(--card-opacity)] border-slate-200 text-slate-900'
                 }`}>
                   <div className="min-w-0">
-                    <div className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.16em] ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-700'}`}>
+                    <div className={`text-xs sm:text-[13px] font-black uppercase tracking-[0.16em] ${isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#c85a17]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-700'}`}>
                       Dashboard · 14-Day Look Ahead
                     </div>
                     <h1 className="text-lg sm:text-2xl font-black flex items-center gap-2 mt-0.5">
                       <CalendarDays className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
                       14-Day Deer Forecast
                     </h1>
-                    <p className={`text-[11px] sm:text-xs mt-1 ${isDark ? 'text-slate-400' : 'opacity-70'}`}>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'opacity-70'}`}>
                       A bigger-picture look at {currentLocation.name}; later days are a rough guide.
                     </p>
                   </div>
@@ -636,7 +633,7 @@ export default function App() {
                       setIsFourteenDayView(false);
                       setSelectedDate('');
                     }}
-                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] focus:outline-none focus-visible:ring-2 ${
+                    className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] focus:outline-none focus-visible:ring-2 ${
                       isDark
                         ? 'border-slate-600 text-slate-300 hover:bg-slate-800 focus-visible:ring-emerald-400'
                         : theme === 'hunting'
@@ -778,7 +775,7 @@ export default function App() {
                 <Smartphone className="w-3.5 h-3.5" /> Turn Into Web App
               </button>
               <span className="text-slate-400">•</span>
-              <span className="text-[11px]">
+              <span className="text-xs">
                 Live weather by <span className={`font-semibold ${isDark ? 'text-slate-300' : theme === 'hunting' ? 'text-[#5c4a32]' : theme === 'olive' ? 'text-[#2e4028]' : 'text-slate-700'}`}>Open-Meteo API</span>
               </span>
             </div>
@@ -810,7 +807,7 @@ export default function App() {
             setSelectedDate('');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'dashboard' || activeTab === 'details'
               ? isDark
                 ? 'text-emerald-400 bg-emerald-400/10 scale-105'
@@ -823,7 +820,7 @@ export default function App() {
           }`}
         >
           <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Dashboard</span>
+          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Dashboard</span>
         </button>
 
         <button
@@ -831,7 +828,7 @@ export default function App() {
             setActiveTab('map');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'map'
               ? isDark
                 ? 'text-emerald-400 bg-emerald-400/10 scale-105'
@@ -844,7 +841,7 @@ export default function App() {
           }`}
         >
           <Map className="w-5 h-5" />
-          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Map</span>
+          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Map</span>
         </button>
 
         <button
@@ -852,7 +849,7 @@ export default function App() {
             setActiveTab('logs');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'logs'
               ? isDark
                 ? 'text-amber-400 bg-amber-400/10 scale-105'
@@ -865,7 +862,7 @@ export default function App() {
           }`}
         >
           <ScrollText className="w-5 h-5" />
-          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Logs</span>
+          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Logs</span>
         </button>
 
         <button
@@ -873,7 +870,7 @@ export default function App() {
             setActiveTab('trailcams');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'trailcams'
               ? isDark
                 ? 'text-sky-400 bg-sky-400/10 scale-105'
@@ -886,7 +883,7 @@ export default function App() {
           }`}
         >
           <Camera className="w-5 h-5" />
-          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Trail Cams</span>
+          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Trail Cams</span>
         </button>
 
         <button
@@ -894,7 +891,7 @@ export default function App() {
             setActiveTab('settings');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'settings'
               ? isDark
                 ? 'text-slate-200 bg-slate-700/40 scale-105'
@@ -907,7 +904,7 @@ export default function App() {
           }`}
         >
           <Settings className="w-5 h-5" />
-          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Settings</span>
+          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Settings</span>
         </button>
       </nav>
 

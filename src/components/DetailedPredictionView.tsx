@@ -316,14 +316,14 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 {activeScore}
               </div>
               <div
-                className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                className="text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
                 style={{ color: colors.stroke }}
               >
                 {isExcellentDay && <Star className="w-3.5 h-3.5" style={{ color: colors.stroke, fill: colors.stroke }} />}
                 <span>{getRatingFromScore(activeScore)}</span>
               </div>
               <div
-                className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
+                className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
                 style={{ color: colors.stroke }}
               >
                 HUNT SCORE
@@ -338,7 +338,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                 Today's Hunting Plan
               </span>
-              <div className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs transition-all flex items-center gap-1 ${
+              <div className={`text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs transition-all flex items-center gap-1 ${
                 ratingBadgeClasses
               }`}>
                 {isExcellentDay && <Star className="w-3 h-3 fill-current text-amber-300" />}
@@ -347,7 +347,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIsRutModalOpen(true)}
-                className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs ring-2 ring-transparent hover:ring-amber-500/40 ${rutInfo.badgeStyle}`}
+                className={`inline-flex items-center gap-1 text-xs sm:text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs ring-2 ring-transparent hover:ring-amber-500/40 ${rutInfo.badgeStyle}`}
                 title="Click for Rut Phase Breakdown & Hunter Tips"
               >
                 <RutPhaseIcon iconName={rutInfo.iconName} className="w-3.5 h-3.5 flex-shrink-0" />
@@ -408,12 +408,12 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                   <span className="inline-flex items-center gap-2"><TrendingUp className="w-4 h-4" /> When Deer May Move</span>
                 </h3>
-                <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-xs sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   A simple 0–100 guide to when deer may move. Tap a time or use the slider to see what is happening.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 text-[11px] font-semibold">
+              <div className="flex items-center gap-3 text-xs font-semibold">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-full bg-emerald-500/25 border border-emerald-500 inline-block" />
                   <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Best Window</span>
@@ -620,7 +620,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 <h3 className="text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                   <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> What may get deer moving</span>
                 </h3>
-                <p className={`text-[11px] sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-xs sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Weather, moon, wind, and local details behind this hunt score
                 </p>
               </div>
@@ -640,7 +640,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                         <div className="flex items-center gap-2">
                           <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{factor.name}</span>
                           <span
-                            className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                            className={`px-1.5 py-0.5 text-xs font-bold rounded ${
                               factor.status === 'optimal'
                                 ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40'
                                 : factor.status === 'good'

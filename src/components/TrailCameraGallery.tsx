@@ -646,7 +646,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                 </div>
 
                 {/* Bottom Card Info */}
-                <div className="relative p-2 text-white text-[11px] space-y-0.5 z-10 leading-tight">
+                <div className="relative p-2 text-white text-xs space-y-0.5 z-10 leading-tight">
                   {(photo.tags || []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-1">
                       {photo.tags!.map((tId) => {
@@ -655,7 +655,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                         return (
                           <span
                             key={t.id}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-sm"
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-bold shadow-sm"
                             style={{ backgroundColor: t.color, color: '#fff' }}
                           >
                             <Crosshair className="w-2 h-2" />
@@ -679,7 +679,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                       </button>
                       {photo.rawOcrText && (
                         <div
-                          className="text-[9px] text-slate-400 truncate leading-tight"
+                          className="text-[11px] text-slate-400 truncate leading-tight"
                           title={`Raw OCR output: ${photo.rawOcrText}`}
                         >
                           OCR saw: {photo.rawOcrText.slice(0, 60)}
@@ -694,10 +694,10 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                       >
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
                         <span>{dateStr}</span>
-                        <span className="text-amber-300 text-[10px] font-bold">12:00 PM</span>
+                        <span className="text-amber-300 text-xs font-bold">12:00 PM</span>
                       </div>
                       <div
-                        className="text-[9px] text-amber-400/70 truncate leading-tight"
+                        className="text-[11px] text-amber-400/70 truncate leading-tight"
                         title={timeWarning}
                       >
                         Time not recognized
@@ -712,13 +712,13 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                     </div>
                   )}
                   {photo.cameraLocationName && (
-                    <div className="text-[10px] text-sky-300 font-bold truncate flex items-center gap-0.5">
+                    <div className="text-xs text-sky-300 font-bold truncate flex items-center gap-0.5">
                       <MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {photo.cameraLocationName}
                     </div>
                   )}
 
                   {photo.weather && photo.dateTime && (
-                    <div className="flex items-center gap-2 text-[10px] font-semibold text-emerald-300 opacity-90 pt-0.5">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300 opacity-90 pt-0.5">
                       <span>{(() => { const hh = parseInt(photo.dateTime!.slice(11, 13), 10); if (isNaN(hh)) return ''; const ampm = hh >= 12 ? 'PM' : 'AM'; return `${hh === 12 ? 12 : hh % 12}${ampm}`; })()}</span>
                       <span>•</span>
                       <span>{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>
@@ -831,7 +831,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                   draggable={false}
                 />
               ) : (
-                <div className="flex flex-col items-center gap-1 text-[10px] opacity-60 animate-pulse">
+                <div className="flex flex-col items-center gap-1 text-xs opacity-60 animate-pulse">
                   <Camera className="w-6 h-6" />
                   Loading preview…
                 </div>

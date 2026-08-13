@@ -102,14 +102,14 @@ export const TeachingEmptyState: React.FC<TeachingEmptyStateProps> = ({
               {idx === steps.length - 1 ? (
                 <Check className="w-3 h-3" />
               ) : (
-                <span className="text-[10px] font-black leading-none">{idx + 1}</span>
+                <span className="text-xs font-black leading-none">{idx + 1}</span>
               )}
             </span>
             <div className="min-w-0">
               <div className={`text-xs font-bold ${isDark ? 'text-slate-200' : isHunting ? 'text-[#2a1b0e]' : isOlive ? 'text-[#1e2e1b]' : 'text-slate-800'}`}>
                 {step.title}
               </div>
-              <div className={`text-[11px] leading-relaxed mt-0.5 ${bodyColor}`}>{step.description}</div>
+              <div className={`text-xs leading-relaxed mt-0.5 ${bodyColor}`}>{step.description}</div>
             </div>
           </div>
         ))}

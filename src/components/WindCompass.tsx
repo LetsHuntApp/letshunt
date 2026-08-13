@@ -297,7 +297,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
         </div>
 
         {/* Dynamic Tab Toggle Button */}
-        <div className={`flex p-0.5 rounded-lg border text-[10px] font-black uppercase tracking-wider self-start sm:self-auto ${
+        <div className={`flex p-0.5 rounded-lg border text-xs font-black uppercase tracking-wider self-start sm:self-auto ${
           isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-200/[var(--card-opacity)] border-slate-200'
         }`}>
           <button
@@ -332,7 +332,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
             <div className="flex gap-1 p-0.5 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 shadow-sm pointer-events-auto">
               <button
                 onClick={() => setMapStyle('satellite')}
-                className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase transition-all tracking-wider ${
+                className={`px-2 py-0.5 text-[11px] font-extrabold rounded-md uppercase transition-all tracking-wider ${
                   mapStyle === 'satellite' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Satellite Imagery"
@@ -341,7 +341,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               </button>
               <button
                 onClick={() => setMapStyle('topo')}
-                className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase transition-all tracking-wider ${
+                className={`px-2 py-0.5 text-[11px] font-extrabold rounded-md uppercase transition-all tracking-wider ${
                   mapStyle === 'topo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Topographic Features"
@@ -350,7 +350,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               </button>
               <button
                 onClick={() => setMapStyle('street')}
-                className={`px-2 py-0.5 text-[9px] font-extrabold rounded-md uppercase transition-all tracking-wider ${
+                className={`px-2 py-0.5 text-[11px] font-extrabold rounded-md uppercase transition-all tracking-wider ${
                   mapStyle === 'street' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Outdoor Street Map"
@@ -361,10 +361,10 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
             {/* Scent Spread angle floating selector */}
             <div className="flex items-center gap-1 bg-slate-950/80 backdrop-blur-md border border-slate-800 p-1 rounded-lg shadow-sm pointer-events-auto">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">Scent:</span>
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">Scent:</span>
               <button
                 onClick={() => setScentSpread(15)}
-                className={`px-1.5 py-0.5 text-[8px] font-extrabold rounded-sm uppercase tracking-tight ${
+                className={`px-1.5 py-0.5 text-[11px] font-extrabold rounded-sm uppercase tracking-tight ${
                   scentSpread === 15 ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Steady Breeze - Stable Stream"
@@ -373,7 +373,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               </button>
               <button
                 onClick={() => setScentSpread(45)}
-                className={`px-1.5 py-0.5 text-[8px] font-extrabold rounded-sm uppercase tracking-tight ${
+                className={`px-1.5 py-0.5 text-[11px] font-extrabold rounded-sm uppercase tracking-tight ${
                   scentSpread === 45 ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Standard Gusts"
@@ -382,7 +382,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               </button>
               <button
                 onClick={() => setScentSpread(75)}
-                className={`px-1.5 py-0.5 text-[8px] font-extrabold rounded-sm uppercase tracking-tight ${
+                className={`px-1.5 py-0.5 text-[11px] font-extrabold rounded-sm uppercase tracking-tight ${
                   scentSpread === 75 ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-white'
                 }`}
                 title="Swirling Winds"
@@ -467,10 +467,10 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               </g>
 
               {/* Direction Indicator Labels Overlay */}
-              <text x={halfW} y={20} textAnchor="middle" className="text-[11px] font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">N</text>
-              <text x={containerWidth - 15} y={halfH + 4} textAnchor="middle" className="text-[11px] font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">E</text>
-              <text x={halfW} y={containerHeight - 12} textAnchor="middle" className="text-[11px] font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">S</text>
-              <text x={15} y={halfH + 4} textAnchor="middle" className="text-[11px] font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">W</text>
+              <text x={halfW} y={20} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">N</text>
+              <text x={containerWidth - 15} y={halfH + 4} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">E</text>
+              <text x={halfW} y={containerHeight - 12} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">S</text>
+              <text x={15} y={halfH + 4} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">W</text>
             </svg>
 
             {/* 3. Center Target Tree Stand Marker */}
@@ -508,7 +508,7 @@ export const WindCompass: React.FC<WindCompassProps> = ({
 
             {/* Drag Help Overlay Badge (Bottom Left) */}
             <div className="absolute bottom-2.5 left-2.5 z-30 pointer-events-none">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[9px] font-black uppercase text-white shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[11px] font-black uppercase text-white shadow-sm">
                 <MapPin className="w-3 h-3 text-emerald-400" />
                 <span className="inline-flex items-center gap-1">Drag map to move stand <Crosshair className="w-3 h-3 text-emerald-400" /></span>
               </span>
@@ -516,11 +516,11 @@ export const WindCompass: React.FC<WindCompassProps> = ({
           </div>
 
           {/* Map Stand GPS Readout Metadata Row */}
-          <div className={`w-full px-3.5 py-2.5 border-t flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-bold ${
+          <div className={`w-full px-3.5 py-2.5 border-t flex flex-wrap items-center justify-between gap-1.5 text-xs font-bold ${
             isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)] text-slate-400' : 'border-slate-100 bg-slate-50/[var(--card-opacity)] text-slate-500'
           }`}>
             <span>Stand coordinates:</span>
-            <span className={`font-mono text-[11px] font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+            <span className={`font-mono text-xs font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
               {Math.abs(centerLat).toFixed(4)}° {centerLat >= 0 ? 'N' : 'S'}, {Math.abs(centerLng).toFixed(4)}° {centerLng >= 0 ? 'E' : 'W'}
             </span>
           </div>
@@ -536,10 +536,10 @@ export const WindCompass: React.FC<WindCompassProps> = ({
               }`}
             >
               {/* Cardinal Labels */}
-              <span className={`absolute top-1 text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>N</span>
-              <span className={`absolute right-1.5 text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>E</span>
-              <span className={`absolute bottom-1 text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>S</span>
-              <span className={`absolute left-1.5 text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>W</span>
+              <span className={`absolute top-1 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>N</span>
+              <span className={`absolute right-1.5 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>E</span>
+              <span className={`absolute bottom-1 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>S</span>
+              <span className={`absolute left-1.5 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>W</span>
 
               {/* Dial ticks */}
               {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((tick) => (
@@ -587,15 +587,15 @@ export const WindCompass: React.FC<WindCompassProps> = ({
           <span className="text-amber-500">@ {speedVal} {unitLabel}</span>
         </div>
         
-        <p className={`text-[11px] mt-1.5 flex items-center justify-center gap-1 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <p className={`text-xs mt-1.5 flex items-center justify-center gap-1 font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           Your scent blows toward:
-          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-rose-500/10 text-rose-500 text-[10px] font-black border border-rose-500/15">
+          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded bg-rose-500/10 text-rose-500 text-xs font-black border border-rose-500/15">
             <Wind className="w-3 h-3" /> {getWindDirectionText(windToDeg)}
           </span>
         </p>
 
         {/* Tactical Hunter Alert message */}
-        <div className={`mt-3.5 p-2 rounded-xl flex items-start gap-1.5 text-[10px] leading-relaxed text-left border ${
+        <div className={`mt-3.5 p-2 rounded-xl flex items-start gap-1.5 text-xs leading-relaxed text-left border ${
           isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80 text-slate-300' : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-md' : 'bg-white/[var(--card-opacity)]'} border-slate-200/80 text-slate-600`
         }`}>
           <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />

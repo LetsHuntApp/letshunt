@@ -314,7 +314,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
           </div>
 
           {authError && (
-            <div className={`px-3.5 py-2.5 rounded-xl border text-[11px] font-semibold ${
+            <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold ${
               isDark ? 'bg-rose-950/40 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'
             }`}>
               {authError}
@@ -338,7 +338,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
             <span className="text-emerald-500">✉</span> Send Me a Magic Link
           </button>
 
-          <p className={`text-[11px] leading-relaxed ${textSecondary}`}>
+          <p className={`text-xs leading-relaxed ${textSecondary}`}>
             Sign in to join or create a HuntClub — a shared dataset of pins, harvest logs, trail cam photos and settings.
           </p>
         </div>
@@ -351,12 +351,12 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
             isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'
           }`}>
             <div className="min-w-0">
-              <div className={`text-[10px] font-black uppercase tracking-wider ${textSecondary}`}>Signed in as</div>
+              <div className={`text-xs font-black uppercase tracking-wider ${textSecondary}`}>Signed in as</div>
               <div className={`text-xs font-extrabold truncate ${textPrimary}`}>{user.email}</div>
             </div>
             <button
               onClick={handleSignOut}
-              className={`px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${ghostBtn}`}
+              className={`px-3 py-2 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${ghostBtn}`}
             >
               <LogOut className="w-3.5 h-3.5" /> Sign Out
             </button>
@@ -369,15 +369,15 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
             }`}>
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                  <div className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
                     Active HuntClub
                   </div>
                   <div className={`text-sm font-extrabold truncate ${textPrimary}`}>{activeClub.name}</div>
-                  <div className={`text-[11px] ${textSecondary}`}>Invite code: {activeClub.inviteCode}</div>
+                  <div className={`text-xs ${textSecondary}`}>Invite code: {activeClub.inviteCode}</div>
                 </div>
                 <button
                   onClick={() => { setActiveClub(null); setActiveClubState(null); }}
-                  className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider ${ghostBtn}`}
+                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-black uppercase tracking-wider ${ghostBtn}`}
                 >
                   Detach
                 </button>
@@ -387,7 +387,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
                 <button
                   onClick={handlePublish}
                   disabled={clubBusy}
-                  className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-60 ${accentBtn}`}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-60 ${accentBtn}`}
                 >
                   {clubBusy && publishProgress ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                   Sync My Data Up
@@ -395,7 +395,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
                 <button
                   onClick={handlePull}
                   disabled={clubBusy}
-                  className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-60 ${ghostBtn}`}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-60 ${ghostBtn}`}
                 >
                   {clubBusy && !publishProgress ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                   Load Club Data
@@ -410,7 +410,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
                       style={{ width: `${Math.round((publishProgress.done / publishProgress.total) * 100)}%` }}
                     />
                   </div>
-                  <div className={`text-[10px] mt-1 ${textSecondary}`}>
+                  <div className={`text-xs mt-1 ${textSecondary}`}>
                     Uploading photos… {publishProgress.done}/{publishProgress.total}
                   </div>
                 </div>
@@ -443,7 +443,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
 
               <div className="flex items-center gap-3">
                 <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${textSecondary}`}>or</span>
+                <span className={`text-xs font-bold uppercase tracking-wider ${textSecondary}`}>or</span>
                 <div className={`flex-1 h-px ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`} />
               </div>
 
@@ -471,7 +471,7 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
           {/* My clubs (switch) */}
           {myClubs.length > 0 && (
             <div className="space-y-1.5">
-              <div className={`text-[10px] font-black uppercase tracking-wider ${textSecondary}`}>All your clubs</div>
+              <div className={`text-xs font-black uppercase tracking-wider ${textSecondary}`}>All your clubs</div>
               {myClubs.map((club) => (
                 <button
                   key={club.id}
@@ -481,12 +481,12 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
                 >
                   <div className="min-w-0">
                     <div className={`text-xs font-extrabold truncate ${textPrimary}`}>{club.name}</div>
-                    <div className={`text-[10px] ${textSecondary}`}>Code: {club.inviteCode} · {club.role === 'owner' ? 'Owner' : 'Member'}</div>
+                    <div className={`text-xs ${textSecondary}`}>Code: {club.inviteCode} · {club.role === 'owner' ? 'Owner' : 'Member'}</div>
                   </div>
                   {activeClub?.id === club.id ? (
                     <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   ) : (
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Load</span>
+                    <span className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Load</span>
                   )}
                 </button>
               ))}
@@ -494,14 +494,14 @@ export const AccountSettingsCard: React.FC<AccountSettingsCardProps> = ({
           )}
 
           {clubError && (
-            <div className={`px-3.5 py-2.5 rounded-xl border text-[11px] font-semibold ${
+            <div className={`px-3.5 py-2.5 rounded-xl border text-xs font-semibold ${
               isDark ? 'bg-rose-950/40 border-rose-800 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-700'
             }`}>
               {clubError}
             </div>
           )}
 
-          <p className={`text-[11px] leading-relaxed ${textSecondary}`}>
+          <p className={`text-xs leading-relaxed ${textSecondary}`}>
             Sync uploads this device's pins, logs, settings & trail cam photos (full-res goes to Backblaze B2) and saves the bundle to the club. Load pulls the club bundle onto this device.
           </p>
         </div>

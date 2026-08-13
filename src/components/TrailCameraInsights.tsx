@@ -90,7 +90,7 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
                     <h4 className="font-extrabold text-xs uppercase tracking-wider">{insight.label}</h4>
                   </div>
 
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase border flex items-center gap-1 ${confidenceColor}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase border flex items-center gap-1 ${confidenceColor}`}>
                     <ShieldCheck className="w-2.5 h-2.5" />
                     {insight.confidence} Confidence
                   </span>

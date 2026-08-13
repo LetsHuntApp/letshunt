@@ -111,12 +111,12 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${rutInfo.badgeStyle}`}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider border ${rutInfo.badgeStyle}`}
                 >
                   {rutInfo.name}
                 </span>
                 {dateFormatted && (
-                  <span className={`text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     • {dateFormatted}
                   </span>
                 )}
@@ -159,7 +159,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
 
           {/* Regional Context Tag */}
           {location && (
-            <div className={`text-[11px] font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl border ${
+            <div className={`text-xs font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl border ${
               isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/80 text-slate-400' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-600'
             }`}>
               <Compass className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -186,7 +186,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
               >
                 <Eye className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Daylight Movement</div>
+                  <div className="text-xs font-black uppercase tracking-wider text-slate-400">Daylight Movement</div>
                   <div className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {tactics.daylightActivity}
                   </div>
@@ -200,7 +200,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
               >
                 <Volume2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Rattling & Calls</div>
+                  <div className="text-xs font-black uppercase tracking-wider text-slate-400">Rattling & Calls</div>
                   <div className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {tactics.rattlingEffectiveness}
                   </div>
@@ -214,7 +214,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
               >
                 <Flame className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Scent Strategy</div>
+                  <div className="text-xs font-black uppercase tracking-wider text-slate-400">Scent Strategy</div>
                   <div className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {tactics.scentStrategy}
                   </div>
@@ -228,7 +228,7 @@ export const RutStatusModal: React.FC<RutStatusModalProps> = ({
               >
                 <ShieldAlert className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">Optimal Setup</div>
+                  <div className="text-xs font-black uppercase tracking-wider text-slate-400">Optimal Setup</div>
                   <div className={`text-xs font-bold mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                     {tactics.bestStandLocation}
                   </div>

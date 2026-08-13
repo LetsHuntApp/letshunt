@@ -3001,7 +3001,7 @@ export const MapView: React.FC<MapViewProps> = ({
                         <Navigation className="w-4 h-4 fill-white text-sky-200" />
                       </div>
                     </div>
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-sky-950/95 text-sky-200 text-[10px] font-black px-2 py-0.5 rounded-md border border-sky-600 shadow-md pointer-events-none">
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-sky-950/95 text-sky-200 text-xs font-black px-2 py-0.5 rounded-md border border-sky-600 shadow-md pointer-events-none">
                       <MapPin className="w-3 h-3 inline-block mr-1 -mt-0.5" />{gpsFix ? `My GPS Location (±${Math.round(gpsFix.accuracy)} m)` : `My Location (${location.name})`}
                     </div>
                   </div>
@@ -3050,7 +3050,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     </div>
 
                     {/* Pin Name Label */}
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-slate-950/90 text-white text-[10px] font-black px-2 py-0.5 rounded-md border border-slate-700 shadow-md pointer-events-none">
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 whitespace-nowrap bg-slate-950/90 text-white text-xs font-black px-2 py-0.5 rounded-md border border-slate-700 shadow-md pointer-events-none">
                       {pin.name}
                     </div>
                   </div>
@@ -3085,7 +3085,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   isDark ? 'bg-slate-900/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
                 }`}
               >
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 py-1 border-b border-slate-800/20 mb-1">
+                <div className="text-xs font-black uppercase tracking-wider text-slate-400 px-2 py-1 border-b border-slate-800/20 mb-1">
                   Map Plotter Tools
                 </div>
 
@@ -3101,7 +3101,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <Crosshair className="w-5 h-5" />
                   <div>
                     <div>Add Marker</div>
-                    <div className="text-[9px] text-slate-400 font-normal">Drop Stand / Trail Cam Pin</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Drop Stand / Trail Cam Pin</div>
                   </div>
                 </button>
 
@@ -3112,7 +3112,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <Wheat className="w-5 h-5" />
                   <div>
                     <div>Add Polygon Zone</div>
-                    <div className="text-[9px] text-slate-400 font-normal">Plot Food Plot / Bedding Zone</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Plot Food Plot / Bedding Zone</div>
                   </div>
                 </button>
 
@@ -3123,7 +3123,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <Home className="w-5 h-5" />
                   <div>
                     <div>Add Property Boundary</div>
-                    <div className="text-[9px] text-slate-400 font-normal">Draw Land Perimeter Line</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Draw Land Perimeter Line</div>
                   </div>
                 </button>
 
@@ -3134,7 +3134,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <Route className="w-5 h-5" />
                   <div>
                     <div>Add Path / Route</div>
-                    <div className="text-[9px] text-slate-400 font-normal">Draw Deer Trail / Travel Route Line</div>
+                    <div className="text-[11px] text-slate-400 font-normal">Draw Deer Trail / Travel Route Line</div>
                   </div>
                 </button>
               </div>
@@ -3235,14 +3235,14 @@ export const MapView: React.FC<MapViewProps> = ({
                   title={matchingPin ? `Click to center on ${matchingPin.name}` : 'Set preferred wind on stand pins to see recommendations'}
                 >
                   <span className="flex-shrink-0 flex items-center"><MetaIcon icon={pinMeta?.icon} fallback={Crosshair} className="w-4 h-4" /></span>
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${best ? (isDark ? 'text-emerald-400' : isHunting ? 'text-[#c85a17]' : isOlive ? 'text-[#556b2f]' : 'text-emerald-600') : (isDark ? 'text-slate-400' : isHunting ? 'text-[#8b7355]' : isOlive ? 'text-[#6e6a5e]' : 'text-slate-500')}`}>
+                  <span className={`text-xs font-extrabold uppercase tracking-wider ${best ? (isDark ? 'text-emerald-400' : isHunting ? 'text-[#c85a17]' : isOlive ? 'text-[#556b2f]' : 'text-emerald-600') : (isDark ? 'text-slate-400' : isHunting ? 'text-[#8b7355]' : isOlive ? 'text-[#6e6a5e]' : 'text-slate-500')}`}>
                     Best:
                   </span>
                   <span className={`font-black truncate max-w-[100px] sm:max-w-[140px] ${isDark ? 'text-white' : isHunting ? 'text-[#2a1b0e]' : isOlive ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>
                     {best ? best.name : (pins.length === 0 || !hasNonHomePins ? 'No Stands' : 'No Pref Wind')}
                   </span>
                   {best && (
-                    <span className={`text-[10px] font-normal truncate ${isDark ? 'text-emerald-300/80' : isHunting ? 'text-[#c85a17]/80' : isOlive ? 'text-[#556b2f]/80' : 'text-emerald-700/80'}`}>
+                    <span className={`text-xs font-normal truncate ${isDark ? 'text-emerald-300/80' : isHunting ? 'text-[#c85a17]/80' : isOlive ? 'text-[#556b2f]/80' : 'text-emerald-700/80'}`}>
                       ({windDirText}@{hourLabel})
                     </span>
                   )}
@@ -3283,7 +3283,7 @@ export const MapView: React.FC<MapViewProps> = ({
           >
             <Layers className="w-4 h-4 text-emerald-400" />
             <span>Layers</span>
-            <span className="ml-1 px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-md text-[10px] font-black">
+            <span className="ml-1 px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-md text-xs font-black">
               {pins.length + polygons.length + paths.length}
             </span>
           </button>
@@ -3310,7 +3310,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
               {/* Map Style Switcher */}
               <div className="mb-3 space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Map Satellite Style</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">Map Satellite Style</span>
                 <div className={`grid grid-cols-3 gap-1 p-1 rounded-xl border ${
                   isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'
                 }`}>
@@ -3318,7 +3318,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <button
                       key={style}
                       onClick={() => setMapStyle(style)}
-                      className={`py-1 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                      className={`py-1 text-xs font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                         mapStyle === style
                           ? 'bg-emerald-600 text-white shadow-xs'
                           : isDark
@@ -3334,7 +3334,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
               {/* Layer Display Feature Toggles */}
               <div className="mb-3 space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Layer Overlays</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">Layer Overlays</span>
                 
                 {/* Preferred Wind Arc Toggle */}
                 <button
@@ -3350,7 +3350,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <Compass className="w-4 h-4 text-emerald-400" />
                     <span>Preferred Wind Sector Arc</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-black ${
                     showPreferredWind ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {showPreferredWind ? 'ON' : 'OFF'}
@@ -3371,7 +3371,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <Wind className="w-4 h-4 text-orange-400" />
                     <span>Live Weather Scent Plume</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-black ${
                     showScentCone ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {showScentCone ? 'ON' : 'OFF'}
@@ -3392,7 +3392,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <MapPin className="w-4 h-4 text-emerald-400" />
                     <span>Show Stand Markers</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-black ${
                     showPins ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {showPins ? 'ON' : 'OFF'}
@@ -3413,7 +3413,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <Home className="w-4 h-4" />
                     <span>Show Property Boundaries</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-black ${
                     showPropertyBoundaries ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {showPropertyBoundaries ? 'ON' : 'OFF'}
@@ -3434,7 +3434,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <Shapes className="w-4 h-4 text-amber-400" />
                     <span>Show Field Zones</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-black ${
                     showZones ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {showZones ? 'ON' : 'OFF'}
@@ -3455,7 +3455,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <Route className="w-4 h-4" />
                     <span>Show Paths & Trails</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                  <span className={`px-2 py-0.5 rounded-md text-xs font-black ${
                     showPaths ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-400'
                   }`}>
                     {showPaths ? 'ON' : 'OFF'}
@@ -3467,7 +3467,7 @@ export const MapView: React.FC<MapViewProps> = ({
               <div className="flex border-b border-slate-800/40 mb-3">
                 <button
                   onClick={() => setActiveLayersTab('pins')}
-                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-2.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     activeLayersTab === 'pins'
                       ? 'border-emerald-500 text-emerald-400'
                       : `border-transparent text-slate-400 ${isDark ? 'hover:text-slate-200' : 'hover:text-slate-700'}`
@@ -3477,7 +3477,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 </button>
                 <button
                   onClick={() => setActiveLayersTab('polygons')}
-                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-2.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     activeLayersTab === 'polygons'
                       ? 'border-amber-500 text-amber-400'
                       : `border-transparent text-slate-400 ${isDark ? 'hover:text-slate-200' : 'hover:text-slate-700'}`
@@ -3487,7 +3487,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 </button>
                 <button
                   onClick={() => setActiveLayersTab('paths')}
-                  className={`flex-1 py-1.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-2.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     activeLayersTab === 'paths'
                       ? 'border-sky-500 text-sky-400'
                       : `border-transparent text-slate-400 ${isDark ? 'hover:text-slate-200' : 'hover:text-slate-700'}`
@@ -3539,7 +3539,7 @@ export const MapView: React.FC<MapViewProps> = ({
                             <span className="flex-shrink-0 flex items-center"><MetaIcon icon={pinMeta.icon} fallback={Crosshair} className="w-5 h-5" /></span>
                             <div className="truncate">
                               <div className="text-xs font-bold truncate">{pin.name}</div>
-                              <div className="text-[10px] text-slate-400 truncate">{pinMeta.label}</div>
+                              <div className="text-xs text-slate-400 truncate">{pinMeta.label}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -3551,14 +3551,14 @@ export const MapView: React.FC<MapViewProps> = ({
                                 setEditNotes(pin.notes || '');
                                 setEditPreferredWindDeg(pin.preferredWindDeg || 0);
                               }}
-                              className="p-1 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
                               title="Edit Pin"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeletePin(pin.id)}
-                              className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                               title="Delete Pin"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -3613,7 +3613,7 @@ export const MapView: React.FC<MapViewProps> = ({
                             <span className="flex-shrink-0 flex items-center"><MetaIcon icon={pathMeta.icon} fallback={Route} className="w-5 h-5" /></span>
                             <div className="truncate">
                               <div className="text-xs font-bold truncate">{path.name}</div>
-                              <div className="text-[10px] text-sky-400 font-semibold truncate">{pathMeta.label}</div>
+                              <div className="text-xs text-sky-400 font-semibold truncate">{pathMeta.label}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -3624,14 +3624,14 @@ export const MapView: React.FC<MapViewProps> = ({
                                 setPathEditType(path.type);
                                 setPathEditNotes(path.notes || '');
                               }}
-                              className="p-1 text-slate-400 hover:text-sky-400 transition-colors cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-sky-400 transition-colors cursor-pointer"
                               title="Edit Path"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeletePath(path.id)}
-                              className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                               title="Delete Path"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -3686,7 +3686,7 @@ export const MapView: React.FC<MapViewProps> = ({
                             <span className="flex-shrink-0 flex items-center"><MetaIcon icon={polyMeta.icon} fallback={Flag} className="w-5 h-5" /></span>
                             <div className="truncate">
                               <div className="text-xs font-bold truncate">{poly.name}</div>
-                              <div className="text-[10px] text-amber-400 font-semibold truncate">{polyMeta.label}</div>
+                              <div className="text-xs text-amber-400 font-semibold truncate">{polyMeta.label}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -3697,14 +3697,14 @@ export const MapView: React.FC<MapViewProps> = ({
                                 setPolygonEditType(poly.type);
                                 setPolygonEditNotes(poly.notes || '');
                               }}
-                              className="p-1 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
                               title="Edit Zone"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDeletePolygon(poly.id)}
-                              className="p-1 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                               title="Delete Zone"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -3731,7 +3731,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 </div>
                 <button
                   onClick={() => setIsPlacingMarkerMode(false)}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg cursor-pointer"
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -3746,14 +3746,14 @@ export const MapView: React.FC<MapViewProps> = ({
                   <button
                     onClick={handleUndoPathPoint}
                     disabled={currentPathPoints.length === 0}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-[10px] font-bold rounded-lg flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer"
                   >
                     <Undo className="w-3 h-3" /> Undo
                   </button>
                   <button
                     onClick={handleFinishDrawPath}
                     disabled={currentPathPoints.length < 2}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[10px] font-extrabold uppercase rounded-lg flex items-center gap-1 cursor-pointer shadow-md"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-extrabold uppercase rounded-lg flex items-center gap-1 cursor-pointer shadow-md"
                   >
                     <CheckCircle2 className="w-3 h-3" /> Finish
                   </button>
@@ -3763,7 +3763,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       setCurrentPathPoints([]);
                       setPathSnapPreview(null);
                     }}
-                    className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[10px] font-bold rounded-lg cursor-pointer"
+                    className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-bold rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -3779,14 +3779,14 @@ export const MapView: React.FC<MapViewProps> = ({
                   <button
                     onClick={handleUndoPolygonPoint}
                     disabled={currentPolygonPoints.length === 0}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-[10px] font-bold rounded-lg flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer"
                   >
                     <Undo className="w-3 h-3" /> Undo
                   </button>
                   <button
                     onClick={handleFinishDrawPolygon}
                     disabled={currentPolygonPoints.length < 3}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-[10px] font-extrabold uppercase rounded-lg flex items-center gap-1 cursor-pointer shadow-md"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-extrabold uppercase rounded-lg flex items-center gap-1 cursor-pointer shadow-md"
                   >
                     <CheckCircle2 className="w-3 h-3" /> Finish
                   </button>
@@ -3795,7 +3795,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       setIsDrawingPolygon(false);
                       setCurrentPolygonPoints([]);
                     }}
-                    className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[10px] font-bold rounded-lg cursor-pointer"
+                    className="px-2 py-1 bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-xs font-bold rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -3826,7 +3826,7 @@ export const MapView: React.FC<MapViewProps> = ({
               title="Tap to reset map rotation to North-up"
             >
               <Compass className="w-4 h-4" style={{ transform: `rotate(${-rotationDisplay}deg)` }} />
-              <span className="text-[10px] font-black">{Math.round(rotationDisplay)}°</span>
+              <span className="text-xs font-black">{Math.round(rotationDisplay)}°</span>
             </button>
           )}
           <button
@@ -3891,11 +3891,11 @@ export const MapView: React.FC<MapViewProps> = ({
             >
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Clock className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span className="text-[11px] font-black whitespace-nowrap tabular-nums">
+                <span className="text-xs font-black whitespace-nowrap tabular-nums">
                   {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
                 </span>
                 {bestPathActive && (
-                  <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap hidden sm:inline-flex items-center gap-0.5">
+                  <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap hidden sm:inline-flex items-center gap-0.5">
                     <GitBranch className="w-2.5 h-2.5" />Best Path
                   </span>
                 )}
@@ -3911,7 +3911,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 />
                 <button
                   onClick={() => setShowHourlyWeather(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
+                  className="p-2 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0"
                   title="Close hourly weather slider"
                   aria-label="Close hourly weather forecast"
                   aria-expanded={showHourlyWeather}
@@ -3922,7 +3922,7 @@ export const MapView: React.FC<MapViewProps> = ({
               {/* Single-row weather stats — gapless inline pills that scroll
                   horizontally on cramped screens so the bar never wraps into
                   multiple lines. */}
-              <div className="flex items-center gap-1 mt-1 overflow-x-auto whitespace-nowrap text-[9px] font-bold scrollbar-none">
+              <div className="flex items-center gap-1 mt-1 overflow-x-auto whitespace-nowrap text-[11px] font-bold scrollbar-none">
                 <span className="inline-flex items-center gap-0.5 text-emerald-400"><Wind className="w-2.5 h-2.5" />{windDirText} {displayWindSpeed}</span>
                 <span className="text-slate-500">·</span>
                 <span className="inline-flex items-center gap-0.5 text-sky-400"><Droplets className="w-2.5 h-2.5" />{precipProbability}% · {displayPrecipAmount}</span>
@@ -3955,7 +3955,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <span className="text-xl flex-shrink-0 flex items-center"><MetaIcon icon={PIN_METADATA[selectedPin.type]?.icon} fallback={Crosshair} className="w-5 h-5" /></span>
                 <div className="truncate">
                   <h4 className="text-xs font-black truncate">{selectedPin.name}</h4>
-                  <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                  <span className="text-xs text-emerald-400 font-bold block truncate">
                     {PIN_METADATA[selectedPin.type]?.label} • Wind: {windDirText} @ {displayWindSpeed}
                   </span>
                 </div>
@@ -3964,7 +3964,7 @@ export const MapView: React.FC<MapViewProps> = ({
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                   onClick={() => setIsScentPanelCollapsed((prev) => !prev)}
-                  className="p-1 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1 px-2 cursor-pointer transition-colors"
+                  className="p-2 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 px-2.5 cursor-pointer transition-colors"
                 >
                   {isScentPanelCollapsed ? (
                     <>
@@ -3993,7 +3993,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       setShowHourlyWeather(true);
                     }
                   }}
-                  className={`p-1 rounded-lg text-xs font-bold flex items-center gap-1 px-2 cursor-pointer transition-all shadow-sm text-white ${
+                  className={`p-2 rounded-lg text-xs font-bold flex items-center gap-1.5 px-2.5 cursor-pointer transition-all shadow-sm text-white ${
                     bestPathActive
                       ? 'bg-emerald-500 shadow-emerald-500/30'
                       : 'bg-emerald-600/70 hover:bg-emerald-500 shadow-emerald-900/30'
@@ -4004,13 +4004,13 @@ export const MapView: React.FC<MapViewProps> = ({
                   <span>Best Path</span>
                 </button>
                 {bestPathError && (
-                  <span className="max-w-48 text-[10px] font-semibold leading-tight text-amber-300" role="status">
+                  <span className="max-w-48 text-xs font-semibold leading-tight text-amber-300" role="status">
                     {bestPathError}
                   </span>
                 )}
                 <button
                   onClick={() => setSelectedPinId(null)}
-                  className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
+                  className="p-2 text-slate-400 hover:text-rose-400 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -4021,14 +4021,14 @@ export const MapView: React.FC<MapViewProps> = ({
             {isScentPanelCollapsed ? (
               <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-sky-400 truncate">
+                  <div className="flex items-center gap-1.5 text-xs font-black uppercase text-sky-400 truncate">
                     <Wind className="w-3.5 h-3.5 flex-shrink-0" />
                     <span className="truncate">Scent: {downwindDirText} ({Math.round(downwindDeg)}°)</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => { setIsScentPanelCollapsed(false); setShowHourlyWeather(true); }}
-                    className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-400 text-[10px] font-black uppercase tracking-wide hover:bg-sky-500/25 transition-colors"
+                    className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-400 text-xs font-black uppercase tracking-wide hover:bg-sky-500/25 transition-colors"
                     aria-expanded={showHourlyWeather}
                   >
                     Adjust
@@ -4042,7 +4042,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <div className="flex border-b border-slate-800/40">
                   <button
                     onClick={() => setActiveForecasterTab('hourly')}
-                    className={`flex-1 py-1.5 text-[11px] font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeForecasterTab === 'hourly'
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -4056,7 +4056,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                   <button
                     onClick={() => setActiveForecasterTab('details')}
-                    className={`flex-1 py-1.5 text-[11px] font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeForecasterTab === 'details'
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -4075,21 +4075,21 @@ export const MapView: React.FC<MapViewProps> = ({
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
                     }`}>
                       <div>
-                        <span className="text-slate-400 text-[10px] block uppercase font-bold">Downwind Scent Vector:</span>
+                        <span className="text-slate-400 text-xs block uppercase font-bold">Downwind Scent Vector:</span>
                         <span className="font-extrabold text-orange-400">
                           Blowing TO {downwindDirText} ({Math.round(downwindDeg)}°)
                         </span>
-                        <span className="text-[10px] text-slate-500 block mt-0.5">{windDirText} @ {displayWindSpeed} · {precipProbability}% rain</span>
+                        <span className="text-xs text-slate-500 block mt-0.5">{windDirText} @ {displayWindSpeed} · {precipProbability}% rain</span>
                       </div>
 
                       {/* Scent Spread Selector */}
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-400 font-bold mr-1">Spread:</span>
+                        <span className="text-xs text-slate-400 font-bold mr-1">Spread:</span>
                         {[15, 45, 75].map((spread) => (
                           <button
                             key={spread}
                             onClick={() => setScentSpread(spread as 15 | 45 | 75)}
-                            className={`px-1.5 py-0.5 text-[9px] font-black rounded border cursor-pointer transition-all ${
+                            className={`px-2.5 py-1.5 text-[11px] font-black rounded border cursor-pointer transition-all ${
                               scentSpread === spread
                                 ? 'bg-orange-600 border-orange-500 text-white'
                                 : isDark
@@ -4113,7 +4113,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     <div className={`p-2.5 rounded-xl border space-y-1.5 text-xs ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
                     }`}>
-                      <div className="flex justify-between text-[11px]">
+                      <div className="flex justify-between text-xs">
                         <span className="text-slate-400">GPS Coordinates:</span>
                         <span className={`font-mono font-bold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                           {selectedPin.lat.toFixed(5)}°N, {selectedPin.lng.toFixed(5)}°W
@@ -4121,13 +4121,13 @@ export const MapView: React.FC<MapViewProps> = ({
                       </div>
 
                       {selectedPin.notes ? (
-                        <p className={`text-[11px] italic border-l-2 border-emerald-500 pl-2 py-0.5 ${
+                        <p className={`text-xs italic border-l-2 border-emerald-500 pl-2 py-0.5 ${
                           isDark ? 'text-slate-300' : 'text-slate-600'
                         }`}>
                           "{selectedPin.notes}"
                         </p>
                       ) : (
-                        <p className="text-[10px] italic text-slate-500">No notes added to this marker yet.</p>
+                        <p className="text-xs italic text-slate-500">No notes added to this marker yet.</p>
                       )}
                     </div>
 
@@ -4140,7 +4140,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           setEditNotes(selectedPin.notes || '');
                           setEditPreferredWindDeg(selectedPin.preferredWindDeg || 0);
                         }}
-                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" /> Edit Marker
                       </button>
@@ -4176,7 +4176,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <div className="truncate">
                   <h4 className="text-xs font-black truncate">{selectedPolygon.name}</h4>
                   <span
-                    className="text-[10px] font-bold block truncate"
+                    className="text-xs font-bold block truncate"
                     style={{ color: POLYGON_METADATA[selectedPolygon.type]?.color || '#eab308' }}
                   >
                     {POLYGON_METADATA[selectedPolygon.type]?.label || 'Land Zone'} • {selectedPolygon.points.length} Boundary Points
@@ -4192,7 +4192,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     setPolygonEditType(selectedPolygon.type);
                     setPolygonEditNotes(selectedPolygon.notes || '');
                   }}
-                  className="p-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-bold flex items-center gap-1 px-2.5 cursor-pointer transition-colors border border-amber-500/30"
+                  className="p-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-bold flex items-center gap-1.5 px-3 cursor-pointer transition-colors border border-amber-500/30"
                   title="Edit Zone / Boundary Details"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -4200,7 +4200,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 </button>
                 <button
                   onClick={() => setSelectedPolygonId(null)}
-                  className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
+                  className="p-2 text-slate-400 hover:text-rose-400 cursor-pointer"
                   title="Close Panel"
                 >
                   <X className="w-4 h-4" />
@@ -4213,24 +4213,24 @@ export const MapView: React.FC<MapViewProps> = ({
               {/* Quick Metrics Grid */}
               <div className="grid grid-cols-3 gap-2">
                 <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[9px] uppercase font-black text-slate-400 block">Total Area</span>
+                  <span className="text-[11px] uppercase font-black text-slate-400 block">Total Area</span>
                   <span className="text-xs font-black text-amber-400">{selectedPolyStats.areaStr}</span>
                 </div>
 
                 <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[9px] uppercase font-black text-slate-400 block">Perimeter</span>
+                  <span className="text-[11px] uppercase font-black text-slate-400 block">Perimeter</span>
                   <span className="text-xs font-black text-emerald-400">{selectedPolyStats.perimeterStr}</span>
                 </div>
 
                 <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[9px] uppercase font-black text-slate-400 block">Current Wind</span>
+                  <span className="text-[11px] uppercase font-black text-slate-400 block">Current Wind</span>
                   <span className="text-xs font-black text-sky-400">{windDirText} @ {displayWindSpeed}</span>
                 </div>
               </div>
 
               {/* Scouting Notes */}
               <div className={`p-2.5 rounded-xl border space-y-1 ${isDark ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Scouting Strategy Notes</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">Scouting Strategy Notes</span>
                 {selectedPolygon.notes ? (
                   <p className={`text-xs italic ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>"{selectedPolygon.notes}"</p>
                 ) : (
@@ -4247,7 +4247,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     setPolygonEditType(selectedPolygon.type);
                     setPolygonEditNotes(selectedPolygon.notes || '');
                   }}
-                  className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                  className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5" /> Edit Zone / Boundary
                 </button>
@@ -4280,7 +4280,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <div className="truncate">
                   <h4 className="text-xs font-black truncate">{selectedPath.name}</h4>
                   <span
-                    className="text-[10px] font-bold block truncate"
+                    className="text-xs font-bold block truncate"
                     style={{ color: PATH_METADATA[selectedPath.type]?.color || '#0ea5e9' }}
                   >
                     {PATH_METADATA[selectedPath.type]?.label || 'Path'} • {selectedPath.points.length} Route Points
@@ -4296,7 +4296,7 @@ export const MapView: React.FC<MapViewProps> = ({
                     setPathEditType(selectedPath.type);
                     setPathEditNotes(selectedPath.notes || '');
                   }}
-                  className="p-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-xs font-bold flex items-center gap-1 px-2.5 cursor-pointer transition-colors border border-sky-500/30"
+                  className="p-2 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 text-xs font-bold flex items-center gap-1.5 px-3 cursor-pointer transition-colors border border-sky-500/30"
                   title="Edit Path Details"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
@@ -4304,7 +4304,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 </button>
                 <button
                   onClick={() => setSelectedPathId(null)}
-                  className="p-1 text-slate-400 hover:text-rose-400 cursor-pointer"
+                  className="p-2 text-slate-400 hover:text-rose-400 cursor-pointer"
                   title="Close Panel"
                 >
                   <X className="w-4 h-4" />
@@ -4317,24 +4317,24 @@ export const MapView: React.FC<MapViewProps> = ({
               {/* Quick Metrics Grid */}
               <div className="grid grid-cols-3 gap-2">
                 <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[9px] uppercase font-black text-slate-400 block">Total Length</span>
+                  <span className="text-[11px] uppercase font-black text-slate-400 block">Total Length</span>
                   <span className="text-xs font-black text-sky-400">{selectedPathStats.lengthStr}</span>
                 </div>
 
                 <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[9px] uppercase font-black text-slate-400 block">Route Points</span>
+                  <span className="text-[11px] uppercase font-black text-slate-400 block">Route Points</span>
                   <span className="text-xs font-black text-emerald-400">{selectedPath.points.length}</span>
                 </div>
 
                 <div className={`p-2 rounded-xl border text-center ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <span className="text-[9px] uppercase font-black text-slate-400 block">Current Wind</span>
+                  <span className="text-[11px] uppercase font-black text-slate-400 block">Current Wind</span>
                   <span className="text-xs font-black text-sky-400">{windDirText} @ {displayWindSpeed}</span>
                 </div>
               </div>
 
               {/* Scouting Notes */}
               <div className={`p-2.5 rounded-xl border space-y-1 ${isDark ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Route Strategy Notes</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">Route Strategy Notes</span>
                 {selectedPath.notes ? (
                   <p className={`text-xs italic ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>"{selectedPath.notes}"</p>
                 ) : (
@@ -4396,7 +4396,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Zone Name
                 </label>
                 <input
@@ -4411,7 +4411,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Zone Classification
                 </label>
                 <select
@@ -4430,7 +4430,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Scouting Notes
                 </label>
                 <textarea
@@ -4494,7 +4494,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Zone Name
                 </label>
                 <input
@@ -4508,7 +4508,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Zone Classification
                 </label>
                 <select
@@ -4527,7 +4527,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Scouting Notes
                 </label>
                 <textarea
@@ -4590,7 +4590,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Path Name
                 </label>
                 <input
@@ -4605,7 +4605,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Path Classification
                 </label>
                 <select
@@ -4624,7 +4624,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Scouting Notes
                 </label>
                 <textarea
@@ -4688,7 +4688,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Path Name
                 </label>
                 <input
@@ -4702,7 +4702,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Path Classification
                 </label>
                 <select
@@ -4721,7 +4721,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Scouting Notes
                 </label>
                 <textarea
@@ -4784,7 +4784,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             <div className="space-y-3.5">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Pin Location Name
                 </label>
                 <input
@@ -4799,7 +4799,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Marker Category
                 </label>
                 <select
@@ -4821,7 +4821,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-400">
                     Preferred Wind Direction
                   </label>
                   <span className="text-xs font-black text-emerald-400">
@@ -4866,11 +4866,11 @@ export const MapView: React.FC<MapViewProps> = ({
                       })()}
                     </svg>
                   </div>
-                  <div className="flex-1 text-[11px] space-y-0.5">
+                  <div className="flex-1 text-xs space-y-0.5">
                     <div className="font-extrabold text-emerald-400">
                       Scent Sector: {getWindDirectionText(editPreferredWindDeg)}
                     </div>
-                    <div className="text-[10px] text-slate-400 leading-tight">
+                    <div className="text-xs text-slate-400 leading-tight">
                       Green arc displays the 140° safe wind angle sector blowing scent away from game trails.
                     </div>
                   </div>
@@ -4885,7 +4885,7 @@ export const MapView: React.FC<MapViewProps> = ({
                         key={dir}
                         type="button"
                         onClick={() => setEditPreferredWindDeg(deg)}
-                        className={`py-1 text-[10px] font-extrabold rounded-lg border transition-all cursor-pointer ${
+                        className={`py-1 text-xs font-extrabold rounded-lg border transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-600 border-emerald-400 text-white shadow-xs'
                             : isDark
@@ -4913,7 +4913,7 @@ export const MapView: React.FC<MapViewProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Scout Notes
                 </label>
                 <textarea
