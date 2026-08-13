@@ -397,15 +397,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               </p>
 
               {accountUser ? (
-                <div className={`p-4 rounded-2xl border flex items-center gap-3 ${isDark ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'}`}>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-md">
-                    <Check className="w-5 h-5 text-white" />
+                <>
+                  <div className={`p-4 rounded-2xl border flex items-center gap-3 ${isDark ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-emerald-50 border-emerald-300'}`}>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-md">
+                      <Check className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Signed in as</div>
+                      <div className="text-sm font-extrabold truncate">{accountUser.email}</div>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>Signed in as</div>
-                    <div className="text-sm font-extrabold truncate">{accountUser.email}</div>
-                  </div>
-                </div>
+                  <button
+                    onClick={() => setStep(2)}
+                    className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99] ${accentBtn}`}
+                  >
+                    Continue to HuntClub <ArrowRight className="w-4 h-4" />
+                  </button>
+                </>
               ) : (
                 <>
                   {/* Mode toggle */}
