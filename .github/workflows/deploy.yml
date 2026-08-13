@@ -32,6 +32,13 @@ jobs:
         run: npm ci
       - name: Build project
         run: npm run build
+        env:
+          # Injected at build time into import.meta.env — set these in
+          # Settings → Secrets and variables → Actions on GitHub.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_B2_BUCKET: ${{ secrets.VITE_B2_BUCKET }}
+          VITE_B2_ENDPOINT: ${{ secrets.VITE_B2_ENDPOINT }}
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
