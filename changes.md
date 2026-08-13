@@ -1,5 +1,21 @@
 # Changes Log
 
+## Batch 5 — Cloud Cover, Unit-Safe Best Hunt & Hourly Temperature Normals
+
+- **Cloud cover now influences the forecast.** Open-Meteo hourly cloud cover is
+  carried into each hour and averaged across the morning/evening prime windows.
+  The new Cloud Cover factor gives a small benefit to partly/mostly cloudy
+  conditions, stays neutral during active precipitation, and never outweighs
+  the core weather and timing signals.
+- **Best Hunt no longer uses a second scoring formula.** It now chooses between
+  the actual prime-window hours using their stored hunt scores. This removes the
+  old raw-temperature subtraction that changed recommendations when switching
+  between Fahrenheit and Celsius and could disagree with the score dial.
+- **Hourly temperatures now use hourly normals.** The climate lookup now averages
+  the previous 30 days by local clock hour. Dawn temperatures are compared with
+  typical dawn temperatures and dusk with typical dusk temperatures, rather than
+  every hour being compared with the daily maximum normal.
+
 ## Batch 4 — Score Calibration, Prime-Window Daily Scoring & Real Solunar Windows
 
 - **The dial no longer pegs at 99.** Recalibrated every factor in

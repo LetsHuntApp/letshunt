@@ -101,6 +101,9 @@ export interface HourlyForecast {
   precipProbability: number;
   precipMm: number;
   humidity?: number; // 0-100 (optional, Batch 1)
+  cloudCover?: number; // 0-100 (optional, Open-Meteo cloud cover)
+  /** Temperature deviation from the matching local-hour normal, in °F. */
+  tempDeltaF?: number | null;
   pressureTrend?: PressureTrend; // per-hour pressure trend used in the hourly score
   weatherCode: number;
   weatherDesc: string;
@@ -133,6 +136,7 @@ export interface DailyForecast {
   /** Hour index (0-23) of the last hour with meaningful rain (> 0.2 mm). -1 if no rain. */
   lastRainHour?: number;
   humidityAvg?: number; // Average relative humidity 0-100 (optional, Batch 1)
+  cloudCoverAvg?: number; // Average cloud cover during prime hunting windows (0-100)
   
   // Hunting forecast metrics
   huntScore: number; // 0 - 100

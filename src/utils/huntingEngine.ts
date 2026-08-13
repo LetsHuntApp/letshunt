@@ -287,8 +287,8 @@ export function calculateSolunar(dateStr: string, lat: number, lon: number, sunr
  * Calculates deer movement hunt score (0-100) and breakdown factors
  *
  * Batch 1 (season-aware scoring + humidity + gusts):
- *   - `tempDeltaF` (optional): the day's max temperature deviation from a
- *     rolling 30-day climatological normal for the location. When
+ *   - `tempDeltaF` (optional): the temperature deviation from the matching
+ *     local-hour (or prime-window) rolling 30-day normal for the location. When
  *     provided, the Temperature factor scores against deviation bands
  *     instead of absolute thresholds. When null/undefined, the legacy
  *     absolute thresholds are used so existing callers keep working.
@@ -296,6 +296,9 @@ export function calculateSolunar(dateStr: string, lat: number, lon: number, sunr
  *     Scent & Humidity factor.
  *   - `windGustMph` (optional): 10m wind gust. Adds a swirling-scent
  *     penalty to the Wind Speed factor when gust - sustained > 15 mph.
+ *   - `cloudCover` (optional): hourly or prime-window cloud cover from 0-100.
+ *     Adds a modest overcast benefit without letting clouds outweigh weather,
+ *     wind, or time of day.
  */
 export function calculateHuntScore(params: {
   tempDrop24h: number; // in °F or °C drop (positive if drop/cooling)
@@ -323,6 +326,7 @@ export function calculateHuntScore(params: {
   tempDeltaF?: number | null;
   humidity?: number | null;
   windGustMph?: number | null;
+  cloudCover?: number | null;
 }): { score: number; rating: DailyForecast['rating']; verdict: string; factors: ScoreFactor[] } {
   // Start at an intentionally neutral midpoint. Forecast conditions can help
   // choose *when* to hunt, but they cannot reliably predict animal movement
@@ -805,6 +809,57 @@ export function calculateHuntScore(params: {
     status: scentStatus,
   });
 
+  // Factor 10: Cloud cover. A partly-to-mostly cloudy sky can extend useful
+  // daylight movement, especially when temperatures are warm. This is kept
+  // deliberately small and does not reward storm clouds or active heavy rain.
+  let cloudScore = 0;
+  let cloudDesc = '';
+  let cloudStatus: ScoreFactor['status'] = 'neutral';
+  const cloudCover = params.cloudCover;
+  const isPrecipitating =
+    (params.weatherCode >= 51 && params.weatherCode <= 65) ||
+    (params.weatherCode >= 71 && params.weatherCode <= 75) ||
+    (params.weatherCode >= 80 && params.weatherCode <= 82) ||
+    params.weatherCode >= 95;
+
+  if (typeof cloudCover === 'number' && Number.isFinite(cloudCover)) {
+    const cloud = Math.max(0, Math.min(100, cloudCover));
+    if (isPrecipitating) {
+      cloudScore = 0;
+      cloudStatus = 'neutral';
+      cloudDesc = `Cloud cover ${Math.round(cloud)}% is noted, but precipitation conditions matter more than the sky cover.`;
+    } else if (cloud >= 45 && cloud <= 85) {
+      cloudScore = 4;
+      cloudStatus = 'optimal';
+      cloudDesc = `Helpful overcast (${Math.round(cloud)}% cloud cover) can keep deer comfortable and moving longer in daylight.`;
+    } else if (cloud > 15 && cloud < 45) {
+      cloudScore = 2;
+      cloudStatus = 'good';
+      cloudDesc = `Some cloud cover (${Math.round(cloud)}%) may reduce bright, exposed conditions.`;
+    } else if (cloud > 85) {
+      cloudScore = 2;
+      cloudStatus = 'good';
+      cloudDesc = `Heavy cloud cover (${Math.round(cloud)}%) helps block bright skies, though it is not a guarantee of movement.`;
+    } else {
+      cloudScore = 0;
+      cloudStatus = 'neutral';
+      cloudDesc = `Mostly clear skies (${Math.round(cloud)}% cloud cover). Deer movement depends more on temperature, wind, and timing.`;
+    }
+  } else {
+    cloudScore = 0;
+    cloudStatus = 'neutral';
+    cloudDesc = 'No cloud-cover reading — temperature, wind, and timing carry the forecast.';
+  }
+
+  totalScore += cloudScore;
+  factors.push({
+    name: 'Cloud Cover',
+    score: cloudScore,
+    maxScore: 4,
+    description: cloudDesc,
+    status: cloudStatus,
+  });
+
   // Clamp final score between 15 and 99
   const finalScore = Math.min(99, Math.max(15, Math.round(totalScore)));
 
@@ -1091,43 +1146,25 @@ export function getBestHuntTime(day: DailyForecast): string {
     return day.morningPrime;
   }
 
-  let bestHour: HourlyForecast | null = null;
-  let bestScore = -Infinity;
+  // The hourly score already includes temperature, wind, rain, cloud cover,
+  // solunar timing, and the exact unit-safe factor inputs. Re-scoring here
+  // with a second formula used to subtract a raw temperature from the score;
+  // that changed the recommendation when the user switched °F/°C. Choose the
+  // best scored hour from each actual prime window instead.
+  const primeHours = day.hourly.filter((hour) => hour.isPrimeWindow);
+  const candidates = primeHours.length > 0 ? primeHours : day.hourly;
+  const bestMorning = candidates
+    .filter((hour) => new Date(hour.timestamp).getHours() < 12)
+    .reduce<HourlyForecast | null>((best, hour) => !best || hour.huntScore > best.huntScore ? hour : best, null);
+  const bestEvening = candidates
+    .filter((hour) => new Date(hour.timestamp).getHours() >= 12)
+    .reduce<HourlyForecast | null>((best, hour) => !best || hour.huntScore > best.huntScore ? hour : best, null);
 
-  for (const h of day.hourly) {
-    let score = h.huntScore * 10;
-
-    // Penalize extreme heat
-    score -= h.temp;
-
-    // Favor ideal wind (4-12 mph)
-    if (h.windSpeedMph >= 4 && h.windSpeedMph <= 12) {
-      score += 15;
-    } else if (h.windSpeedMph > 20) {
-      score -= 30;
-    }
-
-    // Penalize high precipitation
-    score -= h.precipProbability * 0.3;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestHour = h;
-    }
-  }
-
-  if (!bestHour) {
+  if (!bestMorning && !bestEvening) return day.morningPrime;
+  if (!bestEvening || (bestMorning && bestMorning.huntScore >= bestEvening.huntScore)) {
     return day.morningPrime;
   }
-
-  const hDate = new Date(bestHour.timestamp);
-  const hourNum = hDate.getHours();
-
-  if (hourNum < 12) {
-    return day.morningPrime;
-  } else {
-    return day.eveningPrime;
-  }
+  return day.eveningPrime;
 }
 
 const DIRECTION_DEGREES: Record<string, number> = {

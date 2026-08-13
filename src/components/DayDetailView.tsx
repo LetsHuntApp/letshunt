@@ -140,8 +140,11 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
         pressureTrend: h.pressureTrend ?? day.pressureTrend,
         windMph: h.windSpeedMph,
         weatherCode: h.weatherCode,
-        isPostStorm: day.isPostStorm,
+        isPostStorm: day.isPostStorm && h.weatherDesc === 'Rain Break (Dry Window)',
         humidity: h.humidity ?? null,
+        cloudCover: h.cloudCover ?? null,
+        tempDeltaF: h.tempDeltaF ?? null,
+        windGustMph: h.windGustMph ?? null,
         // Use the exact per-hour rain-break signal weatherService stamped on
         // the hour so the factor panel always agrees with the dial's score.
         hasRainBreak: h.weatherDesc === 'Rain Break (Dry Window)',

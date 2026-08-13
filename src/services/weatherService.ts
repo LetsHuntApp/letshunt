@@ -26,6 +26,19 @@ function average(values: number[]): number {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
 
+interface ClimateNormals {
+  normalMaxF: number | null;
+  /** Average temperature for each local clock hour, in °F. */
+  hourlyF: Array<number | null>;
+}
+
+function getLocalHour(time: string): number | null {
+  const match = typeof time === 'string' ? time.match(/T(\d{2})/) : null;
+  if (!match) return null;
+  const hour = Number(match[1]);
+  return hour >= 0 && hour <= 23 ? hour : null;
+}
+
 /**
  * Compute a representative daily weather condition from the 24 hourly weather
  * codes. Open-Meteo's daily `weathercode` picks the "most significant" code
@@ -202,15 +215,12 @@ export async function fetch5DayHuntingForecast(
 ): Promise<DailyForecast[]> {
   const { latitude: lat, longitude: lon } = location;
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,windgusts_10m,winddirection_10m&forecast_days=14&timezone=auto`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode,windspeed_10m_max,winddirection_10m_dominant,sunrise,sunset&hourly=temperature_2m,pressure_msl,surface_pressure,relativehumidity_2m,cloudcover,precipitation_probability,precipitation,weathercode,windspeed_10m,windgusts_10m,winddirection_10m&forecast_days=14&timezone=auto`;
 
-  // Batch 1: rolling 30-day climate normal for the location, fetched from
-  // the Open-Meteo Archive API (free, no API key). Used to score the
-  // Temperature factor against deviation (`tempDeltaF`) instead of fixed
-  // absolute thresholds. Cached ~24h per location to avoid hitting the
-  // archive endpoint on every forecast refresh. Always returned in °F;
-  // the caller converts if needed when the user has metric units.
-  const normalMaxF = await fetchClimateNormal(lat, lon);
+  // Fetch rolling 30-day temperature normals by local clock hour. The
+  // Temperature factor compares dawn with dawn and dusk with dusk rather than
+  // comparing every hour with the day's warmer maximum.
+  const climateNormals = await fetchClimateNormals(lat, lon);
 
   let rawData;
   let lastErr: unknown;
@@ -301,6 +311,7 @@ export async function fetch5DayHuntingForecast(
     const precipArr = hourlyRaw.precipitation || [];
     const weatherCodeArr = hourlyRaw.weathercode || [];
     const humidityArr = hourlyRaw.relativehumidity_2m || []; // Batch 1: previously discarded
+    const cloudCoverArr = hourlyRaw.cloudcover || [];
 
     const dayStartIdx = d * 24;
     const dayEndIdx = Math.min(dayStartIdx + 24, timeArr.length || 24);
@@ -323,6 +334,7 @@ export async function fetch5DayHuntingForecast(
       precip: precipArr.slice(dayStartIdx, dayEndIdx),
       weatherCode: weatherCodeArr.slice(dayStartIdx, dayEndIdx),
       humidity: humidityArr.slice(dayStartIdx, dayEndIdx),
+      cloudCover: cloudCoverArr.slice(dayStartIdx, dayEndIdx),
     };
 
     // Calculate average pressure and pressure trend
@@ -347,9 +359,6 @@ export async function fetch5DayHuntingForecast(
     const gustValid = dayHourlyRaw.gust.filter((v: any) => typeof v === 'number' && Number.isFinite(v));
     const gustMaxKmh = gustValid.length > 0 ? Math.max(...gustValid) : null;
     const gustMaxMph = gustMaxKmh !== null ? kmhToMph(gustMaxKmh) : null;
-
-    // Day-level temperature deviation (only meaningful when the cache hit).
-    const tempDeltaF = normalMaxF !== null ? rawMaxTempF - normalMaxF : null;
 
     // Check post-storm effect & rain break (any rainy day with a break/stop in rain)
     const rainyCodes = [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99];
@@ -413,6 +422,12 @@ export async function fetch5DayHuntingForecast(
     const primeHumidity = primeHumidityValid.length > 0
       ? Math.round(primeHumidityValid.reduce((a: number, b: number) => a + b, 0) / primeHumidityValid.length)
       : humidityAvg;
+    const primeCloudValid = primeHourIndices
+      .map((idx) => dayHourlyRaw.cloudCover[idx])
+      .filter((v: any) => typeof v === 'number' && Number.isFinite(v));
+    const primeCloudCover = primeCloudValid.length > 0
+      ? Math.round(average(primeCloudValid))
+      : undefined;
     const primeGustKmh = primeHourIndices
       .map((idx) => dayHourlyRaw.gust[idx])
       .filter((v: any) => typeof v === 'number' && Number.isFinite(v));
@@ -429,9 +444,16 @@ export async function fetch5DayHuntingForecast(
     const allPrimeDry = primeHourIndices.every((idx) => (dayHourlyRaw.precip[idx] || 0) < 0.1);
     const primeIsPostStorm = isPostStorm && lastRainIdx >= 0 && lastRainIdx < lastPrimeIdx && allPrimeDry;
 
-    // Temperature deviation for the daily dial is now vs the prime-window
-    // average, not the day's max.
-    const primeTempDeltaF = normalMaxF !== null ? primeAvgTempF - normalMaxF : null;
+    // Temperature deviation for the daily dial compares each prime-window
+    // hour with the matching local-hour normal. A dawn temperature must not be
+    // judged against the day's afternoon maximum normal.
+    const primeNormalF = primeHourIndices
+      .map((idx) => {
+        const localHour = getLocalHour(dayHourlyRaw.time[idx]);
+        return localHour === null ? null : climateNormals.hourlyF[localHour];
+      })
+      .filter((t): t is number => typeof t === 'number' && Number.isFinite(t));
+    const primeTempDeltaF = primeNormalF.length > 0 ? primeAvgTempF - average(primeNormalF) : null;
 
     // Whether a real solunar window overlaps the morning/evening prime
     // windows — the daily Moon Activity factor rewards this overlap.
@@ -485,6 +507,7 @@ export async function fetch5DayHuntingForecast(
       tempDeltaF: primeTempDeltaF,
       humidity: primeHumidity,
       windGustMph: primeGustMph,
+      cloudCover: primeCloudCover ?? null,
     });
 
     // Build Prime Time windows (Morning 30m before sunrise to +2.5h; Evening 2.5h before sunset to dusk)
@@ -520,9 +543,16 @@ export async function fetch5DayHuntingForecast(
       }
       const hTempDrop24h = units === 'imperial' ? hTempDrop24hF : Math.round((hTempDrop24hF * 5) / 9);
 
-      // Hour-level deviation from the rolling normal lets a cool morning
-      // score appropriately even when the day's peak is at/near normal.
-      const hTempDeltaF = normalMaxF !== null ? hTempF - normalMaxF : null;
+      // Hour-level deviation uses the matching local-hour normal, not the
+      // daily maximum normal. This prevents every cool morning from being
+      // mislabeled as an extreme cold-front anomaly.
+      const localHour = getLocalHour(tStr) ?? hDate.getHours();
+      const hourlyNormalF = climateNormals.hourlyF[localHour] ?? null;
+      const hTempDeltaF = hourlyNormalF !== null ? hTempF - hourlyNormalF : null;
+      const hCloudRaw = dayHourlyRaw.cloudCover[idx];
+      const hCloudCover = typeof hCloudRaw === 'number' && Number.isFinite(hCloudRaw)
+        ? Math.round(hCloudRaw)
+        : undefined;
 
       const isPrimeWindow = isPrimeTimestamp(hDate.getTime());
       // A dry hour only earns a rain-break signal when rain occurred in the
@@ -558,6 +588,7 @@ export async function fetch5DayHuntingForecast(
         tempDeltaF: hTempDeltaF,
         humidity: hHumidity ?? null,
         windGustMph: hGustMph ?? null,
+        cloudCover: hCloudCover ?? null,
       });
 
       return {
@@ -565,6 +596,7 @@ export async function fetch5DayHuntingForecast(
         timestamp: hDate.getTime(),
         temp: units === 'imperial' ? hTempF : Math.round(hTempC),
         tempDrop24h: hTempDrop24h,
+        tempDeltaF: hTempDeltaF,
         pressureHpa: hPressHpa,
         pressureInHg: hPressInHg,
         windSpeedMph: hWindMph,
@@ -576,6 +608,7 @@ export async function fetch5DayHuntingForecast(
         precipProbability: dayHourlyRaw.precipProb[idx] || 0,
         precipMm: dayHourlyRaw.precip[idx] || 0,
         humidity: hHumidity,
+        cloudCover: hCloudCover,
         pressureTrend: hourlyPressureTrend,
         weatherCode: dayHourlyRaw.weatherCode[idx] || 0,
         weatherDesc: isRainBreakHour ? 'Rain Break (Dry Window)' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
@@ -608,6 +641,7 @@ export async function fetch5DayHuntingForecast(
       hasRainBreak,
       lastRainHour,
       humidityAvg: humidityAvg ?? undefined, // Batch 1: undefined => unavailable
+      cloudCoverAvg: primeCloudCover,
       huntScore: score,
       rating,
       verdict,
@@ -692,19 +726,16 @@ export async function fetchHistoricalWeather(
 }
 
 /**
- * Fetch a rolling 30-day climatological normal max temperature for a
- * location from Open-Meteo's free Archive API (no API key required).
- * Backed by a 24-hour localStorage cache keyed by lat/lon so we don't
- * hit the archive endpoint on every forecast refresh.
- *
- * Returns the normal in °F (imperial) regardless of caller unit; the
- * temperature scoring engine compares °F deviations internally.
- * Returns null on any failure (network, bad JSON, missing fields) — the
- * caller should fall back to the legacy absolute-threshold scoring.
+ * Fetch rolling 30-day temperature normals by local clock hour. The old
+ * implementation only fetched a daily maximum, which made a normal 6 AM
+ * temperature look like a cold anomaly because it was compared with a warmer
+ * afternoon value. The archive response is cached for 24 hours per location.
  */
-async function fetchClimateNormal(lat: number, lon: number): Promise<number | null> {
+async function fetchClimateNormals(lat: number, lon: number): Promise<ClimateNormals> {
+  const empty: ClimateNormals = { normalMaxF: null, hourlyF: Array(24).fill(null) };
   const cacheKey = `letshunt_climate_normal_${lat.toFixed(2)}_${lon.toFixed(2)}`;
   const TTL_MS = 24 * 3600 * 1000;
+
   try {
     const raw = localStorage.getItem(cacheKey);
     if (raw) {
@@ -712,47 +743,69 @@ async function fetchClimateNormal(lat: number, lon: number): Promise<number | nu
       if (
         typeof parsed?.normalMaxF === 'number' &&
         Number.isFinite(parsed.normalMaxF) &&
+        Array.isArray(parsed?.hourlyF) &&
+        parsed.hourlyF.length === 24 &&
         typeof parsed?.fetchedAt === 'number' &&
         Date.now() - parsed.fetchedAt < TTL_MS
       ) {
-        return parsed.normalMaxF;
+        return {
+          normalMaxF: parsed.normalMaxF,
+          hourlyF: parsed.hourlyF.map((value: unknown) =>
+            typeof value === 'number' && Number.isFinite(value) ? value : null
+          ),
+        };
       }
     }
   } catch {
     /* storage unavailable, treat as cache miss */
   }
 
-  // 30-day window ending yesterday so we never include today (which has
-  // a partial forecast). ISO date strings (YYYY-MM-DD) keep the URL tidy.
+  // The archive API can lag the current date by several days. End five days
+  // ago so the normal request stays available while still representing recent
+  // local conditions; today's partial observations never enter the normal.
   const end = new Date();
-  end.setDate(end.getDate() - 1);
+  end.setDate(end.getDate() - 5);
   const start = new Date(end);
   start.setDate(start.getDate() - 30);
   const startStr = start.toISOString().slice(0, 10);
   const endStr = end.toISOString().slice(0, 10);
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startStr}&end_date=${endStr}&daily=temperature_2m_max&hourly=temperature_2m&timezone=auto`;
 
-  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startStr}&end_date=${endStr}&daily=temperature_2m_max&timezone=auto`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout?.(10000) });
-    if (!res.ok) return null;
+    if (!res.ok) return empty;
     const data = await res.json();
-    const arr: number[] | undefined = data?.daily?.temperature_2m_max;
-    if (!Array.isArray(arr) || arr.length === 0) return null;
-    const valid = arr.filter((v) => typeof v === 'number' && Number.isFinite(v));
-    if (valid.length === 0) return null;
-    const avgC = valid.reduce((a, b) => a + b, 0) / valid.length;
-    const normalMaxF = celsiusToFahrenheit(avgC);
+    const daily: unknown[] | undefined = data?.daily?.temperature_2m_max;
+    const times: unknown[] | undefined = data?.hourly?.time;
+    const hourlyC: unknown[] | undefined = data?.hourly?.temperature_2m;
+    if (!Array.isArray(daily) || !Array.isArray(times) || !Array.isArray(hourlyC)) return empty;
+
+    const dailyValid = daily.filter((value): value is number =>
+      typeof value === 'number' && Number.isFinite(value)
+    );
+    if (dailyValid.length === 0) return empty;
+
+    const byHour: number[][] = Array.from({ length: 24 }, () => []);
+    for (let i = 0; i < Math.min(times.length, hourlyC.length); i++) {
+      const hour = typeof times[i] === 'string' ? getLocalHour(times[i] as string) : null;
+      const tempC = hourlyC[i];
+      if (hour !== null && typeof tempC === 'number' && Number.isFinite(tempC)) {
+        byHour[hour].push(tempC * 9 / 5 + 32);
+      }
+    }
+
+    const hourlyF = byHour.map((values) => values.length ? Math.round(average(values)) : null);
+    const normalMaxF = Math.round(average(dailyValid.map((value) => value * 9 / 5 + 32)));
+    const result: ClimateNormals = { normalMaxF, hourlyF };
+
     try {
-      localStorage.setItem(
-        cacheKey,
-        JSON.stringify({ normalMaxF, fetchedAt: Date.now() })
-      );
+      localStorage.setItem(cacheKey, JSON.stringify({ ...result, fetchedAt: Date.now() }));
     } catch {
       /* storage full or unavailable, just skip caching */
     }
-    return normalMaxF;
+    return result;
   } catch {
-    return null;
+    return empty;
   }
 }
 
@@ -804,12 +857,14 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       // Wind Speed factor a representative sample.
       const hHumidity = 55 + Math.round(20 * Math.sin((h / 24) * Math.PI));
       const hGustMph = windSpeedMaxMph + 6;
+      const hCloudCover = dayCode >= 51 ? 85 : h % 6 === 0 ? 15 : 55;
 
       hourly.push({
         time: format12HourTime(hDate),
         timestamp: hDate.getTime(),
         temp: units === 'imperial' ? minTemp + Math.round((maxTemp - minTemp) * Math.sin((h / 24) * Math.PI)) : 15,
         tempDrop24h: Math.round(4 + 3 * Math.cos((h / 12) * Math.PI)),
+        tempDeltaF: null,
         pressureHpa: hPressureHpa,
         pressureInHg: hPressureInHg,
         windSpeedMph: windSpeedMaxMph,
@@ -821,6 +876,7 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
         precipProbability: hourlyCode >= 51 ? 60 : h % 3 === 0 ? 10 : 0,
         precipMm: hourlyCode >= 51 ? 1.5 : 0,
         humidity: hHumidity,
+        cloudCover: hCloudCover,
         weatherCode: hourlyCode,
         weatherDesc: hourlyDetails.desc,
         huntScore: isPrimeWindow ? score + 10 : score - 5,
@@ -855,6 +911,7 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
       // Batch 1: dry period => humidity stays around 65%, no temp deviation
       // (no climate normal available in offline mode).
       humidityAvg: 65,
+      cloudCoverAvg: 55,
       huntScore: score,
       rating,
       verdict,
@@ -863,6 +920,7 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
         { name: 'Wind & Scent', score: 7, maxScore: 7, description: `${windDirectionText} breeze (${windSpeedMaxMph} mph)`, status: 'optimal' },
         { name: 'Temperature', score: 3, maxScore: 6, description: `Comfortable range (${minTemp}° - ${maxTemp}°)`, status: 'good' },
         { name: 'Moon Activity', score: 2, maxScore: 6, description: 'The moon looks favorable for movement.', status: 'good' },
+        { name: 'Cloud Cover', score: 2, maxScore: 4, description: 'Some cloud cover may reduce bright, exposed conditions.', status: 'good' },
       ],
       morningPrime: '6:15 AM - 9:30 AM',
       eveningPrime: '4:45 PM - 7:15 PM',
