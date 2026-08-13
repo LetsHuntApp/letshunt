@@ -1,5 +1,15 @@
 # Changes Log
 
+## Batch 9 — Location Permission Prompt
+
+- **Added a clear location-access prompt on startup.** If the browser has not
+  already granted geolocation access, LetsHunt explains why it needs location
+  for GPS hunting grounds and map tools before opening the browser permission
+  request.
+- **Handles denied and unsupported browsers.** Users can dismiss the prompt,
+  retry after changing browser site settings, or continue by searching for a
+  hunting ground manually. Previously granted access does not interrupt startup.
+
 ## Batch 8 — Simplified Account Access & Automatic Cloud Sync
 
 - **Simplified the account controls.** Sign up/sign in is now a compact switch instead of two large mode buttons, and the magic-link action is labeled **Send Secret Link** with a Lucide mail icon in both login surfaces.

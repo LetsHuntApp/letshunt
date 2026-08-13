@@ -32,7 +32,7 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
-import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays, MapPin, X, Loader2 } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
   name: 'Madison',
@@ -134,6 +134,9 @@ export default function App() {
   // Modals
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [isPwaModalOpen, setIsPwaModalOpen] = useState<boolean>(false);
+  const [isLocationPromptOpen, setIsLocationPromptOpen] = useState(false);
+  const [locationPermissionState, setLocationPermissionState] = useState<'prompt' | 'denied' | 'unsupported'>('prompt');
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
 
   // First-run onboarding: show for brand-new visitors who have never saved a location.
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
@@ -255,6 +258,79 @@ export default function App() {
       setToastMessage(null);
     }, 3500);
   };
+
+  const requestLocationAccess = () => {
+    if (!navigator.geolocation) {
+      setLocationPermissionState('unsupported');
+      setIsRequestingLocation(false);
+      return;
+    }
+
+    setIsRequestingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      () => {
+        setIsRequestingLocation(false);
+        setIsLocationPromptOpen(false);
+        showToast('Location access enabled. You can use GPS anytime.');
+      },
+      (error) => {
+        setIsRequestingLocation(false);
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermissionState('denied');
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+    );
+  };
+
+  // Ask once on startup, but only after showing a clear explanation. If the
+  // browser already grants location access, no prompt is shown.
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationPermissionState('unsupported');
+      return;
+    }
+
+    let cancelled = false;
+    let permissionStatus: PermissionStatus | null = null;
+
+    const checkPermission = async () => {
+      try {
+        if (!navigator.permissions?.query) {
+          if (!cancelled) setIsLocationPromptOpen(true);
+          return;
+        }
+
+        permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+        if (cancelled) return;
+
+        const syncPermissionState = () => {
+          const state = permissionStatus?.state;
+          if (state === 'granted') {
+            setIsLocationPromptOpen(false);
+          } else if (state === 'denied') {
+            setLocationPermissionState('denied');
+            setIsLocationPromptOpen(true);
+          } else {
+            setLocationPermissionState('prompt');
+            setIsLocationPromptOpen(true);
+          }
+        };
+
+        permissionStatus.onchange = syncPermissionState;
+        syncPermissionState();
+      } catch {
+        // Some browsers expose geolocation but not the Permissions API.
+        if (!cancelled) setIsLocationPromptOpen(true);
+      }
+    };
+
+    void checkPermission();
+    return () => {
+      cancelled = true;
+      if (permissionStatus) permissionStatus.onchange = null;
+    };
+  }, []);
 
   // Keep a signed-in device's active HuntClub current without making the
   // user remember to press a manual sync button. Local writes are debounced
@@ -964,6 +1040,68 @@ export default function App() {
           <span className="text-[10px] tracking-wider uppercase whitespace-nowrap">Settings</span>
         </button>
       </nav>
+
+      {/* Location permission prompt */}
+      {isLocationPromptOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`w-full max-w-sm rounded-3xl border shadow-2xl p-6 ${
+            isDark
+              ? 'bg-slate-900 border-slate-700 text-white'
+              : theme === 'hunting'
+              ? 'bg-[#f4eee1] border-[#d4c4a8] text-[#2a1b0e]'
+              : theme === 'olive'
+              ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+              : 'bg-white border-slate-200 text-slate-900'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <MapPin className="w-5 h-5 text-emerald-500" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-black">Allow location access?</h2>
+                <p className={`text-xs leading-relaxed mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  LetsHunt uses your location for GPS hunting grounds and map tools. It stays on this device unless an active HuntClub is syncing your app data.
+                </p>
+              </div>
+            </div>
+
+            {locationPermissionState === 'denied' && (
+              <div className={`mt-4 rounded-xl border px-3.5 py-2.5 text-[11px] leading-relaxed ${
+                isDark ? 'bg-amber-950/40 border-amber-800 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-800'
+              }`}>
+                Location access is blocked. Allow it in your browser's site settings, then try the GPS button again.
+              </div>
+            )}
+
+            {locationPermissionState === 'unsupported' && (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[11px] leading-relaxed text-rose-700">
+                This browser does not support location access. You can still search for a hunting ground manually.
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-5">
+              {locationPermissionState !== 'unsupported' && (
+                <button
+                  onClick={requestLocationAccess}
+                  disabled={isRequestingLocation}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {isRequestingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                  {isRequestingLocation ? 'Checking...' : locationPermissionState === 'denied' ? 'Try Again' : 'Allow Location'}
+                </button>
+              )}
+              <button
+                onClick={() => setIsLocationPromptOpen(false)}
+                className={`px-4 py-2.5 rounded-xl border text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 ${
+                  isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <X className="w-3.5 h-3.5" /> Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* First-run onboarding modal (new visitors only) */}
       <OnboardingModal
