@@ -140,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className={`sticky top-0 z-50 px-3 sm:px-6 lg:px-8 py-1.5 transition-colors duration-200 border-b ${
+      className={`sticky top-0 z-50 px-3 sm:px-6 lg:px-8 py-1 transition-colors duration-200 border-b ${
         isDark
           ? 'bg-slate-950/[var(--card-opacity)] backdrop-blur-md border-slate-800/80 shadow-lg text-slate-100'
           : theme === 'hunting'
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* Quick Search Box */}
-            <div className="relative flex-1 max-w-[140px] sm:max-w-[220px] lg:max-w-[280px]" ref={searchContainerRef}>
+            <div className="relative flex-1 max-w-[160px] sm:max-w-[240px] lg:max-w-[300px]" ref={searchContainerRef}>
               <div
                 className={`flex items-center border rounded-xl px-2.5 py-2.5 sm:py-2 transition-all ${
                   isDark
