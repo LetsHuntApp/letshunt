@@ -693,7 +693,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                         title={timeWarning}
                       >
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
-                        <span>{dateStr}</span>
+                        <span className="text-sky-300">{dateStr}</span>
                         <span className="text-amber-300 text-xs font-bold">12:00 PM</span>
                       </div>
                       <div
@@ -705,7 +705,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                     </div>
                   ) : (
                     <div
-                      className="font-extrabold truncate drop-shadow"
+                      className="font-extrabold truncate drop-shadow text-sky-300"
                       title={`OCR-extracted: ${new Date(photo.dateTime!).toISOString()}`}
                     >
                       {dateStr} {timeStr}
@@ -718,7 +718,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                   )}
 
                   {photo.weather && photo.dateTime && (
-                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-300 opacity-90 pt-0.5">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-sky-300/90 pt-0.5">
                       <span>{(() => { const hh = parseInt(photo.dateTime!.slice(11, 13), 10); if (isNaN(hh)) return ''; const ampm = hh >= 12 ? 'PM' : 'AM'; return `${hh === 12 ? 12 : hh % 12}${ampm}`; })()}</span>
                       <span>•</span>
                       <span>{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>

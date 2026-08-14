@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Filter, X, Search, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
+import { Filter, RotateCcw } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, TrailCameraFilterState, TrailCameraLocation, TrailCameraTarget } from '../types';
 
 interface TrailCameraFiltersProps {
@@ -9,8 +9,7 @@ interface TrailCameraFiltersProps {
   onFilterChange: (filter: TrailCameraFilterState) => void;
   locations: TrailCameraLocation[];
   targets: TrailCameraTarget[];
-  totalPhotosCount: number;
-  filteredPhotosCount: number;
+  activeFilterCount: number;
 }
 
 const WIND_DIRECTIONS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -47,23 +46,10 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   onFilterChange,
   locations,
   targets,
-  totalPhotosCount,
-  filteredPhotosCount,
+  activeFilterCount,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const activeFilterCount = [
-    filter.dateStart,
-    filter.dateEnd,
-    filter.cameraLocationId,
-    filter.windDirection,
-    filter.tempMin != null || filter.tempMax != null,
-    filter.windSpeedMin != null || filter.windSpeedMax != null,
-    filter.pressureMin != null || filter.pressureMax != null,
-    filter.weatherConditions?.length,
-    filter.moonPhase,
-    filter.searchQuery,
-  ].filter(Boolean).length;
+  const isHunting = theme === 'hunting';
+  const isOlive = theme === 'olive';
 
   const handleReset = () => {
     onFilterChange({});
@@ -85,239 +71,197 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
           : 'bg-white border-slate-200 text-slate-900'
       }`}
     >
-      {/* Top Filter Bar */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-2">
-          <div className="relative min-w-0 flex-1 basis-full sm:basis-auto">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
-            <input
-              type="text"
-              placeholder="Search filename or notes..."
-              value={filter.searchQuery || ''}
-              onChange={(e) => onFilterChange({ ...filter, searchQuery: e.target.value || undefined })}
-              className={`w-full pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl border transition-colors outline-none ${
-                isDark
-                  ? 'bg-slate-950/[calc(var(--card-opacity)*0.7)] border-slate-700 focus:border-emerald-500 text-white'
-                  : 'bg-slate-50 border-slate-300 focus:border-emerald-600 text-slate-900'
-              }`}
-            />
-            {filter.searchQuery && (
-              <button
-                onClick={() => onFilterChange({ ...filter, searchQuery: undefined })}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-100"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all border cursor-pointer ${
-              activeFilterCount > 0
-                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
-                : isDark
-                ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                : 'bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200'
-            }`}
-          >
-            <Filter className="w-3.5 h-3.5" />
-            <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center">
-                {activeFilterCount}
-              </span>
-            )}
-            {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-
+      {/* Compact header row */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <span className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5 opacity-80">
+          <Filter className="w-3.5 h-3.5" /> Filters
           {activeFilterCount > 0 && (
-            <button
-              onClick={handleReset}
-              className="p-1.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer flex items-center gap-1"
-              title="Reset all filters"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
+            <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center">
+              {activeFilterCount}
+            </span>
           )}
-        </div>
+        </span>
 
-        <div className="self-end whitespace-nowrap text-xs font-bold opacity-70 sm:self-auto">
-          Showing {filteredPhotosCount} of {totalPhotosCount} photos
-        </div>
+        {activeFilterCount > 0 && (
+          <button
+            onClick={handleReset}
+            className="p-1.5 rounded-lg text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer flex items-center gap-1"
+            title="Reset all filters"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset</span>
+          </button>
+        )}
       </div>
 
-      {/* Expanded Multi-Filter Panel */}
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-slate-700/40 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          {/* Date Range */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Date Range</label>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1">
-              <input
-                type="date"
-                value={filter.dateStart || ''}
-                onChange={(e) => onFilterChange({ ...filter, dateStart: e.target.value || undefined })}
-                className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                  isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
-                }`}
-              />
-              <span className="opacity-50">-</span>
-              <input
-                type="date"
-                value={filter.dateEnd || ''}
-                onChange={(e) => onFilterChange({ ...filter, dateEnd: e.target.value || undefined })}
-                className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                  isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Camera Location */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Camera Location</label>
-            <select
-              value={filter.cameraLocationId || ''}
-              onChange={(e) => onFilterChange({ ...filter, cameraLocationId: e.target.value || undefined })}
+      {/* Filter Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        {/* Date Range */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Date Range</label>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1">
+            <input
+              type="date"
+              value={filter.dateStart || ''}
+              onChange={(e) => onFilterChange({ ...filter, dateStart: e.target.value || undefined })}
               className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
               }`}
-            >
-              <option value="">All Locations</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Target Tag */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Target Tag</label>
-            <select
-              value={filter.targetId || ''}
-              onChange={(e) => onFilterChange({ ...filter, targetId: e.target.value || undefined })}
+            />
+            <span className="opacity-50">-</span>
+            <input
+              type="date"
+              value={filter.dateEnd || ''}
+              onChange={(e) => onFilterChange({ ...filter, dateEnd: e.target.value || undefined })}
               className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+                isDark ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'
               }`}
-            >
-              <option value="">All Targets</option>
-              {targets.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Weather Condition */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Weather Condition</label>
-            <select
-              value={filter.weatherConditions?.[0] || ''}
-              onChange={(e) => onFilterChange({ ...filter, weatherConditions: e.target.value ? [e.target.value] : undefined })}
-              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            >
-              <option value="">Any Condition</option>
-              {WEATHER_DESCS.map((cond) => (
-                <option key={cond} value={cond}>{cond}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Wind */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Wind</label>
-            <select
-              value={filter.windDirection || ''}
-              onChange={(e) => onFilterChange({ ...filter, windDirection: e.target.value || undefined })}
-              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            >
-              <option value="">Any Direction</option>
-              {WIND_DIRECTIONS.map((dir) => (
-                <option key={dir} value={dir}>{dir}</option>
-              ))}
-            </select>
-            <select
-              value={activeWindPreset === -1 ? '-1' : String(activeWindPreset)}
-              onChange={(e) => {
-                const p = WIND_PRESETS[parseInt(e.target.value, 10)];
-                if (p) onFilterChange({ ...filter, windSpeedMin: p.min, windSpeedMax: p.max });
-              }}
-              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            >
-              {activeWindPreset === -1 && <option value="-1">Custom ({(filter.windSpeedMin ?? '?')} – {(filter.windSpeedMax ?? '∞')} mph)</option>}
-              {WIND_PRESETS.map((p, i) => (
-                <option key={p.label} value={i}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Temperature */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Temperature</label>
-            <select
-              value={activeTempPreset === -1 ? '-1' : String(activeTempPreset)}
-              onChange={(e) => {
-                const p = TEMP_PRESETS[parseInt(e.target.value, 10)];
-                if (p) onFilterChange({ ...filter, tempMin: p.min, tempMax: p.max });
-              }}
-              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            >
-              {activeTempPreset === -1 && <option value="-1">Custom ({(filter.tempMin ?? '?')} – {(filter.tempMax ?? '∞')}°F)</option>}
-              {TEMP_PRESETS.map((p, i) => (
-                <option key={p.label} value={i}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Pressure */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Barometric Pressure</label>
-            <select
-              value={activePressurePreset === -1 ? '-1' : String(activePressurePreset)}
-              onChange={(e) => {
-                const p = PRESSURE_PRESETS[parseInt(e.target.value, 10)];
-                if (p) onFilterChange({ ...filter, pressureMin: p.min, pressureMax: p.max });
-              }}
-              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            >
-              {activePressurePreset === -1 && <option value="-1">Custom ({(filter.pressureMin ?? '?')} – {(filter.pressureMax ?? '∞')} inHg)</option>}
-              {PRESSURE_PRESETS.map((p, i) => (
-                <option key={p.label} value={i}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Moon Phase */}
-          <div className="space-y-1">
-            <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Moon Phase</label>
-            <select
-              value={filter.moonPhase || ''}
-              onChange={(e) => onFilterChange({ ...filter, moonPhase: e.target.value || undefined })}
-              className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
-                isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
-              }`}
-            >
-              <option value="">Any Moon Phase</option>
-              {MOON_PHASES.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+            />
           </div>
         </div>
-      )}
+
+        {/* Camera Location */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Camera Location</label>
+          <select
+            value={filter.cameraLocationId || ''}
+            onChange={(e) => onFilterChange({ ...filter, cameraLocationId: e.target.value || undefined })}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            <option value="">All Locations</option>
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Target Tag */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Target Tag</label>
+          <select
+            value={filter.targetId || ''}
+            onChange={(e) => onFilterChange({ ...filter, targetId: e.target.value || undefined })}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            <option value="">All Targets</option>
+            {targets.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Weather Condition */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Weather Condition</label>
+          <select
+            value={filter.weatherConditions?.[0] || ''}
+            onChange={(e) => onFilterChange({ ...filter, weatherConditions: e.target.value ? [e.target.value] : undefined })}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            <option value="">Any Condition</option>
+            {WEATHER_DESCS.map((cond) => (
+              <option key={cond} value={cond}>{cond}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Wind */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Wind</label>
+          <select
+            value={filter.windDirection || ''}
+            onChange={(e) => onFilterChange({ ...filter, windDirection: e.target.value || undefined })}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            <option value="">Any Direction</option>
+            {WIND_DIRECTIONS.map((dir) => (
+              <option key={dir} value={dir}>{dir}</option>
+            ))}
+          </select>
+          <select
+            value={activeWindPreset === -1 ? '-1' : String(activeWindPreset)}
+            onChange={(e) => {
+              const p = WIND_PRESETS[parseInt(e.target.value, 10)];
+              if (p) onFilterChange({ ...filter, windSpeedMin: p.min, windSpeedMax: p.max });
+            }}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            {activeWindPreset === -1 && <option value="-1">Custom ({(filter.windSpeedMin ?? '?')} – {(filter.windSpeedMax ?? '∞')} mph)</option>}
+            {WIND_PRESETS.map((p, i) => (
+              <option key={p.label} value={i}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Temperature */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Temperature</label>
+          <select
+            value={activeTempPreset === -1 ? '-1' : String(activeTempPreset)}
+            onChange={(e) => {
+              const p = TEMP_PRESETS[parseInt(e.target.value, 10)];
+              if (p) onFilterChange({ ...filter, tempMin: p.min, tempMax: p.max });
+            }}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            {activeTempPreset === -1 && <option value="-1">Custom ({(filter.tempMin ?? '?')} – {(filter.tempMax ?? '∞')}°F)</option>}
+            {TEMP_PRESETS.map((p, i) => (
+              <option key={p.label} value={i}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Pressure */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Barometric Pressure</label>
+          <select
+            value={activePressurePreset === -1 ? '-1' : String(activePressurePreset)}
+            onChange={(e) => {
+              const p = PRESSURE_PRESETS[parseInt(e.target.value, 10)];
+              if (p) onFilterChange({ ...filter, pressureMin: p.min, pressureMax: p.max });
+            }}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            {activePressurePreset === -1 && <option value="-1">Custom ({(filter.pressureMin ?? '?')} – {(filter.pressureMax ?? '∞')} inHg)</option>}
+            {PRESSURE_PRESETS.map((p, i) => (
+              <option key={p.label} value={i}>{p.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Moon Phase */}
+        <div className="space-y-1">
+          <label className="font-bold opacity-80 uppercase tracking-wider text-xs">Moon Phase</label>
+          <select
+            value={filter.moonPhase || ''}
+            onChange={(e) => onFilterChange({ ...filter, moonPhase: e.target.value || undefined })}
+            className={`w-full min-w-0 p-1.5 text-xs rounded-xl border ${
+              isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'
+            }`}
+          >
+            <option value="">Any Moon Phase</option>
+            {MOON_PHASES.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 };

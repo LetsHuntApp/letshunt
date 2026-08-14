@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Camera, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2, Trash2 } from 'lucide-react';
+import { Camera, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2, Trash2, Filter } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -53,6 +53,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [targets, setTargets] = useState<TrailCameraTarget[]>([]);
   const [mapPins, setMapPins] = useState<SavedPin[]>([]);
   const [filter, setFilter] = useState<TrailCameraFilterState>({});
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<TrailCameraPhoto | null>(null);
 
   // Import State
@@ -391,6 +392,18 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     showToast(`Tagged ${ids.length} photo(s) as "${t?.name || 'target'}"`);
   };
 
+  // Delete Target — mirrors the Target Manager's delete so the compact
+  // Targets row can remove a target without opening the modal.
+  const handleDeleteTarget = async (targetId: string) => {
+    const t = targets.find((x) => x.id === targetId);
+    if (!t) return;
+    if (!confirm(`Delete target "${t.name}"? Photos tagged with it keep their data but the tag is removed.`)) return;
+    await deleteTarget(targetId);
+    setTargets(targets.filter((x) => x.id !== targetId));
+    setSelectedTargetId((prev) => (prev === targetId ? '' : prev));
+    showToast(`Deleted target "${t.name}"`);
+  };
+
   // Delete Location — works on any camera spot (default or not). Surfaces a
   // clearer confirm message when deleting your default spot so the user
   // understands the downstream effect on auto-assignment.
@@ -554,6 +567,21 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     return () => { cancelled = true; };
   }, [timeCorrectionPhotos]);
 
+  // Number of active filters (search box was removed, so no searchQuery here).
+  const activeFilterCount = useMemo(() => {
+    return [
+      filter.dateStart,
+      filter.dateEnd,
+      filter.cameraLocationId,
+      filter.windDirection,
+      filter.tempMin != null || filter.tempMax != null,
+      filter.windSpeedMin != null || filter.windSpeedMax != null,
+      filter.pressureMin != null || filter.pressureMax != null,
+      filter.weatherConditions?.length,
+      filter.moonPhase,
+    ].filter(Boolean).length;
+  }, [filter]);
+
   // Filtered Photos
   const filteredPhotos = useMemo(() => {
     return filterPhotos(photos, filter);
@@ -610,7 +638,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const modalInputBg = isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900';
 
   return (
-    <div className="space-y-3 sm:space-y-4">
+    <div className="space-y-2 sm:space-y-3">
       {/* Top Header Card */}
       <div className={`${cardBase} ${cardBg} flex flex-col gap-2.5`}>
         {/* Title row — always on top */}
@@ -681,6 +709,32 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </>
           ) : null}
 
+          {/* Filters toggle — moved up from the removed filter card into the
+              header so it sits right beside the Analytics tab. */}
+          <button
+            onClick={() => setShowFilters((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black uppercase tracking-wider transition-all border cursor-pointer whitespace-nowrap flex-shrink-0 shadow-sm ${
+              showFilters || activeFilterCount > 0
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md'
+                : isDark
+                ? 'bg-slate-950/50 border-slate-800 text-slate-300 hover:bg-slate-800'
+                : isHunting
+                ? 'bg-[#dccab8]/50 border-[#c4b498] text-[#5a3e1f] hover:bg-[#dccab8]'
+                : isOlive
+                ? 'bg-[#e5dfcd]/50 border-[#cbc5b0] text-[#3e4a2a] hover:bg-[#e5dfcd]'
+                : 'bg-slate-100/80 border-slate-300 text-slate-700 hover:bg-slate-200'
+            }`}
+            title={showFilters ? 'Hide filters' : 'Show filters'}
+          >
+            <Filter className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+
           {/* Sub-Tab Navigation Buttons */}
           <div className={`flex w-full sm:w-auto items-center justify-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 max-w-full overflow-x-auto ${
             isDark
@@ -730,7 +784,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
       {/* Main Content Area */}
       {activeTab === 'gallery' && (
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-3">
           {/* Import Dropzone Component — full teaching card only when no photos
               have been imported yet; otherwise the compact header button above
               handles additional imports. */}
@@ -903,6 +957,36 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               <span>Add</span>
             </button>
 
+            {/* Delete — removes the currently selected target right from the
+                row, without opening the Target Manager. */}
+            <button
+              onClick={() => {
+                if (!selectedTargetId) {
+                  showToast('Pick a target first to delete it');
+                  return;
+                }
+                handleDeleteTarget(selectedTargetId);
+              }}
+              disabled={!selectedTargetId}
+              title={!selectedTargetId ? 'Pick a target first' : 'Delete selected target'}
+              className={`flex-1 sm:flex-none justify-center px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer flex items-center gap-0.5 sm:gap-1 flex-shrink-0 ${
+                !selectedTargetId
+                  ? isDark
+                    ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed opacity-60'
+                    : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                  : isDark
+                  ? 'bg-rose-900/30 border-rose-500/60 text-rose-300 hover:bg-rose-900/60 hover:border-rose-400'
+                  : isHunting
+                  ? 'bg-rose-100 border-rose-400 text-rose-700 hover:bg-rose-200'
+                  : isOlive
+                  ? 'bg-rose-100 border-rose-400 text-rose-700 hover:bg-rose-200'
+                  : 'bg-rose-100 border-rose-400 text-rose-700 hover:bg-rose-200'
+              }`}
+            >
+              <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Delete</span>
+            </button>
+
             {/* Tiny colour swatch preview for the selected target */}
             {selectedTargetId && (
               <span
@@ -918,17 +1002,18 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             )}
           </div>
 
-          {/* Filter Panel */}
-          <TrailCameraFilters
-            theme={theme}
-            isDark={isDark}
-            filter={filter}
-            onFilterChange={setFilter}
-            locations={allSpots}
-            targets={targets}
-            totalPhotosCount={photos.length}
-            filteredPhotosCount={filteredPhotos.length}
-          />
+          {/* Filter Panel — shown only while the header Filters button is on */}
+          {showFilters && (
+            <TrailCameraFilters
+              theme={theme}
+              isDark={isDark}
+              filter={filter}
+              onFilterChange={setFilter}
+              locations={allSpots}
+              targets={targets}
+              activeFilterCount={activeFilterCount}
+            />
+          )}
 
           {/* Photo Gallery Grid */}
           <TrailCameraGallery
