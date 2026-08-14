@@ -408,7 +408,7 @@ function findSnapPoint(
 
 // Polygon Area & Perimeter Calculator
 function getPolygonAreaAndPerimeter(points: PolygonPoint[], unitSystem: UnitSystem) {
-  if (!points || points.length < 3) return { areaStr: '0 sq ft', acresStr: '0.00 Acres', perimeterStr: '0 ft' };
+  if (!points || points.length < 3) return { areaStr: '0.00 Acres', acresStr: '0.00 Acres', perimeterStr: '0 ft' };
 
   const centroid = getPolygonCentroid(points);
   const latRad = (centroid.lat * Math.PI) / 180;
@@ -442,12 +442,12 @@ function getPolygonAreaAndPerimeter(points: PolygonPoint[], unitSystem: UnitSyst
   if (unitSystem === 'metric') {
     const perimeterKm = perimeterM / 1000;
     const perimStr = perimeterM >= 1000 ? `${perimeterKm.toFixed(2)} km` : `${Math.round(perimeterM)} m`;
-    const areaStr = acres >= 1 ? `${acres.toFixed(2)} Acres` : `${Math.round(sqFeet).toLocaleString()} sq ft`;
+    const areaStr = `${acres.toFixed(2)} Acres`;
     return { areaStr, acresStr: `${acres.toFixed(2)} Acres`, perimeterStr: perimStr };
   } else {
     const perimFt = perimeterM * 3.28084;
     const perimStr = perimFt >= 5280 ? `${(perimFt / 5280).toFixed(2)} mi` : `${Math.round(perimFt)} ft`;
-    const areaStr = acres >= 1 ? `${acres.toFixed(2)} Acres` : `${Math.round(sqFeet).toLocaleString()} sq ft`;
+    const areaStr = `${acres.toFixed(2)} Acres`;
     return { areaStr, acresStr: `${acres.toFixed(2)} Acres`, perimeterStr: perimStr };
   }
 }
@@ -3943,12 +3943,12 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* CONDENSED BOTTOM FLOATING SCENT FORECASTER PANEL WITH TABS */}
         {selectedPin && (
           <div
-            className={`absolute bottom-16 sm:bottom-3 left-3 right-14 sm:right-20 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden ${
+            className={`absolute bottom-16 sm:bottom-3 left-2 right-2 sm:left-3 sm:right-3 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden ${
               isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
             }`}
           >
             {/* Header Bar */}
-            <div className="flex items-center justify-between p-3 border-b border-slate-800/30 bg-slate-950/20">
+            <div className="flex items-center justify-between p-2.5 border-b border-slate-800/30 bg-slate-950/20">
               <div className="flex items-center gap-2 overflow-hidden">
                 <span className="text-xl flex-shrink-0 flex items-center"><MetaIcon icon={PIN_METADATA[selectedPin.type]?.icon} fallback={Crosshair} className="w-5 h-5" /></span>
                 <div className="truncate">
@@ -4036,13 +4036,13 @@ export const MapView: React.FC<MapViewProps> = ({
                 </div>
               </div>
             ) : (
-              /* Uncollapsed Expanded View with 3 Condensed TABS */
-              <div className="p-3 space-y-3">
+              /* Uncollapsed Expanded View with 2 Condensed TABS */
+              <div className="p-2.5 space-y-2.5">
                 {/* Segmented Tab Buttons */}
                 <div className="flex border-b border-slate-800/40">
                   <button
                     onClick={() => setActiveForecasterTab('hourly')}
-                    className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeForecasterTab === 'hourly'
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -4056,7 +4056,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                   <button
                     onClick={() => setActiveForecasterTab('details')}
-                    className={`flex-1 py-2.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-2 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeForecasterTab === 'details'
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -4068,8 +4068,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 </div>
 
                 {/* TAB 1: Hourly Scent Controls — the hour scrubber, weather
-                    stats, scent vector and spread all live in this one panel
-                    so a selected pin shows a single bottom card. */}
+                    stats and cone spread all live in this one panel so a
+                    selected pin shows a single bottom card. */}
                 {activeForecasterTab === 'hourly' && (
                   <div className="space-y-2.5">
                     {/* Hour scrubber — scent cone and stats below track this hour */}
@@ -4098,8 +4098,8 @@ export const MapView: React.FC<MapViewProps> = ({
                         />
                       </div>
                       {/* Compact stats row — wind, rain and movement window for
-                          this hour. Scent is omitted here because the card below
-                          shows the downwind vector. */}
+                          this hour. Scent direction is shown in the collapsed
+                          preview bar and on the map itself. */}
                       <div className="flex items-center gap-1 mt-1.5 overflow-x-auto whitespace-nowrap text-[11px] font-bold scrollbar-none">
                         <span className="inline-flex items-center gap-0.5 text-emerald-400"><Wind className="w-2.5 h-2.5" />{windDirText} {displayWindSpeed}</span>
                         <span className="text-slate-500">·</span>
@@ -4112,21 +4112,14 @@ export const MapView: React.FC<MapViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Wind & Scent Cone Description Card */}
-                    <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
+                    {/* Scent cone spread — controls the cone drawn on the map */}
+                    <div className={`flex items-center justify-between gap-2 p-2 rounded-lg border ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
                     }`}>
-                      <div>
-                        <span className="text-slate-400 text-xs block uppercase font-bold">Downwind Scent Vector:</span>
-                        <span className="font-extrabold text-orange-400">
-                          Blowing TO {downwindDirText} ({Math.round(downwindDeg)}°)
-                        </span>
-                        <span className="text-xs text-slate-500 block mt-0.5">{windDirText} @ {displayWindSpeed} · {precipProbability}% rain</span>
-                      </div>
-
-                      {/* Scent Spread Selector */}
+                      <span className="text-[11px] uppercase font-black text-slate-400 flex items-center gap-1 whitespace-nowrap">
+                        <Wind className="w-3 h-3 text-orange-400" /> Scent Spread
+                      </span>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-400 font-bold mr-1">Spread:</span>
                         {[15, 45, 75].map((spread) => (
                           <button
                             key={spread}
@@ -4151,7 +4144,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                 {/* TAB 3: Marker Details & Notes */}
                 {activeForecasterTab === 'details' && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <div className={`p-2.5 rounded-xl border space-y-1.5 text-xs ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
                     }`}>
@@ -4203,7 +4196,7 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* CONDENSED BOTTOM FLOATING SELECTED POLYGON / BOUNDARY INFORMATION PANEL */}
         {selectedPolygon && !selectedPin && selectedPolyStats && (
           <div
-            className={`absolute bottom-16 sm:bottom-3 left-3 right-14 sm:right-20 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden animate-fadeIn ${
+            className={`absolute bottom-16 sm:bottom-3 left-2 right-2 sm:left-3 sm:right-3 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden animate-fadeIn ${
               isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
             }`}
           >
@@ -4307,7 +4300,7 @@ export const MapView: React.FC<MapViewProps> = ({
         {/* Selected Path Details Panel */}
         {selectedPath && !selectedPin && !selectedPolygon && selectedPathStats && (
           <div
-            className={`absolute bottom-16 sm:bottom-3 left-3 right-14 sm:right-20 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden animate-fadeIn ${
+            className={`absolute bottom-16 sm:bottom-3 left-2 right-2 sm:left-3 sm:right-3 z-40 rounded-2xl border shadow-2xl transition-all duration-300 backdrop-blur-md pointer-events-auto ui-control overflow-hidden animate-fadeIn ${
               isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
             }`}
           >
