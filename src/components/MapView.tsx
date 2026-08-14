@@ -440,11 +440,10 @@ function getPolygonAreaAndPerimeter(points: PolygonPoint[], unitSystem: UnitSyst
   const acres = sqFeet / 43560;
 
   if (unitSystem === 'metric') {
-    const hectares = areaM2 / 10000;
     const perimeterKm = perimeterM / 1000;
     const perimStr = perimeterM >= 1000 ? `${perimeterKm.toFixed(2)} km` : `${Math.round(perimeterM)} m`;
-    const areaStr = areaM2 >= 10000 ? `${hectares.toFixed(2)} ha` : `${Math.round(areaM2)} m²`;
-    return { areaStr, acresStr: `${acres.toFixed(2)} Acres (${hectares.toFixed(2)} ha)`, perimeterStr: perimStr };
+    const areaStr = acres >= 1 ? `${acres.toFixed(2)} Acres` : `${Math.round(sqFeet).toLocaleString()} sq ft`;
+    return { areaStr, acresStr: `${acres.toFixed(2)} Acres`, perimeterStr: perimStr };
   } else {
     const perimFt = perimeterM * 3.28084;
     const perimStr = perimFt >= 5280 ? `${(perimFt / 5280).toFixed(2)} mi` : `${Math.round(perimFt)} ft`;
@@ -3872,15 +3871,14 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
 
-        {/* ONE SHARED HOURLY WEATHER SLIDER: wind + precipitation forecast
-            Compact 2-row layout: hour label + slider + Best Path chip + close
-            on top, weather stats in one tight scrolling row below. No day
-            buttons (the day's name already shows on the forecast cards), no
-            bulky 4-column grid — every element earns its space. */}
-        {showHourlyWeather && (
+        {/* HOURLY WEATHER SLIDER (standalone): shown only while nothing is
+            selected. When a pin is selected the same slider lives inside the
+            scent panel's "Hourly Scent" tab, so the map never stacks two
+            floating panels at once. */}
+        {showHourlyWeather && !selectedPin && !selectedPolygon && !selectedPath && (
           <div
             id="map-hourly-weather-control"
-            className={`absolute ${selectedPin ? 'bottom-44 sm:bottom-3' : 'bottom-16 sm:bottom-3'} left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn`}
+            className="absolute bottom-16 sm:bottom-3 left-2 right-2 sm:left-3 sm:right-3 z-50 pointer-events-auto animate-fadeIn"
             role="region"
             aria-label="Hourly weather forecast"
           >
@@ -3991,6 +3989,8 @@ export const MapView: React.FC<MapViewProps> = ({
                       setBestPathActive(true);
                       setBestPathError(route ? null : 'Home and this stand must both touch connected drawn paths.');
                       setShowHourlyWeather(true);
+                      setIsScentPanelCollapsed(false);
+                      setActiveForecasterTab('hourly');
                     }
                   }}
                   className={`p-2 rounded-lg text-xs font-bold flex items-center gap-1.5 px-2.5 cursor-pointer transition-all shadow-sm text-white ${
@@ -4027,7 +4027,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setIsScentPanelCollapsed(false); setShowHourlyWeather(true); }}
+                    onClick={() => { setIsScentPanelCollapsed(false); setShowHourlyWeather(true); setActiveForecasterTab('hourly'); }}
                     className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-400 text-xs font-black uppercase tracking-wide hover:bg-sky-500/25 transition-colors"
                     aria-expanded={showHourlyWeather}
                   >
@@ -4067,9 +4067,51 @@ export const MapView: React.FC<MapViewProps> = ({
                   </button>
                 </div>
 
-                {/* TAB 1: Scent Cone Controls */}
+                {/* TAB 1: Hourly Scent Controls — the hour scrubber, weather
+                    stats, scent vector and spread all live in this one panel
+                    so a selected pin shows a single bottom card. */}
                 {activeForecasterTab === 'hourly' && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
+                    {/* Hour scrubber — scent cone and stats below track this hour */}
+                    <div className={`p-2.5 rounded-xl border ${
+                      isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
+                    }`}>
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Clock className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                        <span className="text-xs font-black whitespace-nowrap tabular-nums">
+                          {selectedHour === 0 ? '12 AM' : selectedHour === 12 ? '12 PM' : selectedHour > 12 ? `${selectedHour - 12} PM` : `${selectedHour} AM`}
+                        </span>
+                        {bestPathActive && (
+                          <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30 whitespace-nowrap hidden sm:inline-flex items-center gap-0.5">
+                            <GitBranch className="w-2.5 h-2.5" />Best Path
+                          </span>
+                        )}
+                        <input
+                          type="range"
+                          min="0"
+                          max="23"
+                          value={selectedHour}
+                          onChange={(e) => setSelectedHour(parseInt(e.target.value, 10))}
+                          className={`flex-1 min-w-0 accent-emerald-500 cursor-pointer h-1 border rounded-full ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}
+                          style={{ backgroundColor: isDark ? '#334155' : '#cbd5e1' }}
+                          aria-label="Hourly weather slider"
+                        />
+                      </div>
+                      {/* Compact stats row — wind, rain and movement window for
+                          this hour. Scent is omitted here because the card below
+                          shows the downwind vector. */}
+                      <div className="flex items-center gap-1 mt-1.5 overflow-x-auto whitespace-nowrap text-[11px] font-bold scrollbar-none">
+                        <span className="inline-flex items-center gap-0.5 text-emerald-400"><Wind className="w-2.5 h-2.5" />{windDirText} {displayWindSpeed}</span>
+                        <span className="text-slate-500">·</span>
+                        <span className="inline-flex items-center gap-0.5 text-sky-400"><Droplets className="w-2.5 h-2.5" />{precipProbability}% · {displayPrecipAmount}</span>
+                        <span className="text-slate-500">·</span>
+                        <span className={`inline-flex items-center gap-0.5 ${currentHourForecast?.isPrimeWindow ? 'text-amber-500' : 'text-slate-400'}`}>
+                          <Sparkles className="w-2.5 h-2.5" />
+                          {currentHourForecast?.isPrimeWindow ? 'Best movement window' : `${currentHourForecast?.temp ?? '--'}°`}
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Wind & Scent Cone Description Card */}
                     <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'

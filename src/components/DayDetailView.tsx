@@ -276,9 +276,74 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
   // Hunter badges use one consistent field-guide green for every green state,
   // best window, and explanation controls each have their own visual role.
-  const hunterExplanationBadgeClasses = isDark
-    ? 'bg-[#7f4329] text-[#fff4e6] border-[#c47a4f]'
-    : 'bg-[#c85a17] text-white border-[#e08a5a]';
+  // The "Why is this day …?" toggle is the quietest badge on the hero card:
+  // a translucent tint with colored text and a colored border instead of a
+  // solid fill, so it reads as an info control rather than competing with the
+  // solid rating / rut badges. The tint follows the day's rating tone, and the
+  // open state is slightly stronger so the expand/collapse affordance reads.
+  const explanationBadgeBase = isDark
+    ? explanationTone === 'poor'
+      ? 'bg-rose-500/10 text-rose-300 border-rose-500/40 hover:bg-rose-500/20'
+      : explanationTone === 'fair'
+      ? 'bg-amber-500/10 text-amber-300 border-amber-500/40 hover:bg-amber-500/20'
+      : explanationTone === 'cool'
+      ? 'bg-sky-500/10 text-sky-300 border-sky-500/40 hover:bg-sky-500/20'
+      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/20'
+    : theme === 'hunting'
+    ? explanationTone === 'poor'
+      ? 'bg-[#8b3a3a]/10 text-[#8b3a3a] border-[#8b3a3a]/40 hover:bg-[#8b3a3a]/20'
+      : explanationTone === 'fair'
+      ? 'bg-[#c85a17]/10 text-[#c85a17] border-[#c85a17]/40 hover:bg-[#c85a17]/20'
+      : explanationTone === 'cool'
+      ? 'bg-[#3f7f87]/10 text-[#3f7f87] border-[#3f7f87]/40 hover:bg-[#3f7f87]/20'
+      : 'bg-[#556b2f]/10 text-[#556b2f] border-[#556b2f]/40 hover:bg-[#556b2f]/20'
+    : theme === 'olive'
+    ? explanationTone === 'poor'
+      ? 'bg-[#9b4b3f]/10 text-[#9b4b3f] border-[#9b4b3f]/40 hover:bg-[#9b4b3f]/20'
+      : explanationTone === 'fair'
+      ? 'bg-[#b87333]/10 text-[#b87333] border-[#b87333]/40 hover:bg-[#b87333]/20'
+      : explanationTone === 'cool'
+      ? 'bg-[#4f858d]/10 text-[#4f858d] border-[#4f858d]/40 hover:bg-[#4f858d]/20'
+      : 'bg-[#556b2f]/10 text-[#556b2f] border-[#556b2f]/40 hover:bg-[#556b2f]/20'
+    : explanationTone === 'poor'
+    ? 'bg-rose-500/10 text-rose-700 border-rose-500/40 hover:bg-rose-500/20'
+    : explanationTone === 'fair'
+    ? 'bg-amber-500/10 text-amber-700 border-amber-500/40 hover:bg-amber-500/20'
+    : explanationTone === 'cool'
+    ? 'bg-sky-500/10 text-sky-700 border-sky-500/40 hover:bg-sky-500/20'
+    : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/40 hover:bg-emerald-500/20';
+
+  const explanationBadgeActive = isDark
+    ? explanationTone === 'poor'
+      ? 'bg-rose-500/20 text-rose-200 border-rose-500/60 hover:bg-rose-500/30'
+      : explanationTone === 'fair'
+      ? 'bg-amber-500/20 text-amber-200 border-amber-500/60 hover:bg-amber-500/30'
+      : explanationTone === 'cool'
+      ? 'bg-sky-500/20 text-sky-200 border-sky-500/60 hover:bg-sky-500/30'
+      : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/60 hover:bg-emerald-500/30'
+    : theme === 'hunting'
+    ? explanationTone === 'poor'
+      ? 'bg-[#8b3a3a]/20 text-[#8b3a3a] border-[#8b3a3a]/60 hover:bg-[#8b3a3a]/30'
+      : explanationTone === 'fair'
+      ? 'bg-[#c85a17]/20 text-[#c85a17] border-[#c85a17]/60 hover:bg-[#c85a17]/30'
+      : explanationTone === 'cool'
+      ? 'bg-[#3f7f87]/20 text-[#3f7f87] border-[#3f7f87]/60 hover:bg-[#3f7f87]/30'
+      : 'bg-[#556b2f]/20 text-[#556b2f] border-[#556b2f]/60 hover:bg-[#556b2f]/30'
+    : theme === 'olive'
+    ? explanationTone === 'poor'
+      ? 'bg-[#9b4b3f]/20 text-[#9b4b3f] border-[#9b4b3f]/60 hover:bg-[#9b4b3f]/30'
+      : explanationTone === 'fair'
+      ? 'bg-[#b87333]/20 text-[#b87333] border-[#b87333]/60 hover:bg-[#b87333]/30'
+      : explanationTone === 'cool'
+      ? 'bg-[#4f858d]/20 text-[#4f858d] border-[#4f858d]/60 hover:bg-[#4f858d]/30'
+      : 'bg-[#556b2f]/20 text-[#556b2f] border-[#556b2f]/60 hover:bg-[#556b2f]/30'
+    : explanationTone === 'poor'
+    ? 'bg-rose-500/15 text-rose-700 border-rose-500/50 hover:bg-rose-500/25'
+    : explanationTone === 'fair'
+    ? 'bg-amber-500/15 text-amber-700 border-amber-500/50 hover:bg-amber-500/25'
+    : explanationTone === 'cool'
+    ? 'bg-sky-500/15 text-sky-700 border-sky-500/50 hover:bg-sky-500/25'
+    : 'bg-emerald-500/15 text-emerald-700 border-emerald-500/50 hover:bg-emerald-500/25';
   const hunterBestHuntBadgeClasses = isDark
     ? 'bg-[#556b2f] text-white border-[#556b2f]'
     : 'bg-[#556b2f] text-white border-[#556b2f]';
@@ -562,25 +627,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   type="button"
                   onClick={() => setShowWeatherExplanation((prev) => !prev)}
                   className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-extrabold transition-all shrink-0 cursor-pointer whitespace-nowrap shadow-sm border active:scale-95 ${
-                    showWeatherExplanation
-                      ? isDark
-                        ? theme === 'hunting'
-                          ? `${hunterExplanationBadgeClasses} hover:bg-[#9a5233]`
-                          : 'bg-emerald-500/20 text-emerald-200 border-emerald-400/50 hover:bg-emerald-500/30'
-                        : theme === 'hunting'
-                        ? `${hunterExplanationBadgeClasses} hover:bg-[#b87342]`
-                        : theme === 'olive'
-                        ? 'bg-[#556b2f]/15 text-[#3d4f21] border-[#556b2f]/40 hover:bg-[#556b2f]/25'
-                        : 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
-                      : isDark
-                      ? theme === 'hunting'
-                        ? 'bg-[#a65d35] text-white border-[#e08a5a] hover:bg-[#b87342]'
-                        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:bg-emerald-500/20'
-                      : theme === 'hunting'
-                      ? `${hunterExplanationBadgeClasses} hover:bg-[#b34e12]`
-                      : theme === 'olive'
-                      ? 'bg-[#556b2f]/10 text-[#466126] border-[#556b2f]/30 hover:bg-[#556b2f]/20'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                    showWeatherExplanation ? explanationBadgeActive : explanationBadgeBase
                   }`}
                   title="Click to view weather factors driving this score"
                 >
