@@ -115,6 +115,28 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Click outside + Escape close for the filters overlay dropdown
+  const filtersRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showFilters) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) {
+        setShowFilters(false);
+      }
+    };
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowFilters(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    document.addEventListener('keydown', keyHandler);
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+      document.removeEventListener('keydown', keyHandler);
+    };
+  }, [showFilters]);
+
   // Target Manager State
   const [isTargetManagerOpen, setIsTargetManagerOpen] = useState(false);
 
@@ -639,8 +661,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   return (
     <div className="space-y-2 sm:space-y-3">
-      {/* Top Header Card */}
-      <div className={`${cardBase} ${cardBg} flex flex-col gap-2.5`}>
+      {/* Top Header Card — relative z-30 so the filters dropdown can paint
+          above the page content below. */}
+      <div className={`${cardBase} ${cardBg} relative z-30 flex flex-col gap-2.5`}>
         {/* Title row — always on top */}
         <div className="flex items-start gap-2 sm:gap-3">
           <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
@@ -709,31 +732,47 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </>
           ) : null}
 
-          {/* Filters toggle — moved up from the removed filter card into the
-              header so it sits right beside the Analytics tab. */}
-          <button
-            onClick={() => setShowFilters((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black uppercase tracking-wider transition-all border cursor-pointer whitespace-nowrap flex-shrink-0 shadow-sm ${
-              showFilters || activeFilterCount > 0
-                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md'
-                : isDark
-                ? 'bg-slate-950/50 border-slate-800 text-slate-300 hover:bg-slate-800'
-                : isHunting
-                ? 'bg-[#dccab8]/50 border-[#c4b498] text-[#5a3e1f] hover:bg-[#dccab8]'
-                : isOlive
-                ? 'bg-[#e5dfcd]/50 border-[#cbc5b0] text-[#3e4a2a] hover:bg-[#e5dfcd]'
-                : 'bg-slate-100/80 border-slate-300 text-slate-700 hover:bg-slate-200'
-            }`}
-            title={showFilters ? 'Hide filters' : 'Show filters'}
-          >
-            <Filter className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center">
-                {activeFilterCount}
-              </span>
+          {/* Filters toggle — overlay dropdown anchored to this button. */}
+          <div ref={filtersRef} className="relative flex-shrink-0">
+            <button
+              onClick={() => setShowFilters((prev) => !prev)}
+              aria-expanded={showFilters}
+              aria-haspopup="true"
+              className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black uppercase tracking-wider transition-all border cursor-pointer whitespace-nowrap flex-shrink-0 shadow-sm ${
+                showFilters || activeFilterCount > 0
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md'
+                  : isDark
+                  ? 'bg-slate-950/50 border-slate-800 text-slate-300 hover:bg-slate-800'
+                  : isHunting
+                  ? 'bg-[#dccab8]/50 border-[#c4b498] text-[#5a3e1f] hover:bg-[#dccab8]'
+                  : isOlive
+                  ? 'bg-[#e5dfcd]/50 border-[#cbc5b0] text-[#3e4a2a] hover:bg-[#e5dfcd]'
+                  : 'bg-slate-100/80 border-slate-300 text-slate-700 hover:bg-slate-200'
+              }`}
+              title={showFilters ? 'Hide filters' : 'Show filters'}
+            >
+              <Filter className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {/* Overlay filter dropdown */}
+            {showFilters && (
+              <TrailCameraFilters
+                theme={theme}
+                isDark={isDark}
+                filter={filter}
+                onFilterChange={setFilter}
+                locations={allSpots}
+                targets={targets}
+                activeFilterCount={activeFilterCount}
+              />
             )}
-          </button>
+          </div>
 
           {/* Sub-Tab Navigation Buttons */}
           <div className={`flex w-full sm:w-auto items-center justify-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-xl border flex-shrink-0 max-w-full overflow-x-auto ${
@@ -1001,19 +1040,6 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
               />
             )}
           </div>
-
-          {/* Filter Panel — shown only while the header Filters button is on */}
-          {showFilters && (
-            <TrailCameraFilters
-              theme={theme}
-              isDark={isDark}
-              filter={filter}
-              onFilterChange={setFilter}
-              locations={allSpots}
-              targets={targets}
-              activeFilterCount={activeFilterCount}
-            />
-          )}
 
           {/* Photo Gallery Grid */}
           <TrailCameraGallery
