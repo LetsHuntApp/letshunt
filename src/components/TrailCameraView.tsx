@@ -565,7 +565,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   }, [photos, units, pressureUnit]);
 
   // Theme-aware class helpers
-  const cardBase = 'rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3';
+  const cardBase = 'rounded-2xl border p-3 sm:p-4 backdrop-blur-xl shadow-xl';
   const cardBg = isDark
     ? 'bg-slate-900/[var(--card-opacity)] border-slate-800 text-slate-100'
     : isHunting
@@ -610,9 +610,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const modalInputBg = isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900';
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {/* Top Header Card */}
-      <div className={`${cardBase} ${cardBg} flex flex-col gap-3`}>
+      <div className={`${cardBase} ${cardBg} flex flex-col gap-2.5`}>
         {/* Title row — always on top */}
         <div className="flex items-start gap-2 sm:gap-3">
           <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
@@ -747,10 +747,9 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </div>
           )}
 
-          {/* Location Management Strip — dropdown + Add + Default toggle + Delete.
-              Compact single row on every breakpoint so Add sits directly to
-              the right of the dropdown. */}
-          <div className={`${cardBase} ${cardBg} flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs flex-wrap`}>
+          {/* Location & Target Management Card — Spots and Targets merged into
+              one compact card with two tight rows so the page stays short. */}
+          <div className={`rounded-2xl border backdrop-blur-xl shadow-xl ${cardBg} flex flex-wrap items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs`}>
             <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
             </span>
@@ -868,12 +867,11 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>Delete</span>
               </button>
-          </div>
 
-          {/* Target Management Strip — dropdown + Add + colour swatch.
-              Compact single row on every breakpoint so Add sits directly to
-              the right of the dropdown. */}
-          <div className={`${cardBase} ${cardBg} flex items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs flex-wrap`}>
+            {/* Full-width divider — forces the Targets row onto a second line
+                inside the same card. */}
+            <div className="w-full h-px bg-slate-500/20" />
+
             <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
             </span>
