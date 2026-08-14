@@ -79,11 +79,12 @@ export async function uploadPhotoBlob(
  * Cached per photo so the gallery doesn't re-sign on every render.
  */
 export async function getPhotoDownloadUrl(clubId: string, photoId: string): Promise<string> {
-  const cached = downloadUrlCache.get(photoId);
+  const cacheKey = `${clubId}:${photoId}`;
+  const cached = downloadUrlCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now() + 60_000) return cached.url;
 
   const url = await requestSignedUrl('download', clubId, photoId);
-  downloadUrlCache.set(photoId, { url, expiresAt: Date.now() + urlExpiryMs(url) });
+  downloadUrlCache.set(cacheKey, { url, expiresAt: Date.now() + urlExpiryMs(url) });
   return url;
 }
 

@@ -12,9 +12,9 @@
  * whenever local data changes while an active club is selected.
  */
 import { supabase, getCurrentUser } from './supabaseService';
-import { exportBackupData, importBackupData, type BackupSummary } from './dataBackupService';
-import { getAllPhotos, getFullImageBlob } from './trailCameraService';
-import { uploadPhotoBlob } from './b2Service';
+import { exportBackupData, importBackupData, type BackupSummary, type LetsHuntBackup } from './dataBackupService';
+import { getAllPhotos, getFullImageBlob, saveFullImageBlob } from './trailCameraService';
+import { getPhotoDownloadUrl, uploadPhotoBlob } from './b2Service';
 import type { ActiveClub, HuntClub, HuntClubRole, PublishResult } from '../types';
 import { safeGetJSON, safeSetJSON, safeRemove } from '../utils/storage';
 
@@ -203,5 +203,34 @@ export async function pullClubData(clubId: string): Promise<BackupSummary | null
     .maybeSingle();
   if (error) throw new Error(`Could not fetch club data: ${error.message}`);
   if (!data?.payload) return null;
-  return importBackupData(JSON.stringify(data.payload));
+
+  const backup = data.payload as LetsHuntBackup;
+  const summary = await importBackupData(JSON.stringify(data.payload));
+
+  // JSON intentionally carries thumbnails only. Restore each matching B2
+  // object as well so the gallery and photo preview have the original image
+  // locally after a HuntClub load, rather than stopping at the low-res copy.
+  const cloudPhotos = Array.isArray(backup.trailCams?.photos)
+    ? backup.trailCams.photos
+    : [];
+  for (const photo of cloudPhotos) {
+    if (!photo?.id) continue;
+    try {
+      // Keep an existing local original and avoid downloading it on every sync.
+      if (await getFullImageBlob(photo.id)) continue;
+
+      const url = await getPhotoDownloadUrl(clubId, photo.id);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`download failed (${response.status})`);
+      const blob = await response.blob();
+      if (blob.size > 0) await saveFullImageBlob(photo.id, blob);
+    } catch (err) {
+      // A missing/temporarily unavailable cloud object should not prevent the
+      // metadata bundle from loading; the detail view can still retry via its
+      // signed URL fallback.
+      console.warn(`[club] full-resolution download failed for photo "${photo.id}":`, err);
+    }
+  }
+
+  return summary;
 }

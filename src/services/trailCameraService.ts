@@ -1185,6 +1185,16 @@ export async function getFullImageBlob(id: string): Promise<Blob | undefined> {
   return entry?.blob;
 }
 
+/** Store a full-resolution image while preserving its existing thumbnail. */
+export async function saveFullImageBlob(id: string, blob: Blob): Promise<void> {
+  const existing = await getFromStore<{ id: string; thumbnailUrl?: string }>(FULL_IMAGES_STORE, id);
+  await putInStore(FULL_IMAGES_STORE, {
+    ...existing,
+    id,
+    blob,
+  });
+}
+
 export async function updatePhoto(id: string, updates: Partial<TrailCameraPhoto>): Promise<void> {
   const photo = await getPhoto(id);
   if (!photo) return;
@@ -1212,7 +1222,16 @@ export async function deletePhotos(ids: string[]): Promise<void> {
 // the original file can be re-imported from the SD card if desired.
 export async function savePhotoWithThumbnail(photo: TrailCameraPhoto, thumbnailUrl?: string): Promise<void> {
   await putInStore(PHOTOS_STORE, photo);
-  await putInStore(FULL_IMAGES_STORE, { id: photo.id, thumbnailUrl: thumbnailUrl || '' });
+  // A backup contains metadata and a thumbnail, but a local device may already
+  // have the original blob. Keep that blob while refreshing the lightweight
+  // gallery preview instead of downgrading the local photo during a restore.
+  const existing = await getFromStore<{ id: string; blob?: Blob; thumbnailUrl?: string }>(FULL_IMAGES_STORE, photo.id);
+  await putInStore(FULL_IMAGES_STORE, {
+    ...existing,
+    id: photo.id,
+    blob: existing?.blob,
+    thumbnailUrl: thumbnailUrl || existing?.thumbnailUrl || '',
+  });
   clearAnalyticsCache();
 }
 

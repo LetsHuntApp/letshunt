@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair, Navigation, Target, AlertCircle, Eraser } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getFullImageBlob, getThumbnailUrl, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
+import { getPhotoDownloadUrl } from '../services/b2Service';
+import { getActiveClub } from '../services/huntClubService';
 
 interface TrailCameraDetailProps {
   theme?: ThemeVariantMode;
@@ -96,6 +98,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
     let active = true;
 
     const loadFullImage = async () => {
+      setImageUrl(null);
       setZoomLevel(1);
       setNotes(photo.notes || '');
       setSelectedLocId(photo.cameraLocationId || '');
@@ -117,6 +120,21 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
         objectUrl = URL.createObjectURL(blob);
         setImageUrl(objectUrl);
       } else {
+        // Photos restored from a HuntClub may not have been downloaded into
+        // IndexedDB yet. Use the club's signed B2 URL before falling back to
+        // the thumbnail, so a click always gets the best available image.
+        const club = getActiveClub();
+        if (club) {
+          try {
+            const cloudUrl = await getPhotoDownloadUrl(club.id, photo.id);
+            if (active) {
+              setImageUrl(cloudUrl);
+              return;
+            }
+          } catch (error) {
+            console.warn('[trail cam] full-resolution cloud preview unavailable:', error);
+          }
+        }
         const thumb = await getThumbnailUrl(photo.id);
         if (active) setImageUrl(thumb || null);
       }
