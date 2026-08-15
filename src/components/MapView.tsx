@@ -185,6 +185,54 @@ function isEsriErrorTile(img: HTMLImageElement | null): boolean {
   return near / n > 0.95;
 }
 
+interface TileRenderCacheEntry {
+  successfulUrl?: string;
+  attempt: number;
+  loaded: boolean;
+  lastUsed: number;
+}
+
+// Keep fallback/decoded-state metadata for recently viewed tiles. React still
+// mounts only the tiles in the current viewport, but revisiting a zoom level
+// can now paint cached tiles immediately instead of waiting for a new load
+// cycle (the browser's HTTP cache remains the source of the image bytes).
+const TILE_RENDER_CACHE_LIMIT = 384;
+const SCENT_CONE_SPREAD = 45;
+const tileRenderCache = new Map<string, TileRenderCacheEntry>();
+
+function trimTileRenderCache() {
+  while (tileRenderCache.size > TILE_RENDER_CACHE_LIMIT) {
+    const oldestKey = [...tileRenderCache.entries()].reduce((oldest, current) =>
+      current[1].lastUsed < oldest[1].lastUsed ? current : oldest
+    )[0];
+    tileRenderCache.delete(oldestKey);
+  }
+}
+
+function getTileCacheState(tileKey: string, urls: string[]) {
+  const cached = tileRenderCache.get(tileKey);
+  if (!cached) return { attempt: 0, loaded: false };
+
+  cached.lastUsed = Date.now();
+  const successfulIndex = cached.successfulUrl ? urls.indexOf(cached.successfulUrl) : -1;
+  return {
+    attempt: successfulIndex >= 0 ? successfulIndex : cached.attempt,
+    loaded: successfulIndex >= 0 && cached.loaded,
+  };
+}
+
+function updateTileCache(tileKey: string, update: Partial<TileRenderCacheEntry>) {
+  const previous = tileRenderCache.get(tileKey);
+  tileRenderCache.set(tileKey, {
+    attempt: previous?.attempt ?? 0,
+    loaded: previous?.loaded ?? false,
+    ...previous,
+    ...update,
+    lastUsed: Date.now(),
+  });
+  trimTileRenderCache();
+}
+
 interface MapTileProps {
   tileKey: string;
   urls: string[];
@@ -196,8 +244,9 @@ interface MapTileProps {
 }
 
 const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z }: MapTileProps) => {
-  const [attempt, setAttempt] = useState(0);
-  const [loaded, setLoaded] = useState(false);
+  const cachedState = getTileCacheState(tileKey, urls);
+  const [attempt, setAttempt] = useState(cachedState.attempt);
+  const [loaded, setLoaded] = useState(cachedState.loaded);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Cycle through EVERY fallback URL — a failure never leaves the chain stuck
@@ -210,7 +259,9 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z }: M
 
   const handleError = () => {
     if (attempt + 1 < urls.length * 3) {
-      setAttempt((prev) => prev + 1);
+      const nextAttempt = attempt + 1;
+      updateTileCache(tileKey, { attempt: nextAttempt, loaded: false });
+      setAttempt(nextAttempt);
     }
   };
 
@@ -227,6 +278,11 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z }: M
       handleError();
       return;
     }
+    updateTileCache(tileKey, {
+      successfulUrl: currentUrl,
+      attempt,
+      loaded: true,
+    });
     setLoaded(true);
   };
 
@@ -865,7 +921,6 @@ export const MapView: React.FC<MapViewProps> = ({
     const saved = safeGetString('letshunt_map_style');
     return (saved as 'satellite' | 'topo' | 'street') || 'satellite';
   });
-  const [scentSpread, setScentSpread] = useState<15 | 45 | 75>(45);
   const [isScentPanelCollapsed, setIsScentPanelCollapsed] = useState(true);
   const [activeForecasterTab, setActiveForecasterTab] = useState<'hourly' | 'details'>('hourly');
 
@@ -959,6 +1014,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const lastTouchTimeRef = useRef<number>(0);
+  const touchTapHandledRef = useRef(false);
   const pinchDistRef = useRef<number | null>(null);
   const initialZoomRef = useRef<number | null>(null);
   const isPinchingRef = useRef<boolean>(false);
@@ -978,6 +1034,8 @@ export const MapView: React.FC<MapViewProps> = ({
   // directly to the DOM. State is synced only after the gesture ends.
   const zoomScaleRef = useRef<number>(1);
   const wheelZoomRafRef = useRef<number | null>(null);
+  const wheelZoomCommitTimerRef = useRef<number | null>(null);
+  const wheelZoomBaseRef = useRef<number | null>(null);
   const wheelZoomDeltaRef = useRef(0);
   // CSS-transform rotation: angle in degrees, applied directly to the DOM
   // during two-finger rotation gestures for instant visual feedback.
@@ -1012,6 +1070,7 @@ export const MapView: React.FC<MapViewProps> = ({
       if (panTileRefreshRafRef.current !== null) cancelAnimationFrame(panTileRefreshRafRef.current);
       if (pinchTileRefreshRafRef.current !== null) cancelAnimationFrame(pinchTileRefreshRafRef.current);
       if (wheelZoomRafRef.current !== null) cancelAnimationFrame(wheelZoomRafRef.current);
+      if (wheelZoomCommitTimerRef.current !== null) window.clearTimeout(wheelZoomCommitTimerRef.current);
     };
   }, []);
 
@@ -1894,6 +1953,10 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Mouse / Touch Dragging & Panning logic
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Mobile browsers synthesize mouse events after a touch. Ignore that
+    // compatibility sequence or a single tap can place the same path point a
+    // second time through handleMouseUp.
+    if (Date.now() - lastTouchTimeRef.current < 500) return;
     if (isUiControlTarget(e.target as HTMLElement)) return;
     setIsDragging(true);
     hasMovedRef.current = false;
@@ -2076,6 +2139,8 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    // Ignore the compatibility mouseup emitted after a touch gesture.
+    if (Date.now() - lastTouchTimeRef.current < 500) return;
     if (!isDragging) return;
     setIsDragging(false);
 
@@ -2141,24 +2206,38 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
-  // Wheel zoom — batch events into the next animation frame instead of waiting
-  // for the wheel to stop. This keeps the tile grid moving with an active
-  // trackpad/mouse gesture while still limiting React work to one render/frame.
+  // Wheel zoom stays in a CSS transform while the wheel is active. React only
+  // commits once the gesture settles, so zooming through several levels does
+  // not rebuild the tile grid on every wheel tick; the tile render cache then
+  // makes revisited levels paint immediately.
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    if (wheelZoomBaseRef.current === null) wheelZoomBaseRef.current = zoomRef.current;
     wheelZoomDeltaRef.current += e.deltaY < 0 ? 0.5 : -0.5;
 
-    if (wheelZoomRafRef.current !== null) return;
-    wheelZoomRafRef.current = requestAnimationFrame(() => {
-      wheelZoomRafRef.current = null;
-      const delta = wheelZoomDeltaRef.current;
-      wheelZoomDeltaRef.current = 0;
-      if (delta === 0) return;
+    if (wheelZoomRafRef.current === null) {
+      wheelZoomRafRef.current = requestAnimationFrame(() => {
+        wheelZoomRafRef.current = null;
+        const scale = Math.max(0.25, Math.min(4, Math.pow(2, wheelZoomDeltaRef.current)));
+        applyMapTransform(scale, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+      });
+    }
 
-      const nextZoom = Math.min(MAX_ZOOM, Math.max(3, zoomRef.current + delta));
+    if (wheelZoomCommitTimerRef.current !== null) {
+      window.clearTimeout(wheelZoomCommitTimerRef.current);
+    }
+    wheelZoomCommitTimerRef.current = window.setTimeout(() => {
+      wheelZoomCommitTimerRef.current = null;
+      const baseZoom = wheelZoomBaseRef.current;
+      if (baseZoom === null) return;
+
+      const nextZoom = Math.min(MAX_ZOOM, Math.max(3, baseZoom + wheelZoomDeltaRef.current));
+      wheelZoomBaseRef.current = null;
+      wheelZoomDeltaRef.current = 0;
       zoomRef.current = nextZoom;
-      setZoom(nextZoom);
-    });
+      flushSync(() => setZoom(nextZoom));
+      applyMapTransform(1, panOffsetRef.current.x, panOffsetRef.current.y, rotationRef.current);
+    }, 140);
   };
 
   // Keep browser viewport gestures from competing with the map's React
@@ -2187,6 +2266,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isUiControlTarget(e.target as HTMLElement)) return;
     if (e.touches.length === 2) {
+      touchTapHandledRef.current = true;
       // If a second finger joins while a one-finger pan is still active,
       // commit that first pan before switching gesture modes. Resetting the
       // temporary offset here would otherwise throw away the visible pan and
@@ -2223,6 +2303,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
     if (e.touches.length === 1) {
       isPinchingRef.current = false;
+      touchTapHandledRef.current = false;
       // The previous pinch-end path has already committed and cleared any
       // temporary transform. Do not clear a live one-finger pan here.
       if (panOffsetRef.current.x === 0 && panOffsetRef.current.y === 0) {
@@ -2297,6 +2378,7 @@ export const MapView: React.FC<MapViewProps> = ({
     // translation instead of baking a partial/stale offset into the center,
     // and make the cleanup idempotent if the browser also emits touchend.
     if (e.type === 'touchcancel') {
+      touchTapHandledRef.current = true;
       isPinchingRef.current = false;
       setIsDragging(false);
       pinchDistRef.current = null;
@@ -2352,7 +2434,6 @@ export const MapView: React.FC<MapViewProps> = ({
       applyMapTransform(1, 0, 0, rotationRef.current);
       return;
     }
-
     if (!isDragging) return;
     setIsDragging(false);
 
@@ -2391,7 +2472,10 @@ export const MapView: React.FC<MapViewProps> = ({
         e.changedTouches[0].clientY,
         nextCenter
       );
-      handleMapClick(clickedLat, clickedLng);
+      if (!touchTapHandledRef.current) {
+        touchTapHandledRef.current = true;
+        handleMapClick(clickedLat, clickedLng);
+      }
     }
   };
 
@@ -2512,14 +2596,14 @@ export const MapView: React.FC<MapViewProps> = ({
   const scentConePath = useMemo(() => {
     if (!selectedPin || !showScentCone) return null;
 
-    const startDeg = (downwindDeg - scentSpread / 2 + 360) % 360;
-    const endDeg = (downwindDeg + scentSpread / 2 + 360) % 360;
+    const startDeg = (downwindDeg - SCENT_CONE_SPREAD / 2 + 360) % 360;
+    const endDeg = (downwindDeg + SCENT_CONE_SPREAD / 2 + 360) % 360;
 
     const pinPixel = latLngToPixel(selectedPin.lat, selectedPin.lng);
     const radiusPixels = Math.min(260, Math.max(90, (windMph || 5) * 12 * (zoom / 15)));
 
     return getSvgArcPath(pinPixel.x, pinPixel.y, radiusPixels, startDeg, endDeg);
-  }, [selectedPin, showScentCone, downwindDeg, scentSpread, latLngToPixel, windMph, zoom]);
+  }, [selectedPin, showScentCone, downwindDeg, latLngToPixel, windMph, zoom]);
 
   // Preferred Wind Vector Sector Paths for all markers
   const preferredWindPaths = useMemo(() => {
@@ -3883,7 +3967,7 @@ export const MapView: React.FC<MapViewProps> = ({
             aria-label="Hourly weather forecast"
           >
             <div
-              className={`rounded-xl border shadow-2xl backdrop-blur-md px-2.5 py-1.5 ${
+              className={`rounded-xl border shadow-2xl backdrop-blur-md px-2 py-1 ${
                 isDark ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
               }`}
             >
@@ -3948,7 +4032,7 @@ export const MapView: React.FC<MapViewProps> = ({
             }`}
           >
             {/* Header Bar */}
-            <div className="flex items-center justify-between p-2.5 border-b border-slate-800/30 bg-slate-950/20">
+            <div className="flex items-center justify-between p-2 border-b border-slate-800/30 bg-slate-950/20">
               <div className="flex items-center gap-2 overflow-hidden">
                 <span className="text-xl flex-shrink-0 flex items-center"><MetaIcon icon={PIN_METADATA[selectedPin.type]?.icon} fallback={Crosshair} className="w-5 h-5" /></span>
                 <div className="truncate">
@@ -4019,7 +4103,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
             {/* Collapsed Minimalist Preview Bar */}
             {isScentPanelCollapsed ? (
-              <div className="p-2.5">
+              <div className="p-2">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-xs font-black uppercase text-sky-400 truncate">
                     <Wind className="w-3.5 h-3.5 flex-shrink-0" />
@@ -4031,18 +4115,18 @@ export const MapView: React.FC<MapViewProps> = ({
                     className="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-400 text-xs font-black uppercase tracking-wide hover:bg-sky-500/25 transition-colors"
                     aria-expanded={showHourlyWeather}
                   >
-                    Adjust
+                    Hourly
                   </button>
                 </div>
               </div>
             ) : (
               /* Uncollapsed Expanded View with 2 Condensed TABS */
-              <div className="p-2.5 space-y-2.5">
+              <div className="p-2 space-y-2">
                 {/* Segmented Tab Buttons */}
                 <div className="flex border-b border-slate-800/40">
                   <button
                     onClick={() => setActiveForecasterTab('hourly')}
-                    className={`flex-1 py-2 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-1.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeForecasterTab === 'hourly'
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -4056,7 +4140,7 @@ export const MapView: React.FC<MapViewProps> = ({
 
                   <button
                     onClick={() => setActiveForecasterTab('details')}
-                    className={`flex-1 py-2 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    className={`flex-1 py-1.5 text-xs font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       activeForecasterTab === 'details'
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -4067,13 +4151,13 @@ export const MapView: React.FC<MapViewProps> = ({
                   </button>
                 </div>
 
-                {/* TAB 1: Hourly Scent Controls — the hour scrubber, weather
-                    stats and cone spread all live in this one panel so a
-                    selected pin shows a single bottom card. */}
+                {/* TAB 1: Hourly Scent Controls — the hour scrubber and weather
+                    stats live in this one compact panel so a selected pin shows
+                    a single bottom card. */}
                 {activeForecasterTab === 'hourly' && (
-                  <div className="space-y-2.5">
+                  <div className="space-y-1.5">
                     {/* Hour scrubber — scent cone and stats below track this hour */}
-                    <div className={`p-2.5 rounded-xl border ${
+                    <div className={`p-2 rounded-xl border ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
                     }`}>
                       <div className="flex items-center gap-1.5 sm:gap-2">
@@ -4100,7 +4184,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       {/* Compact stats row — wind, rain and movement window for
                           this hour. Scent direction is shown in the collapsed
                           preview bar and on the map itself. */}
-                      <div className="flex items-center gap-1 mt-1.5 overflow-x-auto whitespace-nowrap text-[11px] font-bold scrollbar-none">
+                      <div className="flex items-center gap-1 mt-1 overflow-x-auto whitespace-nowrap text-[11px] font-bold scrollbar-none">
                         <span className="inline-flex items-center gap-0.5 text-emerald-400"><Wind className="w-2.5 h-2.5" />{windDirText} {displayWindSpeed}</span>
                         <span className="text-slate-500">·</span>
                         <span className="inline-flex items-center gap-0.5 text-sky-400"><Droplets className="w-2.5 h-2.5" />{precipProbability}% · {displayPrecipAmount}</span>
@@ -4111,32 +4195,6 @@ export const MapView: React.FC<MapViewProps> = ({
                         </span>
                       </div>
                     </div>
-
-                    {/* Scent cone spread — controls the cone drawn on the map */}
-                    <div className={`flex items-center justify-between gap-2 p-2 rounded-lg border ${
-                      isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
-                    }`}>
-                      <span className="text-[11px] uppercase font-black text-slate-400 flex items-center gap-1 whitespace-nowrap">
-                        <Wind className="w-3 h-3 text-orange-400" /> Scent Spread
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {[15, 45, 75].map((spread) => (
-                          <button
-                            key={spread}
-                            onClick={() => setScentSpread(spread as 15 | 45 | 75)}
-                            className={`px-2.5 py-1.5 text-[11px] font-black rounded border cursor-pointer transition-all ${
-                              scentSpread === spread
-                                ? 'bg-orange-600 border-orange-500 text-white'
-                                : isDark
-                                ? 'bg-slate-900 border-slate-800 text-slate-400'
-                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            {spread}°
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -4144,8 +4202,8 @@ export const MapView: React.FC<MapViewProps> = ({
 
                 {/* TAB 3: Marker Details & Notes */}
                 {activeForecasterTab === 'details' && (
-                  <div className="space-y-2.5">
-                    <div className={`p-2.5 rounded-xl border space-y-1.5 text-xs ${
+                  <div className="space-y-1.5">
+                    <div className={`p-2 rounded-xl border space-y-1 text-xs ${
                       isDark ? 'border-slate-800/40 bg-slate-950/40' : 'border-slate-200 bg-slate-100/50'
                     }`}>
                       <div className="flex justify-between text-xs">
@@ -4175,7 +4233,7 @@ export const MapView: React.FC<MapViewProps> = ({
                           setEditNotes(selectedPin.notes || '');
                           setEditPreferredWindDeg(selectedPin.preferredWindDeg || 0);
                         }}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
+                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <Edit2 className="w-3.5 h-3.5" /> Edit Marker
                       </button>
