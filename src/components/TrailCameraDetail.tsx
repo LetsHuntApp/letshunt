@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair, Navigation, Target, AlertCircle, Eraser } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getFullImageBlob, getThumbnailUrl, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
@@ -39,6 +39,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   pressureUnit = 'inHg',
 }) => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const imageFallbackAttemptRef = useRef(0);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [notes, setNotes] = useState(photo.notes || '');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -96,6 +97,26 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
   useEffect(() => {
     let objectUrl: string | null = null;
     let active = true;
+    imageFallbackAttemptRef.current = 0;
+
+    const loadCloudOrThumbnail = async () => {
+      // Photos restored from a HuntClub may not have their original blob in
+      // IndexedDB yet. Try the signed B2 object before using the thumbnail.
+      const club = getActiveClub();
+      if (club) {
+        try {
+          const cloudUrl = await getPhotoDownloadUrl(club.id, photo.id);
+          if (active) {
+            setImageUrl(cloudUrl);
+            return;
+          }
+        } catch (error) {
+          console.warn('[trail cam] full-resolution cloud preview unavailable:', error);
+        }
+      }
+      const thumb = await getThumbnailUrl(photo.id);
+      if (active) setImageUrl(thumb || null);
+    };
 
     const loadFullImage = async () => {
       setImageUrl(null);
@@ -115,29 +136,22 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
         setEditDate(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`);
       }
 
-      const blob = await getFullImageBlob(photo.id);
-      if (blob && active) {
-        objectUrl = URL.createObjectURL(blob);
-        setImageUrl(objectUrl);
-      } else {
-        // Photos restored from a HuntClub may not have been downloaded into
-        // IndexedDB yet. Use the club's signed B2 URL before falling back to
-        // the thumbnail, so a click always gets the best available image.
-        const club = getActiveClub();
-        if (club) {
-          try {
-            const cloudUrl = await getPhotoDownloadUrl(club.id, photo.id);
-            if (active) {
-              setImageUrl(cloudUrl);
-              return;
-            }
-          } catch (error) {
-            console.warn('[trail cam] full-resolution cloud preview unavailable:', error);
-          }
+      try {
+        const blob = await getFullImageBlob(photo.id);
+        if (!active) return;
+        if (blob && blob.size > 0) {
+          objectUrl = URL.createObjectURL(blob);
+          setImageUrl(objectUrl);
+          return;
         }
-        const thumb = await getThumbnailUrl(photo.id);
-        if (active) setImageUrl(thumb || null);
+      } catch (error) {
+        // IndexedDB can temporarily fail after a PWA restore or storage
+        // eviction. Continue to the cloud/thumbnail fallbacks instead of
+        // leaving the detail view stuck on "Loading Full Image...".
+        console.warn('[trail cam] local full-resolution preview unavailable:', error);
       }
+
+      await loadCloudOrThumbnail();
     };
 
     loadFullImage();
@@ -147,6 +161,34 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [photo.id]);
+
+  // If a locally cached blob or signed cloud URL is stale/corrupt, retry the
+  // other full-resolution source before finally falling back to the thumbnail.
+  const handleImageError = async () => {
+    const attempt = imageFallbackAttemptRef.current;
+    if (attempt === 0) {
+      imageFallbackAttemptRef.current = 1;
+      const club = getActiveClub();
+      if (club) {
+        try {
+          const cloudUrl = await getPhotoDownloadUrl(club.id, photo.id);
+          setImageUrl(cloudUrl);
+          return;
+        } catch (error) {
+          console.warn('[trail cam] cloud full-resolution retry unavailable:', error);
+        }
+      }
+    }
+
+    if (imageFallbackAttemptRef.current <= 1) {
+      imageFallbackAttemptRef.current = 2;
+      const thumb = await getThumbnailUrl(photo.id);
+      setImageUrl(thumb || null);
+      return;
+    }
+
+    setImageUrl(null);
+  };
 
   const handleSaveNotes = () => {
     onUpdatePhoto(photo.id, { notes });
@@ -308,6 +350,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
             <img
               src={imageUrl}
               alt={photo.fileName}
+              onError={() => { void handleImageError(); }}
               style={{ transform: `scale(${zoomLevel})`, transition: 'transform 0.15s ease-out' }}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl origin-center"
             />
