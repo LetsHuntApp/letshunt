@@ -54,6 +54,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [mapPins, setMapPins] = useState<SavedPin[]>([]);
   const [filter, setFilter] = useState<TrailCameraFilterState>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [filterDropdownLeft, setFilterDropdownLeft] = useState(0);
   const [selectedPhoto, setSelectedPhoto] = useState<TrailCameraPhoto | null>(null);
 
   // Import State
@@ -118,6 +119,28 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   // Click outside + Escape close for the filters overlay dropdown
   const filtersRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!showFilters) return;
+
+    // Keep the panel's left edge aligned with the button until that would push
+    // it past the viewport. In that case, shift only as much as necessary to
+    // preserve the button anchor without clipping either side of the panel.
+    const updateFilterDropdownPosition = () => {
+      const anchor = filtersRef.current;
+      if (!anchor) return;
+
+      const anchorRect = anchor.getBoundingClientRect();
+      const panelWidth = Math.min(320, Math.max(0, window.innerWidth - 24));
+      const maxLeft = Math.max(12, window.innerWidth - panelWidth - 12);
+      const viewportLeft = Math.max(12, Math.min(anchorRect.left, maxLeft));
+      setFilterDropdownLeft(viewportLeft - anchorRect.left);
+    };
+
+    updateFilterDropdownPosition();
+    window.addEventListener('resize', updateFilterDropdownPosition);
+    return () => window.removeEventListener('resize', updateFilterDropdownPosition);
+  }, [showFilters]);
+
   useEffect(() => {
     if (!showFilters) return;
     const handler = (e: MouseEvent | TouchEvent) => {
@@ -811,6 +834,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 locations={allSpots}
                 targets={targets}
                 activeFilterCount={activeFilterCount}
+                dropdownLeft={filterDropdownLeft}
               />
             )}
           </div>
