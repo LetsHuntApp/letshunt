@@ -445,6 +445,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
             steps={[
               { title: 'Select your photos', description: 'Use the import panel above — drag & drop or tap to pick hundreds of images at once.' },
               { title: 'We read the timestamps', description: 'OCR extracts the date & time burned into the info bar so every photo is sorted correctly.' },
+              { title: 'Import straight to a Target', description: 'Choose a Target in the Targets row above, then press “Add photos to Target” to import and tag those photos in one step.' },
               { title: 'Match weather & analyze', description: 'Assign a camera spot and history weather is matched automatically for movement analytics.' },
             ]}
             ctaLabel="Import Photos"

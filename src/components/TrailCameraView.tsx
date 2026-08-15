@@ -80,6 +80,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // the same import flow once photos already exist.
   const importPanelRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const targetImportInputRef = useRef<HTMLInputElement>(null);
 
   // Location Search State
   const [locSearchQuery, setLocSearchQuery] = useState('');
@@ -528,6 +529,36 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     e.target.value = '';
   };
 
+  // Target-specific import intentionally wraps the existing standard import
+  // workflow: OCR, thumbnails, weather matching, progress, and time correction
+  // stay exactly the same, then only the newly imported photos receive the tag.
+  const handleStartTargetImport = async (files: FileList | File[], targetId: string) => {
+    const beforeIds = new Set((await getAllPhotos()).map((photo) => photo.id));
+    await handleStartImport(files);
+
+    const importedPhotos = (await getAllPhotos()).filter((photo) => !beforeIds.has(photo.id));
+    if (importedPhotos.length === 0) return;
+
+    for (const photo of importedPhotos) {
+      const tags = photo.tags || [];
+      if (!tags.includes(targetId)) {
+        await updatePhoto(photo.id, { tags: [...tags, targetId] });
+      }
+    }
+
+    const freshPhotos = await getAllPhotos();
+    setPhotos(freshPhotos);
+    const target = targets.find((item) => item.id === targetId);
+    showToast(`Imported and tagged ${importedPhotos.length} photo(s) as "${target?.name || 'target'}"`);
+  };
+
+  const handleTargetImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0 && selectedTargetId) {
+      void handleStartTargetImport(e.target.files, selectedTargetId);
+    }
+    e.target.value = '';
+  };
+
   // Save Time Corrections
   const handleSaveTimeCorrections = async () => {
     if (savingCorrections) return;
@@ -971,11 +1002,11 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <select
               value={selectedTargetId}
               onChange={(e) => setSelectedTargetId(e.target.value)}
-              title="Quick-view a target — colour-swatch is shown for each option"
+              title="Select a target before importing photos directly to it"
               className={`w-full sm:flex-1 min-w-0 sm:min-w-[160px] sm:max-w-xs px-2.5 py-2 text-xs sm:text-xs font-bold rounded-xl border outline-none cursor-pointer ${inputBg}`}
             >
               <option value="">
-                {targets.length === 0 ? '— No targets yet —' : `— All targets (${targets.length}) —`}
+                {targets.length === 0 ? '— No targets yet —' : `— Select a target (${targets.length}) —`}
               </option>
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -983,6 +1014,31 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 </option>
               ))}
             </select>
+
+            <input
+              ref={targetImportInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleTargetImportChange}
+              className="hidden"
+            />
+
+            <button
+              onClick={() => targetImportInputRef.current?.click()}
+              disabled={!selectedTargetId || importing}
+              title={!selectedTargetId ? 'Select a target first' : 'Import photos and tag them to the selected target'}
+              className={`flex-1 sm:flex-none justify-center px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-xs font-bold transition-all border cursor-pointer flex items-center gap-1 shadow-sm flex-shrink-0 ${
+                !selectedTargetId || importing
+                  ? isDark
+                    ? 'bg-slate-900/50 border-slate-800 text-slate-600 cursor-not-allowed opacity-60'
+                    : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+                  : buttonPrimaryBg
+              }`}
+            >
+              {importing ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Upload className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+              <span>Add photos to Target</span>
+            </button>
 
             {/* Add (Manage) — sits directly to the right of the dropdown on
                 every breakpoint.  Compact: tiny padding + tiny text, still
@@ -1038,6 +1094,13 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                   targets.find((t) => t.id === selectedTargetId)?.name || ''
                 } colour swatch`}
               />
+            )}
+
+            {targets.length > 0 && (
+              <div className="w-full flex items-center gap-1.5 px-1 pt-0.5 text-[11px] opacity-70">
+                <Target className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                <span>Select a Target, then press <strong>Add photos to Target</strong> to import and tag photos in one step.</span>
+              </div>
             )}
           </div>
 
