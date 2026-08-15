@@ -19,7 +19,147 @@ import type { ActiveClub, HuntClub, HuntClubRole, PublishResult } from '../types
 import { safeGetJSON, safeSetJSON, safeRemove } from '../utils/storage';
 
 const ACTIVE_CLUB_KEY = 'letshunt_active_club';
+const SYNC_VERSION_KEY_PREFIX = 'letshunt_club_sync_version:';
 const uploadedPhotoKeys = new Set<string>();
+
+interface ClubDataRow {
+  payload: unknown;
+  updated_at: string;
+}
+
+function syncVersionKey(clubId: string): string {
+  return `${SYNC_VERSION_KEY_PREFIX}${clubId}`;
+}
+
+function getKnownClubVersion(clubId: string): string | null {
+  try {
+    return localStorage.getItem(syncVersionKey(clubId));
+  } catch {
+    return null;
+  }
+}
+
+// Sync bookkeeping must not emit DATA_CHANGED_EVENT: changing this marker is
+// not user data and must never schedule another cloud upload.
+function rememberClubVersion(clubId: string, updatedAt: string | null): void {
+  try {
+    if (updatedAt) localStorage.setItem(syncVersionKey(clubId), updatedAt);
+    else localStorage.removeItem(syncVersionKey(clubId));
+  } catch {
+    /* localStorage may be unavailable in private/embedded browsers */
+  }
+}
+
+async function fetchClubDataRow(clubId: string): Promise<ClubDataRow | null> {
+  if (!supabase) throw new Error('Accounts are not configured.');
+  const { data, error } = await supabase
+    .from('hunt_club_data')
+    .select('payload, updated_at')
+    .eq('club_id', clubId)
+    .maybeSingle();
+  if (error) throw new Error(`Could not fetch club data: ${error.message}`);
+  if (!data?.payload) return null;
+  return data as ClubDataRow;
+}
+
+function mergeById<T extends { id: string }>(remoteItems: T[] | undefined, localItems: T[] | undefined): T[] {
+  const merged = new Map<string, T>();
+  for (const item of remoteItems ?? []) {
+    if (item?.id) merged.set(item.id, item);
+  }
+  // The local device wins for an existing record, while records created on
+  // either device are retained. This prevents a stale full-bundle upload from
+  // deleting a pin/path/polygon that another device just added.
+  for (const item of localItems ?? []) {
+    if (item?.id) merged.set(item.id, item);
+  }
+  return Array.from(merged.values());
+}
+
+function mergeCloudBackup(local: LetsHuntBackup, remotePayload: unknown): LetsHuntBackup {
+  const remote = remotePayload as Partial<LetsHuntBackup> | null;
+  if (!remote || remote.app !== 'LetsHunt' || remote.type !== 'letshunt-backup') return local;
+
+  return {
+    ...local,
+    logs: mergeById(remote.logs, local.logs),
+    map: {
+      ...local.map,
+      pins: mergeById(remote.map?.pins, local.map?.pins),
+      polygons: mergeById(remote.map?.polygons, local.map?.polygons),
+      paths: mergeById(remote.map?.paths, local.map?.paths),
+    },
+    trailCams: {
+      ...local.trailCams,
+      targets: mergeById(remote.trailCams?.targets, local.trailCams?.targets),
+      locations: mergeById(remote.trailCams?.locations, local.trailCams?.locations),
+      photos: mergeById(remote.trailCams?.photos, local.trailCams?.photos),
+    },
+  };
+}
+
+// Compare bundles independently of export time, object-key order, or the order
+// IndexedDB happens to return records. This keeps background sync quiet after
+// a reload instead of manufacturing a new cloud version for identical data.
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    const items = value.map(canonicalize);
+    if (items.every((item) => item !== null && typeof item === 'object' && 'id' in item)) {
+      return items.sort((a, b) => String((a as { id: string }).id).localeCompare(String((b as { id: string }).id)));
+    }
+    return items;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([key]) => key !== 'exportedAt')
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, item]) => [key, canonicalize(item)])
+    );
+  }
+  return value;
+}
+
+function sameBundle(a: unknown, b: unknown): boolean {
+  return JSON.stringify(canonicalize(a)) === JSON.stringify(canonicalize(b));
+}
+
+async function restoreClubData(clubId: string, row: ClubDataRow): Promise<BackupSummary> {
+  const backup = row.payload as LetsHuntBackup;
+  const summary = await importBackupData(JSON.stringify(row.payload));
+  // Mark the version before the optional B2 downloads. A background poll must
+  // not start the same metadata import again while large photos are restoring.
+  rememberClubVersion(clubId, row.updated_at);
+
+  // JSON intentionally carries thumbnails only. Restore each matching B2
+  // object as well so the gallery and photo preview have the original image
+  // locally after a HuntClub load, rather than stopping at the low-res copy.
+  const cloudPhotos = Array.isArray(backup.trailCams?.photos)
+    ? backup.trailCams.photos
+    : [];
+  for (const photo of cloudPhotos) {
+    if (!photo?.id) continue;
+    try {
+      if (await getFullImageBlob(photo.id)) continue;
+
+      const url = await getPhotoDownloadUrl(clubId, photo.id);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`download failed (${response.status})`);
+      const blob = await response.blob();
+      if (blob.size > 0) await saveFullImageBlob(photo.id, blob);
+    } catch (err) {
+      console.warn(`[club] full-resolution download failed for photo \"${photo.id}\":`, err);
+    }
+  }
+
+  return summary;
+}
+
+export interface ClubPullResult {
+  changed: boolean;
+  summary: BackupSummary | null;
+  updatedAt: string | null;
+}
 
 // ---- Row mapping (snake_case DB → camelCase UI) ----
 interface ClubRow {
@@ -128,21 +268,40 @@ export async function publishClubData(
   const user = await getCurrentUser();
   if (!user) throw new Error('Please sign in first.');
 
-  // 1. Data bundle → hunt_club_data (jsonb).
-  const { json } = await exportBackupData();
-  const payload = JSON.parse(json) as unknown;
-  const { error: dataErr } = await supabase
-    .from('hunt_club_data')
-    .upsert(
-      {
-        club_id: clubId,
-        payload,
-        updated_by: user.id,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'club_id' }
-    );
-  if (dataErr) throw new Error(`Could not save club data: ${dataErr.message}`);
+  // 1. Data bundle → hunt_club_data (jsonb). Merge collection records with
+  // the current cloud bundle first, so two devices adding map elements close
+  // together do not overwrite one another with stale full-bundle snapshots.
+  const remoteRow = await fetchClubDataRow(clubId);
+  const { json: localJson } = await exportBackupData();
+  const localPayload = JSON.parse(localJson) as LetsHuntBackup;
+  const payload = mergeCloudBackup(localPayload, remoteRow?.payload);
+  const payloadJson = JSON.stringify(payload, null, 2);
+  const requestedUpdatedAt = new Date().toISOString();
+  const remotePayload = remoteRow?.payload as Partial<LetsHuntBackup> | null;
+  const contentIsUnchanged = Boolean(remoteRow && sameBundle(payload, remotePayload));
+  let savedUpdatedAt = remoteRow?.updated_at || requestedUpdatedAt;
+
+  // Do not bump the cloud version when a page reload merely re-emits its
+  // persisted settings. Without this guard, two devices would continuously
+  // trigger one another's background pull/reload cycle.
+  if (!contentIsUnchanged) {
+    const { data: savedData, error: dataErr } = await supabase
+      .from('hunt_club_data')
+      .upsert(
+        {
+          club_id: clubId,
+          payload,
+          updated_by: user.id,
+          updated_at: requestedUpdatedAt,
+        },
+        { onConflict: 'club_id' }
+      )
+      .select('updated_at')
+      .single();
+    if (dataErr) throw new Error(`Could not save club data: ${dataErr.message}`);
+    savedUpdatedAt = (savedData as { updated_at?: string } | null)?.updated_at || requestedUpdatedAt;
+  }
+  rememberClubVersion(clubId, savedUpdatedAt);
 
   // 2. Full-res photos → B2 (keyed by photo id), metadata mirrored to
   //    trail_cam_photos so the club gallery can list without the bundle.
@@ -184,8 +343,8 @@ export async function publishClubData(
 
   return {
     uploadedPhotos,
-    dataBytes: json.length,
-    updatedAt: new Date().toISOString(),
+    dataBytes: payloadJson.length,
+    updatedAt: savedUpdatedAt,
   };
 }
 
@@ -195,42 +354,24 @@ export async function publishClubData(
  * Callers reload the app after a non-null import.
  */
 export async function pullClubData(clubId: string): Promise<BackupSummary | null> {
-  if (!supabase) throw new Error('Accounts are not configured.');
-  const { data, error } = await supabase
-    .from('hunt_club_data')
-    .select('payload')
-    .eq('club_id', clubId)
-    .maybeSingle();
-  if (error) throw new Error(`Could not fetch club data: ${error.message}`);
-  if (!data?.payload) return null;
+  const row = await fetchClubDataRow(clubId);
+  if (!row) {
+    rememberClubVersion(clubId, null);
+    return null;
+  }
+  return restoreClubData(clubId, row);
+}
 
-  const backup = data.payload as LetsHuntBackup;
-  const summary = await importBackupData(JSON.stringify(data.payload));
+/** Pull only when Supabase has a version this device has not seen. */
+export async function pullClubDataIfChanged(clubId: string): Promise<ClubPullResult> {
+  const row = await fetchClubDataRow(clubId);
+  if (!row) return { changed: false, summary: null, updatedAt: null };
 
-  // JSON intentionally carries thumbnails only. Restore each matching B2
-  // object as well so the gallery and photo preview have the original image
-  // locally after a HuntClub load, rather than stopping at the low-res copy.
-  const cloudPhotos = Array.isArray(backup.trailCams?.photos)
-    ? backup.trailCams.photos
-    : [];
-  for (const photo of cloudPhotos) {
-    if (!photo?.id) continue;
-    try {
-      // Keep an existing local original and avoid downloading it on every sync.
-      if (await getFullImageBlob(photo.id)) continue;
-
-      const url = await getPhotoDownloadUrl(clubId, photo.id);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`download failed (${response.status})`);
-      const blob = await response.blob();
-      if (blob.size > 0) await saveFullImageBlob(photo.id, blob);
-    } catch (err) {
-      // A missing/temporarily unavailable cloud object should not prevent the
-      // metadata bundle from loading; the detail view can still retry via its
-      // signed URL fallback.
-      console.warn(`[club] full-resolution download failed for photo "${photo.id}":`, err);
-    }
+  const knownVersion = getKnownClubVersion(clubId);
+  if (knownVersion === row.updated_at) {
+    return { changed: false, summary: null, updatedAt: row.updated_at };
   }
 
-  return summary;
+  const summary = await restoreClubData(clubId, row);
+  return { changed: true, summary, updatedAt: row.updated_at };
 }

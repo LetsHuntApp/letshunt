@@ -19,7 +19,7 @@ import {
 } from './types';
 import { fetch5DayHuntingForecast } from './services/weatherService';
 import { safeGetString, safeGetJSON, safeSet, safeSetJSON, safeRemove, DATA_CHANGED_EVENT } from './utils/storage';
-import { getActiveClub, publishClubData } from './services/huntClubService';
+import { getActiveClub, publishClubData, pullClubDataIfChanged } from './services/huntClubService';
 import { Header } from './components/Header';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
@@ -338,9 +338,12 @@ export default function App() {
   const autoSyncTimerRef = useRef<number | null>(null);
   const autoSyncRunningRef = useRef(false);
   const autoSyncQueuedRef = useRef(false);
+  const autoPullRunningRef = useRef(false);
 
   useEffect(() => {
     let disposed = false;
+    let pollTimer: number | null = null;
+    let initialPullTimer: number | null = null;
 
     const scheduleAutoSync = () => {
       if (autoSyncTimerRef.current !== null) {
@@ -373,15 +376,59 @@ export default function App() {
       }, 1500);
     };
 
+    const pullLatestClubData = async () => {
+      if (disposed || autoPullRunningRef.current || autoSyncRunningRef.current) return;
+      const activeClub = getActiveClub();
+      if (!activeClub) return;
+
+      autoPullRunningRef.current = true;
+      try {
+        const result = await pullClubDataIfChanged(activeClub.id);
+        if (result.changed && result.summary && !disposed) {
+          // MapView and the other feature pages initialize from storage. A
+          // reload after a remote bundle arrives is intentional: it makes all
+          // mounted pages see pins, paths, polygons, logs, and IndexedDB data
+          // together instead of leaving stale React state on screen.
+          sessionStorage.setItem('letshunt_backup_imported', JSON.stringify(result.summary));
+          window.location.reload();
+        } else if (!result.updatedAt && !disposed) {
+          // A newly-created club may not have a bundle if its first publish
+          // failed. Give the local device one retry without overwriting an
+          // existing cloud bundle (which pullLatest handles above).
+          scheduleAutoSync();
+        }
+      } catch (error) {
+        console.warn('[cloud sync] automatic load failed:', error);
+      } finally {
+        autoPullRunningRef.current = false;
+      }
+    };
+
+    const handleVisibilityOrOnline = () => {
+      if (document.visibilityState === 'hidden') return;
+      void pullLatestClubData();
+    };
+
     window.addEventListener(DATA_CHANGED_EVENT, scheduleAutoSync);
-    // Reconcile any local changes made before this app session starts.
-    scheduleAutoSync();
+    window.addEventListener('online', handleVisibilityOrOnline);
+    document.addEventListener('visibilitychange', handleVisibilityOrOnline);
+
+    // Pull before attempting to publish startup state. The old eager publish
+    // could upload an empty local bundle on a second device and make it look
+    // as though the club had no pins at all.
+    initialPullTimer = window.setTimeout(() => void pullLatestClubData(), 500);
+    pollTimer = window.setInterval(() => void pullLatestClubData(), 15000);
+
     return () => {
       disposed = true;
       window.removeEventListener(DATA_CHANGED_EVENT, scheduleAutoSync);
+      window.removeEventListener('online', handleVisibilityOrOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityOrOnline);
       if (autoSyncTimerRef.current !== null) {
         window.clearTimeout(autoSyncTimerRef.current);
       }
+      if (initialPullTimer !== null) window.clearTimeout(initialPullTimer);
+      if (pollTimer !== null) window.clearInterval(pollTimer);
     };
   }, []);
 
