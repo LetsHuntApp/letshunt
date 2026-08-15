@@ -533,8 +533,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   // workflow: OCR, thumbnails, weather matching, progress, and time correction
   // stay exactly the same, then only the newly imported photos receive the tag.
   const handleStartTargetImport = async (files: FileList | File[], targetId: string) => {
+    // FileList is live: clearing the hidden input immediately after this
+    // handler runs can empty it before the first await resumes. Snapshot it
+    // before reading IndexedDB so target imports receive the selected files.
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
     const beforeIds = new Set((await getAllPhotos()).map((photo) => photo.id));
-    await handleStartImport(files);
+    await handleStartImport(fileArray);
 
     const importedPhotos = (await getAllPhotos()).filter((photo) => !beforeIds.has(photo.id));
     if (importedPhotos.length === 0) return;
@@ -553,8 +559,12 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   };
 
   const handleTargetImportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0 && selectedTargetId) {
-      void handleStartTargetImport(e.target.files, selectedTargetId);
+    // Copy the FileList before clearing the input. Mobile browsers commonly
+    // expose the input's FileList as a live collection, which otherwise became
+    // empty during handleStartTargetImport's initial IndexedDB await.
+    const files: File[] = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length > 0 && selectedTargetId) {
+      void handleStartTargetImport(files, selectedTargetId);
     }
     e.target.value = '';
   };

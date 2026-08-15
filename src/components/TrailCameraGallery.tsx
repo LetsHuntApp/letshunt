@@ -73,6 +73,13 @@ const getThemeClasses = (theme?: ThemeVariantMode, isDark = theme === 'dark') =>
       : isOlive
       ? 'bg-[#f7f5ed]/80 border-[#d8d2c0]'
       : 'bg-white/60 border-slate-200/50',
+    paginationButton: isDark
+      ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
+      : isHunting
+      ? 'bg-[#d4c4a8] hover:bg-[#c8b796] border-[#b9a47e] text-[#2a1b0e]'
+      : isOlive
+      ? 'bg-[#d8d2c0] hover:bg-[#cbc5b0] border-[#b8b19b] text-[#1e2e1b]'
+      : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700',
     modalBg: isDark
       ? 'bg-slate-900 border border-slate-700 text-slate-100'
       : isHunting
@@ -139,10 +146,19 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
     };
   }, []);
 
-  const totalPages = Math.ceil(photos.length / ITEMS_PER_PAGE) || 1;
   const displayPhotos = showTimeDefaultedOnly ? photos.filter(p => p.timeDefaulted) : photos;
+  const totalPages = Math.ceil(displayPhotos.length / ITEMS_PER_PAGE) || 1;
   const paginatedPhotos = displayPhotos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
   const tc = getThemeClasses(theme, isDark);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Close tag popup on click outside
   useEffect(() => {
@@ -739,9 +755,8 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
         <div className={`flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl ${tc.paginationBg} text-xs font-bold`}>
           <button
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
-            style={{ backgroundColor: isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: isDark ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
+            onClick={() => goToPage(Math.max(1, currentPage - 1))}
+            className={`shrink-0 px-3 py-1.5 rounded-xl border disabled:opacity-40 cursor-pointer flex items-center gap-1 ${tc.paginationButton}`}
           >
             <ChevronLeft className="w-4 h-4" /> Previous
           </button>
@@ -752,9 +767,8 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
 
           <button
             disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-slate-300 disabled:opacity-40 cursor-pointer flex items-center gap-1"
-            style={{ backgroundColor: isDark ? '#1e293b' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#f1f5f9', borderColor: isDark ? '#334155' : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#d8d2c0' : '#e2e8f0' }}
+            onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+            className={`shrink-0 px-3 py-1.5 rounded-xl border disabled:opacity-40 cursor-pointer flex items-center gap-1 ${tc.paginationButton}`}
           >
             Next <ChevronRight className="w-4 h-4" />
           </button>

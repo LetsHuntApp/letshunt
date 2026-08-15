@@ -64,7 +64,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
   return (
     <div
-      className={`absolute left-0 top-full mt-2 z-50 w-80 max-w-[calc(100vw-1.5rem)] max-h-[70vh] overflow-y-auto rounded-2xl border shadow-2xl backdrop-blur-xl p-3 space-y-2.5 text-xs ${
+      className={`absolute left-auto right-0 sm:left-0 sm:right-auto top-full mt-2 z-50 w-80 max-w-[calc(100vw-1.5rem)] max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto rounded-2xl border shadow-2xl backdrop-blur-xl p-3 space-y-2.5 text-xs ${
         isDark
           ? 'bg-slate-900/95 border-slate-700 text-slate-100'
           : isHunting
