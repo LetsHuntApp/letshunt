@@ -111,15 +111,19 @@ export const WindCompass: React.FC<WindCompassProps> = ({
     if (!mapContainerRef.current) return;
     const resizeObserver = new ResizeObserver((entries) => {
       for (let entry of entries) {
-        setDimensions({
-          width: entry.contentRect.width || 320,
-          height: entry.contentRect.height || 320,
-        });
+        const width = entry.contentRect.width;
+        const height = entry.contentRect.height;
+        // Ignore the 0×0 report fired when the map unmounts for the Classic
+        // Dial tab — otherwise the fallback size re-centers the scent cone
+        // away from the stand pin when switching back to the map.
+        if (width > 0 && height > 0) {
+          setDimensions({ width, height });
+        }
       }
     });
     resizeObserver.observe(mapContainerRef.current);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [activeTab]);
 
   const containerWidth = dimensions.width;
   const containerHeight = dimensions.height;
