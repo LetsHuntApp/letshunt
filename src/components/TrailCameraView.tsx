@@ -55,6 +55,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [filter, setFilter] = useState<TrailCameraFilterState>({});
   const [showFilters, setShowFilters] = useState(false);
   const [filterDropdownLeft, setFilterDropdownLeft] = useState(0);
+  const [filterDropdownMaxHeight, setFilterDropdownMaxHeight] = useState<number | undefined>(undefined);
   const [selectedPhoto, setSelectedPhoto] = useState<TrailCameraPhoto | null>(null);
 
   // Import State
@@ -125,15 +126,34 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     // Keep the panel's left edge aligned with the button until that would push
     // it past the viewport. In that case, shift only as much as necessary to
     // preserve the button anchor without clipping either side of the panel.
+    // The panel opens below the button (top-full + mt-2), so its height is
+    // capped to the space left beneath it — above the fixed mobile bottom nav
+    // when present — so it scrolls internally instead of spilling off-screen.
     const updateFilterDropdownPosition = () => {
       const anchor = filtersRef.current;
       if (!anchor) return;
 
       const anchorRect = anchor.getBoundingClientRect();
-      const panelWidth = Math.min(320, Math.max(0, window.innerWidth - 24));
-      const maxLeft = Math.max(12, window.innerWidth - panelWidth - 12);
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      const panelWidth = Math.min(320, Math.max(0, vw - 24));
+      const maxLeft = Math.max(12, vw - panelWidth - 12);
       const viewportLeft = Math.max(12, Math.min(anchorRect.left, maxLeft));
       setFilterDropdownLeft(viewportLeft - anchorRect.left);
+
+      // Bottom gutter: 12px normally, or the visible height of the fixed
+      // mobile bottom nav (plus 12px) so the panel never slides underneath it.
+      let bottomInset = 12;
+      const bottomNav = document.querySelector<HTMLElement>('[data-bottom-nav]');
+      if (bottomNav) {
+        const navRect = bottomNav.getBoundingClientRect();
+        if (navRect.height > 0) {
+          bottomInset = vh - navRect.top + 12;
+        }
+      }
+      const spaceBelow = vh - anchorRect.bottom - 8 - bottomInset;
+      setFilterDropdownMaxHeight(Math.max(120, spaceBelow));
     };
 
     updateFilterDropdownPosition();
@@ -835,6 +855,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 targets={targets}
                 activeFilterCount={activeFilterCount}
                 dropdownLeft={filterDropdownLeft}
+                dropdownMaxHeight={filterDropdownMaxHeight}
               />
             )}
           </div>

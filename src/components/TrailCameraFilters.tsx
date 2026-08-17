@@ -11,6 +11,7 @@ interface TrailCameraFiltersProps {
   targets: TrailCameraTarget[];
   activeFilterCount: number;
   dropdownLeft?: number;
+  dropdownMaxHeight?: number;
 }
 
 const WIND_DIRECTIONS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -52,6 +53,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   targets,
   activeFilterCount,
   dropdownLeft = 0,
+  dropdownMaxHeight,
 }) => {
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';
@@ -66,7 +68,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
 
   return (
     <div
-      style={{ left: dropdownLeft }}
+      style={{ left: dropdownLeft, maxHeight: dropdownMaxHeight }}
       className={`absolute left-0 right-auto top-full mt-2 z-50 w-80 max-w-[calc(100vw-1.5rem)] max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto rounded-2xl border shadow-2xl backdrop-blur-xl p-3 space-y-2.5 text-xs ${
         isDark
           ? 'bg-slate-900/95 border-slate-700 text-slate-100'
