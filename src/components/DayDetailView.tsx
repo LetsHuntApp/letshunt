@@ -800,7 +800,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       {forecastCards}
 
       {/* Main responsive grid: pressure, score factors, wind, and solunar context */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 2xl:gap-8">
         {/* Left Column: Pressure Chart & Factor Breakdown */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* 24-Hour Barometer Chart */}

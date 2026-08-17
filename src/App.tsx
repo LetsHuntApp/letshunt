@@ -679,7 +679,7 @@ export default function App() {
         className={`w-full mx-auto ${
           activeTab === 'map'
             ? 'p-0 h-[calc(100vh-64px-52px)] sm:h-[calc(100vh-64px)] overflow-hidden relative flex-1'
-            : 'flex-1 max-w-7xl px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-20 sm:pb-8 space-y-4 sm:space-y-6'
+            : 'flex-1 max-w-7xl xl:max-w-[1500px] 2xl:max-w-[1700px] px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-20 sm:pb-8 space-y-4 sm:space-y-6'
         }`}
       >
         {activeTab === 'settings' ? (
@@ -938,7 +938,7 @@ export default function App() {
               : 'bg-white/[var(--card-opacity)] border-slate-200/50 text-slate-500'
           }`}
         >
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="max-w-7xl xl:max-w-[1500px] 2xl:max-w-[1700px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className={`font-black ${isDark ? 'text-slate-200' : theme === 'hunting' ? 'text-[#2c1810]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'}`}>LetsHunt</span>
               <span>• Deer Forecast Prediction Engine</span>

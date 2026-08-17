@@ -150,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
           : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm text-slate-900'
       }`}
     >
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl xl:max-w-[1500px] 2xl:max-w-[1700px] mx-auto">
         <div className="flex items-center justify-between gap-3 flex-wrap md:flex-nowrap">
           {/* Left: Brand Logo, GPS, Search Box, and Active Location Badge */}
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
@@ -185,7 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {/* Quick Search Box */}
-            <div className="relative flex-1 max-w-[160px] sm:max-w-[240px] lg:max-w-[300px]" ref={searchContainerRef}>
+            <div className="relative flex-1 max-w-[160px] sm:max-w-[240px] lg:max-w-[300px] xl:max-w-[380px]" ref={searchContainerRef}>
               <div
                 className={`flex items-center border rounded-xl px-2.5 py-2.5 sm:py-2 transition-all ${
                   isDark

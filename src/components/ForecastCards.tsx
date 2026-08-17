@@ -511,8 +511,11 @@ const getScoreBadgeColor = (score: number) => {
         </button>
       )}
 
-      {/* Vertical Stacked Card List */}
-      <div className="flex flex-col gap-3.5">
+      {/* Day cards: a vertical stack on mobile/tablet, and a 2-column grid on
+          desktop so all seven days stay visible without a long scroll. The
+          expanded (selected) card spans both columns to keep its detail
+          content full-width and readable. */}
+      <div className="flex flex-col gap-3.5 xl:grid xl:grid-cols-2 xl:gap-4 xl:items-start">
         {daily.map((day) => {
           const isSelected = day.date === selectedDate;
           const isExpanded = isSelected || day.date === autoExpandedDate;
@@ -576,7 +579,9 @@ const getScoreBadgeColor = (score: number) => {
                   onSelectDate(isSelected ? '' : day.date);
                 }
               }}
-              className={`relative w-full rounded-2xl border transition-all hover:scale-[1.002] cursor-pointer flex flex-col overflow-hidden ${getCardHueClasses(
+              className={`relative w-full rounded-2xl border transition-all hover:scale-[1.002] cursor-pointer flex flex-col overflow-hidden ${
+                isExpanded ? 'xl:col-span-2' : ''
+              } ${getCardHueClasses(
                 cardScore,
                 isSelected
               )}`}
