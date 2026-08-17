@@ -548,6 +548,9 @@ const getScoreBadgeColor = (score: number) => {
             .slice(0, 3);
           const dayRut = getRutPhase(day.date, location);
           const hasSignificantColdFront = isSignificantColdFront(day.tempDrop24h, units);
+          // Round the displayed drop to one decimal so floating-point noise
+          // from the °C→°F conversion never leaks into the badge or tooltip.
+          const coldFrontDrop = Math.round(day.tempDrop24h * 10) / 10;
 
           // Calculate maximum precipitation probability for the day
           const maxPrecipProb = day.hourly && day.hourly.length > 0
@@ -860,7 +863,7 @@ const getScoreBadgeColor = (score: number) => {
                             ? 'bg-blue-500/20 text-blue-200 border-blue-400/40'
                             : 'bg-blue-50 text-blue-700 border-blue-200'
                         }`}
-                        title={`Significant 24-hour temperature drop: ${day.tempDrop24h}°${units === 'imperial' ? 'F' : 'C'}`}
+                        title={`Significant 24-hour temperature drop: ${coldFrontDrop}°${units === 'imperial' ? 'F' : 'C'}`}
                         aria-label="Cold front forecast"
                       >
                         <Snowflake className="w-3 h-3 shrink-0" />
@@ -904,7 +907,7 @@ const getScoreBadgeColor = (score: number) => {
                         }`}
                       >
                         <Snowflake className="w-3.5 h-3.5 shrink-0 text-blue-500 dark:text-blue-300" />
-                        <span>-{day.tempDrop24h}°{units === 'imperial' ? 'F' : 'C'} Drop</span>
+                        <span>-{coldFrontDrop}°{units === 'imperial' ? 'F' : 'C'} Drop</span>
                       </span>
                     )}
                     {day.isPostStorm && (
