@@ -38,7 +38,6 @@ interface SimpleDashboardProps {
   selectedHour: number;
   onSelectHour: (hour: number) => void;
   onSelectDate: (date: string) => void;
-  onOpenDetails: (date: string) => void;
   onOpenMap: () => void;
   onOpenSettings: () => void;
 }
@@ -278,7 +277,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   selectedHour,
   onSelectHour,
   onSelectDate,
-  onOpenDetails,
   onOpenMap,
   onOpenSettings,
 }) => {
@@ -377,7 +375,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
       <p className="simple-pro-footer"><DeerIcon className="simple-pro-footer-deer" /> Built for the quiet hour before the woods wake up.</p>
       <SimpleFloatingHourlySlider hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
-      <button type="button" className="simple-pro-details" onClick={() => onOpenDetails(day.date)}>View full forecast <ArrowRight size={15} /></button>
     </div>
   );
 };
