@@ -53,10 +53,10 @@ const getScoreTone = (score: number): ScoreTone => {
 };
 
 const getScoreLabel = (score: number) => {
-  if (score >= 90) return 'Excellent movement';
-  if (score >= 76) return 'Good movement';
-  if (score >= 46) return 'Fair movement';
-  return 'Low movement';
+  if (score >= 90) return 'Great deer movement';
+  if (score >= 76) return 'Good deer movement';
+  if (score >= 46) return 'Fair deer movement';
+  return 'Slow deer movement';
 };
 
 const scoreColor = (score: number) => {
@@ -164,7 +164,7 @@ export const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hour
       <div className="simple-timeline-header">
         <div className="simple-timeline-title">
           <div className="simple-timeline-icon"><Target size={17} /></div>
-          <div><p className="simple-eyebrow">Precision timeline{dayLabel ? ` · ${dayLabel}` : ''}</p><h2>Find your window</h2></div>
+          <div><p className="simple-eyebrow">Hour-by-hour hunt{dayLabel ? ` · ${dayLabel}` : ''}</p><h2>Find your window</h2></div>
         </div>
         <div className="simple-timeline-selected">
           <strong>{hourLabel(safeHour)}</strong>
@@ -271,7 +271,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       <section className="simple-pro-topbar">
         <div className="simple-pro-identity">
           <div className="simple-pro-deer-mark"><DeerIcon className="simple-pro-deer" /></div>
-          <div><p className="simple-eyebrow">Field brief · {day.dayName} · {day.dateFormatted}</p><h1>Today's hunt plan</h1><p><Compass size={14} /> {location.name}{location.admin1 ? `, ${location.admin1}` : ''}</p></div>
+          <div><p className="simple-eyebrow">Hunt brief · {day.dayName} · {day.dateFormatted}</p><h1>Today's hunt plan</h1><p><Compass size={14} /> {location.name}{location.admin1 ? `, ${location.admin1}` : ''}</p></div>
         </div>
         <div className="simple-pro-actions">
           <button type="button" onClick={onOpenMap}><Map size={16} /><span>Map</span></button>
@@ -317,20 +317,20 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
         <div className="simple-pro-brief-note">
           <Sparkles size={15} />
-          <div><strong>Hunter's read</strong><span>{strongestFactor ? strongestFactor.description : cautionFactor ? cautionFactor.description : 'Watch wind direction and sit the edges of daylight.'}</span></div>
+          <div><strong>Pro hunt tip</strong><span>{strongestFactor ? strongestFactor.description : cautionFactor ? cautionFactor.description : 'Watch wind direction and sit the edges of daylight.'}</span></div>
         </div>
       </section>
 
       <SimpleScoreGraph hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
       <section className="simple-pro-grid">
         <div className="simple-pro-panel">
-          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best windows · {day.dayName}</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
+          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best times to sit · {day.dayName}</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
           <div className="simple-pro-window"><span className="simple-pro-window-icon morning"><Sunrise size={17} /></span><div><strong>Morning sit</strong><span>{day.morningPrime}</span></div><ArrowRight size={15} /></div>
           <div className="simple-pro-window"><span className="simple-pro-window-icon evening"><Sunset size={17} /></span><div><strong>Evening sit</strong><span>{day.eveningPrime}</span></div><ArrowRight size={15} /></div>
           <div className="simple-pro-window"><span className="simple-pro-window-icon moon"><Moon size={17} /></span><div><strong>Major moon window</strong><span>{day.solunar.major1}</span></div><Check size={15} /></div>
         </div>
         <div className="simple-pro-panel">
-          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Field conditions · {day.dayName}</p><h2>What to expect</h2></div><Gauge size={19} /></div>
+          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Woods check · {day.dayName}</p><h2>What to expect</h2></div><Gauge size={19} /></div>
           <div className="simple-pro-condition"><Wind size={17} /><span>Wind</span><strong>{displayWind(day, units)}</strong></div>
           <div className="simple-pro-condition"><Droplets size={17} /><span>Rain</span><strong>{day.precipSumMm > 0 ? `${Math.round(day.precipSumMm)} mm expected` : 'No rain expected'}</strong></div>
           <div className="simple-pro-condition"><Gauge size={17} /><span>Pressure</span><strong>{pressureUnit === 'hPa' ? `${Math.round(day.pressureAvgHpa)} hPa` : `${day.pressureAvgInHg.toFixed(2)} inHg`} · {day.pressureTrend.replace('_', ' ')}</strong></div>
@@ -338,7 +338,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       </section>
 
       <section className="simple-pro-panel simple-pro-outlook">
-        <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Plan ahead</p><h2>Next five days</h2></div>{bestDay.date !== day.date && <span className="simple-pro-best"><Target size={13} /> Best: {bestDay.dayName}</span>}</div>
+        <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Days ahead</p><h2>Next five days</h2></div>{bestDay.date !== day.date && <span className="simple-pro-best"><Target size={13} /> Best: {bestDay.dayName}</span>}</div>
         <div className="simple-pro-outlook-list">
           {forecast.slice(0, 5).map((item) => {
             const itemScore = getPeakHuntScore(item);
@@ -347,8 +347,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <button key={item.date} type="button" className={`simple-pro-outlook-row ${item.date === day.date ? 'active' : ''}`} onClick={() => onSelectDate(item.date)}>
                 <span className="simple-pro-outlook-day">{item.dayName}</span>
                 <span className="simple-pro-outlook-weather">{weatherIcon(getWeatherDetails(item.weatherCode).icon, 'simple-pro-outlook-icon')} {item.maxTemp}{units === 'metric' ? '°C' : '°F'}</span>
-                <span className="simple-pro-outlook-rating">{isPrimeDay(itemScore) ? 'Prime window' : item.rating}</span>
-                <span className={`simple-pro-outlook-score ${itemTone}`}><i style={{ backgroundColor: scoreColor(itemScore) }} /> {itemScore}</span>
+                <span className="simple-pro-outlook-rating">{isPrimeDay(itemScore) ? 'Best bet' : item.rating}</span>
+                <span className={`simple-pro-outlook-score ${itemTone}`}><i style={{ backgroundColor: scoreColor(itemScore) }} /><strong>{itemScore}</strong></span>
               </button>
             );
           })}

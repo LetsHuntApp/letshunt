@@ -57,7 +57,7 @@ export const SimpleForecastView: React.FC<SimpleForecastViewProps> = ({
       <SimpleHourlyTimeline hourly={day.hourly || []} units={units} selectedHour={selectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
 
       <section className="simple-full-section">
-        <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Forecast calendar</p><h2>Choose a day</h2></div><CalendarDays size={19} /></div>
+        <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Days ahead</p><h2>Pick a day</h2></div><CalendarDays size={19} /></div>
         <div className="simple-full-day-list">
           {forecast.map((item) => {
             const itemScore = getPeakHuntScore(item);
@@ -66,7 +66,7 @@ export const SimpleForecastView: React.FC<SimpleForecastViewProps> = ({
               <button key={item.date} type="button" className={`simple-full-day-card ${item.date === selectedDate ? 'active' : ''} ${itemTone}`} onClick={() => onSelectDate(item.date)}>
                 <span className="simple-full-day-name">{item.dayName}<small>{item.dateFormatted}</small></span>
                 <span className="simple-full-day-weather">{getWeatherDetails(item.weatherCode).desc}<small>{item.minTemp}° — {item.maxTemp}°</small></span>
-                <span className="simple-full-day-score"><i style={{ backgroundColor: scoreColorFor(itemScore) }} /> {itemScore}<small>{isPrimeDay(itemScore) ? 'Prime' : item.rating}</small></span>
+                <span className={`simple-full-day-score ${itemTone}`}><i style={{ backgroundColor: scoreColorFor(itemScore) }} /><strong>{itemScore}</strong><small>{isPrimeDay(itemScore) ? 'Best bet' : item.rating}</small></span>
                 <ArrowRight size={15} />
               </button>
             );
@@ -75,7 +75,7 @@ export const SimpleForecastView: React.FC<SimpleForecastViewProps> = ({
       </section>
 
       <section className="simple-full-section">
-        <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Why this score</p><h2>Field factors</h2></div><ShieldCheck size={19} /></div>
+        <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Why this score</p><h2>Why deer may move</h2></div><ShieldCheck size={19} /></div>
         <div className="simple-full-factor-grid">
           {day.factors.slice(0, 6).map((factor) => {
             const factorTone = factor.score > 0 ? 'positive' : factor.score < 0 ? 'negative' : 'neutral';
