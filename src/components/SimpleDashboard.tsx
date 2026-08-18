@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight,
-  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Cloud,
@@ -15,6 +14,7 @@ import {
   Droplets,
   Gauge,
   Moon,
+  ShieldCheck,
   Snowflake,
   Sparkles,
   Sun,
@@ -283,6 +283,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const weather = getWeatherDetails(hour?.weatherCode ?? day.weatherCode);
   const strongestFactor = useMemo(() => day.factors?.filter((factor) => factor.score > 0).sort((a, b) => b.score - a.score)[0], [day.factors]);
   const cautionFactor = useMemo(() => day.factors?.filter((factor) => factor.score < 0).sort((a, b) => a.score - b.score)[0], [day.factors]);
+  const [showFactors, setShowFactors] = useState(false);
   const currentHourSummary = useMemo(() => {
     const movement = score >= 90 ? 'Deer movement looks great' : score >= 76 ? 'Deer movement looks good' : score >= 46 ? 'Deer movement looks fair' : 'Deer movement is slow';
     if (!hour) {
@@ -396,18 +397,34 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       <section className="simple-pro-grid">
         <div className="simple-pro-panel">
           <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best times to sit · {day.dayName}</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
-          <div className="simple-pro-window"><span className="simple-pro-window-icon morning"><Sunrise size={17} /></span><div><strong>Morning sit</strong><span>{day.morningPrime}</span></div><ArrowRight size={15} /></div>
-          <div className="simple-pro-window"><span className="simple-pro-window-icon evening"><Sunset size={17} /></span><div><strong>Evening sit</strong><span>{day.eveningPrime}</span></div><ArrowRight size={15} /></div>
-          <div className="simple-pro-window"><span className="simple-pro-window-icon moon"><Moon size={17} /></span><div><strong>Major moon window</strong><span>{day.solunar.major1}</span></div><Check size={15} /></div>
+          <div className="simple-pro-window"><span className="simple-pro-window-icon morning"><Sunrise size={17} /></span><div><strong>Morning sit</strong><span>{day.morningPrime}</span></div></div>
+          <div className="simple-pro-window"><span className="simple-pro-window-icon evening"><Sunset size={17} /></span><div><strong>Evening sit</strong><span>{day.eveningPrime}</span></div></div>
+          <div className="simple-pro-window"><span className="simple-pro-window-icon moon"><Moon size={17} /></span><div><strong>Major moon window</strong><span>{day.solunar.major1}</span></div></div>
         </div>
         <div className="simple-pro-panel">
           <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Woods check · {day.dayName}</p><h2>What to expect</h2></div><Gauge size={19} /></div>
           <div className="simple-pro-condition"><Wind size={17} /><span>Wind</span><strong>{displayWind(day, units)}</strong></div>
           <div className="simple-pro-condition"><Droplets size={17} /><span>Rain</span><strong>{day.precipSumMm > 0 ? `${Math.round(day.precipSumMm)} mm expected` : 'No rain expected'}</strong></div>
           <div className="simple-pro-condition"><Gauge size={17} /><span>Pressure</span><strong>{pressureUnit === 'hPa' ? `${Math.round(day.pressureAvgHpa)} hPa` : `${day.pressureAvgInHg.toFixed(2)} inHg`} · {day.pressureTrend.replace('_', ' ')}</strong></div>
+          <button type="button" className="simple-pro-factor-button" onClick={() => setShowFactors((visible) => !visible)} aria-expanded={showFactors}>
+            <ShieldCheck size={16} />
+            <span><strong>{showFactors ? 'Hide movement factors' : 'View movement factors'}</strong><small>{day.dayName} · {day.dateFormatted}</small></span>
+            <ChevronDown size={16} className={showFactors ? 'open' : ''} />
+          </button>
         </div>
       </section>
 
+      {showFactors && (
+        <section className="simple-pro-panel simple-pro-factors" aria-label={`Movement factors for ${day.dayName} ${day.dateFormatted}`}>
+          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Movement factors · {day.dayName}</p><h2>Why deer may move</h2></div><ShieldCheck size={19} /></div>
+          <div className="simple-pro-factor-grid">
+            {day.factors.slice(0, 6).map((factor) => {
+              const factorTone = factor.score > 0 ? 'positive' : factor.score < 0 ? 'negative' : 'neutral';
+              return <div key={factor.name} className={`simple-pro-factor ${factorTone}`}><div><strong>{factor.name}</strong><span>{factor.score > 0 ? '+' : ''}{factor.score} signal</span></div><p>{factor.description}</p></div>;
+            })}
+          </div>
+        </section>
+      )}
 
       <p className="simple-pro-footer"><DeerIcon className="simple-pro-footer-deer" /> Built for the quiet hour before the woods wake up.</p>
       <SimpleFloatingHourlySlider hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
