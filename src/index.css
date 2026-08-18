@@ -1297,3 +1297,111 @@ html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
   .simple-bar-chart { gap: 2px; }
   .simple-bar-label { font-size: 7px; }
 }
+
+/* Phone-width guardrails for the entire Simple Mode template. Every grid and
+   flex child is allowed to shrink, while the phone layouts reserve room for
+   the score badge, arrow, and readable copy instead of forcing a wider page. */
+.simple-mode main:has(.simple-dashboard),
+.simple-mode main:has(.simple-full-forecast),
+.simple-mode main:has(.simple-settings) {
+  width: 100%;
+  max-width: 1120px;
+  box-sizing: border-box;
+}
+.simple-mode .simple-dashboard,
+.simple-mode .simple-full-forecast,
+.simple-mode .simple-dashboard-pro,
+.simple-mode .simple-graph,
+.simple-mode .simple-timeline,
+.simple-mode .simple-pro-panel,
+.simple-mode .simple-full-section,
+.simple-mode .simple-settings {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.simple-mode .simple-pro-topbar,
+.simple-mode .simple-pro-identity,
+.simple-mode .simple-pro-hero-main,
+.simple-mode .simple-full-header,
+.simple-mode .simple-full-hero-heading,
+.simple-mode .simple-graph-heading,
+.simple-mode .simple-pro-outlook-row,
+.simple-mode .simple-full-day-card {
+  min-width: 0;
+}
+.simple-mode .simple-pro-hero-main > *,
+.simple-mode .simple-full-hero-heading > *,
+.simple-mode .simple-graph-heading > *,
+.simple-mode .simple-pro-outlook-row > *,
+.simple-mode .simple-full-day-card > * {
+  min-width: 0;
+}
+.simple-mode .simple-pro-outlook-weather,
+.simple-mode .simple-full-day-weather {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.simple-mode .simple-pro-outlook-day,
+.simple-mode .simple-pro-outlook-rating,
+.simple-mode .simple-full-day-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.simple-mode .simple-floating-hourly {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+}
+
+@media (max-width: 640px) {
+  .simple-mode main:has(.simple-dashboard),
+  .simple-mode main:has(.simple-full-forecast),
+  .simple-mode main:has(.simple-settings) {
+    max-width: 100%;
+    padding-inline: 12px !important;
+  }
+  .simple-mode .simple-dashboard-pro,
+  .simple-mode .simple-full-forecast { gap: 14px; }
+  .simple-mode .simple-pro-topbar { gap: 8px; }
+  .simple-mode .simple-pro-identity { gap: 9px; }
+  .simple-mode .simple-pro-actions { flex-shrink: 0; gap: 4px; }
+  .simple-mode .simple-pro-hero { padding: 14px; gap: 14px; }
+  .simple-mode .simple-pro-hero-main { gap: 12px; }
+  .simple-mode .simple-pro-hero-copy h2 { font-size: clamp(21px, 7vw, 28px); overflow-wrap: anywhere; }
+  .simple-mode .simple-pro-quick-stats { gap: 6px 9px; }
+  .simple-mode .simple-graph,
+  .simple-mode .simple-timeline,
+  .simple-mode .simple-pro-panel,
+  .simple-mode .simple-full-section { padding-inline: 12px; }
+  .simple-mode .simple-graph-heading { gap: 8px; }
+  .simple-mode .simple-score-legend { flex: 0 1 145px; min-width: 0; gap: 4px; }
+  .simple-mode .simple-pro-outlook-row { gap: 5px; padding-inline: 0; }
+  .simple-mode .simple-full-header { gap: 8px; }
+  .simple-mode .simple-full-hero { padding: 14px; }
+  .simple-mode .simple-full-hero-heading { gap: 10px; }
+  .simple-mode .simple-full-hero-heading h2 { font-size: clamp(20px, 7vw, 25px); }
+  .simple-mode .simple-full-score { width: 76px; height: 76px; }
+  .simple-mode .simple-full-section { padding-block: 14px; }
+  .simple-mode .simple-full-day-card { grid-template-columns: minmax(0, .78fr) minmax(0, 1fr) auto 12px; gap: 5px; padding-inline: 0; }
+  .simple-mode .simple-full-day-score { min-width: 54px; padding-inline: 5px; }
+  .simple-mode .simple-full-day-score small { white-space: nowrap; }
+  .simple-mode .simple-settings { padding-inline: 0; }
+}
+
+@media (max-width: 380px) {
+  .simple-mode main:has(.simple-dashboard),
+  .simple-mode main:has(.simple-full-forecast),
+  .simple-mode main:has(.simple-settings) { padding-inline: 10px !important; }
+  .simple-mode .simple-pro-hero-main { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; }
+  .simple-mode .simple-pro-score { width: 92px; height: 92px; }
+  .simple-mode .simple-pro-score-content { inset: 17px; }
+  .simple-mode .simple-pro-score-deer { width: 29px !important; height: 29px !important; }
+  .simple-mode .simple-pro-score-content strong { font-size: 23px !important; }
+  .simple-mode .simple-full-score { width: 70px; height: 70px; }
+  .simple-mode .simple-full-score svg { width: 22px; height: 22px; }
+  .simple-mode .simple-full-day-card { grid-template-columns: minmax(0, .72fr) minmax(0, 1fr) auto 10px; gap: 4px; }
+  .simple-mode .simple-full-day-score { min-width: 50px; padding-inline: 4px; }
+}
