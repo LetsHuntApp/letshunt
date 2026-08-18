@@ -283,6 +283,52 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const weather = getWeatherDetails(hour?.weatherCode ?? day.weatherCode);
   const strongestFactor = useMemo(() => day.factors?.filter((factor) => factor.score > 0).sort((a, b) => b.score - a.score)[0], [day.factors]);
   const cautionFactor = useMemo(() => day.factors?.filter((factor) => factor.score < 0).sort((a, b) => a.score - b.score)[0], [day.factors]);
+  const currentHourSummary = useMemo(() => {
+    const movement = score >= 90 ? 'Deer movement looks great' : score >= 76 ? 'Deer movement looks good' : score >= 46 ? 'Deer movement looks fair' : 'Deer movement is slow';
+    if (!hour) {
+      return {
+        subtitle: `${weather.desc}. ${movement} right now.`,
+        tip: strongestFactor?.description || cautionFactor?.description || 'Watch the wind and stay on the edges of daylight.',
+      };
+    }
+
+    const windSpeed = units === 'metric' ? hour.windSpeedKmh : hour.windSpeedMph;
+    const windUnit = units === 'metric' ? 'km/h' : 'mph';
+    const wind = `${windSpeed} ${windUnit} ${hour.windDirectionText} wind`;
+    const precipitation = hour.precipProbability >= 60
+      ? `${hour.precipProbability}% chance of rain`
+      : hour.precipMm > 0.2
+      ? 'rain in the woods'
+      : 'dry woods';
+    const pressureTrend = hour.pressureTrend || day.pressureTrend;
+    const pressure = pressureTrend === 'rapid_rise' || pressureTrend === 'rising'
+      ? 'barometer rising'
+      : pressureTrend === 'rapid_drop' || pressureTrend === 'falling'
+      ? 'barometer falling'
+      : 'steady barometer';
+
+    let tip = `${movement} right now. Stay settled and keep your approach quiet.`;
+    if (hour.precipProbability >= 60 || hour.precipMm > 0.2) {
+      tip = 'Rain is in the mix this hour. Hunt the breaks between showers and keep your scent gear dry.';
+    } else if ((hour.windGustMph ?? 0) >= 25) {
+      tip = 'Gusts are making the woods noisy this hour. Get tight to cover and favor a sheltered setup.';
+    } else if (hour.windSpeedMph >= 18) {
+      tip = 'Wind is up this hour. Tuck into cover and make sure your downwind side is clean.';
+    } else if (pressureTrend === 'rapid_rise' || pressureTrend === 'rising') {
+      tip = 'The barometer is climbing this hour. Be settled early and watch the downwind edge.';
+    } else if (pressureTrend === 'rapid_drop' || pressureTrend === 'falling') {
+      tip = 'The barometer is slipping this hour. Stay patient near food and bedding edges.';
+    } else if (hour.isPrimeWindow || score >= 76) {
+      tip = 'This is a solid movement window. Stay put, keep still, and let the woods work.';
+    } else if (score < 46) {
+      tip = 'Movement is slow this hour. Stay mobile if the wind allows and watch for the next window.';
+    }
+
+    return {
+      subtitle: `${weather.desc} with ${wind}, ${precipitation}, and a ${pressure}. ${movement} right now.`,
+      tip,
+    };
+  }, [cautionFactor, day.pressureTrend, hour, score, strongestFactor, units, weather.desc]);
 
   return (
     <div className="simple-dashboard simple-dashboard-pro">
@@ -320,7 +366,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           <div className="simple-pro-hero-copy">
             <div className={`simple-pro-status ${tone}`}><i /> {getScoreLabel(score)}</div>
             <h2>{rating} time to hunt</h2>
-            <p>{day.verdict.replace(/^[^.!?]*[.!?]\s*/, '') || 'Use the best windows below and keep your approach simple.'}</p>
+            <p>{currentHourSummary.subtitle}</p>
             <div className="simple-pro-quick-stats">
               <span className="simple-pro-hero-weather">
                 {weatherIcon(weather.icon, 'simple-pro-weather-icon')}
@@ -334,7 +380,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
         <div className="simple-pro-brief-note">
           <Sparkles size={15} />
-          <div><strong>Pro hunt tip</strong><span>{strongestFactor ? strongestFactor.description : cautionFactor ? cautionFactor.description : 'Watch wind direction and sit the edges of daylight.'}</span></div>
+          <div><strong>Pro hunt tip</strong><span>{currentHourSummary.tip}</span></div>
         </div>
       </section>
 
