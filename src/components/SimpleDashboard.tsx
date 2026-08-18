@@ -88,14 +88,13 @@ interface SimpleScoreGraphProps {
   hourly: HourlyForecast[];
   selectedHour: number;
   onSelectHour: (hour: number) => void;
-  units: UnitSystem;
   dayLabel?: string;
   forecast?: DailyForecast[];
   activeDate?: string;
   onSelectDate?: (date: string) => void;
 }
 
-export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, units, dayLabel, forecast, activeDate, onSelectDate }) => {
+export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, dayLabel, forecast, activeDate, onSelectDate }) => {
   const tabDays = forecast?.slice(0, 14) || [];
   const activeTabDate = activeDate || tabDays[0]?.date;
   const tabDay = tabDays.find((item) => item.date === activeTabDate);
@@ -103,22 +102,6 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
   const graphDayLabel = tabDay ? `${tabDay.dayName} · ${tabDay.dateFormatted}` : dayLabel;
   const graphSelectedHour = graphHourly.length > 0 ? Math.max(0, Math.min(graphHourly.length - 1, selectedHour)) : 0;
   const selectedMetric = graphHourly[graphSelectedHour];
-  const selectedWindSpeed = selectedMetric ? (units === 'metric' ? selectedMetric.windSpeedKmh : selectedMetric.windSpeedMph) : 0;
-  const selectedWindUnit = units === 'metric' ? 'km/h' : 'mph';
-  const pressureValues = graphHourly.map((item) => item.pressureHpa);
-  const pressureMin = pressureValues.length > 0 ? Math.min(...pressureValues) : 0;
-  const pressureRange = Math.max(1, (pressureValues.length > 0 ? Math.max(...pressureValues) : 0) - pressureMin);
-  const windMax = Math.max(1, ...graphHourly.map((item) => item.windSpeedMph));
-  const pressurePoints = graphHourly.map((item, index) => {
-    const x = (index / Math.max(1, graphHourly.length - 1)) * 100;
-    const normalized = (item.pressureHpa - pressureMin) / pressureRange;
-    return `${x},${8 + (1 - normalized) * 78}`;
-  }).join(' ');
-  const windPoints = graphHourly.map((item, index) => {
-    const x = (index / Math.max(1, graphHourly.length - 1)) * 100;
-    const normalized = item.windSpeedMph / windMax;
-    return `${x},${8 + (1 - normalized) * 78}`;
-  }).join(' ');
 
   return (
     <div className="simple-graph" aria-label="Hourly movement score graph">
@@ -133,11 +116,6 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
             <span className="good"><i /> 76–89</span>
             <span className="fair"><i /> 46–75</span>
             <span className="poor"><i /> &lt;46</span>
-          </div>
-          <div className="simple-metric-legend" aria-label="Weather metric legend">
-            <span className="rain"><i /> Rain</span>
-            <span className="pressure"><i /> Pressure</span>
-            <span className="wind"><i /> Wind</span>
           </div>
         </div>
       </div>
@@ -164,41 +142,23 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
         </div>
       )}
       <div className="simple-graph-frame">
-        <div className="simple-metric-plot" role="img" aria-label="Combined deer movement, precipitation, pressure, and wind graph">
-          <div className="simple-metric-guides" aria-hidden="true"><span /><span /><span /></div>
-          <svg className="simple-metric-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polyline points={pressurePoints} className="simple-metric-pressure-line" />
-            <polyline points={windPoints} className="simple-metric-wind-line" />
-            {selectedMetric && <>
-              <circle cx={`${(graphSelectedHour / Math.max(1, graphHourly.length - 1)) * 100}`} cy={`${8 + (1 - ((selectedMetric.pressureHpa - pressureMin) / pressureRange)) * 78}`} r="1.8" className="simple-metric-pressure-point" />
-              <circle cx={`${(graphSelectedHour / Math.max(1, graphHourly.length - 1)) * 100}`} cy={`${8 + (1 - (selectedMetric.windSpeedMph / windMax)) * 78}`} r="1.8" className="simple-metric-wind-point" />
-            </>}
-          </svg>
-          <div className="simple-metric-bars">
-            {graphHourly.map((item, index) => {
-              const rainHeight = item.precipProbability > 0 ? Math.max(4, Math.min(100, item.precipProbability)) : 0;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  className={`simple-metric-hour ${index === graphSelectedHour ? 'selected' : ''}`}
-                  onClick={() => onSelectHour(index)}
-                  aria-label={`${hourLabel(index)}: movement ${item.huntScore}, rain ${item.precipProbability} percent, pressure ${Math.round(item.pressureHpa)} hPa, wind ${Math.round(units === 'metric' ? item.windSpeedKmh : item.windSpeedMph)} ${units === 'metric' ? 'km/h' : 'mph'} ${item.windDirectionText}`}
-                >
-                  <span className="simple-metric-hour-score">{item.huntScore}</span>
-                  <span className="simple-metric-movement" style={{ height: `${Math.max(7, item.huntScore)}%`, backgroundColor: scoreColor(item.huntScore) }} />
-                  <span className="simple-metric-rain" style={{ height: `${rainHeight}%` }} />
-                  <span className="simple-metric-hour-label">{index % 3 === 0 ? hourLabel(index) : ''}</span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="simple-bar-chart" role="img" aria-label="Hourly deer movement score graph">
+          {graphHourly.map((item, index) => (
+            <button
+              key={index}
+              type="button"
+              className={`simple-bar-column ${index === graphSelectedHour ? 'selected' : ''}`}
+              onClick={() => onSelectHour(index)}
+              aria-label={`${hourLabel(index)}: deer movement score ${item.huntScore}`}
+            >
+              <span className="simple-bar-score">{item.huntScore}</span>
+              <span className="simple-bar-track"><i style={{ height: `${Math.max(7, item.huntScore)}%`, backgroundColor: scoreColor(item.huntScore) }} /></span>
+              <span className="simple-bar-label">{index % 3 === 0 ? hourLabel(index) : ''}</span>
+            </button>
+          ))}
         </div>
-        {selectedMetric && <div className="simple-metric-readout" aria-live="polite">
-          <span className="movement"><i /> Movement <strong>{selectedMetric.huntScore}</strong></span>
-          <span className="rain"><i /> Rain <strong>{selectedMetric.precipProbability}%</strong></span>
-          <span className="pressure"><i /> Pressure <strong>{Math.round(selectedMetric.pressureHpa)} hPa</strong></span>
-          <span className="wind"><i /> Wind <strong>{Math.round(selectedWindSpeed)} {selectedWindUnit} {selectedMetric.windDirectionText}</strong></span>
+        {selectedMetric && <div className="simple-movement-readout" aria-live="polite">
+          <span><i style={{ backgroundColor: scoreColor(selectedMetric.huntScore) }} /> Movement score <strong>{selectedMetric.huntScore}</strong></span>
         </div>}
         <div className="simple-graph-axis"><span>12 AM</span><span>Dawn</span><span>Midday</span><span>Dusk</span><span>12 AM</span></div>
       </div>
@@ -435,7 +395,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         activeDate={day.date}
         selectedHour={safeSelectedHour}
         onSelectHour={onSelectHour}
-        units={units}
         onSelectDate={onSelectDate}
         dayLabel={`${day.dayName} · ${day.dateFormatted}`}
       />

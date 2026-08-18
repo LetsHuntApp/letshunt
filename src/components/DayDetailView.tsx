@@ -415,7 +415,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
           <div className="flex flex-col items-center sm:items-start gap-2 w-full lg:w-auto">
             <div className="flex flex-row items-center justify-center gap-3 sm:gap-5 flex-shrink-0 self-center sm:self-auto">
               {/* Circular Gauge Score */}
-              <div style={scoreDialFrameStyle} className={`score-dial-orbit relative flex items-center justify-center shrink-0 transition-all ${
+              <div style={scoreDialFrameStyle} className={`relative flex items-center justify-center shrink-0 transition-all ${
                 theme === 'hunting'
                   ? isDark
                     ? 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-[#24170f]/[var(--card-opacity)] border-2 shadow-xl'
@@ -429,7 +429,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                   : 'w-36 h-36 sm:w-44 sm:h-44 p-1 rounded-full bg-white/[var(--card-opacity)] border-2 shadow-lg'
               }`}>
                 {/* SVG Circle Track */}
-                <svg className="score-dial-orbit-svg" viewBox="0 0 100 100">
+                <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   {/* Background Track */}
                   <circle
                     cx="50"
@@ -453,9 +453,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     className="transition-all duration-300 ease-out"
                   />
                 </svg>
-                <div className="score-dial-orbit-content">
+                <div className="text-center z-10 flex flex-col items-center justify-center">
                   <DeerIcon
-                    className={`score-dial-orbit-deer fill-current -mb-0.5 ${
+                    className={`fill-current -mb-0.5 ${
                       theme === 'light' || theme === 'dark' ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-9 h-9 sm:w-11 sm:h-11'
                     }`}
                     style={{ color: scoreStrokeColor, fill: scoreStrokeColor }}
@@ -467,14 +467,14 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     {currentScore}
                   </div>
                   <div
-                    className="score-dial-orbit-rating text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                    className="text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
                     style={{ color: scoreStrokeColor }}
                   >
                     {isExcellentDay && <Star className="w-3 h-3" style={{ color: scoreStrokeColor, fill: scoreStrokeColor }} />}
                     <span>{getRatingFromScore(currentScore)}</span>
                   </div>
                   <div
-                    className="score-dial-orbit-label text-xs sm:text-xs font-black uppercase tracking-widest -mt-0.5 opacity-90"
+                    className="text-xs sm:text-xs font-black uppercase tracking-widest -mt-0.5 opacity-90"
                     style={{ color: scoreStrokeColor }}
                   >
                     SCORE

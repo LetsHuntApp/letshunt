@@ -263,9 +263,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       >
         {/* Keep the primary score immediately at the top of the hero, matching the dashboard hierarchy. */}
         <div className="flex flex-col items-center justify-center space-y-2 shrink-0 z-10">
-          <div className="score-dial-orbit relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">
+          <div className="relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">
             <svg
-              className="score-dial-orbit-svg"
+              className="absolute w-full h-full transform -rotate-90"
               viewBox="0 0 100 100"
               role="img"
               aria-label={`Hunt score ${activeScore} out of 100, rated ${getRatingFromScore(activeScore)}`}
@@ -291,9 +291,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 className="transition-all duration-300 ease-out"
               />
             </svg>
-            <div className="score-dial-orbit-content">
+            <div className="text-center z-10 flex flex-col items-center justify-center">
               <DeerIcon
-                className="score-dial-orbit-deer w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
+                className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
                 style={{ color: colors.stroke, fill: colors.stroke }}
               />
               <div
@@ -303,14 +303,14 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 {activeScore}
               </div>
               <div
-                className="score-dial-orbit-rating text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                className="text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
                 style={{ color: colors.stroke }}
               >
                 {isExcellentDay && <Star className="w-3.5 h-3.5" style={{ color: colors.stroke, fill: colors.stroke }} />}
                 <span>{getRatingFromScore(activeScore)}</span>
               </div>
               <div
-                className="score-dial-orbit-label text-[10px] sm:text-[11px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
+                className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
                 style={{ color: colors.stroke }}
               >
                 HUNT SCORE
