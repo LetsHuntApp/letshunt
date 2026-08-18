@@ -33,6 +33,7 @@ import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
 import { SimpleDashboard } from './components/SimpleDashboard';
+import { SimpleForecastView } from './components/SimpleForecastView';
 import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays, MapPin, X, Loader2 } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
@@ -805,7 +806,6 @@ export default function App() {
                 location={currentLocation}
                 units={units}
                 pressureUnit={pressureUnit}
-                theme={theme}
                 selectedHour={selectedHour}
                 onSelectHour={setSelectedHour}
                 onSelectDate={(date) => setSelectedDate(date)}
@@ -884,6 +884,21 @@ export default function App() {
                   }}
                 />
               </div>
+            ) : activeTab === 'details' && simpleMode && activeDay ? (
+              <SimpleForecastView
+                day={activeDay}
+                forecast={dailyForecast}
+                location={currentLocation}
+                units={units}
+                pressureUnit={pressureUnit}
+                selectedDate={selectedDate || activeDay.date}
+                selectedHour={selectedHour}
+                onSelectDate={(date) => setSelectedDate(date)}
+                onSelectHour={setSelectedHour}
+                onBack={() => setActiveTab('dashboard')}
+                onOpenMap={() => setActiveTab('map')}
+                onOpenSettings={() => setActiveTab('settings')}
+              />
             ) : activeTab === 'details' && activeDay ? (
               /* Detailed Prediction Full View OR Main Dashboard Conditions */
               <DetailedPredictionView
@@ -945,7 +960,7 @@ export default function App() {
         )}
 
         {/* Floating Ultra-Compact 24h Hourly Time Slider (Active on Dashboard and Details tabs) */}
-        {!loading && !error && activeDay && (activeTab === 'details' || (activeTab === 'dashboard' && !simpleMode)) && (
+        {!loading && !error && activeDay && !simpleMode && (activeTab === 'details' || activeTab === 'dashboard') && (
           <FloatingHourlySlider
             selectedHour={selectedHour}
             onSelectHour={setSelectedHour}

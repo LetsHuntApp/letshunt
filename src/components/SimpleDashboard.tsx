@@ -95,7 +95,7 @@ interface SimpleScoreGraphProps {
   onSelectHour: (hour: number) => void;
 }
 
-const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour }) => {
+export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour }) => {
   const width = 640;
   const height = 116;
   const chartTop = 14;
@@ -174,7 +174,7 @@ interface SimpleHourlyTimelineProps {
   onSelectHour: (hour: number) => void;
 }
 
-const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hourly, units, selectedHour, onSelectHour }) => {
+export const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hourly, units, selectedHour, onSelectHour }) => {
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
   const maxHour = Math.max(0, Math.min(23, hourly.length - 1));
   const safeHour = Math.max(0, Math.min(maxHour, selectedHour));
@@ -233,6 +233,40 @@ const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hourly, uni
   );
 };
 
+export interface SimpleFloatingHourlySliderProps {
+  hourly: HourlyForecast[];
+  selectedHour: number;
+  onSelectHour: (hour: number) => void;
+}
+
+export const SimpleFloatingHourlySlider: React.FC<SimpleFloatingHourlySliderProps> = ({ hourly, selectedHour, onSelectHour }) => {
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  const maxHour = Math.max(0, Math.min(23, hourly.length - 1));
+  const safeHour = Math.max(0, Math.min(maxHour, selectedHour));
+  const selected = hourly[safeHour];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentHour(new Date().getHours()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (!selected || hourly.length === 0) return null;
+
+  return (
+    <div className="simple-floating-hourly" aria-label="Simple mode floating hourly slider">
+      <div className="simple-floating-hourly-header"><span>Hourly movement</span><strong>{hourLabel(safeHour)} · {selected.huntScore} / 100</strong></div>
+      <div className="simple-floating-hourly-rail">
+        <div className="simple-floating-hourly-segments" aria-hidden="true">
+          {hourly.map((item, index) => <span key={index} style={{ backgroundColor: scoreColor(item.huntScore), opacity: index === safeHour ? 1 : .72 }} />)}
+        </div>
+        <div className="simple-floating-hourly-thumb" style={{ left: `${(safeHour / Math.max(1, maxHour)) * 100}%`, backgroundColor: scoreColor(selected.huntScore) }} />
+        <input type="range" min={0} max={maxHour} step={1} value={safeHour} onChange={(event) => onSelectHour(parseInt(event.target.value, 10))} aria-label="Choose an hourly movement score" />
+      </div>
+      <div className="simple-floating-hourly-labels"><span>12 AM</span><span>Dawn</span><span>Midday</span><span>Dusk</span><span>{currentHour === safeHour ? 'Live now' : '12 AM'}</span></div>
+    </div>
+  );
+};
+
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   day,
   forecast,
@@ -276,9 +310,27 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       <section className={`simple-pro-hero ${tone}`}>
         <div className="simple-pro-hero-main">
           <div className={`simple-pro-score ${tone}`} aria-label={`Hunt score ${score} out of 100`}>
-            <DeerIcon className="simple-pro-score-deer" />
-            <strong>{score}</strong>
-            <span>out of 100</span>
+            <svg className="simple-pro-score-orbit" viewBox="0 0 180 180" aria-hidden="true">
+              <circle cx="90" cy="90" r="68" className="simple-pro-score-track" />
+              <circle
+                cx="90"
+                cy="90"
+                r="68"
+                className="simple-pro-score-progress"
+                stroke={scoreColor(score)}
+                strokeDasharray={`${2 * Math.PI * 68}`}
+                strokeDashoffset={`${2 * Math.PI * 68 * (1 - score / 100)}`}
+              />
+              {Array.from({ length: 12 }).map((_, index) => {
+                const angle = (index / 12) * 360;
+                return <circle key={index} cx="90" cy="14" r="1.8" className="simple-pro-score-tick" transform={`rotate(${angle} 90 90)`} />;
+              })}
+            </svg>
+            <div className="simple-pro-score-content">
+              <DeerIcon className="simple-pro-score-deer" />
+              <strong>{score}</strong>
+              <span>out of 100</span>
+            </div>
           </div>
           <div className="simple-pro-hero-copy">
             <div className={`simple-pro-status ${tone}`}><i /> {getScoreLabel(score)}</div>
@@ -334,7 +386,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       </section>
 
       <p className="simple-pro-footer"><DeerIcon className="simple-pro-footer-deer" /> Built for the quiet hour before the woods wake up.</p>
-      <button type="button" className="simple-pro-details" onClick={() => onOpenDetails(day.date)}>Open the full forecast <ArrowRight size={15} /></button>
+      <SimpleFloatingHourlySlider hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} />
+      <button type="button" className="simple-pro-details" onClick={() => onOpenDetails(day.date)}>View full forecast <ArrowRight size={15} /></button>
     </div>
   );
 };
