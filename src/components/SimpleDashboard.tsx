@@ -28,6 +28,7 @@ import {
   CloudRainWind,
   Snowflake,
   CloudLightning,
+  Moon,
   Wind,
   Sunrise,
   Sunset,
@@ -508,7 +509,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         <div className="overflow-x-auto pb-1">
-          <div className="flex items-start gap-1.5 sm:gap-2 min-w-[560px]">
+          <div className="flex items-start gap-1 sm:gap-1.5 min-w-[560px]">
             {daily.map((d) => {
               const isSelected = d.date === (activeDayDate || today.date);
               const wet = isWetDay(d);
@@ -525,11 +526,23 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     setHeroHour(new Date().getHours());
                   }}
                   title={`${d.dayName} ${d.dateFormatted} · ${d.huntScore}/100 (${d.rating})`}
-                  className={`group flex-1 min-w-0 flex flex-col items-center rounded-lg px-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                  className={`group flex-1 min-w-0 flex flex-col items-center rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                     isSelected ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : 'hover:bg-slate-500/5'
                   }`}
                 >
                   <div className="relative w-full h-24 sm:h-28 flex items-end justify-center">
+                    {d.solunar?.moonPhaseName === 'Full Moon' && (
+                      <div
+                        className={`absolute top-0.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-wide whitespace-nowrap shadow-sm border ${
+                          isDark
+                            ? 'bg-slate-950/85 text-amber-300 border-amber-400/40'
+                            : 'bg-white/95 text-amber-600 border-amber-400/60'
+                        }`}
+                      >
+                        <Moon className="w-2.5 h-2.5 shrink-0 fill-current" />
+                        Full Moon
+                      </div>
+                    )}
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-sm flex items-start justify-center overflow-hidden"
                       style={{
