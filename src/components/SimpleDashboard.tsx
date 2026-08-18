@@ -369,7 +369,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <BarChart3 className="w-4 h-4" /> Hourly Hunt Score
             </h2>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {activeDay.dayName} · {activeDay.dateFormatted} — movement by hour
+              {activeDay.dayName} · {activeDay.dateFormatted} — tap a bar to preview that hour
             </p>
             <div className="flex items-center gap-2 text-[10px] font-bold flex-wrap mt-1.5">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(90) }} /> Great</span>
@@ -400,15 +400,22 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </button>
         </div>
 
-        <div className="flex items-end gap-[2px] h-24 sm:h-28" aria-hidden="true">
-          {hourlyBars.map((h, i) => (
-            <div
-              key={`${h.time}-${i}`}
-              title={`${h.time} · ${h.huntScore}/100 (${getRatingFromScore(h.huntScore)})`}
-              className="flex-1 rounded-t-sm min-w-0 transition-opacity hover:opacity-80"
-              style={{ height: `${Math.max(6, h.huntScore)}%`, backgroundColor: getScoreBarColor(h.huntScore) }}
-            />
-          ))}
+        <div className="flex items-end gap-[2px] h-24 sm:h-28">
+          {hourlyBars.map((h, i) => {
+            const selected = i === heroHour;
+            return (
+              <div
+                key={`${h.time}-${i}`}
+                title={`${h.time} · ${h.huntScore}/100 (${getRatingFromScore(h.huntScore)}) — tap to preview this hour`}
+                onClick={() => setHeroHour(i)}
+                role="button"
+                tabIndex={-1}
+                aria-label={`${h.time} — hunt score ${h.huntScore}, ${getRatingFromScore(h.huntScore)}. Tap to preview this hour.`}
+                className={`flex-1 rounded-t-sm min-w-0 cursor-pointer transition-opacity ${selected ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
+                style={{ height: `${Math.max(6, h.huntScore)}%`, backgroundColor: getScoreBarColor(h.huntScore) }}
+              />
+            );
+          })}
         </div>
         <div className="flex gap-[2px] mt-1.5 leading-none select-none" aria-hidden="true">
           {hourlyBars.map((h, i) => {
