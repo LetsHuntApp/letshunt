@@ -300,9 +300,9 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
           <defs>
             <radialGradient id="simpleScentFade" cx={halfW} cy={halfH} r={plumeRadius} gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity="0.78" />
-              <stop offset="40%" stopColor="#ef4444" stopOpacity="0.38" />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+              <stop offset="40%" stopColor="#3b82f6" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
             </radialGradient>
           </defs>
           <path
@@ -311,8 +311,8 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           />
           {/* Pulsing concentric scent waves */}
           <g className="animate-pulse">
-            <path d={getSvgArcPath(halfW, halfH, plumeRadius * 0.45, startAngle, endAngle)} fill="none" stroke="#f87171" strokeWidth="1.2" strokeDasharray="4,4" opacity="0.6" />
-            <path d={getSvgArcPath(halfW, halfH, plumeRadius * 0.75, startAngle, endAngle)} fill="none" stroke="#ef4444" strokeWidth="1.2" strokeDasharray="6,6" opacity="0.4" />
+            <path d={getSvgArcPath(halfW, halfH, plumeRadius * 0.45, startAngle, endAngle)} fill="none" stroke="#60a5fa" strokeWidth="1.2" strokeDasharray="4,4" opacity="0.6" />
+            <path d={getSvgArcPath(halfW, halfH, plumeRadius * 0.75, startAngle, endAngle)} fill="none" stroke="#3b82f6" strokeWidth="1.2" strokeDasharray="6,6" opacity="0.4" />
           </g>
           {/* Cardinal labels */}
           <text x={halfW} y={20} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">N</text>
