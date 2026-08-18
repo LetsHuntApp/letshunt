@@ -811,3 +811,221 @@ rect:focus {
   background-color: rgba(51, 65, 85, 0.4) !important;
   color: #e2e8f0 !important;
 }
+
+/* ===== SIMPLE MODE — a separate, quiet field-notebook skin =====
+   Normal mode intentionally does not share these selectors. Simple mode is
+   meant to reduce decisions: one clear score, the best windows, a few useful
+   conditions, and a short outlook. */
+.simple-mode {
+  --simple-ink: #1d2a24;
+  --simple-muted: #6b7b72;
+  --simple-paper: #f5f7f2;
+  --simple-card: #ffffff;
+  --simple-line: #dbe4dc;
+  --simple-accent: #2f6f55;
+  --simple-accent-soft: #e4f0e8;
+  --simple-warning: #b36b24;
+  background: var(--simple-paper) !important;
+  color: var(--simple-ink) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+html.dark .simple-mode {
+  --simple-ink: #eef4ed;
+  --simple-muted: #9aaba0;
+  --simple-paper: #17221c;
+  --simple-card: #203027;
+  --simple-line: #35493d;
+  --simple-accent: #8dc5a4;
+  --simple-accent-soft: #263f31;
+  --simple-warning: #e5ad6d;
+}
+.simple-mode main:has(.simple-dashboard) {
+  max-width: 980px !important;
+  padding: 28px 20px 56px !important;
+  margin-inline: auto;
+}
+.simple-mode footer,
+.simple-mode [data-bottom-nav] {
+  display: none !important;
+}
+.simple-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid var(--simple-line);
+  background: color-mix(in srgb, var(--simple-paper) 94%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.simple-header-inner {
+  max-width: 980px;
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.simple-brand {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.simple-brand svg { height: 38px !important; width: auto !important; margin: -7px 0 !important; }
+.simple-header-location {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--simple-muted);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.simple-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.simple-header-nav button,
+.simple-icon-button {
+  border: 1px solid transparent;
+  color: var(--simple-muted);
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 11px;
+}
+.simple-header-nav button:hover,
+.simple-header-nav button.active,
+.simple-icon-button:hover {
+  color: var(--simple-accent);
+  background: var(--simple-accent-soft);
+}
+.simple-header-nav button.active { border-color: var(--simple-line); }
+.simple-icon-button { display: none; padding: 9px; }
+.simple-dashboard { width: 100%; display: grid; gap: 18px; }
+.simple-welcome { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.simple-welcome h1, .simple-section h2 { margin: 0; color: var(--simple-ink); letter-spacing: -0.03em; }
+.simple-welcome h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.02; font-weight: 850; }
+.simple-location { display: flex; align-items: center; gap: 6px; color: var(--simple-muted); margin: 8px 0 0; font-size: 13px; font-weight: 700; }
+.simple-welcome-actions { display: flex; gap: 7px; }
+.simple-eyebrow { color: var(--simple-accent); font-size: 10px; line-height: 1; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 8px; }
+.simple-muted { color: var(--simple-muted); font-size: 11px; font-weight: 700; }
+.simple-score-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 22px; padding: 24px; border: 1px solid var(--simple-line); border-radius: 20px; background: var(--simple-card); box-shadow: 0 12px 32px rgba(33, 67, 48, .08); }
+html.dark .simple-score-card { box-shadow: 0 12px 32px rgba(0, 0, 0, .18); }
+.simple-score-card.excellent { border-color: #8fc4a5; }
+.simple-score-card.good { border-color: #a9cdb2; }
+.simple-score-card.fair { border-color: #e2c08f; }
+.simple-score-card.poor { border-color: #d9a6a0; }
+.simple-score-ring { width: 108px; height: 108px; border-radius: 50%; border: 8px solid var(--simple-accent); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--simple-accent); flex-shrink: 0; }
+.simple-score-card.fair .simple-score-ring { border-color: var(--simple-warning); color: var(--simple-warning); }
+.simple-score-card.poor .simple-score-ring { border-color: #b6544a; color: #b6544a; }
+.simple-score-ring strong { font-size: 36px; line-height: .9; letter-spacing: -.06em; }
+.simple-score-ring span { font-size: 10px; font-weight: 800; margin-top: 4px; opacity: .75; }
+.simple-score-copy h2 { font-size: 22px; line-height: 1.05; font-weight: 850; }
+.simple-score-copy p:last-child { color: var(--simple-muted); font-size: 13px; line-height: 1.55; max-width: 480px; margin: 8px 0 0; }
+.simple-weather-summary { min-width: 100px; display: grid; justify-items: end; gap: 3px; color: var(--simple-muted); text-align: right; }
+.simple-weather-icon { width: 24px; height: 24px; color: var(--simple-accent); }
+.simple-weather-summary .simple-weather-icon { width: 28px; height: 28px; }
+.simple-weather-summary strong { color: var(--simple-ink); font-size: 22px; }
+.simple-weather-summary span { font-size: 10px; line-height: 1.25; }
+.simple-section { padding: 20px; background: var(--simple-card); border: 1px solid var(--simple-line); border-radius: 16px; }
+.simple-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.simple-section h2 { font-size: 18px; line-height: 1.1; font-weight: 850; }
+.simple-hour-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.simple-hour-button { position: relative; min-height: 76px; display: grid; align-content: center; justify-items: center; gap: 5px; border: 1px solid var(--simple-line); border-radius: 12px; background: var(--simple-paper); color: var(--simple-muted); cursor: pointer; }
+.simple-hour-button span { font-size: 10px; font-weight: 800; }
+.simple-hour-button strong { color: var(--simple-ink); font-size: 20px; line-height: 1; }
+.simple-hour-button svg { position: absolute; top: 6px; right: 6px; color: var(--simple-accent); }
+.simple-hour-button:hover, .simple-hour-button.selected { border-color: var(--simple-accent); background: var(--simple-accent-soft); }
+.simple-hour-button.selected strong { color: var(--simple-accent); }
+.simple-hour-button.prime::before { content: ''; position: absolute; left: 8px; right: 8px; bottom: 5px; height: 2px; background: var(--simple-accent); border-radius: 2px; }
+.simple-text-button { display: inline-flex; align-items: center; gap: 6px; margin-top: 15px; padding: 0; color: var(--simple-accent); background: transparent; border: 0; cursor: pointer; font-size: 12px; font-weight: 850; }
+.simple-two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.simple-window-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--simple-line); color: var(--simple-accent); }
+.simple-window-row div { display: grid; gap: 3px; }
+.simple-window-row strong { color: var(--simple-ink); font-size: 12px; }
+.simple-window-row span { color: var(--simple-muted); font-size: 11px; }
+.simple-condition-row { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 8px; padding: 11px 0; border-top: 1px solid var(--simple-line); color: var(--simple-accent); }
+.simple-condition-row span { color: var(--simple-muted); font-size: 11px; font-weight: 700; }
+.simple-condition-row strong { color: var(--simple-ink); font-size: 11px; text-align: right; }
+.simple-best-badge { padding: 5px 8px; border-radius: 8px; color: var(--simple-accent); background: var(--simple-accent-soft); font-size: 10px; font-weight: 900; }
+.simple-outlook-list { display: grid; gap: 5px; }
+.simple-outlook-row { width: 100%; display: grid; grid-template-columns: 1fr 1.4fr .8fr 38px; align-items: center; gap: 8px; padding: 11px 10px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--simple-ink); text-align: left; cursor: pointer; }
+.simple-outlook-row:hover, .simple-outlook-row.active { border-color: var(--simple-line); background: var(--simple-paper); }
+.simple-outlook-day { font-size: 12px; font-weight: 850; }
+.simple-outlook-weather { display: flex; align-items: center; gap: 5px; color: var(--simple-muted); font-size: 11px; }
+.simple-outlook-weather .simple-weather-icon { width: 17px; height: 17px; }
+.simple-outlook-rating { color: var(--simple-muted); font-size: 11px; }
+.simple-outlook-score { justify-self: end; font-size: 13px; font-weight: 900; }
+.simple-outlook-score.excellent, .simple-outlook-score.good { color: var(--simple-accent); }
+.simple-outlook-score.fair { color: var(--simple-warning); }
+.simple-outlook-score.poor { color: #b6544a; }
+.simple-footer-note { margin: 0; color: var(--simple-muted); font-size: 11px; text-align: center; }
+.simple-settings { width: min(100%, 680px); margin: 0 auto; display: grid; gap: 14px; padding: 10px 0 35px; }
+.simple-settings-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.simple-settings-heading h1 { margin: 0; color: var(--simple-ink); font-size: 32px; line-height: 1; letter-spacing: -.04em; }
+.simple-settings-heading p:last-child { margin: 8px 0 0; color: var(--simple-muted); font-size: 12px; }
+.simple-settings-back { border: 1px solid var(--simple-line); border-radius: 10px; padding: 9px 11px; background: var(--simple-card); color: var(--simple-accent); cursor: pointer; font-size: 11px; font-weight: 850; white-space: nowrap; }
+.simple-settings-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 17px; border: 1px solid var(--simple-line); border-radius: 14px; background: var(--simple-card); }
+.simple-settings-card > div:first-child { min-width: 0; display: grid; gap: 4px; }
+.simple-settings-card strong { color: var(--simple-ink); font-size: 13px; }
+.simple-settings-card span { color: var(--simple-muted); font-size: 11px; line-height: 1.4; }
+.simple-settings-status { color: var(--simple-accent) !important; font-size: 10px !important; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }
+.simple-settings-toggle { width: 42px; height: 24px; flex-shrink: 0; padding: 2px; border: 0; border-radius: 99px; background: var(--simple-line); cursor: pointer; text-align: left; }
+.simple-settings-toggle span { display: block; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: transform .16s ease; }
+.simple-settings-toggle.on { background: var(--simple-accent); }
+.simple-settings-toggle.on span { transform: translateX(18px); }
+.simple-settings-choice { align-items: flex-start; }
+.simple-settings-segment { display: flex !important; gap: 4px; padding: 3px; border-radius: 9px; background: var(--simple-paper); }
+.simple-settings-segment button { border: 0; border-radius: 7px; padding: 7px 9px; background: transparent; color: var(--simple-muted); cursor: pointer; font-size: 10px; font-weight: 850; white-space: nowrap; }
+.simple-settings-segment button.selected { background: var(--simple-accent); color: #fff; }
+.simple-settings-more { margin: 4px 4px 0; color: var(--simple-muted); font-size: 11px; line-height: 1.5; text-align: center; }
+.simple-mode-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px; border: 1px solid var(--simple-line, #dbe4dc); border-radius: 12px; background: var(--simple-accent-soft, rgba(16, 185, 129, .08)); }
+.simple-mode-setting-copy { min-width: 0; }
+.simple-mode-setting-title { color: var(--simple-ink, inherit); font-size: 13px; font-weight: 900; }
+.simple-mode-setting-description { color: var(--simple-muted, #64748b); font-size: 11px; line-height: 1.4; margin-top: 3px; }
+.dark .simple-mode-setting { border-color: #334155; background: rgba(15, 23, 42, .55); }
+.dark .simple-mode-setting-title { color: #fff; }
+.dark .simple-mode-setting-description { color: #94a3b8; }
+/* When another feature page is open in Simple Mode, keep its existing feature
+   controls usable but make the chrome flatter and quieter. */
+.simple-mode main .rounded-3xl { border-radius: 16px !important; }
+.simple-mode main .rounded-2xl { border-radius: 12px !important; }
+.simple-mode main .shadow-xl, .simple-mode main .shadow-2xl { box-shadow: 0 8px 22px rgba(33, 67, 48, .08) !important; }
+html.dark .simple-mode main .shadow-xl, html.dark .simple-mode main .shadow-2xl { box-shadow: 0 8px 22px rgba(0, 0, 0, .2) !important; }
+
+@media (max-width: 640px) {
+  .simple-header-inner { min-height: 58px; padding: 7px 14px; gap: 10px; }
+  .simple-brand svg { height: 32px !important; }
+  .simple-header-location { flex: 1; }
+  .simple-header-nav button { padding: 8px; }
+  .simple-header-nav button span { display: none; }
+  .simple-header-nav { gap: 1px; }
+  .simple-mode main:has(.simple-dashboard) { padding: 22px 14px 35px !important; }
+  .simple-welcome { align-items: center; }
+  .simple-welcome h1 { font-size: 30px; }
+  .simple-icon-button { display: inline-flex; }
+  .simple-score-card { grid-template-columns: auto 1fr; gap: 14px; padding: 17px; }
+  .simple-score-ring { width: 84px; height: 84px; border-width: 6px; }
+  .simple-score-ring strong { font-size: 28px; }
+  .simple-score-copy h2 { font-size: 18px; }
+  .simple-score-copy p:last-child { font-size: 11px; }
+  .simple-weather-summary { grid-column: 1 / -1; grid-template-columns: auto auto 1fr; justify-items: start; align-items: center; gap: 8px; text-align: left; padding-top: 11px; border-top: 1px solid var(--simple-line); }
+  .simple-weather-summary strong { font-size: 17px; }
+  .simple-two-column { grid-template-columns: 1fr; gap: 14px; }
+  .simple-section { padding: 16px; }
+  .simple-outlook-row { grid-template-columns: .8fr 1.2fr .75fr 30px; padding: 10px 4px; }
+  .simple-outlook-rating { font-size: 10px; }
+}

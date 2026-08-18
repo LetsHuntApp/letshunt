@@ -32,6 +32,7 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
+import { SimpleDashboard } from './components/SimpleDashboard';
 import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays, MapPin, X, Loader2 } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
@@ -45,6 +46,11 @@ const FALLBACK_DEFAULT_LOCATION: Location = {
 export default function App() {
   // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
+
+  // Simple mode is intentionally independent from the existing theme system.
+  // It swaps in a focused dashboard and a separate visual skin while leaving
+  // the normal-mode component tree and styling untouched.
+  const [simpleMode, setSimpleMode] = useState<boolean>(() => safeGetString('letshunt_simple_mode') === 'true');
 
   // Theme state: dark or light
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
@@ -209,6 +215,10 @@ export default function App() {
   useEffect(() => {
     safeSet('letshunt_theme_mode', themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    safeSet('letshunt_simple_mode', simpleMode ? 'true' : 'false');
+  }, [simpleMode]);
 
   useEffect(() => {
     safeSetJSON('letshunt_default_location', defaultLocation);
@@ -603,7 +613,7 @@ export default function App() {
         activeTab === 'map'
           ? 'h-screen max-h-screen overflow-hidden'
           : 'min-h-screen pb-14 sm:pb-0'
-      } ${
+      } ${simpleMode ? 'simple-mode' : ''} ${
         themeMode === 'dark'
           ? themeVariant === 'hunting'
             ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#b66a38] selection:text-white'
@@ -666,6 +676,7 @@ export default function App() {
         onOpenGuide={() => setIsGuideOpen(true)}
         onOpenPwaModal={() => setIsPwaModalOpen(true)}
         activeTab={activeTab}
+        simpleMode={simpleMode}
         onTabChange={(tab) => {
           setActiveTab(tab);
           // Returning to Dashboard from any route always lands on the main
@@ -714,6 +725,11 @@ export default function App() {
             onSetCustomBackgroundOpacity={setCustomBackgroundOpacity}
             customBackgroundBlur={customBackgroundBlur}
             onSetCustomBackgroundBlur={setCustomBackgroundBlur}
+            simpleMode={simpleMode}
+            onToggleSimpleMode={(enabled) => {
+              setSimpleMode(enabled);
+              showToast(enabled ? 'Simple mode on' : 'Full dashboard restored');
+            }}
           />
         ) : activeTab === 'map' ? (
           <MapView
@@ -779,9 +795,30 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Dashboard-owned 14-day subpage. It deliberately lives inside the
-                dashboard branch, so it gets no navbar slot of its own. */}
-            {activeTab === 'dashboard' && isFourteenDayView ? (
+            {/* Simple mode owns a separate dashboard tree. The normal branch
+                below is unchanged, so turning the setting off restores the
+                existing dashboard exactly. */}
+            {activeTab === 'dashboard' && simpleMode && !isFourteenDayView && activeDay ? (
+              <SimpleDashboard
+                day={activeDay!}
+                forecast={dailyForecast}
+                location={currentLocation}
+                units={units}
+                pressureUnit={pressureUnit}
+                theme={theme}
+                selectedHour={selectedHour}
+                onSelectHour={setSelectedHour}
+                onSelectDate={(date) => setSelectedDate(date)}
+                onOpenDetails={(date) => {
+                  setSelectedDate(date);
+                  setActiveTab('details');
+                }}
+                onOpenMap={() => setActiveTab('map')}
+                onOpenSettings={() => setActiveTab('settings')}
+              />
+            ) : activeTab === 'dashboard' && isFourteenDayView ? (
+              /* Dashboard-owned 14-day subpage. It deliberately lives inside the
+                 dashboard branch, so it gets no navbar slot of its own. */
               <div className="w-full space-y-4 sm:space-y-6">
                 <div className={`rounded-2xl border px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between gap-3 shadow-lg backdrop-blur-xl ${
                   isDark
