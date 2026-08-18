@@ -47,6 +47,7 @@ const LOCAL_STORAGE_KEYS = {
   showPaths: 'letshunt_show_paths',
   showPins: 'letshunt_show_pins',
   trailcamDefaultLoc: 'letshunt_trailcam_default_loc',
+  simpleDashboard: 'letshunt_simple_dashboard',
 } as const;
 
 export interface BackupSummary {
@@ -103,6 +104,7 @@ export interface LetsHuntBackup {
     showPaths: string | null;
     showPins: string | null;
     trailcamDefaultLoc: string | null;
+    simpleDashboard: string | null;
   };
 }
 
@@ -200,6 +202,7 @@ export async function exportBackupData(): Promise<{ json: string; summary: Backu
       showPaths: safeGet(LOCAL_STORAGE_KEYS.showPaths),
       showPins: safeGet(LOCAL_STORAGE_KEYS.showPins),
       trailcamDefaultLoc: safeGet(LOCAL_STORAGE_KEYS.trailcamDefaultLoc),
+      simpleDashboard: safeGet(LOCAL_STORAGE_KEYS.simpleDashboard),
     },
   };
 
@@ -312,6 +315,7 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
     { key: 'showPaths', lsKey: LOCAL_STORAGE_KEYS.showPaths },
     { key: 'showPins', lsKey: LOCAL_STORAGE_KEYS.showPins },
     { key: 'trailcamDefaultLoc', lsKey: LOCAL_STORAGE_KEYS.trailcamDefaultLoc },
+    { key: 'simpleDashboard', lsKey: LOCAL_STORAGE_KEYS.simpleDashboard },
   ];
   for (const { key, lsKey } of prefKeys) {
     const val = prefs[key];

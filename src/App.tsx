@@ -23,6 +23,7 @@ import { getActiveClub, publishClubData, pullClubDataIfChanged } from './service
 import { Header } from './components/Header';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
+import { SimpleDashboard } from './components/SimpleDashboard';
 import { FloatingHourlySlider } from './components/FloatingHourlySlider';
 import { SettingsView } from './components/SettingsView';
 import { DetailedPredictionView } from './components/DetailedPredictionView';
@@ -126,6 +127,10 @@ export default function App() {
   // activeTab/navbar item: browser/mobile navigation continues to read as
   // Dashboard while this view is open.
   const [isFourteenDayView, setIsFourteenDayView] = useState(false);
+  // Toggleable Simple Dashboard (kept separate from the regular dashboard).
+  const [simpleDashboard, setSimpleDashboard] = useState<boolean>(() => {
+    return safeGetString('letshunt_simple_dashboard') === 'true';
+  });
   const [selectedHour, setSelectedHour] = useState<number>(() => new Date().getHours()); // Default to current local time hour
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -228,6 +233,10 @@ export default function App() {
   useEffect(() => {
     safeSetJSON('letshunt_favorites', favorites);
   }, [favorites]);
+
+  useEffect(() => {
+    safeSet('letshunt_simple_dashboard', simpleDashboard ? 'true' : 'false');
+  }, [simpleDashboard]);
 
   // Listen for PWA beforeinstallprompt event
   useEffect(() => {
@@ -697,6 +706,11 @@ export default function App() {
             setUnits={setUnits}
             pressureUnit={pressureUnit}
             setPressureUnit={setPressureUnit}
+            simpleDashboard={simpleDashboard}
+            onToggleSimpleDashboard={(v) => {
+              setSimpleDashboard(v);
+              showToast(v ? 'Simple Dashboard enabled' : 'Full Dashboard enabled');
+            }}
             theme={theme}
             isDark={isDark}
             themeVariant={themeVariant}
@@ -865,6 +879,18 @@ export default function App() {
                 onSelectHour={setSelectedHour}
                 onBack={() => setActiveTab('dashboard')}
               />
+            ) : activeDay && simpleDashboard && activeTab === 'dashboard' ? (
+              <SimpleDashboard
+                daily={dailyForecast}
+                location={currentLocation}
+                units={units}
+                pressureUnit={pressureUnit}
+                theme={theme}
+                isDark={isDark}
+                hasCustomBackground={!!customBackground}
+                lastRefreshed={lastRefreshed}
+                onSwitchToFullDashboard={() => setSimpleDashboard(false)}
+              />
             ) : (
               activeDay && (
                 <DayDetailView
@@ -912,7 +938,7 @@ export default function App() {
         )}
 
         {/* Floating Ultra-Compact 24h Hourly Time Slider (Active on Dashboard and Details tabs) */}
-        {!loading && !error && activeDay && (activeTab === 'details' || activeTab === 'dashboard') && (
+        {!loading && !error && activeDay && (activeTab === 'details' || (activeTab === 'dashboard' && !simpleDashboard)) && (
           <FloatingHourlySlider
             selectedHour={selectedHour}
             onSelectHour={setSelectedHour}

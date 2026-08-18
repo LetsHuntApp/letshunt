@@ -1,5 +1,15 @@
 # Changes Log
 
+## Batch 11 — Toggleable Simple Dashboard
+
+- **Added a new "Simple Dashboard" that is opt-in from Settings.** The regular dashboard is unchanged and remains the default. Under "Dashboard Style", flipping **Simple Dashboard** on swaps the dashboard tab to a compact, glance-first layout.
+- **Compact hero card.** A small hunt-score dial sits beside the current conditions: live weather icon and temperature, wind direction and speed, and sunrise/sunset — all in one tight card.
+- **Hourly hunt-score bar.** A color-coded bar for every hour of today shows movement quality at a glance (Great / Good / Fair / Poor), with no hourly slider needed.
+- **Daily hunt-score bar.** A color-coded bar per day; tapping one opens that day's full breakdown (factor panel, rain & barometer chart, and wind/scent plotter).
+- **Today's rain & barometer chart.** The existing combined pressure/precipitation chart is shown below the daily bar and labeled for the current day.
+- **Compact satellite wind map.** A small Esri-satellite map centered on the current location shows a red scent cone pointing downwind, with zoom/pan/reset controls and an embedded hourly slider so you can scrub the wind through the day.
+- The simple-dashboard preference is persisted and included in JSON backups.
+
 ## Batch 10 — Usability: Decluttered Header & Larger Mobile Text/Touch Targets
 
 - **Header simplified to the essentials.** Removed the quick units (°F/°C)

@@ -26,6 +26,7 @@ import {
   Upload,
   Loader2,
   Trees,
+  LayoutDashboard,
 } from 'lucide-react';
 import { DeerIcon } from './DeerIcon';
 import { exportBackupData, importBackupData, downloadJson, defaultBackupFilename } from '../services/dataBackupService';
@@ -110,6 +111,8 @@ interface SettingsViewProps {
   onSetCustomBackgroundOpacity?: (opacity: number) => void;
   customBackgroundBlur?: number;
   onSetCustomBackgroundBlur?: (blur: number) => void;
+  simpleDashboard?: boolean;
+  onToggleSimpleDashboard?: (v: boolean) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -140,6 +143,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSetCustomBackgroundOpacity,
   customBackgroundBlur = 12,
   onSetCustomBackgroundBlur,
+  simpleDashboard = false,
+  onToggleSimpleDashboard,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
@@ -705,6 +710,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
                 {pressureUnit === 'hPa' && <Check className="w-4 h-4 text-emerald-500" />}
               </button>
+            </div>
+          </div>
+
+          {/* Dashboard Style Card */}
+          <div className={`p-5 sm:p-6 rounded-3xl border space-y-4 ${isDark
+          ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800'
+          : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 shadow-sm'}`}>
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-700/30">
+              <LayoutDashboard className="w-5 h-5 text-emerald-500" />
+              <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Dashboard Style
+              </h2>
+            </div>
+
+            <div className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 ${
+              isDark ? 'bg-slate-950/50 border-slate-800' : 'bg-slate-50 border-slate-200'
+            }`}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  simpleDashboard
+                    ? isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-500/15 text-emerald-700'
+                    : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'
+                }`}>
+                  <LayoutDashboard className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    Simple Dashboard
+                  </div>
+                  <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    A compact, glance-first view with a score dial, color-coded day/hour bars, and a wind map. The regular dashboard stays available.
+                  </div>
+                </div>
+              </div>
+              {renderToggle(simpleDashboard, (v) => onToggleSimpleDashboard?.(v))}
             </div>
           </div>
 
