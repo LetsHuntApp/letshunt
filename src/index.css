@@ -1535,3 +1535,45 @@ html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
   .simple-pro-factor-grid { grid-template-columns: 1fr; }
   .simple-pro-factor { padding: 11px; }
 }
+
+/* Combined hourly field graph: movement bars, rain columns, and normalized
+   pressure/wind lines share one time axis. Exact readings stay in the live
+   readout below the plot so the visual remains clean at a glance. */
+.simple-graph-legends { display: grid; justify-items: end; gap: 6px; max-width: 230px; min-width: 0; }
+.simple-metric-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 9px; color: var(--simple-muted); font-size: 9px; font-weight: 850; }
+.simple-metric-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.simple-metric-legend i { display: block; width: 15px; height: 3px; border-radius: 3px; background: currentColor; }
+.simple-metric-legend .rain { color: #4f9fbd; }.simple-metric-legend .pressure { color: #8972b8; }.simple-metric-legend .wind { color: #c8773e; }
+.simple-metric-plot { position: relative; height: 178px; margin-top: 12px; overflow: hidden; border-bottom: 1px solid var(--simple-line); }
+.simple-metric-guides { position: absolute; inset: 12px 0 25px; display: grid; grid-template-rows: repeat(3, 1fr); pointer-events: none; }
+.simple-metric-guides span { border-top: 1px dashed var(--simple-line); opacity: .72; }
+.simple-metric-guides span:last-child { border-bottom: 1px solid var(--simple-line); }
+.simple-graph-frame .simple-metric-overlay { position: absolute; inset: 12px 0 25px; width: 100%; height: calc(100% - 37px); overflow: visible; z-index: 3; pointer-events: none; }
+.simple-metric-pressure-line { fill: none; stroke: #8972b8; stroke-width: 1.8; vector-effect: non-scaling-stroke; opacity: .9; }
+.simple-metric-wind-line { fill: none; stroke: #c8773e; stroke-width: 1.8; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; opacity: .9; }
+.simple-metric-pressure-point { fill: #8972b8; stroke: var(--simple-card); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.simple-metric-wind-point { fill: #c8773e; stroke: var(--simple-card); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.simple-metric-bars { position: absolute; inset: 0; display: flex; z-index: 2; }
+.simple-metric-hour { position: relative; flex: 1 1 0; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; color: var(--simple-muted); background: transparent; cursor: pointer; }
+.simple-metric-hour:hover, .simple-metric-hour.selected { background: color-mix(in srgb, var(--simple-accent) 6%, transparent); }
+.simple-metric-hour-score { position: absolute; top: 1px; left: 50%; transform: translateX(-50%); color: var(--simple-ink); font-size: 8px; font-weight: 900; opacity: 0; transition: opacity .15s ease; }
+.simple-metric-hour:hover .simple-metric-hour-score, .simple-metric-hour.selected .simple-metric-hour-score { opacity: 1; }
+.simple-metric-movement, .simple-metric-rain { position: absolute; bottom: 25px; display: block; border-radius: 5px 5px 2px 2px; transition: height .2s ease, filter .15s ease; }
+.simple-metric-movement { left: 14%; width: 42%; min-height: 7px; max-height: calc(100% - 38px); box-shadow: inset 0 1px rgba(255,255,255,.25); }
+.simple-metric-rain { right: 14%; width: 22%; max-height: calc(100% - 38px); border: 1px solid rgba(79,159,189,.55); background: rgba(79,159,189,.22); }
+.simple-metric-hour:hover .simple-metric-movement, .simple-metric-hour.selected .simple-metric-movement { filter: saturate(1.2) brightness(1.06); }
+.simple-metric-hour-label { position: absolute; right: 0; bottom: 4px; left: 0; min-height: 10px; color: var(--simple-muted); font-size: 9px; font-weight: 850; white-space: nowrap; }
+.simple-metric-hour.selected::after { content: ''; position: absolute; right: 50%; bottom: 0; left: 50%; height: 3px; border-radius: 3px 3px 0 0; background: var(--simple-ink); transform: translateX(-50%); }
+.simple-metric-readout { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 10px; color: var(--simple-muted); font-size: 10px; font-weight: 800; }
+.simple-metric-readout span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.simple-metric-readout i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.simple-metric-readout strong { color: var(--simple-ink); font-size: 11px; }
+.simple-metric-readout .movement { color: var(--simple-accent); }.simple-metric-readout .rain { color: #4f9fbd; }.simple-metric-readout .pressure { color: #8972b8; }.simple-metric-readout .wind { color: #c8773e; }
+@media (max-width: 640px) {
+  .simple-graph-legends { gap: 4px; }
+  .simple-metric-legend { max-width: 185px; gap: 4px 7px; font-size: 8px; }
+  .simple-metric-plot { height: 164px; }
+  .simple-metric-hour-label { font-size: 8px; }
+  .simple-metric-readout { gap: 5px 9px; font-size: 9px; }
+  .simple-metric-readout strong { font-size: 10px; }
+}
