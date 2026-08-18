@@ -12,6 +12,7 @@ import { PressureChart } from './PressureChart';
 import { DetailedPredictionView } from './DetailedPredictionView';
 import { SimpleWindMap } from './SimpleWindMap';
 import {
+  getHour12Label,
   getRatingFromScore,
   getWeatherDetails,
   RATING_THRESHOLDS,
@@ -137,6 +138,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const [detailHour, setDetailHour] = useState<number>(() => new Date().getHours());
   // Wind-map slider state (independent from the removed global hourly slider).
   const [windHour, setWindHour] = useState<number>(() => new Date().getHours());
+  // Hero preview hour, driven by the small hourly-card scrubber.
+  const [heroHour, setHeroHour] = useState<number>(() => new Date().getHours());
 
   const today = daily[0];
   const detailDay = daily.find((d) => d.date === detailDayDate) || null;
@@ -168,19 +171,21 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   // The day powering the hourly bar (defaults to today).
   const activeDay = daily.find((d) => d.date === activeDayDate) || today;
 
-  // Current hour (hero + dial) uses the live local clock hour for "now".
+  // Live local clock hour, used to detect the "now" state for the hero.
   const currentLocalHour = new Date().getHours();
-  const nowHour: HourlyForecast | null = today.hourly?.[currentLocalHour] ?? today.hourly?.[0] ?? null;
-  const heroScore = nowHour ? nowHour.huntScore : today.huntScore;
+  // The hero previews the hour selected by the small hourly-card scrubber.
+  const heroHourData: HourlyForecast | null = activeDay.hourly?.[heroHour] ?? activeDay.hourly?.[0] ?? null;
+  const isLiveNow = activeDay.date === today.date && heroHour === currentLocalHour;
+  const heroScore = heroHourData ? heroHourData.huntScore : activeDay.huntScore;
   const heroRating = getRatingFromScore(heroScore);
   const stroke = getScoreStroke(heroScore, theme as ThemeVariantMode, isDark);
-  const nowDetails = nowHour ? getWeatherDetails(nowHour.weatherCode) : getWeatherDetails(today.weatherCode);
-  const nowDesc = nowHour ? nowHour.weatherDesc : today.weatherDesc;
-  const nowTemp = nowHour ? nowHour.temp : today.maxTemp;
-  const nowWindText = nowHour ? nowHour.windDirectionText : today.windDirectionText;
-  const nowWindSpeed = nowHour
-    ? units === 'imperial' ? nowHour.windSpeedMph : nowHour.windSpeedKmh
-    : units === 'imperial' ? today.windSpeedMaxMph : today.windSpeedMaxKmh;
+  const nowDetails = heroHourData ? getWeatherDetails(heroHourData.weatherCode) : getWeatherDetails(activeDay.weatherCode);
+  const nowDesc = heroHourData ? heroHourData.weatherDesc : activeDay.weatherDesc;
+  const nowTemp = heroHourData ? heroHourData.temp : activeDay.maxTemp;
+  const nowWindText = heroHourData ? heroHourData.windDirectionText : activeDay.windDirectionText;
+  const nowWindSpeed = heroHourData
+    ? units === 'imperial' ? heroHourData.windSpeedMph : heroHourData.windSpeedKmh
+    : units === 'imperial' ? activeDay.windSpeedMaxMph : activeDay.windSpeedMaxKmh;
   const windUnit = units === 'imperial' ? 'mph' : 'km/h';
   const tempUnit = units === 'imperial' ? '°F' : '°C';
 
@@ -292,7 +297,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             }`}>
               {getWeatherIcon(nowDetails.icon, 'w-7 h-7 sm:w-8 sm:h-8 text-amber-500 shrink-0')}
               <div className="min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Now</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">{isLiveNow ? 'Now' : getHour12Label(heroHour)}</div>
                 <div className="text-xs font-black truncate">{nowDesc}</div>
                 <div className="text-xs font-extrabold">{nowTemp}{tempUnit}</div>
               </div>
@@ -306,7 +311,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Wind</div>
                 <div className="text-xs font-black truncate">{nowWindText} {nowWindSpeed} {windUnit}</div>
-                <div className="text-[10px] font-semibold opacity-60">scent blows {getDownwindText(((nowHour ? nowHour.windDirectionDeg : today.windDirectionDeg) + 180) % 360)}</div>
+                <div className="text-[10px] font-semibold opacity-60">scent blows {getDownwindText(((heroHourData ? heroHourData.windDirectionDeg : activeDay.windDirectionDeg) + 180) % 360)}</div>
               </div>
             </div>
 
@@ -393,6 +398,34 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           <span className={accentText}>6 PM</span>
           <span>9 PM</span>
         </div>
+
+        {/* Minimal hour scrubber — previews the hero dial, wind, and conditions. */}
+        <div className="mt-2.5 flex items-center gap-2">
+          <span className={`shrink-0 w-12 text-right text-[10px] font-black uppercase tracking-wider ${isLiveNow ? accentText : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            {isLiveNow ? 'Now' : getHour12Label(heroHour)}
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={23}
+            step={1}
+            value={heroHour}
+            onChange={(e) => setHeroHour(parseInt(e.target.value, 10))}
+            aria-label="Hourly hunt score slider"
+            className={`flex-1 min-w-0 h-2 cursor-pointer ${isDark ? 'accent-emerald-400' : 'accent-emerald-600'}`}
+          />
+          {!isLiveNow && (
+            <button
+              type="button"
+              onClick={() => setHeroHour(currentLocalHour)}
+              className={`shrink-0 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                isDark ? 'text-amber-400 border-amber-500/40 hover:bg-amber-500/10' : 'text-amber-600 border-amber-500/40 hover:bg-amber-500/10'
+              }`}
+            >
+              Now
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 3. Daily hunt score bar */}
@@ -416,7 +449,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <button
                   key={d.date}
                   type="button"
-                  onClick={() => setActiveDayDate((prev) => (prev === d.date ? '' : d.date))}
+                  onClick={() => {
+                    setActiveDayDate((prev) => (prev === d.date ? '' : d.date));
+                    setHeroHour(new Date().getHours());
+                  }}
                   title={`${d.dayName} ${d.dateFormatted} · ${d.huntScore}/100 (${d.rating})`}
                   className={`group flex-1 h-full flex flex-col items-center min-w-0 rounded-lg px-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                     isSelected ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : 'hover:bg-slate-500/5'
