@@ -49,12 +49,12 @@ export const SimpleForecastView: React.FC<SimpleForecastViewProps> = ({
       </header>
 
       <section className={`simple-full-hero ${tone}`}>
-        <div className="simple-full-hero-heading"><div><p className="simple-eyebrow">{day.dayName} · {day.dateFormatted}</p><h2>{location.name} movement forecast</h2><p>{day.verdict}</p></div><div className="simple-full-score" style={{ '--simple-full-score': scoreColorFor(score) } as React.CSSProperties}><DeerIcon /><strong>{score}</strong><span>{day.rating} movement</span></div></div>
+        <div className="simple-full-hero-heading"><div><p className="simple-eyebrow">{day.dayName} · {day.dateFormatted}</p><h2>{location.name} movement forecast</h2><p>{day.verdict}</p></div><div className="simple-full-score" style={{ '--simple-full-score': scoreColorFor(score) } as React.CSSProperties}><DeerIcon /><strong>{score}</strong><span>{day.rating} time to hunt</span></div></div>
         <div className="simple-full-summary"><span><Gauge size={15} /> {pressureUnit === 'hPa' ? `${Math.round(day.pressureAvgHpa)} hPa` : `${day.pressureAvgInHg.toFixed(2)} inHg`} {day.pressureTrend.replace('_', ' ')}</span><span><Wind size={15} /> {units === 'metric' ? day.windSpeedMaxKmh : day.windSpeedMaxMph} {units === 'metric' ? 'km/h' : 'mph'} {day.windDirectionText}</span><span><ShieldCheck size={15} /> {day.morningPrime} / {day.eveningPrime}</span></div>
       </section>
 
-      <SimpleScoreGraph hourly={day.hourly || []} selectedHour={selectedHour} onSelectHour={onSelectHour} />
-      <SimpleHourlyTimeline hourly={day.hourly || []} units={units} selectedHour={selectedHour} onSelectHour={onSelectHour} />
+      <SimpleScoreGraph hourly={day.hourly || []} selectedHour={selectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
+      <SimpleHourlyTimeline hourly={day.hourly || []} units={units} selectedHour={selectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
 
       <section className="simple-full-section">
         <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Forecast calendar</p><h2>Choose a day</h2></div><CalendarDays size={19} /></div>
@@ -84,7 +84,7 @@ export const SimpleForecastView: React.FC<SimpleForecastViewProps> = ({
         </div>
       </section>
 
-      <SimpleFloatingHourlySlider hourly={day.hourly || []} selectedHour={selectedHour} onSelectHour={onSelectHour} />
+      <SimpleFloatingHourlySlider hourly={day.hourly || []} selectedHour={selectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
     </div>
   );
 };

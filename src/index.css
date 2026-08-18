@@ -1218,7 +1218,7 @@ html.dark .simple-graph, html.dark .simple-timeline, html.dark .simple-pro-panel
 .simple-pro-score-content span { margin-top: 6px; font-size: 8px; line-height: 1; text-transform: uppercase; letter-spacing: .12em; font-weight: 850; opacity: .8; }
 .simple-floating-hourly { position: fixed; left: 50%; bottom: 18px; z-index: 45; width: min(640px, calc(100vw - 28px)); transform: translateX(-50%); padding: 11px 14px 10px; border: 1px solid var(--simple-line); border-radius: 14px; background: color-mix(in srgb, var(--simple-card) 94%, transparent); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 14px 34px rgba(27, 57, 41, .18); }
 html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
-.simple-floating-hourly-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--simple-muted); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }
+.simple-floating-hourly-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; color: var(--simple-muted); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }.simple-floating-hourly-header > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .simple-floating-hourly-header strong { color: var(--simple-ink); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .simple-floating-hourly-rail { position: relative; height: 24px; margin-top: 6px; }
 .simple-floating-hourly-segments { position: absolute; top: 8px; left: 0; right: 0; display: flex; gap: 2px; height: 8px; overflow: hidden; border-radius: 99px; background: var(--simple-paper); }
@@ -1262,3 +1262,37 @@ html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
   .simple-full-section { padding: 16px 14px; }.simple-full-day-card { grid-template-columns: .8fr 1.2fr auto 15px; gap: 7px; padding-inline: 3px; }.simple-full-day-weather { font-size: 9px; }.simple-full-day-score { font-size: 11px; }.simple-full-factor-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 420px) { .simple-full-hero-heading h2 { font-size: 21px; }.simple-full-score { width: 70px; height: 70px; }.simple-full-score strong { font-size: 20px; }.simple-full-day-card { grid-template-columns: .7fr 1.25fr auto 12px; }.simple-full-day-name { font-size: 10px; } }
+
+/* Simple Mode's chart is an hour-by-hour deer movement bar graph rather than
+   a trend line: every bar carries the same score colors as the dial and slider. */
+.simple-bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 150px; padding: 14px 2px 0; border-bottom: 1px solid var(--simple-line); }
+.simple-bar-column { position: relative; display: flex; flex: 1; min-width: 0; height: 100%; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 1px; border: 0; background: transparent; color: var(--simple-muted); cursor: pointer; }
+.simple-bar-score { min-height: 10px; color: var(--simple-muted); font-size: 8px; font-weight: 900; opacity: 0; transition: opacity .15s ease; }
+.simple-bar-column:hover .simple-bar-score, .simple-bar-column.selected .simple-bar-score { opacity: 1; }
+.simple-bar-track { position: relative; display: flex; align-items: flex-end; width: 100%; height: 110px; overflow: hidden; border-radius: 6px 6px 2px 2px; background: var(--simple-paper); }
+.simple-bar-track i { display: block; width: 100%; min-height: 8px; border-radius: 5px 5px 2px 2px; box-shadow: inset 0 1px rgba(255,255,255,.22); transition: height .2s ease, filter .15s ease; }
+.simple-bar-column:hover .simple-bar-track i, .simple-bar-column.selected .simple-bar-track i { filter: saturate(1.2) brightness(1.05); }
+.simple-bar-column.selected::after { content: ''; position: absolute; bottom: -1px; width: 18px; height: 3px; border-radius: 3px 3px 0 0; background: var(--simple-ink); }
+.simple-bar-label { min-height: 10px; color: var(--simple-muted); font-size: 8px; font-weight: 850; white-space: nowrap; }
+.simple-graph-axis { margin-top: 3px; }
+.simple-graph-heading h3 { letter-spacing: -.035em; }
+.simple-pro-hero-main { grid-template-columns: minmax(154px, 174px) minmax(0, 1fr); }
+.simple-pro-hero-copy { min-width: 0; padding-left: 4px; overflow: hidden; }
+@media (max-width: 700px) {
+  .simple-pro-hero-main { grid-template-columns: 112px minmax(0, 1fr); gap: 18px; }
+  .simple-pro-score { width: 112px; height: 112px; }
+  .simple-pro-score-content { inset: 23px; }
+  .simple-pro-score-deer { width: 30px !important; height: 30px !important; }
+  .simple-pro-score-content strong { font-size: 28px !important; }
+  .simple-bar-chart { height: 126px; gap: 3px; }
+  .simple-bar-track { height: 88px; }
+}
+@media (max-width: 420px) {
+  .simple-pro-hero-main { grid-template-columns: 100px minmax(0, 1fr); gap: 13px; }
+  .simple-pro-score { width: 100px; height: 100px; }
+  .simple-pro-score-content { inset: 21px; }
+  .simple-pro-score-deer { width: 27px !important; height: 27px !important; }
+  .simple-pro-score-content strong { font-size: 25px !important; }
+  .simple-bar-chart { gap: 2px; }
+  .simple-bar-label { font-size: 7px; }
+}

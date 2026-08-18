@@ -93,29 +93,16 @@ interface SimpleScoreGraphProps {
   hourly: HourlyForecast[];
   selectedHour: number;
   onSelectHour: (hour: number) => void;
+  dayLabel?: string;
 }
 
-export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour }) => {
-  const width = 640;
-  const height = 116;
-  const chartTop = 14;
-  const chartBottom = 96;
-  const points = hourly.map((item, index) => {
-    const x = hourly.length > 1 ? (index / (hourly.length - 1)) * width : width / 2;
-    const y = chartBottom - ((Math.max(0, Math.min(100, item.huntScore)) / 100) * (chartBottom - chartTop));
-    return { x, y, score: item.huntScore, index };
-  });
-  const linePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
-  const areaPoints = points.length > 0
-    ? `0,${chartBottom} ${linePoints} ${width},${chartBottom}`
-    : '';
-  const selected = points[Math.max(0, Math.min(points.length - 1, selectedHour))];
+export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, dayLabel }) => {
 
   return (
     <div className="simple-graph" aria-label="Hourly movement score graph">
       <div className="simple-graph-heading">
         <div>
-          <p className="simple-eyebrow">Movement curve</p>
+          <p className="simple-eyebrow">Deer movement by hour{dayLabel ? ` · ${dayLabel}` : ''}</p>
           <h3>When the woods come alive</h3>
         </div>
         <div className="simple-score-legend" aria-label="Score color legend">
@@ -126,41 +113,24 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
         </div>
       </div>
       <div className="simple-graph-frame">
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Movement scores through the day" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="simpleGraphFill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#5da47d" stopOpacity=".27" />
-              <stop offset="100%" stopColor="#5da47d" stopOpacity=".015" />
-            </linearGradient>
-            <linearGradient id="simpleGraphStroke" x1="0" x2="1">
-              <stop offset="0%" stopColor="#d38a3a" />
-              <stop offset="42%" stopColor="#69a86f" />
-              <stop offset="100%" stopColor="#2f8f68" />
-            </linearGradient>
-          </defs>
-          {[46, 76, 90].map((value) => {
-            const y = chartBottom - (value / 100) * (chartBottom - chartTop);
-            return <line key={value} x1="0" x2={width} y1={y} y2={y} className="simple-graph-guide" />;
+        <div className="simple-bar-chart" role="img" aria-label="Color-coded deer movement scores through the day">
+          {hourly.map((item, index) => {
+            const scoreHeight = Math.max(8, (item.huntScore / 100) * 100);
+            return (
+              <button
+                key={index}
+                type="button"
+                className={`simple-bar-column ${index === selectedHour ? 'selected' : ''}`}
+                onClick={() => onSelectHour(index)}
+                aria-label={`${hourLabel(index)} movement score ${item.huntScore}`}
+              >
+                <span className="simple-bar-score">{item.huntScore}</span>
+                <span className="simple-bar-track"><i style={{ height: `${scoreHeight}%`, backgroundColor: scoreColor(item.huntScore) }} /></span>
+                <span className="simple-bar-label">{index % 3 === 0 ? hourLabel(index) : ''}</span>
+              </button>
+            );
           })}
-          {areaPoints && <polygon points={areaPoints} fill="url(#simpleGraphFill)" />}
-          {linePoints && <polyline points={linePoints} fill="none" stroke="url(#simpleGraphStroke)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-          {points.map((point) => (
-            <circle
-              key={point.index}
-              cx={point.x}
-              cy={point.y}
-              r={point.index === selectedHour ? 5 : 2.25}
-              fill={scoreColor(point.score)}
-              stroke="var(--simple-card)"
-              strokeWidth={point.index === selectedHour ? 3 : 1.5}
-              className="simple-graph-point"
-              onClick={() => onSelectHour(point.index)}
-            />
-          ))}
-          {selected && (
-            <line x1={selected.x} x2={selected.x} y1={chartTop} y2={chartBottom} className="simple-graph-cursor" />
-          )}
-        </svg>
+        </div>
         <div className="simple-graph-axis"><span>12 AM</span><span>Dawn</span><span>Midday</span><span>Dusk</span><span>12 AM</span></div>
       </div>
     </div>
@@ -172,9 +142,10 @@ interface SimpleHourlyTimelineProps {
   units: UnitSystem;
   selectedHour: number;
   onSelectHour: (hour: number) => void;
+  dayLabel?: string;
 }
 
-export const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hourly, units, selectedHour, onSelectHour }) => {
+export const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hourly, units, selectedHour, onSelectHour, dayLabel }) => {
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
   const maxHour = Math.max(0, Math.min(23, hourly.length - 1));
   const safeHour = Math.max(0, Math.min(maxHour, selectedHour));
@@ -193,7 +164,7 @@ export const SimpleHourlyTimeline: React.FC<SimpleHourlyTimelineProps> = ({ hour
       <div className="simple-timeline-header">
         <div className="simple-timeline-title">
           <div className="simple-timeline-icon"><Target size={17} /></div>
-          <div><p className="simple-eyebrow">Precision timeline</p><h2>Find your window</h2></div>
+          <div><p className="simple-eyebrow">Precision timeline{dayLabel ? ` · ${dayLabel}` : ''}</p><h2>Find your window</h2></div>
         </div>
         <div className="simple-timeline-selected">
           <strong>{hourLabel(safeHour)}</strong>
@@ -237,9 +208,10 @@ export interface SimpleFloatingHourlySliderProps {
   hourly: HourlyForecast[];
   selectedHour: number;
   onSelectHour: (hour: number) => void;
+  dayLabel?: string;
 }
 
-export const SimpleFloatingHourlySlider: React.FC<SimpleFloatingHourlySliderProps> = ({ hourly, selectedHour, onSelectHour }) => {
+export const SimpleFloatingHourlySlider: React.FC<SimpleFloatingHourlySliderProps> = ({ hourly, selectedHour, onSelectHour, dayLabel }) => {
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
   const maxHour = Math.max(0, Math.min(23, hourly.length - 1));
   const safeHour = Math.max(0, Math.min(maxHour, selectedHour));
@@ -254,7 +226,7 @@ export const SimpleFloatingHourlySlider: React.FC<SimpleFloatingHourlySliderProp
 
   return (
     <div className="simple-floating-hourly" aria-label="Simple mode floating hourly slider">
-      <div className="simple-floating-hourly-header"><span>Hourly movement</span><strong>{hourLabel(safeHour)} · {selected.huntScore} / 100</strong></div>
+      <div className="simple-floating-hourly-header"><span>Hourly movement{dayLabel ? ` · ${dayLabel}` : ''}</span><strong>{hourLabel(safeHour)} · {selected.huntScore} / 100</strong></div>
       <div className="simple-floating-hourly-rail">
         <div className="simple-floating-hourly-segments" aria-hidden="true">
           {hourly.map((item, index) => <span key={index} style={{ backgroundColor: scoreColor(item.huntScore), opacity: index === safeHour ? 1 : .72 }} />)}
@@ -299,7 +271,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       <section className="simple-pro-topbar">
         <div className="simple-pro-identity">
           <div className="simple-pro-deer-mark"><DeerIcon className="simple-pro-deer" /></div>
-          <div><p className="simple-eyebrow">Field brief · Simple mode</p><h1>Today's hunt plan</h1><p><Compass size={14} /> {location.name}{location.admin1 ? `, ${location.admin1}` : ''}</p></div>
+          <div><p className="simple-eyebrow">Field brief · {day.dayName} · {day.dateFormatted}</p><h1>Today's hunt plan</h1><p><Compass size={14} /> {location.name}{location.admin1 ? `, ${location.admin1}` : ''}</p></div>
         </div>
         <div className="simple-pro-actions">
           <button type="button" onClick={onOpenMap}><Map size={16} /><span>Map</span></button>
@@ -334,7 +306,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
           <div className="simple-pro-hero-copy">
             <div className={`simple-pro-status ${tone}`}><i /> {getScoreLabel(score)}</div>
-            <h2>{rating} day to hunt</h2>
+            <h2>{rating} time to hunt</h2>
             <p>{day.verdict.replace(/^[^.!?]*[.!?]\s*/, '') || 'Use the best windows below and keep your approach simple.'}</p>
             <div className="simple-pro-quick-stats">
               <span>{weatherIcon(weather.icon, 'simple-pro-weather-icon')} {hour?.temp ?? day.maxTemp}{units === 'metric' ? '°C' : '°F'}</span>
@@ -349,18 +321,16 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
       </section>
 
-      <SimpleScoreGraph hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} />
-      <SimpleHourlyTimeline hourly={hourly} units={units} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} />
-
+      <SimpleScoreGraph hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
       <section className="simple-pro-grid">
         <div className="simple-pro-panel">
-          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best windows</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
+          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best windows · {day.dayName}</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
           <div className="simple-pro-window"><span className="simple-pro-window-icon morning"><Sunrise size={17} /></span><div><strong>Morning sit</strong><span>{day.morningPrime}</span></div><ArrowRight size={15} /></div>
           <div className="simple-pro-window"><span className="simple-pro-window-icon evening"><Sunset size={17} /></span><div><strong>Evening sit</strong><span>{day.eveningPrime}</span></div><ArrowRight size={15} /></div>
           <div className="simple-pro-window"><span className="simple-pro-window-icon moon"><Moon size={17} /></span><div><strong>Major moon window</strong><span>{day.solunar.major1}</span></div><Check size={15} /></div>
         </div>
         <div className="simple-pro-panel">
-          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Field conditions</p><h2>What to expect</h2></div><Gauge size={19} /></div>
+          <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Field conditions · {day.dayName}</p><h2>What to expect</h2></div><Gauge size={19} /></div>
           <div className="simple-pro-condition"><Wind size={17} /><span>Wind</span><strong>{displayWind(day, units)}</strong></div>
           <div className="simple-pro-condition"><Droplets size={17} /><span>Rain</span><strong>{day.precipSumMm > 0 ? `${Math.round(day.precipSumMm)} mm expected` : 'No rain expected'}</strong></div>
           <div className="simple-pro-condition"><Gauge size={17} /><span>Pressure</span><strong>{pressureUnit === 'hPa' ? `${Math.round(day.pressureAvgHpa)} hPa` : `${day.pressureAvgInHg.toFixed(2)} inHg`} · {day.pressureTrend.replace('_', ' ')}</strong></div>
@@ -386,7 +356,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       </section>
 
       <p className="simple-pro-footer"><DeerIcon className="simple-pro-footer-deer" /> Built for the quiet hour before the woods wake up.</p>
-      <SimpleFloatingHourlySlider hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} />
+      <SimpleFloatingHourlySlider hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
       <button type="button" className="simple-pro-details" onClick={() => onOpenDetails(day.date)}>View full forecast <ArrowRight size={15} /></button>
     </div>
   );
