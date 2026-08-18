@@ -432,7 +432,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   isDark ? 'text-amber-400 border-amber-500/40 hover:bg-amber-500/10' : 'text-amber-600 border-amber-500/40 hover:bg-amber-500/10'
                 }`}
               >
-                Now
+                Back to Now
               </button>
             )}
           </div>
