@@ -1093,6 +1093,14 @@ html.dark .simple-graph, html.dark .simple-timeline, html.dark .simple-pro-panel
 .simple-score-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .simple-score-legend i { width: 6px; height: 6px; display: inline-block; border-radius: 50%; background: currentColor; }
 .simple-score-legend .great { color: #2f8f68; }.simple-score-legend .good { color: #69a86f; }.simple-score-legend .fair { color: #d38a3a; }.simple-score-legend .poor { color: #c45b53; }
+.simple-day-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 15px; min-width: 0; }
+.simple-day-tab { min-width: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 3px 6px; padding: 8px 9px; border: 1px solid var(--simple-line); border-radius: 10px; color: var(--simple-muted); background: var(--simple-paper); text-align: left; cursor: pointer; }
+.simple-day-tab:hover, .simple-day-tab.active { border-color: var(--simple-accent); background: var(--simple-accent-soft); color: var(--simple-ink); }
+.simple-day-tab > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-weight: 900; }
+.simple-day-tab > small { color: var(--simple-muted); font-size: 8px; font-weight: 750; white-space: nowrap; }
+.simple-day-tab > b { grid-column: 2; grid-row: 1 / span 2; min-width: 26px; padding: 4px 5px; border-radius: 999px; text-align: center; font-size: 10px; line-height: 1; font-weight: 900; }
+.simple-day-tab > b.great { color: #2f8f68; background: rgba(47,143,104,.14); }.simple-day-tab > b.good { color: #5d9864; background: rgba(105,168,111,.16); }.simple-day-tab > b.fair { color: #b66b1f; background: rgba(211,138,58,.17); }.simple-day-tab > b.poor { color: #b34f48; background: rgba(196,91,83,.15); }
+.simple-day-tab.active > b { box-shadow: 0 0 0 1px currentColor; }
 .simple-graph-frame { position: relative; margin-top: 12px; }
 .simple-graph-frame svg { display: block; width: 100%; height: 150px; overflow: visible; }
 .simple-graph-guide { stroke: var(--simple-line); stroke-dasharray: 3 5; stroke-width: 1; opacity: .75; }
@@ -1378,6 +1386,12 @@ html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
   .simple-mode .simple-full-section { padding-inline: 12px; }
   .simple-mode .simple-graph-heading { gap: 8px; }
   .simple-mode .simple-score-legend { flex: 0 1 145px; min-width: 0; gap: 4px; }
+  .simple-mode .simple-day-tabs { display: flex; gap: 5px; overflow-x: auto; padding: 1px 1px 3px; margin-inline: -1px; scrollbar-width: none; }
+  .simple-mode .simple-day-tabs::-webkit-scrollbar { display: none; }
+  .simple-mode .simple-day-tab { flex: 0 0 76px; padding: 8px 7px; }
+  .simple-mode .simple-day-tab > span { font-size: 9px; }
+  .simple-mode .simple-day-tab > small { font-size: 7px; }
+  .simple-mode .simple-day-tab > b { min-width: 23px; padding: 4px 3px; font-size: 9px; }
   .simple-mode .simple-pro-outlook-row { gap: 5px; padding-inline: 0; }
   .simple-mode .simple-full-header { gap: 8px; }
   .simple-mode .simple-full-hero { padding: 14px; }

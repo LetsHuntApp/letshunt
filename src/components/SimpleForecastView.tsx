@@ -1,9 +1,8 @@
 import React from 'react';
-import { ArrowLeft, ArrowRight, CalendarDays, Gauge, Map, Settings, ShieldCheck, Wind } from 'lucide-react';
+import { ArrowLeft, Gauge, Map, Settings, ShieldCheck, Wind } from 'lucide-react';
 import { DailyForecast, Location, PressureUnit, UnitSystem } from '../types';
 import { DeerIcon } from './DeerIcon';
 import { SimpleFloatingHourlySlider, SimpleHourlyTimeline, SimpleScoreGraph } from './SimpleDashboard';
-import { getPeakHuntScore, getWeatherDetails, isPrimeDay } from '../utils/huntingEngine';
 
 interface SimpleForecastViewProps {
   day: DailyForecast;
@@ -53,26 +52,17 @@ export const SimpleForecastView: React.FC<SimpleForecastViewProps> = ({
         <div className="simple-full-summary"><span><Gauge size={15} /> {pressureUnit === 'hPa' ? `${Math.round(day.pressureAvgHpa)} hPa` : `${day.pressureAvgInHg.toFixed(2)} inHg`} {day.pressureTrend.replace('_', ' ')}</span><span><Wind size={15} /> {units === 'metric' ? day.windSpeedMaxKmh : day.windSpeedMaxMph} {units === 'metric' ? 'km/h' : 'mph'} {day.windDirectionText}</span><span><ShieldCheck size={15} /> {day.morningPrime} / {day.eveningPrime}</span></div>
       </section>
 
-      <SimpleScoreGraph hourly={day.hourly || []} selectedHour={selectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
+      <SimpleScoreGraph
+        hourly={day.hourly || []}
+        forecast={forecast}
+        activeDate={selectedDate || day.date}
+        selectedHour={selectedHour}
+        onSelectHour={onSelectHour}
+        onSelectDate={onSelectDate}
+        dayLabel={`${day.dayName} · ${day.dateFormatted}`}
+      />
       <SimpleHourlyTimeline hourly={day.hourly || []} units={units} selectedHour={selectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
 
-      <section className="simple-full-section">
-        <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Days ahead</p><h2>Pick a day</h2></div><CalendarDays size={19} /></div>
-        <div className="simple-full-day-list">
-          {forecast.map((item) => {
-            const itemScore = getPeakHuntScore(item);
-            const itemTone = toneForScore(itemScore);
-            return (
-              <button key={item.date} type="button" className={`simple-full-day-card ${item.date === selectedDate ? 'active' : ''} ${itemTone}`} onClick={() => onSelectDate(item.date)}>
-                <span className="simple-full-day-name">{item.dayName}<small>{item.dateFormatted}</small></span>
-                <span className="simple-full-day-weather">{getWeatherDetails(item.weatherCode).desc}<small>{item.minTemp}° — {item.maxTemp}°</small></span>
-                <span className={`simple-full-day-score ${itemTone}`}><i style={{ backgroundColor: scoreColorFor(itemScore) }} /><strong>{itemScore}</strong><small>{isPrimeDay(itemScore) ? 'Best bet' : item.rating}</small></span>
-                <ArrowRight size={15} />
-              </button>
-            );
-          })}
-        </div>
-      </section>
 
       <section className="simple-full-section">
         <div className="simple-full-section-heading"><div><p className="simple-eyebrow">Why this score</p><h2>Why deer may move</h2></div><ShieldCheck size={19} /></div>

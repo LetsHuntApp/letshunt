@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { DailyForecast, HourlyForecast, Location, PressureUnit, UnitSystem } from '../types';
 import { DeerIcon } from './DeerIcon';
-import { getHour12Label, getPeakHuntScore, getWeatherDetails, isPrimeDay } from '../utils/huntingEngine';
+import { getHour12Label, getPeakHuntScore, getWeatherDetails } from '../utils/huntingEngine';
 
 interface SimpleDashboardProps {
   day: DailyForecast;
@@ -94,15 +94,23 @@ interface SimpleScoreGraphProps {
   selectedHour: number;
   onSelectHour: (hour: number) => void;
   dayLabel?: string;
+  forecast?: DailyForecast[];
+  activeDate?: string;
+  onSelectDate?: (date: string) => void;
 }
 
-export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, dayLabel }) => {
+export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, dayLabel, forecast, activeDate, onSelectDate }) => {
+  const tabDays = forecast?.slice(0, 5) || [];
+  const activeTabDate = activeDate || tabDays[0]?.date;
+  const tabDay = tabDays.find((item) => item.date === activeTabDate);
+  const graphHourly = tabDay?.hourly || hourly;
+  const graphDayLabel = tabDay ? `${tabDay.dayName} · ${tabDay.dateFormatted}` : dayLabel;
 
   return (
     <div className="simple-graph" aria-label="Hourly movement score graph">
       <div className="simple-graph-heading">
         <div>
-          <p className="simple-eyebrow">Deer movement by hour{dayLabel ? ` · ${dayLabel}` : ''}</p>
+          <p className="simple-eyebrow">Deer movement by hour{graphDayLabel ? ` · ${graphDayLabel}` : ''}</p>
           <h3>When the woods come alive</h3>
         </div>
         <div className="simple-score-legend" aria-label="Score color legend">
@@ -112,9 +120,31 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
           <span className="poor"><i /> &lt;46</span>
         </div>
       </div>
+      {tabDays.length > 0 && onSelectDate && (
+        <div className="simple-day-tabs" role="tablist" aria-label="Choose a forecast day">
+          {tabDays.map((item) => {
+            const itemScore = getPeakHuntScore(item);
+            const isActive = item.date === activeTabDate;
+            return (
+              <button
+                key={item.date}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`simple-day-tab ${isActive ? 'active' : ''}`}
+                onClick={() => onSelectDate(item.date)}
+              >
+                <span>{item.dayName}</span>
+                <small>{item.dateFormatted}</small>
+                <b className={getScoreTone(itemScore)}>{itemScore}</b>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="simple-graph-frame">
         <div className="simple-bar-chart" role="img" aria-label="Color-coded deer movement scores through the day">
-          {hourly.map((item, index) => {
+          {graphHourly.map((item, index) => {
             const scoreHeight = Math.max(8, (item.huntScore / 100) * 100);
             return (
               <button
@@ -259,10 +289,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const tone = getScoreTone(score);
   const rating = score >= 90 ? 'Great' : score >= 76 ? 'Good' : score >= 46 ? 'Fair' : 'Poor';
   const weather = getWeatherDetails(hour?.weatherCode ?? day.weatherCode);
-  const bestDay = forecast.reduce((best, candidate) =>
-    getPeakHuntScore(candidate) > getPeakHuntScore(best) ? candidate : best,
-    forecast[0] || day,
-  );
   const strongestFactor = useMemo(() => day.factors?.filter((factor) => factor.score > 0).sort((a, b) => b.score - a.score)[0], [day.factors]);
   const cautionFactor = useMemo(() => day.factors?.filter((factor) => factor.score < 0).sort((a, b) => a.score - b.score)[0], [day.factors]);
 
@@ -321,7 +347,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
       </section>
 
-      <SimpleScoreGraph hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
+      <SimpleScoreGraph
+        hourly={hourly}
+        forecast={forecast}
+        activeDate={day.date}
+        selectedHour={safeSelectedHour}
+        onSelectHour={onSelectHour}
+        onSelectDate={onSelectDate}
+        dayLabel={`${day.dayName} · ${day.dateFormatted}`}
+      />
       <section className="simple-pro-grid">
         <div className="simple-pro-panel">
           <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best times to sit · {day.dayName}</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
@@ -337,23 +371,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
       </section>
 
-      <section className="simple-pro-panel simple-pro-outlook">
-        <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Days ahead</p><h2>Next five days</h2></div>{bestDay.date !== day.date && <span className="simple-pro-best"><Target size={13} /> Best: {bestDay.dayName}</span>}</div>
-        <div className="simple-pro-outlook-list">
-          {forecast.slice(0, 5).map((item) => {
-            const itemScore = getPeakHuntScore(item);
-            const itemTone = getScoreTone(itemScore);
-            return (
-              <button key={item.date} type="button" className={`simple-pro-outlook-row ${item.date === day.date ? 'active' : ''}`} onClick={() => onSelectDate(item.date)}>
-                <span className="simple-pro-outlook-day">{item.dayName}</span>
-                <span className="simple-pro-outlook-weather">{weatherIcon(getWeatherDetails(item.weatherCode).icon, 'simple-pro-outlook-icon')} {item.maxTemp}{units === 'metric' ? '°C' : '°F'}</span>
-                <span className="simple-pro-outlook-rating">{isPrimeDay(itemScore) ? 'Best bet' : item.rating}</span>
-                <span className={`simple-pro-outlook-score ${itemTone}`}><i style={{ backgroundColor: scoreColor(itemScore) }} /><strong>{itemScore}</strong></span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
 
       <p className="simple-pro-footer"><DeerIcon className="simple-pro-footer-deer" /> Built for the quiet hour before the woods wake up.</p>
       <SimpleFloatingHourlySlider hourly={hourly} selectedHour={safeSelectedHour} onSelectHour={onSelectHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} />
