@@ -405,7 +405,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         {/* Minimal hour scrubber — previews the hero dial, wind, and conditions. */}
         <div className="mt-2.5">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <span className={`text-[10px] font-black uppercase tracking-wider ${isLiveNow ? accentText : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className={`shrink-0 whitespace-nowrap leading-none text-[10px] font-black uppercase tracking-wider ${isLiveNow ? accentText : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {isLiveNow ? 'Now' : getHour12Label(heroHour)}
             </span>
             {!isLiveNow && (
