@@ -307,7 +307,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
       <section className={`simple-pro-hero ${tone}`}>
         <div className="simple-pro-hero-main">
-          <div className={`simple-pro-score ${tone}`} aria-label={`Hunt score ${score} out of 100`}>
+          <div className={`simple-pro-score ${tone}`} aria-label={`Hunt score ${score}`}>
             <svg className="simple-pro-score-orbit" viewBox="0 0 180 180" aria-hidden="true">
               <circle cx="90" cy="90" r="68" className="simple-pro-score-track" />
               <circle
@@ -327,7 +327,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             <div className="simple-pro-score-content">
               <DeerIcon className="simple-pro-score-deer" />
               <strong>{score}</strong>
-              <span>out of 100</span>
             </div>
           </div>
           <div className="simple-pro-hero-copy">
