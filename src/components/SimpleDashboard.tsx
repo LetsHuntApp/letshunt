@@ -147,6 +147,18 @@ const getMaxPrecipProb = (d: DailyForecast): number =>
     ? Math.max(...d.hourly.map((h) => h.precipProbability || 0))
     : 0;
 
+/** Hourly-axis labels, centered under their representative hour bar. */
+const HOUR_TICKS: { hour: number; label: string; accent?: boolean }[] = [
+  { hour: 0, label: '12 AM' },
+  { hour: 3, label: '3 AM' },
+  { hour: 6, label: '6 AM', accent: true },
+  { hour: 9, label: '9 AM' },
+  { hour: 12, label: '12 PM' },
+  { hour: 15, label: '3 PM' },
+  { hour: 18, label: '6 PM', accent: true },
+  { hour: 21, label: '9 PM' },
+];
+
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   daily,
   location,
@@ -391,15 +403,19 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             />
           ))}
         </div>
-        <div className="flex justify-between text-[10px] font-black text-slate-400 mt-1.5 leading-none select-none">
-          <span>12 AM</span>
-          <span>3 AM</span>
-          <span className={accentText}>6 AM</span>
-          <span>9 AM</span>
-          <span>12 PM</span>
-          <span>3 PM</span>
-          <span className={accentText}>6 PM</span>
-          <span>9 PM</span>
+        <div className="flex gap-[2px] mt-1.5 leading-none select-none" aria-hidden="true">
+          {hourlyBars.map((h, i) => {
+            const tick = HOUR_TICKS.find((t) => t.hour === i);
+            return (
+              <div key={`tick-${h.time}-${i}`} className="flex-1 min-w-0 relative h-3">
+                {tick && (
+                  <span className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black ${tick.accent ? accentText : 'text-slate-400'}`}>
+                    {tick.label}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Minimal hour scrubber — previews the hero dial, wind, and conditions. */}
@@ -513,7 +529,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       style={{
                         height: `${Math.max(16, d.huntScore)}%`,
                         backgroundColor: getScoreBarColor(d.huntScore),
-                        boxShadow: isSelected ? `0 0 0 2px ${stroke}` : undefined,
                       }}
                     >
                       <div className="flex flex-col items-center gap-[2px] mt-1 leading-none">
