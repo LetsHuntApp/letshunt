@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Zap, RotateCcw, MapPin } from 'lucide-react';
 import { getHour12Label, RATING_THRESHOLDS } from '../utils/huntingEngine';
-import { ThemeMode, ThemeVariantMode, HourlyForecast } from '../types';
+import { ThemeVariantMode, HourlyForecast } from '../types';
 
 interface FloatingHourlySliderProps {
   selectedHour: number;
@@ -158,7 +158,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         }`}
       >
         {/* Compact Header Row */}
-        <div className="hourly-slider-header flex items-center justify-between gap-2 mb-1.5">
+        <div className="hourly-slider-header flex items-center justify-between gap-2 mb-1">
           <div className="flex flex-1 items-center gap-1.5 min-w-0">
             <div className={`hourly-slider-icon w-5 h-5 sm:w-6 sm:h-6 rounded-lg border flex items-center justify-center flex-shrink-0 ${sliderAccentTextClass}`}>
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -177,11 +177,6 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
           </div>
 
           <div className="hourly-slider-header-actions flex items-center gap-1.5 shrink-0">
-            {currentHourData && (
-              <span className="hourly-slider-score-chip" style={{ color: getHourlyScoreColor(currentHourData.huntScore) }}>
-                {currentHourData.huntScore} <small>score</small>
-              </span>
-            )}
           {!isNow && (
             <button
               onClick={() => { handleHourChange(currentLocalHour); onResetToToday?.(); }}
@@ -203,9 +198,9 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         </div>
 
         {/* Custom Interactive Track with Pop-Up Time Indicator on Drag */}
-        <div className="relative pt-4 pb-1 select-none">
+        <div className="relative pt-3 pb-0 select-none">
           {/* Track Bar & Thumb Wrapper */}
-          <div className="relative w-full h-7 sm:h-7">
+          <div className="relative w-full h-6 sm:h-6">
             {/* Visual Track Line */}
             <div
               className={`hourly-slider-track w-full h-full ${sliderTrackClass} rounded-full shadow-inner overflow-hidden border flex items-center`}
@@ -238,7 +233,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
               }`}
               style={{
                 left: `${handlePercent}%`,
-                transform: `translateX(-${handlePercent}%) ${isDragging ? 'translateY(0)' : 'translateY(-50%)'}`,
+                transform: `translateX(-50%) ${isDragging ? 'translateY(0)' : 'translateY(-50%)'}`,
               }}
             >
               <div
@@ -289,7 +284,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         </div>
 
         {/* Time Scale Ticks */}
-        <div className="flex justify-between text-[11px] sm:text-xs font-black text-slate-400 px-1 mt-1 leading-none select-none">
+        <div className="flex justify-between text-[11px] sm:text-xs font-black text-slate-400 px-1 mt-0.5 leading-none select-none">
           <span>12 AM</span>
           <span>3 AM</span>
           <span className="text-emerald-600 dark:text-emerald-400">6 AM Dawn</span>
