@@ -56,6 +56,45 @@ export default function App() {
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return safeGetString('letshunt_custom_background');
   });
+  const [simpleBackgroundTone, setSimpleBackgroundTone] = useState<'light' | 'dark'>('light');
+
+  // Let Simple Mode choose a readable foreground palette for the user's
+  // background photo instead of assuming the photo is always light or dark.
+  useEffect(() => {
+    if (!customBackground) {
+      setSimpleBackgroundTone('light');
+      return;
+    }
+
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (cancelled) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) return;
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      let luminance = 0;
+      let weight = 0;
+      for (let index = 0; index < pixels.length; index += 4) {
+        const alpha = pixels[index + 3] / 255;
+        luminance += (0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2]) * alpha;
+        weight += alpha;
+      }
+      if (!cancelled) setSimpleBackgroundTone(weight > 0 && luminance / weight < 145 ? 'dark' : 'light');
+    };
+    image.onerror = () => {
+      if (!cancelled) setSimpleBackgroundTone('light');
+    };
+    image.src = customBackground;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [customBackground]);
 
   // Theme: 4-variant × light/dark matrix. Two orthogonal state slots.
   // Persistence: split into two localStorage keys. The old single-string
@@ -613,7 +652,7 @@ export default function App() {
         activeTab === 'map'
           ? 'h-screen max-h-screen overflow-hidden'
           : 'min-h-screen pb-14 sm:pb-0'
-      } ${simpleMode ? 'simple-mode' : ''} ${customBackground ? 'has-custom-background' : ''} ${
+      } ${simpleMode ? 'simple-mode' : ''} ${customBackground ? 'has-custom-background' : ''} ${customBackground ? `simple-bg-${simpleBackgroundTone}` : ''} ${
         themeMode === 'dark'
           ? themeVariant === 'hunting'
             ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#b66a38] selection:text-white'

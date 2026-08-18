@@ -95,7 +95,7 @@ interface SimpleScoreGraphProps {
 }
 
 export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, dayLabel, forecast, activeDate, onSelectDate }) => {
-  const tabDays = forecast?.slice(0, 5) || [];
+  const tabDays = forecast?.slice(0, 14) || [];
   const activeTabDate = activeDate || tabDays[0]?.date;
   const tabDay = tabDays.find((item) => item.date === activeTabDate);
   const graphHourly = tabDay?.hourly || hourly;

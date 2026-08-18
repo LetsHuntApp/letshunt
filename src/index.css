@@ -1093,8 +1093,9 @@ html.dark .simple-graph, html.dark .simple-timeline, html.dark .simple-pro-panel
 .simple-score-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .simple-score-legend i { width: 6px; height: 6px; display: inline-block; border-radius: 50%; background: currentColor; }
 .simple-score-legend .great { color: #2f8f68; }.simple-score-legend .good { color: #69a86f; }.simple-score-legend .fair { color: #d38a3a; }.simple-score-legend .poor { color: #c45b53; }
-.simple-day-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; margin-top: 15px; min-width: 0; }
-.simple-day-tab { min-width: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 3px 6px; padding: 8px 9px; border: 1px solid var(--simple-line); border-radius: 10px; color: var(--simple-muted); background: var(--simple-paper); text-align: left; cursor: pointer; }
+.simple-day-tabs { display: flex; align-items: stretch; gap: 5px; margin-top: 15px; min-width: 0; overflow-x: auto; padding: 1px 1px 3px; scrollbar-width: none; }
+.simple-day-tabs::-webkit-scrollbar { display: none; }
+.simple-day-tab { flex: 0 0 94px; min-width: 0; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: center; gap: 3px 6px; padding: 8px 9px; border: 1px solid var(--simple-line); border-radius: 10px; color: var(--simple-muted); background: var(--simple-paper); text-align: left; cursor: pointer; }
 .simple-day-tab:hover, .simple-day-tab.active { border-color: var(--simple-accent); background: var(--simple-accent-soft); color: var(--simple-ink); }
 .simple-day-tab > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-weight: 900; }
 .simple-day-tab > small { color: var(--simple-muted); font-size: 8px; font-weight: 750; white-space: nowrap; }
@@ -1426,6 +1427,26 @@ html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
 
 /* Simple Mode can keep the user's field photo while preserving readable,
    lightly frosted cards over the image. */
+.simple-mode.has-custom-background.simple-bg-dark {
+  --simple-ink: #f2f7f3;
+  --simple-muted: #d0ddd4;
+  --simple-paper: rgba(9, 20, 14, .78);
+  --simple-card: rgba(17, 31, 22, .92);
+  --simple-line: rgba(222, 244, 229, .3);
+  --simple-accent: #b5dfc2;
+  --simple-accent-soft: rgba(149, 213, 169, .2);
+  --simple-warning: #f0bf7b;
+}
+.simple-mode.has-custom-background.simple-bg-light {
+  --simple-ink: #18231d;
+  --simple-muted: #4f6558;
+  --simple-paper: rgba(245, 248, 243, .82);
+  --simple-card: rgba(255, 255, 255, .92);
+  --simple-line: rgba(39, 77, 55, .24);
+  --simple-accent: #286448;
+  --simple-accent-soft: rgba(77, 153, 108, .15);
+  --simple-warning: #a85f1e;
+}
 .simple-mode.has-custom-background {
   background-image: var(--simple-background-image) !important;
   background-size: cover !important;
