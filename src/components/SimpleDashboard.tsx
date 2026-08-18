@@ -413,7 +413,12 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             {!isLiveNow && (
               <button
                 type="button"
-                onClick={() => setHeroHour(currentLocalHour)}
+                onClick={() => {
+                  // "Back to Now" also returns to today when another day's
+                  // bars are being previewed.
+                  setHeroHour(currentLocalHour);
+                  setActiveDayDate('');
+                }}
                 className={`shrink-0 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
                   isDark ? 'text-amber-400 border-amber-500/40 hover:bg-amber-500/10' : 'text-amber-600 border-amber-500/40 hover:bg-amber-500/10'
                 }`}
