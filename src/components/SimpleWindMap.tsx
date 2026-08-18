@@ -11,6 +11,7 @@ interface SimpleWindMapProps {
   isDark?: boolean;
   hasCustomBackground?: boolean;
   selectedHour: number;
+  onSelectHour: (hour: number) => void;
   selectedDayName?: string;
   selectedDateFormatted?: string;
 }
@@ -61,6 +62,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   isDark = theme === 'dark',
   hasCustomBackground = false,
   selectedHour,
+  onSelectHour,
   selectedDayName,
   selectedDateFormatted,
 }) => {
@@ -348,6 +350,28 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
             <MapPin className="w-3 h-3 text-emerald-400" /> Drag to pan
           </span>
         </div>
+      </div>
+
+      {/* Compact hour slider — scrub to preview wind direction through the day */}
+      <div className={`px-3 sm:px-4 py-2.5 border-t flex items-center gap-2.5 ${
+        isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)]' : theme === 'hunting' ? 'border-[#d4c4a8] bg-[#eae1cf]/[var(--card-opacity)]' : theme === 'olive' ? 'border-[#d8d2c0] bg-[#efebd9]/[var(--card-opacity)]' : 'border-slate-100 bg-slate-50/[var(--card-opacity)]'
+      }`}>
+        <span className={`shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-300' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-emerald-700'}`}>
+          {getHour12Label(selectedHour)}
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={23}
+          step={1}
+          value={selectedHour}
+          onChange={(e) => onSelectHour(parseInt(e.target.value, 10))}
+          aria-label="Wind map hour slider"
+          className={`flex-1 min-w-0 h-1.5 cursor-pointer ${isDark ? 'accent-emerald-400' : 'accent-emerald-600'}`}
+        />
+        <span className={`shrink-0 whitespace-nowrap text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          {windText} {speedVal} {unitLabel}
+        </span>
       </div>
     </div>
   );

@@ -591,6 +591,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         isDark={isDark}
         hasCustomBackground={hasCustomBackground}
         selectedHour={heroHour}
+        onSelectHour={setHeroHour}
         selectedDayName={dayLabel(activeDay)}
         selectedDateFormatted={activeDay.dateFormatted}
       />
