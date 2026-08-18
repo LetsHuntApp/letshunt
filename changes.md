@@ -1,5 +1,11 @@
 # Changes Log
 
+## Batch 12 — Five-Band Hunt-Score Ratings (Very Slow → Great)
+
+- **New five-band movement scale across the whole app** (both dashboards, day-detail, forecast cards, sliders, and charts): **Great 86+**, **Good 61–85**, **Okay 41–60**, **Slow 26–40**, **Very Slow 0–25**. `RATING_THRESHOLDS` in `huntingEngine.ts` is the single source of truth — the verdict copy, ratings, explanation thresholds, and every color table read from it.
+- **New color coding** that follows each theme: **Great = deep green**, **Good = green**, **Okay = yellow**, **Slow = orangish**, **Very Slow = red**. Applies to the score bar/dial, hourly & daily bars, forecast-card badges and borders, the extended-range rating pills, the pressure-chart movement chip, and the simple-dashboard legend.
+- The simple dashboard legend now lists all five bands, and its hero bar labels use the new names (e.g. `OKAY`). Great (86+) still earns the star.
+
 ## Batch 11 — Toggleable Simple Dashboard
 
 - **Added a new "Simple Dashboard" that is opt-in from Settings.** The regular dashboard is unchanged and remains the default. Under "Dashboard Style", flipping **Simple Dashboard** on swaps the dashboard tab to a compact, glance-first layout.

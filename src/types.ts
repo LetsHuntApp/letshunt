@@ -140,7 +140,7 @@ export interface DailyForecast {
   
   // Hunting forecast metrics
   huntScore: number; // 0 - 100
-  rating: 'Poor' | 'Fair' | 'Good' | 'Great';
+  rating: 'Very Slow' | 'Slow' | 'Okay' | 'Good' | 'Great';
   verdict: string;
   
   // Breakdown

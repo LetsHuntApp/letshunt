@@ -81,24 +81,28 @@ const getScoreStroke = (score: number, theme: ThemeVariantMode, isDark: boolean)
   if (theme === 'hunting') {
     if (score >= RATING_THRESHOLDS.excellent) return '#556b2f';
     if (score >= RATING_THRESHOLDS.good) return '#556b2f';
-    if (score >= RATING_THRESHOLDS.fair) return isDark ? '#d08a4d' : '#c85a17';
+    if (score >= RATING_THRESHOLDS.okay) return isDark ? '#d9b64a' : '#b8860b';
+    if (score >= RATING_THRESHOLDS.slow) return isDark ? '#d08a4d' : '#c85a17';
     return isDark ? '#c5675c' : '#8b3a3a';
   }
   if (theme === 'olive') {
     if (score >= RATING_THRESHOLDS.excellent) return isDark ? '#9aae71' : '#2d4a27';
     if (score >= RATING_THRESHOLDS.good) return isDark ? '#7f984e' : '#556b2f';
-    if (score >= RATING_THRESHOLDS.fair) return isDark ? '#c18a4d' : '#b87333';
+    if (score >= RATING_THRESHOLDS.okay) return isDark ? '#d1b84a' : '#a08a2e';
+    if (score >= RATING_THRESHOLDS.slow) return isDark ? '#c18a4d' : '#b87333';
     return isDark ? '#c05a52' : '#8b3a3a';
   }
   if (isDark) {
     if (score >= RATING_THRESHOLDS.excellent) return '#34d399';
     if (score >= RATING_THRESHOLDS.good) return '#10b981';
-    if (score >= RATING_THRESHOLDS.fair) return '#d97706';
+    if (score >= RATING_THRESHOLDS.okay) return '#fbbf24';
+    if (score >= RATING_THRESHOLDS.slow) return '#d97706';
     return '#f43f5e';
   }
   if (score >= RATING_THRESHOLDS.excellent) return '#047857';
   if (score >= RATING_THRESHOLDS.good) return '#059669';
-  if (score >= RATING_THRESHOLDS.fair) return '#d97706';
+  if (score >= RATING_THRESHOLDS.okay) return '#ca8a04';
+  if (score >= RATING_THRESHOLDS.slow) return '#d97706';
   return '#f43f5e';
 };
 
@@ -113,7 +117,8 @@ const getDownwindText = (deg: number): string => {
 const getScoreBarColor = (score: number): string => {
   if (score >= RATING_THRESHOLDS.excellent) return '#2f8f68';
   if (score >= RATING_THRESHOLDS.good) return '#69a86f';
-  if (score >= RATING_THRESHOLDS.fair) return '#d38a3a';
+  if (score >= RATING_THRESHOLDS.okay) return '#d9a92c';
+  if (score >= RATING_THRESHOLDS.slow) return '#d38a3a';
   return '#c45b53';
 };
 
@@ -301,7 +306,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
           <div className="shrink-0 flex items-center gap-1 leading-none" style={{ color: stroke }}>
             {heroScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3" style={{ color: stroke, fill: stroke }} />}
-            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider">{heroRating}</span>
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap">{heroRating}</span>
           </div>
         </div>
 
@@ -367,9 +372,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </p>
             <div className="flex items-center gap-2 text-[10px] font-bold flex-wrap mt-1.5">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(90) }} /> Great</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(80) }} /> Good</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(60) }} /> Fair</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(30) }} /> Poor</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(70) }} /> Good</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(50) }} /> Okay</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(33) }} /> Slow</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(15) }} /> Very Slow</span>
             </div>
           </div>
           <button

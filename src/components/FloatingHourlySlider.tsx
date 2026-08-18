@@ -86,7 +86,8 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   const getHourlyScoreColor = (score: number) => {
     if (score >= RATING_THRESHOLDS.excellent) return '#2f8f68';
     if (score >= RATING_THRESHOLDS.good) return '#69a86f';
-    if (score >= RATING_THRESHOLDS.fair) return '#d38a3a';
+    if (score >= RATING_THRESHOLDS.okay) return '#d9a92c';
+    if (score >= RATING_THRESHOLDS.slow) return '#d38a3a';
     return '#c45b53';
   };
 

@@ -856,7 +856,7 @@ function generateFallbackForecast(location: Location, units: UnitSystem): DailyF
     const score = Math.max(40, Math.min(95, 75 + (d % 3) * 7 - (d % 2) * 10));
     // Use the app-wide rating thresholds so the offline fallback stays
     // consistent with getRatingFromScore used by the dial and cards.
-    const rating: 'Poor' | 'Fair' | 'Good' | 'Great' = getRatingFromScore(score);
+    const rating: 'Very Slow' | 'Slow' | 'Okay' | 'Good' | 'Great' = getRatingFromScore(score);
     const verdict = isPrimeDay(score)
       ? "Get in the woods — it's a great day! The wind and barometer are lining up."
       : "It's an okay day to hunt. Focus on the edges between bedding and feeding areas.";

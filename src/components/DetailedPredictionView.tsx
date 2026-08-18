@@ -66,8 +66,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const activeScore = hourData ? hourData.huntScore : day.huntScore;
   const isExcellentDay = activeScore >= RATING_THRESHOLDS.excellent;
   const isGoodDay = activeScore >= RATING_THRESHOLDS.good && activeScore < RATING_THRESHOLDS.excellent;
-  const isModerateDay = activeScore >= RATING_THRESHOLDS.fair && activeScore < RATING_THRESHOLDS.good;
-  const isPoorDay = activeScore < 46;
+  const isModerateDay = activeScore >= RATING_THRESHOLDS.okay && activeScore < RATING_THRESHOLDS.good;
+  const isSlowDay = activeScore >= RATING_THRESHOLDS.slow && activeScore < RATING_THRESHOLDS.okay;
+  const isPoorDay = activeScore < RATING_THRESHOLDS.slow;
 
   // Compute active factors dynamically
   const activeFactors = (() => {
@@ -122,7 +123,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   // color per theme × mode. Center elements use the returned stroke hex
   // directly, avoiding theme utility overrides that could break the match.
   const getScoreColorClasses = (score: number) => {
-    if (score >= RATING_THRESHOLDS.excellent) { // Excellent - Deep Pine Green (emerald-800)
+    if (score >= RATING_THRESHOLDS.excellent) { // Great - Deep Pine Green (emerald-800)
       return {
         bg: 'bg-emerald-800/10 dark:bg-emerald-500/15',
         border: 'border-emerald-800/20 dark:border-emerald-500/30',
@@ -136,19 +137,26 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         ring: 'ring-emerald-500/10 dark:ring-emerald-500/10',
         stroke: theme === 'hunting' ? '#556b2f' : isDark ? '#10b981' : '#059669', // theme-aware Good score color
       };
-    } else if (score >= RATING_THRESHOLDS.fair) { // Fair - Warm Amber/Ochre (amber-500/600)
+    } else if (score >= RATING_THRESHOLDS.okay) { // Okay - Yellow (amber-400/500)
       return {
-        bg: 'bg-amber-500/10 dark:bg-amber-500/15',
-        border: 'border-amber-500/20 dark:border-amber-500/30',
-        ring: 'ring-amber-500/10 dark:ring-amber-500/10',
-        stroke: theme === 'hunting' ? (isDark ? '#d08a4d' : '#c85a17') : '#d97706', // theme-aware Fair score color
+        bg: 'bg-yellow-500/10 dark:bg-yellow-500/15',
+        border: 'border-yellow-500/20 dark:border-yellow-500/30',
+        ring: 'ring-yellow-500/10 dark:ring-yellow-500/10',
+        stroke: theme === 'hunting' ? (isDark ? '#d9b64a' : '#b8860b') : isDark ? '#fbbf24' : '#ca8a04', // theme-aware Okay score color
       };
-    } else { // Poor - Dusty Terracotta/Rose (rose-500/600)
+    } else if (score >= RATING_THRESHOLDS.slow) { // Slow - Orangish/Amber (amber-600)
+      return {
+        bg: 'bg-orange-500/10 dark:bg-orange-500/15',
+        border: 'border-orange-500/20 dark:border-orange-500/30',
+        ring: 'ring-orange-500/10 dark:ring-orange-500/10',
+        stroke: theme === 'hunting' ? (isDark ? '#d08a4d' : '#c85a17') : '#d97706', // theme-aware Slow score color
+      };
+    } else { // Very Slow - Dusty Terracotta/Rose (rose-500/600)
       return {
         bg: 'bg-rose-500/10 dark:bg-rose-500/15',
         border: 'border-rose-500/20 dark:border-rose-500/30',
         ring: 'ring-rose-500/10 dark:ring-rose-500/10',
-        stroke: theme === 'hunting' ? (isDark ? '#c5675c' : '#8b3a3a') : '#f43f5e', // theme-aware Poor score color
+        stroke: theme === 'hunting' ? (isDark ? '#c5675c' : '#8b3a3a') : '#f43f5e', // theme-aware Very Slow score color
       };
     }
   };
@@ -161,6 +169,8 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       : isGoodDay
       ? 'bg-[#556b2f] text-white ring-2 ring-[#556b2f]/35'
       : isModerateDay
+      ? 'bg-[#b8860b] text-white ring-2 ring-[#d9b64a]/35'
+      : isSlowDay
       ? 'bg-[#c85a17] text-white ring-2 ring-[#e08a5a]/35'
       : 'bg-[#8b3a3a] text-white ring-2 ring-[#b56b6b]/35'
     : isExcellentDay
@@ -168,7 +178,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
     : isGoodDay
     ? 'bg-emerald-500 text-slate-950 ring-2 ring-emerald-500/20'
     : isModerateDay
-    ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-500/20'
+    ? 'bg-yellow-500 text-slate-950 ring-2 ring-yellow-500/20'
+    : isSlowDay
+    ? 'bg-orange-600 text-white ring-2 ring-orange-500/25'
     : 'bg-rose-500 text-white ring-2 ring-rose-500/20';
   const rutInfo = getRutPhase(day.date, location);
 
@@ -254,8 +266,12 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
               : 'bg-emerald-50 border-emerald-200 text-slate-900 shadow-sm'
             : isModerateDay
             ? isDark
-              ? 'bg-slate-900 border-amber-500/40 text-slate-100'
-              : 'bg-amber-50 border-amber-200 text-slate-900 shadow-sm'
+              ? 'bg-slate-900 border-yellow-500/40 text-slate-100'
+              : 'bg-yellow-50 border-yellow-200 text-slate-900 shadow-sm'
+            : isSlowDay
+            ? isDark
+              ? 'bg-slate-900 border-orange-500/40 text-slate-100'
+              : 'bg-orange-50 border-orange-200 text-slate-900 shadow-sm'
             : isDark
             ? 'bg-slate-900 border-rose-500/40 text-slate-100'
             : 'bg-rose-50 border-rose-200 text-slate-900 shadow-sm'
@@ -543,9 +559,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                     <div className={`font-black text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       <span>Movement: {activePoint.score}/100</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        activePoint.score >= 80 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
-                        activePoint.score >= 60 ? 'bg-sky-500/15 text-sky-400 border border-sky-500/30' :
-                        activePoint.score >= 40 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' :
+                        activePoint.score >= 86 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                        activePoint.score >= 61 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                        activePoint.score >= 41 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30' :
+                        activePoint.score >= 26 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' :
                         'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                       }`}>
                         {getRatingFromScore(activePoint.score)}

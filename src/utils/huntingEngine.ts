@@ -87,26 +87,28 @@ export function getHour12Label(hour: number): string {
 /**
  * Batch 3 — single source of truth for the hunt-score rating scale.
  *
- * Chosen to keep the code's existing 90 / 76 / 46 thresholds rather than
- * the older 90 / 66 / 40 documented in `changes.md` (we've reconciled
- * `changes.md` separately). Every score-band branch in the app reads
- * from this constant: the verdict block in `calculateHuntScore`, the
- * `Great / Good / Fair / Poor` rating returned by `getRatingFromScore`,
- * the score-based headline fallback in `getDetailedConditionExplanation`,
- * and the dial / card colour tables in `DayDetailView`,
- * `ForecastCards` and `DetailedPredictionView`.
+ * Five movement bands: Great (86+), Good (61-85), Okay (41-60),
+ * Slow (26-40) and Very Slow (0-25). Every score-band branch in the app
+ * reads from this constant: the verdict block in `calculateHuntScore`, the
+ * `Great / Good / Okay / Slow / Very Slow` rating returned by
+ * `getRatingFromScore`, the score-based headline fallback in
+ * `getDetailedConditionExplanation`, and the dial / card colour tables in
+ * `DayDetailView`, `ForecastCards`, `SimpleDashboard` and
+ * `DetailedPredictionView`.
  */
 export const RATING_THRESHOLDS = {
-  excellent: 90,
-  good: 76,
-  fair: 46,
+  excellent: 86, // Great
+  good: 61,      // Good
+  okay: 41,      // Okay
+  slow: 26,      // Slow
 } as const;
 
-export function getRatingFromScore(score: number): 'Poor' | 'Fair' | 'Good' | 'Great' {
+export function getRatingFromScore(score: number): 'Very Slow' | 'Slow' | 'Okay' | 'Good' | 'Great' {
   if (score >= RATING_THRESHOLDS.excellent) return 'Great';
   if (score >= RATING_THRESHOLDS.good) return 'Good';
-  if (score >= RATING_THRESHOLDS.fair) return 'Fair';
-  return 'Poor';
+  if (score >= RATING_THRESHOLDS.okay) return 'Okay';
+  if (score >= RATING_THRESHOLDS.slow) return 'Slow';
+  return 'Very Slow';
 }
 
 /**
@@ -921,7 +923,7 @@ export function calculateHuntScore(params: {
   // Clamp final score between 15 and 99
   const finalScore = Math.min(99, Math.max(15, Math.round(totalScore)));
 
-  let rating: DailyForecast['rating'] = 'Fair';
+  let rating: DailyForecast['rating'] = 'Okay';
   let verdict = '';
 
   if (finalScore >= RATING_THRESHOLDS.excellent) {
@@ -930,12 +932,15 @@ export function calculateHuntScore(params: {
   } else if (finalScore >= RATING_THRESHOLDS.good) {
     rating = 'Good';
     verdict = "It's a good day to go hunting. Deer should move best early and late in the day.";
-  } else if (finalScore >= RATING_THRESHOLDS.fair) {
-    rating = 'Fair';
+  } else if (finalScore >= RATING_THRESHOLDS.okay) {
+    rating = 'Okay';
     verdict = "It's an okay day to hunt. Your best bet is around first light and the last hour before dark.";
+  } else if (finalScore >= RATING_THRESHOLDS.slow) {
+    rating = 'Slow';
+    verdict = "Movement is slow today — focus on the first and last hours of legal light and stick to thick cover.";
   } else {
-    rating = 'Poor';
-    verdict = "It's not a good day to be hunting. Heat, hard wind, or rough weather may keep deer bedded down — look for thick cover if you go.";
+    rating = 'Very Slow';
+    verdict = "Movement is very slow. Heat, hard wind, or rough weather may keep deer bedded down — look for thick cover if you go.";
   }
 
   return {
@@ -1007,7 +1012,7 @@ export function getDetailedConditionExplanation(
 
   // 2. Break in the rain / Rain Stopped / Post Storm
   if (hasRainBreak || (isPostStorm && weatherCode <= 3)) {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Unfavorable Post-Rain Conditions',
         detail: `The rain quit, but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are still keeping deer movement low. Hunt thick cover.`,
@@ -1023,7 +1028,7 @@ export function getDetailedConditionExplanation(
 
   // 3. Steady Active Rain (Codes 61, 63)
   if (weatherCode === 61 || weatherCode === 63) {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Active Steady Rain',
         detail: `${weatherDesc} is falling steadily and deer are tucked into thick cover — wait for it to let up before expecting movement.`,
@@ -1039,7 +1044,7 @@ export function getDetailedConditionExplanation(
 
   // 4. Light Drizzle / Fog (Codes 51, 53, 55, 45, 48)
   if (weatherCode === 51 || weatherCode === 53 || weatherCode === 55 || weatherCode === 45 || weatherCode === 48) {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Low Activity with Drizzle/Fog',
         detail: `The damp ground helps, but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are still working against deer movement.`,
@@ -1055,7 +1060,7 @@ export function getDetailedConditionExplanation(
 
   // 5. Snowfall (Codes 71-75)
   if (weatherCode >= 71 && weatherCode <= 75) {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Stormy Snowfall Conditions',
         detail: `Snow is falling, but a ${windVal} ${windUnit} wind and a ${tempDropVal}${tempUnit} temperature drop have deer holed up in thick cover.`,
@@ -1081,16 +1086,16 @@ export function getDetailedConditionExplanation(
   }
   if (tempAbsoluteF >= 85) {
     return {
-      headline: score >= 76 ? 'It is a good time to hunt — Very Warm Conditions' : 'It may be a difficult hunt — Very Warm Conditions',
+      headline: score >= RATING_THRESHOLDS.good ? 'It is a good time to hunt — Very Warm Conditions' : 'It may be a difficult hunt — Very Warm Conditions',
       detail: `Very warm air (${tempVal}${tempUnit}) can make a long daylight sit less comfortable. Favor shade, water, and the edges of legal shooting time.`,
-      badgeColor: score >= 76 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+      badgeColor: score >= RATING_THRESHOLDS.good ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
   if (tempAbsoluteF >= 78) {
     return {
-      headline: score >= 46 ? 'It is a fair time to hunt — Warm Conditions' : 'It is not a good time to hunt — Warm Conditions',
+      headline: score >= RATING_THRESHOLDS.okay ? 'It is an okay time to hunt — Warm Conditions' : 'It is not a good time to hunt — Warm Conditions',
       detail: `Warm air (${tempVal}${tempUnit}) may shift the better hunt toward first or last legal light.`,
-      badgeColor: score >= 46 ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+      badgeColor: score >= RATING_THRESHOLDS.okay ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
     };
   }
 
@@ -1105,7 +1110,7 @@ export function getDetailedConditionExplanation(
 
   // 8. Barometer Trends
   if (pressureTrend === 'rapid_drop') {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Front Swirling Winds',
         detail: `The barometer is dropping (${pressureVal} ${pressureUnitLabel}), but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are still keeping deer bedded down.`,
@@ -1120,7 +1125,7 @@ export function getDetailedConditionExplanation(
   }
 
   if (pressureTrend === 'rapid_rise') {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Ineffective Rising Barometer',
         detail: `The barometer is rising (${pressureVal} ${pressureUnitLabel}) after the front, but ${tempVal}${tempUnit} air and a ${windVal} ${windUnit} wind are canceling the movement boost.`,
@@ -1136,7 +1141,7 @@ export function getDetailedConditionExplanation(
 
   // 9. Cold Front Hit (tempDrop >= 8°F / 4°C)
   if (tempDrop >= (isMetric ? 4 : 8)) {
-    if (score < 46) {
+    if (score < RATING_THRESHOLDS.okay) {
       return {
         headline: 'It is not a good time to hunt — Suppressed Cold Front',
         detail: `The temperature dropped ${tempDropVal}${tempUnit} in 24h, but other weather problems or bad wind are still holding deer back.`,
@@ -1195,7 +1200,7 @@ export function getDetailedConditionExplanation(
       detail: `${driversText} — a solid reason for deer to move in daylight. ${primeText}`,
       badgeColor: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
     };
-  } else if (score >= RATING_THRESHOLDS.fair) {
+  } else if (score >= RATING_THRESHOLDS.okay) {
     return {
       headline: "It's an okay time to hunt — Moderate Weather Conditions",
       detail: 'Nothing dramatic is happening with the weather. Focus on first light and the last hour before dark.',

@@ -296,17 +296,20 @@ const getScoreBadgeColor = (score: number) => {
     if (theme === 'hunting') {
       if (score >= RATING_THRESHOLDS.excellent) return 'bg-[#556b2f] text-white border-[#556b2f] shadow-sm';
       if (score >= RATING_THRESHOLDS.good) return 'bg-[#556b2f] text-white border-[#556b2f] shadow-sm';
-      if (score >= RATING_THRESHOLDS.fair) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
+      if (score >= RATING_THRESHOLDS.okay) return 'bg-[#b8860b] text-white border-[#d9b64a] shadow-sm';
+      if (score >= RATING_THRESHOLDS.slow) return 'bg-[#c85a17] text-white border-[#c85a17] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
-    } else if ((theme === 'olive' || theme === 'hunting')) {
+    } else if (theme === 'olive') {
       if (score >= RATING_THRESHOLDS.excellent) return 'bg-[#2d4a27] text-white border-[#556b2f] shadow-sm';
       if (score >= RATING_THRESHOLDS.good) return 'bg-[#556b2f] text-white border-[#8a9a5b] shadow-sm';
-      if (score >= RATING_THRESHOLDS.fair) return 'bg-[#b87333] text-white border-[#d4a373] shadow-sm';
+      if (score >= RATING_THRESHOLDS.okay) return 'bg-[#a08a2e] text-white border-[#c9b458] shadow-sm';
+      if (score >= RATING_THRESHOLDS.slow) return 'bg-[#b87333] text-white border-[#d4a373] shadow-sm';
       return 'bg-[#8b3a3a] text-white border-[#a85a5a] shadow-sm';
     }
     if (score >= RATING_THRESHOLDS.excellent) return 'bg-emerald-800 text-white border-emerald-600 shadow-emerald-950/30';
     if (score >= RATING_THRESHOLDS.good) return 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-emerald-900/10';
-    if (score >= RATING_THRESHOLDS.fair) return 'bg-amber-500 text-slate-950 border-amber-300 shadow-amber-900/20';
+    if (score >= RATING_THRESHOLDS.okay) return 'bg-yellow-500 text-slate-950 border-yellow-300 shadow-yellow-900/20';
+    if (score >= RATING_THRESHOLDS.slow) return 'bg-orange-600 text-white border-orange-400 shadow-orange-900/20';
     return 'bg-rose-500 text-white border-rose-400 shadow-rose-900/20';
   };
 
@@ -359,26 +362,45 @@ const getScoreBadgeColor = (score: number) => {
         : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-emerald-500/25 hover:border-emerald-500/50 shadow-sm hover:shadow-md hover:shadow-emerald-500/5 transition-all ${glass}`;
     }
 
-    if (score >= RATING_THRESHOLDS.fair) { // Fair - Amber/Ochre
+    if (score >= RATING_THRESHOLDS.okay) { // Okay - Yellow
       if (isSelected) {
         return isDark
-          ? `bg-slate-900/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 scale-[1.01] z-10 ${glass}`
+          ? `bg-slate-900/[var(--card-opacity)] border-yellow-400 ring-2 ring-yellow-400/40 shadow-lg shadow-yellow-500/10 scale-[1.01] z-10 ${glass}`
+          : theme === 'hunting'
+          ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#b8860b] ring-2 ring-[#b8860b]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
+          : (theme === 'olive' || theme === 'hunting')
+          ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#a08a2e] ring-2 ring-[#a08a2e]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
+          : `bg-white/[var(--card-opacity)] border-yellow-400 ring-2 ring-yellow-400/30 shadow-md shadow-yellow-500/5 scale-[1.01] z-10 ${glass}`;
+      }
+      return isDark
+        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-yellow-400/30 hover:border-yellow-400/60 shadow-md shadow-yellow-950/20 hover:shadow-yellow-500/5 transition-all ${glass}`
+        : theme === 'hunting'
+        ? `bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#d4c4a8]/30 hover:border-[#d4c4a8]/50 shadow-xs text-[#2a1b0e] transition-all ${glass}`
+        : (theme === 'olive' || theme === 'hunting')
+        ? `bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#a08a2e]/30 hover:border-[#a08a2e]/50 shadow-xs text-[#1e2e1b] transition-all ${glass}`
+        : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-yellow-400/25 hover:border-yellow-400/50 shadow-sm hover:shadow-md hover:shadow-yellow-500/5 transition-all ${glass}`;
+    }
+
+    if (score >= RATING_THRESHOLDS.slow) { // Slow - Orangish/Amber
+      if (isSelected) {
+        return isDark
+          ? `bg-slate-900/[var(--card-opacity)] border-orange-500 ring-2 ring-orange-500/40 shadow-lg shadow-orange-500/10 scale-[1.01] z-10 ${glass}`
           : theme === 'hunting'
           ? `bg-[#eee6d6]/[var(--card-opacity)] border-[#c85a17] ring-2 ring-[#c85a17]/30 shadow-md text-[#2a1b0e] scale-[1.01] z-10 ${glass}`
           : (theme === 'olive' || theme === 'hunting')
           ? `bg-[#f7f5ed]/[var(--card-opacity)] border-[#b87333] ring-2 ring-[#b87333]/30 shadow-md text-[#1e2e1b] scale-[1.01] z-10 ${glass}`
-          : `bg-white/[var(--card-opacity)] border-amber-500 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/5 scale-[1.01] z-10 ${glass}`;
+          : `bg-white/[var(--card-opacity)] border-orange-500 ring-2 ring-orange-500/30 shadow-md shadow-orange-500/5 scale-[1.01] z-10 ${glass}`;
       }
       return isDark
-        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-amber-500/30 hover:border-amber-500/60 shadow-md shadow-amber-950/20 hover:shadow-amber-500/5 transition-all ${glass}`
+        ? `bg-slate-900/[var(--card-opacity)] hover:bg-slate-900/[calc(var(--card-opacity)*1.15)] border-orange-500/30 hover:border-orange-500/60 shadow-md shadow-orange-950/20 hover:shadow-orange-500/5 transition-all ${glass}`
         : theme === 'hunting'
         ? `bg-[#eee6d6]/[var(--card-opacity)] hover:bg-[#eae1cf] border-[#d4c4a8]/30 hover:border-[#d4c4a8]/50 shadow-xs text-[#2a1b0e] transition-all ${glass}`
         : (theme === 'olive' || theme === 'hunting')
         ? `bg-[#f7f5ed]/[var(--card-opacity)] hover:bg-[#efebd9] border-[#b87333]/30 hover:border-[#b87333]/50 shadow-xs text-[#1e2e1b] transition-all ${glass}`
-        : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-amber-500/25 hover:border-amber-500/50 shadow-sm hover:shadow-md hover:shadow-amber-500/5 transition-all ${glass}`;
+        : `bg-white/[var(--card-opacity)] hover:bg-white/[calc(var(--card-opacity)*1.02)] border-orange-500/25 hover:border-orange-500/50 shadow-sm hover:shadow-md hover:shadow-orange-500/5 transition-all ${glass}`;
     }
 
-    // Poor (< 46) - Red
+    // Very Slow (< 26) - Red
     if (isSelected) {
       return isDark
         ? `bg-slate-900/[var(--card-opacity)] border-rose-500 ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10 scale-[1.01] z-10 ${glass}`
@@ -1160,8 +1182,10 @@ const getScoreBadgeColor = (score: number) => {
                     ? isDark ? 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40' : 'text-emerald-800 bg-emerald-100 border-emerald-300'
                     : rating === 'Good'
                     ? isDark ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30' : 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                    : rating === 'Fair'
-                    ? isDark ? 'text-amber-300 bg-amber-500/10 border-amber-500/30' : 'text-amber-700 bg-amber-50 border-amber-200'
+                    : rating === 'Okay'
+                    ? isDark ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30' : 'text-yellow-700 bg-yellow-50 border-yellow-200'
+                    : rating === 'Slow'
+                    ? isDark ? 'text-orange-300 bg-orange-500/10 border-orange-500/30' : 'text-orange-700 bg-orange-50 border-orange-200'
                     : isDark ? 'text-rose-300 bg-rose-500/10 border-rose-500/30' : 'text-rose-700 bg-rose-50 border-rose-200';
 
                   const lowConfidence = idx + 7 >= 8

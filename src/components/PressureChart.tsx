@@ -428,10 +428,14 @@ export const PressureChart: React.FC<PressureChartProps> = ({
               <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Movement: </span>
               <span
                 className={`px-2.5 py-0.5 rounded-md font-black ${
-                  activePoint.score >= 80
+                  activePoint.score >= 86
                     ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40'
-                    : activePoint.score >= 60
-                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                    : activePoint.score >= 61
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                    : activePoint.score >= 41
+                    ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-500/40'
+                    : activePoint.score >= 26
+                    ? 'bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-orange-500/40'
                     : 'bg-slate-200 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300'
                 }`}
               >

@@ -122,12 +122,15 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
   };
 
   const condExplanation = getDetailedConditionExplanation(day, hourData, units, pressureUnit);
-  const weatherExplanationLabel = `${selectedHour !== undefined ? 'Why is this hour' : 'Why is this day'} ${currentRating === 'Fair' ? 'only fair' : currentRating.toLowerCase()}?`;
+  const weatherExplanationLabel = `${selectedHour !== undefined ? 'Why is this hour' : 'Why is this day'} ${
+    currentRating === 'Okay' || currentRating === 'Slow' ? `only ${currentRating.toLowerCase()}` : currentRating.toLowerCase()
+  }?`;
 
   const isExcellentDay = currentScore >= RATING_THRESHOLDS.excellent;
   const isGoodDay = currentScore >= RATING_THRESHOLDS.good && currentScore < RATING_THRESHOLDS.excellent;
-  const isModerateDay = currentScore >= RATING_THRESHOLDS.fair && currentScore < RATING_THRESHOLDS.good;
-  const isPoorDay = currentScore < 46;
+  const isModerateDay = currentScore >= RATING_THRESHOLDS.okay && currentScore < RATING_THRESHOLDS.good;
+  const isSlowDay = currentScore >= RATING_THRESHOLDS.slow && currentScore < RATING_THRESHOLDS.okay;
+  const isPoorDay = currentScore < RATING_THRESHOLDS.slow;
 
   const activeFactors = React.useMemo(() => {
     if (selectedHour !== undefined && day.hourly && day.hourly[selectedHour]) {
@@ -166,12 +169,14 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       if (isDark) {
         if (currentScore >= RATING_THRESHOLDS.excellent) return '#556b2f';
         if (currentScore >= RATING_THRESHOLDS.good) return '#556b2f';
-        if (currentScore >= RATING_THRESHOLDS.fair) return '#d08a4d';
+        if (currentScore >= RATING_THRESHOLDS.okay) return '#d9b64a';
+        if (currentScore >= RATING_THRESHOLDS.slow) return '#d08a4d';
         return '#c5675c';
       }
       if (currentScore >= RATING_THRESHOLDS.excellent) return '#556b2f';
       if (currentScore >= RATING_THRESHOLDS.good) return '#556b2f';
-      if (currentScore >= RATING_THRESHOLDS.fair) return '#c85a17';
+      if (currentScore >= RATING_THRESHOLDS.okay) return '#b8860b';
+      if (currentScore >= RATING_THRESHOLDS.slow) return '#c85a17';
       return '#8b3a3a';
     }
 
@@ -179,25 +184,29 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       if (isDark) {
         if (currentScore >= RATING_THRESHOLDS.excellent) return '#9aae71';
         if (currentScore >= RATING_THRESHOLDS.good) return '#7f984e';
-        if (currentScore >= RATING_THRESHOLDS.fair) return '#c18a4d';
+        if (currentScore >= RATING_THRESHOLDS.okay) return '#d1b84a';
+        if (currentScore >= RATING_THRESHOLDS.slow) return '#c18a4d';
         return '#c05a52';
       }
       if (currentScore >= RATING_THRESHOLDS.excellent) return '#2d4a27';
       if (currentScore >= RATING_THRESHOLDS.good) return '#556b2f';
-      if (currentScore >= RATING_THRESHOLDS.fair) return '#b87333';
+      if (currentScore >= RATING_THRESHOLDS.okay) return '#a08a2e';
+      if (currentScore >= RATING_THRESHOLDS.slow) return '#b87333';
       return '#8b3a3a';
     }
 
     if (isDark) {
       if (currentScore >= RATING_THRESHOLDS.excellent) return '#34d399';
       if (currentScore >= RATING_THRESHOLDS.good) return '#10b981';
-      if (currentScore >= RATING_THRESHOLDS.fair) return '#d97706';
+      if (currentScore >= RATING_THRESHOLDS.okay) return '#fbbf24';
+      if (currentScore >= RATING_THRESHOLDS.slow) return '#d97706';
       return '#f43f5e';
     }
 
     if (currentScore >= RATING_THRESHOLDS.excellent) return '#047857';
     if (currentScore >= RATING_THRESHOLDS.good) return '#059669';
-    if (currentScore >= RATING_THRESHOLDS.fair) return '#d97706';
+    if (currentScore >= RATING_THRESHOLDS.okay) return '#ca8a04';
+    if (currentScore >= RATING_THRESHOLDS.slow) return '#d97706';
     return '#f43f5e';
   })();
 
@@ -264,6 +273,8 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
       : isGoodDay
       ? 'bg-[#556b2f] text-white border-[#556b2f]'
       : isModerateDay
+      ? 'bg-[#b8860b] text-white border-[#d9b64a]'
+      : isSlowDay
       ? 'bg-[#c85a17] text-white border-[#e08a5a]'
       : 'bg-[#8b3a3a] text-white border-[#b56b6b]'
     : isExcellentDay
@@ -271,7 +282,9 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
     : isGoodDay
     ? 'bg-emerald-500 text-slate-950 border-emerald-300'
     : isModerateDay
-    ? 'bg-amber-500 text-slate-950 border-amber-300'
+    ? 'bg-yellow-500 text-slate-950 border-yellow-300'
+    : isSlowDay
+    ? 'bg-orange-600 text-white border-orange-400'
     : 'bg-rose-500 text-white border-rose-400';
 
   // Hunter badges use one consistent field-guide green for every green state,
