@@ -256,25 +256,26 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
       {/* Hero Header Area: Overall Day Score */}
       <div
         className={`rounded-3xl border p-6 sm:p-8 flex flex-col items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden transition-all duration-300 ${
+          // Theme-aware card surface, matching the other cards on this page
+          // (no solid rating tint — the border below carries the band color).
+          isDark
+            ? `${hasCustomBackground ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-xl' : 'bg-slate-900/90'} text-slate-100`
+            : theme === 'hunting'
+            ? 'bg-[#eae1cf]/[var(--card-opacity)] backdrop-blur-xl text-[#2a1b0e]'
+            : theme === 'olive'
+            ? 'bg-[#f7f5ed]/[var(--card-opacity)] backdrop-blur-xl text-[#1e2e1b]'
+            : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-xl' : 'bg-white'} text-slate-900`
+        } ${
+          // Rating-tinted border keeps the score-band signal.
           isExcellentDay
-            ? isDark
-              ? 'bg-slate-900 border-emerald-600/40 text-slate-100'
-              : 'bg-emerald-50 border-emerald-300 text-slate-900 shadow-sm'
+            ? 'border-emerald-600/40'
             : isGoodDay
-            ? isDark
-              ? 'bg-slate-900 border-emerald-500/35 text-slate-100'
-              : 'bg-emerald-50 border-emerald-200 text-slate-900 shadow-sm'
+            ? 'border-emerald-500/35'
             : isModerateDay
-            ? isDark
-              ? 'bg-slate-900 border-yellow-500/40 text-slate-100'
-              : 'bg-yellow-50 border-yellow-200 text-slate-900 shadow-sm'
+            ? 'border-yellow-500/40'
             : isSlowDay
-            ? isDark
-              ? 'bg-slate-900 border-orange-500/40 text-slate-100'
-              : 'bg-orange-50 border-orange-200 text-slate-900 shadow-sm'
-            : isDark
-            ? 'bg-slate-900 border-rose-500/40 text-slate-100'
-            : 'bg-rose-50 border-rose-200 text-slate-900 shadow-sm'
+            ? 'border-orange-500/40'
+            : 'border-rose-500/40'
         }`}
       >
         {/* Keep the primary score immediately at the top of the hero, matching the dashboard hierarchy. */}
