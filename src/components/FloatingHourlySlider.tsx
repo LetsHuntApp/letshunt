@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Zap, RotateCcw, MapPin } from 'lucide-react';
-import { getHour12Label } from '../utils/huntingEngine';
+import { getHour12Label, RATING_THRESHOLDS } from '../utils/huntingEngine';
 import { ThemeMode, ThemeVariantMode, HourlyForecast } from '../types';
 
 interface FloatingHourlySliderProps {
@@ -83,6 +83,13 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
   // Calculate percentage along the track for thumb position (0 to 100%)
   const handlePercent = (localHour / 23) * 100;
 
+  const getHourlyScoreColor = (score: number) => {
+    if (score >= RATING_THRESHOLDS.excellent) return '#2f8f68';
+    if (score >= RATING_THRESHOLDS.good) return '#69a86f';
+    if (score >= RATING_THRESHOLDS.fair) return '#d38a3a';
+    return '#c45b53';
+  };
+
   const sliderTrackClass = isDark
     ? theme === 'hunting' ? 'bg-[#3a332a] border-[#655745]'
     : theme === 'olive' ? 'bg-[#26351b] border-[#465b2d]'
@@ -102,14 +109,6 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
     : theme === 'olive'
     ? { backgroundColor: '#cbd5a8', borderColor: '#7d8d55' }
     : { backgroundColor: '#e2e8f0', borderColor: '#94a3b8' };
-
-  const sliderProgressClass = isNow
-    ? isDark
-      ? theme === 'hunting' ? 'bg-[#e08a5a]' : theme === 'olive' ? 'bg-[#a8c078]' : 'bg-amber-400'
-      : theme === 'hunting' ? 'bg-[#c85a17]' : theme === 'olive' ? 'bg-[#8a9a5b]' : 'bg-amber-500'
-    : isDark
-    ? theme === 'hunting' ? 'bg-[#c85a17]' : theme === 'olive' ? 'bg-[#6f8f45]' : 'bg-emerald-500'
-    : theme === 'hunting' ? 'bg-[#a34610]' : theme === 'olive' ? 'bg-[#556b2f]' : 'bg-emerald-500';
 
   const sliderThumbClass = isNow
     ? isDark
@@ -197,11 +196,22 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
               className={`hourly-slider-track w-full h-full ${sliderTrackClass} rounded-full shadow-inner overflow-hidden border flex items-center`}
               style={sliderTrackStyle}
             >
-              {/* Progress Highlight */}
-              <div
-                className={`h-full ${sliderProgressClass}`}
-                style={{ width: `${handlePercent}%` }}
-              />
+              {/* One colored section per forecast hour. The transparent range input
+                  below still owns interaction; these segments make the movement
+                  quality visible before the user scrubs. */}
+              {hourly && hourly.length > 0 ? (
+                <div className="hourly-slider-segments" aria-hidden="true">
+                  {hourly.slice(0, 24).map((item, index) => (
+                    <span
+                      key={`${item.time}-${index}`}
+                      className={index === localHour ? 'selected' : ''}
+                      style={{ backgroundColor: getHourlyScoreColor(item.huntScore) }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="h-full bg-emerald-500/70" style={{ width: `${handlePercent}%` }} />
+              )}
             </div>
 
             {/* Time Indicator Badge (Thumb) */}

@@ -189,6 +189,33 @@ input[type="range"]::-moz-range-thumb {
   isolation: isolate;
 }
 
+/* The normal hourly slider keeps the simple-mode field brief's useful visual
+   language: every hour is a score-colored section, so strong, fair, and slow
+   movement windows are visible before scrubbing. */
+.hourly-slider-segments {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.hourly-slider-segments span {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.28);
+  opacity: 0.78;
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+.hourly-slider-segments span:last-child { border-right: 0; }
+.hourly-slider-segments span:hover,
+.hourly-slider-segments span.selected {
+  opacity: 1;
+  filter: saturate(1.12) brightness(1.08);
+}
+
 /* Smooth underline animation for links */
 .link-underline {
   position: relative;
