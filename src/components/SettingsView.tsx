@@ -114,7 +114,7 @@ interface SettingsViewProps {
   onToggleSimpleMode: (enabled: boolean) => void;
 }
 
-const SimpleSettingsPanel: React.FC<Pick<SettingsViewProps, 'currentLocation' | 'units' | 'setUnits' | 'themeMode' | 'setMode' | 'simpleMode' | 'onToggleSimpleMode' | 'onSwitchToDashboard' | 'showToast'>> = ({
+const SimpleSettingsPanel: React.FC<Pick<SettingsViewProps, 'currentLocation' | 'units' | 'setUnits' | 'themeMode' | 'setMode' | 'simpleMode' | 'onToggleSimpleMode' | 'onSwitchToDashboard' | 'showToast' | 'customBackground' | 'onSetCustomBackground'>> = ({
   currentLocation,
   units,
   setUnits,
@@ -124,6 +124,8 @@ const SimpleSettingsPanel: React.FC<Pick<SettingsViewProps, 'currentLocation' | 
   onToggleSimpleMode,
   onSwitchToDashboard,
   showToast,
+  customBackground,
+  onSetCustomBackground,
 }) => {
   const toggle = (checked: boolean, onChange: (value: boolean) => void) => (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`simple-settings-toggle ${checked ? 'on' : ''}`}>
@@ -150,6 +152,37 @@ const SimpleSettingsPanel: React.FC<Pick<SettingsViewProps, 'currentLocation' | 
         <div className="simple-settings-segment">
           <button type="button" className={units === 'imperial' ? 'selected' : ''} onClick={() => { setUnits('imperial'); showToast('Using Fahrenheit and mph'); }}>°F / mph</button>
           <button type="button" className={units === 'metric' ? 'selected' : ''} onClick={() => { setUnits('metric'); showToast('Using Celsius and km/h'); }}>°C / km/h</button>
+        </div>
+      </div>
+      <div className="simple-settings-card simple-settings-background">
+        <div><strong>Field backdrop</strong><span>{customBackground ? 'Your photo is showing behind the hunt brief.' : 'Add a woods photo for a more personal field brief.'}</span></div>
+        <div className="simple-settings-background-actions">
+          <input
+            type="file"
+            accept="image/*"
+            id="simple-custom-bg-upload"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (!file) return;
+              try {
+                onSetCustomBackground(await compressImage(file));
+                showToast('Field backdrop set');
+              } catch (error) {
+                console.error('Failed to process Simple Mode background photo:', error);
+                showToast('Could not load that photo. Try JPG or PNG under ~10 MB.');
+              }
+            }}
+          />
+          <button type="button" className="simple-settings-background-button" onClick={() => document.getElementById('simple-custom-bg-upload')?.click()}>
+            <ImageIcon size={15} /> {customBackground ? 'Change' : 'Add photo'}
+          </button>
+          {customBackground && (
+            <button type="button" className="simple-settings-background-remove" aria-label="Remove field backdrop" onClick={() => { onSetCustomBackground(null); showToast('Field backdrop removed'); }}>
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       </div>
       <div className="simple-settings-card">
@@ -344,6 +377,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         onToggleSimpleMode={onToggleSimpleMode}
         onSwitchToDashboard={onSwitchToDashboard}
         showToast={showToast}
+        customBackground={customBackground}
+        onSetCustomBackground={onSetCustomBackground}
       />
     );
   }

@@ -614,7 +614,7 @@ export default function App() {
         activeTab === 'map'
           ? 'h-screen max-h-screen overflow-hidden'
           : 'min-h-screen pb-14 sm:pb-0'
-      } ${simpleMode ? 'simple-mode' : ''} ${
+      } ${simpleMode ? 'simple-mode' : ''} ${customBackground ? 'has-custom-background' : ''} ${
         themeMode === 'dark'
           ? themeVariant === 'hunting'
             ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#b66a38] selection:text-white'
@@ -630,6 +630,7 @@ export default function App() {
       style={{
         '--card-opacity': `${customBackgroundOpacity / 100}`,
         '--card-blur': `${customBackgroundBlur}px`,
+        '--simple-background-image': customBackground ? `url(${customBackground})` : 'none',
         ...(customBackground ? {
           backgroundImage: `url(${customBackground})`,
           backgroundSize: 'cover',

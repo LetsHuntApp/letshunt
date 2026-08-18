@@ -334,7 +334,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             <h2>{rating} time to hunt</h2>
             <p>{day.verdict.replace(/^[^.!?]*[.!?]\s*/, '') || 'Use the best windows below and keep your approach simple.'}</p>
             <div className="simple-pro-quick-stats">
-              <span>{weatherIcon(weather.icon, 'simple-pro-weather-icon')} {hour?.temp ?? day.maxTemp}{units === 'metric' ? '°C' : '°F'}</span>
+              <span className="simple-pro-hero-weather">
+                {weatherIcon(weather.icon, 'simple-pro-weather-icon')}
+                <strong>{weather.desc}</strong>
+                <small>{hour?.temp ?? day.maxTemp}{units === 'metric' ? '°C' : '°F'}</small>
+              </span>
               <span><Wind size={14} /> {displayWind(day, units)}</span>
               <span><Droplets size={14} /> {day.precipSumMm > 0 ? `${Math.round(day.precipSumMm)} mm rain` : 'Dry woods'}</span>
             </div>

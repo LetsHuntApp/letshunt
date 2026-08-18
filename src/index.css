@@ -1423,3 +1423,71 @@ html.dark .simple-floating-hourly { box-shadow: 0 14px 34px rgba(0,0,0,.38); }
   .simple-mode .simple-graph-axis { font-size: 9px; }
   .simple-mode .simple-bar-label { font-size: 8px; }
 }
+
+/* Simple Mode can keep the user's field photo while preserving readable,
+   lightly frosted cards over the image. */
+.simple-mode.has-custom-background {
+  background-image: var(--simple-background-image) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+}
+.simple-mode.has-custom-background .simple-header {
+  background: color-mix(in srgb, var(--simple-paper) 88%, transparent);
+}
+.simple-mode.has-custom-background .simple-pro-hero,
+.simple-mode.has-custom-background .simple-graph,
+.simple-mode.has-custom-background .simple-timeline,
+.simple-mode.has-custom-background .simple-pro-panel,
+.simple-mode.has-custom-background .simple-full-hero,
+.simple-mode.has-custom-background .simple-full-section,
+.simple-mode.has-custom-background .simple-settings-card {
+  background: color-mix(in srgb, var(--simple-card) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Slightly larger field-note type keeps the Simple Mode brief readable at a
+   glance without bringing back the density of the standard dashboard. */
+.simple-mode .simple-eyebrow { font-size: 11px; }
+.simple-mode .simple-graph-heading h3,
+.simple-mode .simple-pro-panel-heading h2 { font-size: 18px; }
+.simple-mode .simple-pro-window strong { font-size: 12px; }
+.simple-mode .simple-pro-window span:not(.simple-pro-window-icon) { font-size: 11px; }
+.simple-mode .simple-pro-condition span { font-size: 12px; }
+.simple-mode .simple-pro-condition strong { font-size: 11px; }
+.simple-mode .simple-pro-brief-note strong,
+.simple-mode .simple-pro-brief-note span { font-size: 12px; }
+.simple-mode .simple-full-summary { font-size: 11px; }
+.simple-mode .simple-day-tab > span { font-size: 11px; }
+.simple-mode .simple-day-tab > small { font-size: 9px; }
+
+.simple-pro-hero-weather {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 1px 6px;
+}
+.simple-pro-hero-weather .simple-pro-weather-icon { grid-row: 1 / span 2; }
+.simple-pro-hero-weather strong { color: var(--simple-ink); font-size: 11px; line-height: 1.1; white-space: nowrap; }
+.simple-pro-hero-weather small { color: var(--simple-muted); font-size: 10px; font-weight: 800; line-height: 1.1; white-space: nowrap; }
+
+.simple-settings-background { align-items: center; }
+.simple-settings-background-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.simple-settings-background-button,
+.simple-settings-background-remove { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--simple-line); border-radius: 9px; padding: 8px 9px; color: var(--simple-accent); background: var(--simple-paper); cursor: pointer; font-size: 10px; font-weight: 900; white-space: nowrap; }
+.simple-settings-background-button:hover,
+.simple-settings-background-remove:hover { border-color: var(--simple-accent); background: var(--simple-accent-soft); }
+.simple-settings-background-remove { padding-inline: 8px; color: #b34f48; }
+
+@media (max-width: 640px) {
+  .simple-mode .simple-pro-hero-weather strong { font-size: 10px; }
+  .simple-mode .simple-pro-hero-weather small { font-size: 9px; }
+  .simple-mode .simple-settings-background { align-items: flex-start; }
+  .simple-mode .simple-settings-background-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .simple-mode .simple-settings-background-button,
+  .simple-mode .simple-settings-background-remove { padding: 7px 8px; }
+  .simple-mode .simple-day-tab > span { font-size: 10px; }
+  .simple-mode .simple-day-tab > small { font-size: 8px; }
+}
