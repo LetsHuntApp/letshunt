@@ -36,6 +36,7 @@ import {
   MapPin,
   Star,
   RefreshCw,
+  ArrowRight,
 } from 'lucide-react';
 
 interface SimpleDashboardProps {
@@ -129,21 +130,23 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   lastRefreshed,
   onSwitchToFullDashboard,
 }) => {
-  // Day-detail subpage state (opened by tapping a daily bar).
-  const [selectedDayDate, setSelectedDayDate] = useState<string>('');
+  // Which day's hourly bars are shown in the "Hourly Hunt Score" card.
+  const [activeDayDate, setActiveDayDate] = useState<string>('');
+  // Day-detail (factor breakdown) subpage state, opened by "View detailed forecast".
+  const [detailDayDate, setDetailDayDate] = useState<string | null>(null);
   const [detailHour, setDetailHour] = useState<number>(() => new Date().getHours());
   // Wind-map slider state (independent from the removed global hourly slider).
   const [windHour, setWindHour] = useState<number>(() => new Date().getHours());
 
   const today = daily[0];
-  const selectedDay = daily.find((d) => d.date === selectedDayDate) || null;
+  const detailDay = daily.find((d) => d.date === detailDayDate) || null;
 
   // Day detail subpage: reuse the existing detailed prediction view (factor
   // breakdown, pressure/precip chart, and wind/scent plotter all live there).
-  if (selectedDay) {
+  if (detailDay) {
     return (
       <DetailedPredictionView
-        day={selectedDay}
+        day={detailDay}
         location={location}
         units={units}
         pressureUnit={pressureUnit}
@@ -153,7 +156,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         selectedHour={detailHour}
         onSelectHour={setDetailHour}
         onBack={() => {
-          setSelectedDayDate('');
+          setDetailDayDate(null);
           window.scrollTo({ top: 0, behavior: 'auto' });
         }}
       />
@@ -161,6 +164,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   }
 
   if (!today) return null;
+
+  // The day powering the hourly bar (defaults to today).
+  const activeDay = daily.find((d) => d.date === activeDayDate) || today;
 
   // Current hour (hero + dial) uses the live local clock hour for "now".
   const currentLocalHour = new Date().getHours();
@@ -331,25 +337,44 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
       {/* 2. Hourly hunt score bar */}
       <div className={`rounded-2xl border p-3 sm:p-4 shadow-md ${cardSurface}`}>
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+          <div className="min-w-0">
             <h2 className={`text-sm font-black uppercase tracking-wider flex items-center gap-2 ${accentText}`}>
               <BarChart3 className="w-4 h-4" /> Hourly Hunt Score
             </h2>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {today.dayName === 'Today' ? 'Today' : today.dayName} · {today.dateFormatted} — movement by hour
+              {activeDay.dayName} · {activeDay.dateFormatted} — movement by hour
             </p>
+            <div className="flex items-center gap-2 text-[10px] font-bold flex-wrap mt-1.5">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(90) }} /> Great</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(80) }} /> Good</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(60) }} /> Fair</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(30) }} /> Poor</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-bold flex-wrap shrink-0">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(90) }} /> Great</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(80) }} /> Good</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(60) }} /> Fair</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(30) }} /> Poor</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDetailHour(new Date().getHours());
+              setDetailDayDate(activeDay.date);
+              window.scrollTo({ top: 0, behavior: 'auto' });
+            }}
+            className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
+              isDark
+                ? 'border-slate-600 text-emerald-300 hover:bg-emerald-500/10 focus-visible:ring-emerald-400'
+                : theme === 'hunting'
+                ? 'border-[#c85a17]/40 text-[#7a3208] hover:bg-[#c85a17]/10 focus-visible:ring-[#c85a17]'
+                : theme === 'olive'
+                ? 'border-[#556b2f]/40 text-[#3d4f21] hover:bg-[#556b2f]/10 focus-visible:ring-[#556b2f]'
+                : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50 focus-visible:ring-emerald-600'
+            }`}
+          >
+            <ArrowRight className="w-3.5 h-3.5" /> View detailed forecast
+          </button>
         </div>
 
         <div className="flex items-end gap-[2px] h-24 sm:h-28" aria-hidden="true">
-          {today.hourly.slice(0, 24).map((h, i) => (
+          {activeDay.hourly.slice(0, 24).map((h, i) => (
             <div
               key={`${h.time}-${i}`}
               title={`${h.time} · ${h.huntScore}/100 (${getRatingFromScore(h.huntScore)})`}
@@ -378,39 +403,40 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <CalendarDays className="w-4 h-4" /> Daily Hunt Score
             </h2>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Tap a bar to open that day's full breakdown
+              Tap a bar to see its hourly hunt score
             </p>
           </div>
         </div>
 
         <div className="overflow-x-auto pb-1">
-          <div className="flex items-end gap-1.5 sm:gap-2 h-24 sm:h-28 min-w-[560px]">
+          <div className="flex items-stretch gap-1.5 sm:gap-2 h-24 sm:h-28 min-w-[560px]">
             {daily.map((d) => {
-              const isSelected = d.date === selectedDayDate;
+              const isSelected = d.date === (activeDayDate || today.date);
               return (
                 <button
                   key={d.date}
                   type="button"
-                  onClick={() => {
-                    setDetailHour(new Date().getHours());
-                    setSelectedDayDate(d.date);
-                    window.scrollTo({ top: 0, behavior: 'auto' });
-                  }}
+                  onClick={() => setActiveDayDate((prev) => (prev === d.date ? '' : d.date))}
                   title={`${d.dayName} ${d.dateFormatted} · ${d.huntScore}/100 (${d.rating})`}
-                  className={`group flex-1 flex flex-col items-center justify-end gap-1 rounded-lg px-0.5 pb-1 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 hover:opacity-90 ${
+                  className={`group flex-1 h-full flex flex-col items-center min-w-0 rounded-lg px-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                     isSelected ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : 'hover:bg-slate-500/5'
                   }`}
                 >
-                  <span className="text-[10px] font-black leading-none opacity-80">{d.huntScore}</span>
-                  <span
-                    className="w-full rounded-t-sm"
-                    style={{
-                      height: `${Math.max(10, d.huntScore)}px`,
-                      backgroundColor: getScoreBarColor(d.huntScore),
-                      boxShadow: isSelected ? `0 0 0 2px ${stroke}` : undefined,
-                    }}
-                  />
-                  <span className="text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100">
+                  <div className="relative flex-1 w-full flex items-end justify-center">
+                    <div
+                      className="absolute bottom-0 left-0 right-0 rounded-t-sm flex items-start justify-center overflow-hidden"
+                      style={{
+                        height: `${Math.max(16, d.huntScore)}%`,
+                        backgroundColor: getScoreBarColor(d.huntScore),
+                        boxShadow: isSelected ? `0 0 0 2px ${stroke}` : undefined,
+                      }}
+                    >
+                      <span className="text-[10px] font-black leading-none text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)] mt-1">
+                        {d.huntScore}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100 mt-1 mb-0.5">
                     {dayLabel(d)}
                   </span>
                 </button>
