@@ -219,7 +219,9 @@ input[type="range"]::-moz-range-thumb {
 /* Modern floating control treatment. The extra mobile clearance keeps the
    slider above the fixed bottom navigation and respects phone safe areas. */
 .hourly-slider-shell {
-  bottom: calc(5rem + env(safe-area-inset-bottom));
+  /* The mobile nav is about 4rem tall; keep only a small visual gutter while
+     still clearing the nav and any device safe-area inset. */
+  bottom: calc(4.25rem + env(safe-area-inset-bottom));
 }
 .hourly-slider-card {
   position: relative;
