@@ -8,7 +8,7 @@ import {safeGetString, safeSet} from './utils/storage';
 import './index.css';
 
 // APP_VERSION: increment on each deploy to force PWA cache refresh
-const APP_VERSION = '45';
+const APP_VERSION = '46';
 
 if (typeof window !== 'undefined') {
   const stored = safeGetString('letsHuntVersion');

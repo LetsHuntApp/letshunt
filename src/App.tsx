@@ -945,7 +945,7 @@ export default function App() {
         )}
 
         {/* Floating Ultra-Compact 24h Hourly Time Slider (Active on Dashboard and Details tabs) */}
-        {!loading && !error && activeDay && (activeTab === 'dashboard' || activeTab === 'details') && (
+        {!loading && !error && activeDay && (activeTab === 'details' || (activeTab === 'dashboard' && !simpleMode)) && (
           <FloatingHourlySlider
             selectedHour={selectedHour}
             onSelectHour={setSelectedHour}
