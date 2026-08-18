@@ -813,8 +813,6 @@ export default function App() {
                 selectedHour={selectedHour}
                 onSelectHour={setSelectedHour}
                 onSelectDate={(date) => setSelectedDate(date)}
-                onOpenMap={() => setActiveTab('map')}
-                onOpenSettings={() => setActiveTab('settings')}
               />
             ) : activeTab === 'dashboard' && isFourteenDayView ? (
               /* Dashboard-owned 14-day subpage. It deliberately lives inside the

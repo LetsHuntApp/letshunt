@@ -14,9 +14,7 @@ import {
   Compass,
   Droplets,
   Gauge,
-  Map,
   Moon,
-  Settings,
   Snowflake,
   Sparkles,
   Sun,
@@ -38,8 +36,6 @@ interface SimpleDashboardProps {
   selectedHour: number;
   onSelectHour: (hour: number) => void;
   onSelectDate: (date: string) => void;
-  onOpenMap: () => void;
-  onOpenSettings: () => void;
 }
 
 type ScoreTone = 'great' | 'good' | 'fair' | 'poor';
@@ -277,8 +273,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   selectedHour,
   onSelectHour,
   onSelectDate,
-  onOpenMap,
-  onOpenSettings,
 }) => {
   const hourly = day.hourly || [];
   const safeSelectedHour = hourly.length > 0 ? Math.max(0, Math.min(hourly.length - 1, selectedHour)) : 0;
@@ -296,10 +290,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         <div className="simple-pro-identity">
           <div className="simple-pro-deer-mark"><DeerIcon className="simple-pro-deer" /></div>
           <div><p className="simple-eyebrow">Hunt brief · {day.dayName} · {day.dateFormatted}</p><h1>Today's hunt plan</h1><p><Compass size={14} /> {location.name}{location.admin1 ? `, ${location.admin1}` : ''}</p></div>
-        </div>
-        <div className="simple-pro-actions">
-          <button type="button" onClick={onOpenMap}><Map size={16} /><span>Map</span></button>
-          <button type="button" onClick={onOpenSettings}><Settings size={16} /><span>Settings</span></button>
         </div>
       </section>
 
