@@ -10,8 +10,6 @@ interface SimpleWindMapProps {
   theme?: ThemeVariantMode;
   isDark?: boolean;
   hasCustomBackground?: boolean;
-  selectedHour: number;
-  onSelectHour: (hour: number) => void;
   selectedDayName?: string;
   selectedDateFormatted?: string;
 }
@@ -61,11 +59,20 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   theme = 'dark',
   isDark = theme === 'dark',
   hasCustomBackground = false,
-  selectedHour,
-  onSelectHour,
   selectedDayName,
   selectedDateFormatted,
 }) => {
+  // Hour selected by the map's own compact slider. This is intentionally
+  // local to the map so scrubbing the map never changes the hero, the
+  // hourly score bars, or the pressure chart — those follow the hourly-card
+  // slider instead.
+  const [mapHour, setMapHour] = useState<number>(() => new Date().getHours());
+  // When the displayed day changes (new hourly array), reset the map hour
+  // to the live hour so the map never points at a stale hour of the old day.
+  useEffect(() => {
+    setMapHour(new Date().getHours());
+  }, [hourly]);
+
   const [zoom, setZoom] = useState(15);
   const defaultLat = location?.latitude ?? 39.8283;
   const defaultLng = location?.longitude ?? -98.5795;
@@ -112,7 +119,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   const centerY = centerTile.y;
 
   // Active hour data (fall back to the first hour if out of range).
-  const hourData = hourly[selectedHour] || hourly[0] || null;
+  const hourData = hourly[mapHour] || hourly[0] || null;
   const windDeg = hourData ? hourData.windDirectionDeg : 0;
   const windMph = hourData ? hourData.windSpeedMph : 0;
   const windText = hourData ? hourData.windDirectionText : getWindDirectionText(windDeg);
@@ -248,7 +255,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
               )}
             </div>
             <div className="text-[11px] font-semibold opacity-70 truncate">
-              Satellite · {location.name} · {getHour12Label(selectedHour)}
+              Satellite · {location.name} · {getHour12Label(mapHour)}
             </div>
           </div>
         </div>
@@ -357,15 +364,15 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
         isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)]' : theme === 'hunting' ? 'border-[#d4c4a8] bg-[#eae1cf]/[var(--card-opacity)]' : theme === 'olive' ? 'border-[#d8d2c0] bg-[#efebd9]/[var(--card-opacity)]' : 'border-slate-100 bg-slate-50/[var(--card-opacity)]'
       }`}>
         <span className={`shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-300' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-emerald-700'}`}>
-          {getHour12Label(selectedHour)}
+          {getHour12Label(mapHour)}
         </span>
         <input
           type="range"
           min={0}
           max={23}
           step={1}
-          value={selectedHour}
-          onChange={(e) => onSelectHour(parseInt(e.target.value, 10))}
+          value={mapHour}
+          onChange={(e) => setMapHour(parseInt(e.target.value, 10))}
           aria-label="Wind map hour slider"
           className={`flex-1 min-w-0 h-1.5 cursor-pointer ${isDark ? 'accent-emerald-400' : 'accent-emerald-600'}`}
         />

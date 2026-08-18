@@ -602,6 +602,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       />
 
       {/* 5. Satellite wind map with scent cone, following the selected day + hour */}
+      {/* The map's own slider controls only the map hour; the hero, hourly
+          bars, and pressure chart keep following the hourly-card slider. */}
       <SimpleWindMap
         location={location}
         hourly={activeDay.hourly}
@@ -609,8 +611,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         theme={theme}
         isDark={isDark}
         hasCustomBackground={hasCustomBackground}
-        selectedHour={heroHour}
-        onSelectHour={setHeroHour}
         selectedDayName={dayLabel(activeDay)}
         selectedDateFormatted={activeDay.dateFormatted}
       />
