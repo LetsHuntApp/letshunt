@@ -517,7 +517,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     setHeroHour(new Date().getHours());
                   }}
                   title={`${d.dayName} ${d.dateFormatted} · ${d.huntScore}/100 (${d.rating})`}
-                  className={`group flex-1 min-w-0 flex flex-col items-center rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                  className={`group flex-1 min-w-[80px] flex flex-col items-center rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                     isSelected ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : 'hover:bg-slate-500/5'
                   }`}
                 >
