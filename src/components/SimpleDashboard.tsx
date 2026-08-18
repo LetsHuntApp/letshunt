@@ -77,36 +77,6 @@ const getWeatherIcon = (iconName: string, className: string) => {
   }
 };
 
-/** Theme-aware hunt-score stroke color, matching the existing dashboard dials. */
-const getScoreStroke = (score: number, theme: ThemeVariantMode, isDark: boolean): string => {
-  if (theme === 'hunting') {
-    if (score >= RATING_THRESHOLDS.excellent) return '#556b2f';
-    if (score >= RATING_THRESHOLDS.good) return '#556b2f';
-    if (score >= RATING_THRESHOLDS.okay) return isDark ? '#d9b64a' : '#b8860b';
-    if (score >= RATING_THRESHOLDS.slow) return isDark ? '#d08a4d' : '#c85a17';
-    return isDark ? '#c5675c' : '#8b3a3a';
-  }
-  if (theme === 'olive') {
-    if (score >= RATING_THRESHOLDS.excellent) return isDark ? '#9aae71' : '#2d4a27';
-    if (score >= RATING_THRESHOLDS.good) return isDark ? '#7f984e' : '#556b2f';
-    if (score >= RATING_THRESHOLDS.okay) return isDark ? '#d1b84a' : '#a08a2e';
-    if (score >= RATING_THRESHOLDS.slow) return isDark ? '#c18a4d' : '#b87333';
-    return isDark ? '#c05a52' : '#8b3a3a';
-  }
-  if (isDark) {
-    if (score >= RATING_THRESHOLDS.excellent) return '#34d399';
-    if (score >= RATING_THRESHOLDS.good) return '#10b981';
-    if (score >= RATING_THRESHOLDS.okay) return '#fbbf24';
-    if (score >= RATING_THRESHOLDS.slow) return '#d97706';
-    return '#f43f5e';
-  }
-  if (score >= RATING_THRESHOLDS.excellent) return '#047857';
-  if (score >= RATING_THRESHOLDS.good) return '#059669';
-  if (score >= RATING_THRESHOLDS.okay) return '#ca8a04';
-  if (score >= RATING_THRESHOLDS.slow) return '#d97706';
-  return '#f43f5e';
-};
-
 /** Wind direction (deg) to 16-point cardinal text for the hero's downwind hint. */
 const getDownwindText = (deg: number): string => {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -235,7 +205,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const isLiveNow = activeDay.date === today.date && heroHour === currentLocalHour;
   const heroScore = heroHourData ? heroHourData.huntScore : activeDay.huntScore;
   const heroRating = getRatingFromScore(heroScore);
-  const stroke = getScoreStroke(heroScore, theme as ThemeVariantMode, isDark);
+  // The hero progress bar uses the exact same scoring shades as the hourly
+  // and daily bar graphs, so a score reads the same color everywhere.
+  const stroke = getScoreBarColor(heroScore);
   // Muted track behind the score fill (matches the old dial's ring background).
   const trackColor = isDark
     ? theme === 'hunting' ? '#4a3320' : theme === 'olive' ? '#2a3620' : '#1e293b'
