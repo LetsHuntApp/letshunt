@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HourlyForecast, Location, UnitSystem, ThemeVariantMode } from '../types';
-import { Wind, Crosshair, ZoomIn, ZoomOut, RotateCcw, MapPin, Navigation } from 'lucide-react';
+import { Wind, Crosshair, ZoomIn, ZoomOut, RotateCcw, MapPin, Navigation, CalendarDays } from 'lucide-react';
 import { getHour12Label } from '../utils/huntingEngine';
 
 interface SimpleWindMapProps {
@@ -211,10 +211,6 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
     : Math.round(windMph);
   const unitLabel = units === 'metric' ? 'km/h' : 'mph';
 
-  const dayContext = selectedDayName
-    ? `${selectedDayName}${selectedDateFormatted ? ` (${selectedDateFormatted})` : ''} · `
-    : '';
-
   return (
     <div
       className={`flex flex-col rounded-2xl border shadow-md transition-colors overflow-hidden ${
@@ -238,9 +234,19 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
             <Navigation className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-black uppercase tracking-wider truncate">Wind & Scent Map</div>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="text-xs font-black uppercase tracking-wider truncate">Wind & Scent Map</div>
+              {selectedDayName && (
+                <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                  isDark ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
+                }`}>
+                  <CalendarDays className="w-2.5 h-2.5" />
+                  {selectedDayName}{selectedDateFormatted ? ` (${selectedDateFormatted})` : ''}
+                </span>
+              )}
+            </div>
             <div className="text-[11px] font-semibold opacity-70 truncate">
-              Satellite · {location.name} · {dayContext}{getHour12Label(selectedHour)}
+              Satellite · {location.name} · {getHour12Label(selectedHour)}
             </div>
           </div>
         </div>

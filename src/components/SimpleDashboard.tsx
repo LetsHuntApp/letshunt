@@ -553,9 +553,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
       </div>
 
-      {/* 4. Current day pressure + precipitation */}
+      {/* 4. Selected day pressure + precipitation */}
       <PressureChart
-        hourly={today.hourly}
+        hourly={activeDay.hourly}
         units={units}
         pressureUnit={pressureUnit}
         theme={theme}
@@ -563,8 +563,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         hasCustomBackground={hasCustomBackground}
         selectedHour={heroHour}
         onSelectHour={setHeroHour}
-        selectedDayName={today.dayName}
-        selectedDateFormatted={today.dateFormatted}
+        selectedDayName={activeDay.dayName}
+        selectedDateFormatted={activeDay.dateFormatted}
       />
 
       {/* 5. Satellite wind map with scent cone, following the selected day + hour */}
