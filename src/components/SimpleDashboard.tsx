@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   DailyForecast,
   Location,
@@ -121,6 +121,32 @@ const getScoreBarColor = (score: number): string => {
 const dayLabel = (d: DailyForecast) =>
   d.dayName === 'Today' ? 'Today' : d.dayName === 'Tomorrow' ? 'Tmrw' : d.dayName;
 
+/** Color tone for the daily-bar weather icon, keyed off the WMO code. */
+const getWeatherIconTone = (code: number): string => {
+  if (code >= 95) return 'text-purple-500';
+  if (code >= 80 && code <= 82) return 'text-sky-500';
+  if (code >= 71 && code <= 75) return 'text-sky-400';
+  if (code >= 51 && code <= 65) return 'text-sky-500';
+  if (code === 45 || code === 48) return 'text-slate-400';
+  if (code === 0 || code === 1) return 'text-amber-500';
+  if (code === 2 || code === 3) return 'text-slate-500';
+  return 'text-slate-500';
+};
+
+/** True when the day has meaningful wet weather (rain, snow, or storms). */
+const isWetDay = (d: DailyForecast): boolean => {
+  const c = d.weatherCode;
+  const precipitating =
+    (c >= 51 && c <= 65) || (c >= 71 && c <= 75) || (c >= 80 && c <= 82) || c >= 95;
+  return precipitating || d.precipSumMm > 0 || d.precipSumInches > 0;
+};
+
+/** Max chance of precipitation across the day's hourly forecasts. */
+const getMaxPrecipProb = (d: DailyForecast): number =>
+  d.hourly && d.hourly.length > 0
+    ? Math.max(...d.hourly.map((h) => h.precipProbability || 0))
+    : 0;
+
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   daily,
   location,
@@ -137,6 +163,19 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const [detailHour, setDetailHour] = useState<number>(() => new Date().getHours());
   // Hero preview hour, driven by the small hourly-card scrubber.
   const [heroHour, setHeroHour] = useState<number>(() => new Date().getHours());
+
+  // Custom scrubber geometry: a 24-cell track mirroring the bar chart so the
+  // thumb lines up exactly under the selected hour's bar.
+  const hourlySliderRef = useRef<HTMLDivElement>(null);
+  const isScrubbingRef = useRef(false);
+  const setHeroHourFromClientX = (clientX: number) => {
+    const el = hourlySliderRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = (clientX - rect.left) / rect.width;
+    setHeroHour(Math.max(0, Math.min(23, Math.round(ratio * 24 - 0.5))));
+  };
 
   const today = daily[0];
   const detailDay = daily.find((d) => d.date === detailDayDate) || null;
@@ -167,6 +206,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   // The day powering the hourly bar (defaults to today).
   const activeDay = daily.find((d) => d.date === activeDayDate) || today;
+
+  // The 24 bars shared by the bar chart and its aligned scrubber track.
+  const hourlyBars = activeDay.hourly.slice(0, 24);
 
   // Live local clock hour, used to detect the "now" state for the hero.
   const currentLocalHour = new Date().getHours();
@@ -341,7 +383,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         <div className="flex items-end gap-[2px] h-24 sm:h-28" aria-hidden="true">
-          {activeDay.hourly.slice(0, 24).map((h, i) => (
+          {hourlyBars.map((h, i) => (
             <div
               key={`${h.time}-${i}`}
               title={`${h.time} · ${h.huntScore}/100 (${getRatingFromScore(h.huntScore)})`}
@@ -362,31 +404,72 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         {/* Minimal hour scrubber — previews the hero dial, wind, and conditions. */}
-        <div className="mt-2.5 flex items-center gap-2">
-          <span className={`shrink-0 w-12 text-right text-[10px] font-black uppercase tracking-wider ${isLiveNow ? accentText : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {isLiveNow ? 'Now' : getHour12Label(heroHour)}
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={23}
-            step={1}
-            value={heroHour}
-            onChange={(e) => setHeroHour(parseInt(e.target.value, 10))}
+        <div className="mt-2.5">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className={`text-[10px] font-black uppercase tracking-wider ${isLiveNow ? accentText : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              {isLiveNow ? 'Now' : getHour12Label(heroHour)}
+            </span>
+            {!isLiveNow && (
+              <button
+                type="button"
+                onClick={() => setHeroHour(currentLocalHour)}
+                className={`shrink-0 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                  isDark ? 'text-amber-400 border-amber-500/40 hover:bg-amber-500/10' : 'text-amber-600 border-amber-500/40 hover:bg-amber-500/10'
+                }`}
+              >
+                Now
+              </button>
+            )}
+          </div>
+
+          {/* Custom track: same 24-column flex geometry as the bars above, so the
+              thumb sits exactly under the selected hour's bar. */}
+          <div
+            ref={hourlySliderRef}
+            role="slider"
+            tabIndex={0}
             aria-label="Hourly hunt score slider"
-            className={`flex-1 min-w-0 h-2 cursor-pointer ${isDark ? 'accent-emerald-400' : 'accent-emerald-600'}`}
-          />
-          {!isLiveNow && (
-            <button
-              type="button"
-              onClick={() => setHeroHour(currentLocalHour)}
-              className={`shrink-0 text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
-                isDark ? 'text-amber-400 border-amber-500/40 hover:bg-amber-500/10' : 'text-amber-600 border-amber-500/40 hover:bg-amber-500/10'
-              }`}
-            >
-              Now
-            </button>
-          )}
+            aria-valuemin={0}
+            aria-valuemax={23}
+            aria-valuenow={heroHour}
+            onPointerDown={(e) => {
+              isScrubbingRef.current = true;
+              setHeroHourFromClientX(e.clientX);
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              if (isScrubbingRef.current) setHeroHourFromClientX(e.clientX);
+            }}
+            onPointerUp={() => { isScrubbingRef.current = false; }}
+            onPointerCancel={() => { isScrubbingRef.current = false; }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft') { setHeroHour((h) => Math.max(0, h - 1)); e.preventDefault(); }
+              else if (e.key === 'ArrowRight') { setHeroHour((h) => Math.min(23, h + 1)); e.preventDefault(); }
+              else if (e.key === 'Home') { setHeroHour(0); e.preventDefault(); }
+              else if (e.key === 'End') { setHeroHour(23); e.preventDefault(); }
+            }}
+            className="relative h-6 cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+          >
+            <div className="flex h-full gap-[2px]">
+              {hourlyBars.map((h, i) => {
+                const selected = i === heroHour;
+                return (
+                  <div
+                    key={`${h.time}-${i}`}
+                    className={`flex-1 h-full relative rounded-sm transition-colors ${
+                      selected
+                        ? (isDark ? 'bg-emerald-400' : theme === 'hunting' ? 'bg-[#c85a17]' : theme === 'olive' ? 'bg-[#556b2f]' : 'bg-emerald-600')
+                        : (isDark ? 'bg-slate-700/40' : theme === 'hunting' ? 'bg-[#d4c4a8]/40' : theme === 'olive' ? 'bg-[#d8d2c0]/50' : 'bg-slate-200')
+                    }`}
+                  >
+                    {selected && (
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white ring-2 ring-black/10 shadow" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -404,9 +487,14 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         <div className="overflow-x-auto pb-1">
-          <div className="flex items-stretch gap-1.5 sm:gap-2 h-24 sm:h-28 min-w-[560px]">
+          <div className="flex items-start gap-1.5 sm:gap-2 min-w-[560px]">
             {daily.map((d) => {
               const isSelected = d.date === (activeDayDate || today.date);
+              const wet = isWetDay(d);
+              const maxPrecipProb = getMaxPrecipProb(d);
+              const precipAmount = units === 'imperial'
+                ? `${(d.precipSumInches || 0).toFixed(2)} in`
+                : `${(d.precipSumMm || 0).toFixed(1)} mm`;
               return (
                 <button
                   key={d.date}
@@ -416,11 +504,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     setHeroHour(new Date().getHours());
                   }}
                   title={`${d.dayName} ${d.dateFormatted} · ${d.huntScore}/100 (${d.rating})`}
-                  className={`group flex-1 h-full flex flex-col items-center min-w-0 rounded-lg px-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                  className={`group flex-1 min-w-0 flex flex-col items-center rounded-lg px-0.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
                     isSelected ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : 'hover:bg-slate-500/5'
                   }`}
                 >
-                  <div className="relative flex-1 w-full flex items-end justify-center">
+                  <div className="relative w-full h-24 sm:h-28 flex items-end justify-center">
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-sm flex items-start justify-center overflow-hidden"
                       style={{
@@ -439,9 +527,26 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100 mt-1 mb-0.5">
-                    {dayLabel(d)}
-                  </span>
+                  <div className="flex flex-col items-center w-full mt-1.5 h-12">
+                    <div className="flex items-center justify-center gap-0.5 h-4 leading-none">
+                      {getWeatherIcon(d.weatherIcon, `w-3.5 h-3.5 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
+                      {wet && (
+                        <span className={`text-[8px] font-black leading-none ${isDark ? 'text-sky-400' : 'text-sky-500'}`}>
+                          {maxPrecipProb}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="h-3.5 flex items-center justify-center">
+                      {wet && (
+                        <span className={`text-[8px] font-bold leading-none whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          {precipAmount}
+                        </span>
+                      )}
+                    </div>
+                    <span className="mt-auto text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100">
+                      {dayLabel(d)}
+                    </span>
+                  </div>
                 </button>
               );
             })}
