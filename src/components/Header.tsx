@@ -28,7 +28,6 @@ interface HeaderProps {
   onOpenGuide: () => void;
   onOpenPwaModal: () => void;
   activeTab: 'dashboard' | 'settings' | 'map' | 'details' | 'logs' | 'trailcams';
-  simpleMode?: boolean;
   onTabChange: (tab: 'dashboard' | 'settings' | 'map' | 'logs' | 'trailcams') => void;
 }
 
@@ -43,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({
   favorites,
   onToggleFavorite,
   activeTab,
-  simpleMode = false,
   onTabChange,
 }) => {
   // Header brand mark: inline the horizontal LetsHunt logo
@@ -140,26 +138,6 @@ export const Header: React.FC<HeaderProps> = ({
     Math.abs(defaultLocation.latitude - currentLocation.latitude) < 0.01 &&
     Math.abs(defaultLocation.longitude - currentLocation.longitude) < 0.01;
 
-  if (simpleMode) {
-    return (
-      <header className="simple-header">
-        <div className="simple-header-inner">
-          <div
-            className="simple-brand"
-            onClick={() => onTabChange('dashboard')}
-            dangerouslySetInnerHTML={{ __html: themedLogo }}
-            aria-label="LetsHunt"
-          />
-          <div className="simple-header-location"><MapPin size={14} /><span>{currentLocation.name}</span></div>
-          <nav className="simple-header-nav" aria-label="Simple navigation">
-            <button type="button" className={activeTab === 'dashboard' || activeTab === 'details' ? 'active' : ''} onClick={() => onTabChange('dashboard')}><LayoutDashboard size={16} /><span>Today</span></button>
-            <button type="button" className={activeTab === 'map' ? 'active' : ''} onClick={() => onTabChange('map')}><Map size={16} /><span>Map</span></button>
-            <button type="button" className={activeTab === 'settings' ? 'active' : ''} onClick={() => onTabChange('settings')}><Settings size={16} /><span>Settings</span></button>
-          </nav>
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header

@@ -110,89 +110,7 @@ interface SettingsViewProps {
   onSetCustomBackgroundOpacity?: (opacity: number) => void;
   customBackgroundBlur?: number;
   onSetCustomBackgroundBlur?: (blur: number) => void;
-  simpleMode: boolean;
-  onToggleSimpleMode: (enabled: boolean) => void;
 }
-
-const SimpleSettingsPanel: React.FC<Pick<SettingsViewProps, 'currentLocation' | 'units' | 'setUnits' | 'themeMode' | 'setMode' | 'simpleMode' | 'onToggleSimpleMode' | 'onSwitchToDashboard' | 'showToast' | 'customBackground' | 'onSetCustomBackground'>> = ({
-  currentLocation,
-  units,
-  setUnits,
-  themeMode,
-  setMode,
-  simpleMode,
-  onToggleSimpleMode,
-  onSwitchToDashboard,
-  showToast,
-  customBackground,
-  onSetCustomBackground,
-}) => {
-  const toggle = (checked: boolean, onChange: (value: boolean) => void) => (
-    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`simple-settings-toggle ${checked ? 'on' : ''}`}>
-      <span />
-    </button>
-  );
-
-  return (
-    <div className="simple-settings">
-      <div className="simple-settings-heading">
-        <div><p className="simple-eyebrow">Simple mode</p><h1>Settings</h1><p>Only the choices that change your daily hunt plan.</p></div>
-        <button type="button" className="simple-settings-back" onClick={onSwitchToDashboard}>Back to today</button>
-      </div>
-      <div className="simple-settings-card">
-        <div><strong>Simple mode</strong><span>Use the focused hunt-plan dashboard and quiet app skin.</span></div>
-        {toggle(simpleMode, onToggleSimpleMode)}
-      </div>
-      <div className="simple-settings-card">
-        <div><strong>Hunting ground</strong><span>{currentLocation.name}{currentLocation.admin1 ? `, ${currentLocation.admin1}` : ''}</span></div>
-        <span className="simple-settings-status">Active</span>
-      </div>
-      <div className="simple-settings-card simple-settings-choice">
-        <div><strong>Units</strong><span>Choose how weather is shown.</span></div>
-        <div className="simple-settings-segment">
-          <button type="button" className={units === 'imperial' ? 'selected' : ''} onClick={() => { setUnits('imperial'); showToast('Using Fahrenheit and mph'); }}>°F / mph</button>
-          <button type="button" className={units === 'metric' ? 'selected' : ''} onClick={() => { setUnits('metric'); showToast('Using Celsius and km/h'); }}>°C / km/h</button>
-        </div>
-      </div>
-      <div className="simple-settings-card simple-settings-background">
-        <div><strong>Field backdrop</strong><span>{customBackground ? 'Your photo is showing behind the hunt brief.' : 'Add a woods photo for a more personal field brief.'}</span></div>
-        <div className="simple-settings-background-actions">
-          <input
-            type="file"
-            accept="image/*"
-            id="simple-custom-bg-upload"
-            className="hidden"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              event.target.value = '';
-              if (!file) return;
-              try {
-                onSetCustomBackground(await compressImage(file));
-                showToast('Field backdrop set');
-              } catch (error) {
-                console.error('Failed to process Simple Mode background photo:', error);
-                showToast('Could not load that photo. Try JPG or PNG under ~10 MB.');
-              }
-            }}
-          />
-          <button type="button" className="simple-settings-background-button" onClick={() => document.getElementById('simple-custom-bg-upload')?.click()}>
-            <ImageIcon size={15} /> {customBackground ? 'Change' : 'Add photo'}
-          </button>
-          {customBackground && (
-            <button type="button" className="simple-settings-background-remove" aria-label="Remove field backdrop" onClick={() => { onSetCustomBackground(null); showToast('Field backdrop removed'); }}>
-              <Trash2 size={15} />
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="simple-settings-card">
-        <div><strong>{themeMode === 'dark' ? 'Dark appearance' : 'Light appearance'}</strong><span>Keep the app comfortable in the field.</span></div>
-        {toggle(themeMode === 'dark', (value) => { setMode(value ? 'dark' : 'light'); showToast(value ? 'Dark mode on' : 'Light mode on'); })}
-      </div>
-      <p className="simple-settings-more">Need locations, backups, HuntClub, maps, or theme variants? Turn Simple mode off to see the full settings.</p>
-    </div>
-  );
-};
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   currentLocation,
@@ -222,8 +140,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSetCustomBackgroundOpacity,
   customBackgroundBlur = 12,
   onSetCustomBackgroundBlur,
-  simpleMode,
-  onToggleSimpleMode,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
@@ -365,23 +281,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
-  if (simpleMode) {
-    return (
-      <SimpleSettingsPanel
-        currentLocation={currentLocation}
-        units={units}
-        setUnits={setUnits}
-        themeMode={themeMode}
-        setMode={setMode}
-        simpleMode={simpleMode}
-        onToggleSimpleMode={onToggleSimpleMode}
-        onSwitchToDashboard={onSwitchToDashboard}
-        showToast={showToast}
-        customBackground={customBackground}
-        onSetCustomBackground={onSetCustomBackground}
-      />
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-12">
@@ -818,17 +717,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <h2 className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Theme & Interface
               </h2>
-            </div>
-
-            {/* Simple mode is a separate product surface, not just a density
-                preference: it replaces the dashboard and navigation with a
-                focused hunt-plan skin. */}
-            <div className={`simple-mode-setting ${simpleMode ? 'enabled' : ''}`}>
-              <div className="simple-mode-setting-copy">
-                <div className="simple-mode-setting-title">Simple mode</div>
-                <div className="simple-mode-setting-description">A calmer dashboard with only the forecast decisions you need.</div>
-              </div>
-              {renderToggle(simpleMode, onToggleSimpleMode)}
             </div>
 
             {/* Variant picker — 4 orthogonal visual identities. Light/Dark

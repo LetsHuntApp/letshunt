@@ -35,7 +35,6 @@ const LOCAL_STORAGE_KEYS = {
   customBackground: 'letshunt_custom_background',
   bgOpacity: 'letshunt_bg_opacity',
   bgBlur: 'letshunt_bg_blur',
-  simpleMode: 'letshunt_simple_mode',
   logs: 'letshunt_deer_kill_logs',
   pins: 'letshunt_saved_pins',
   polygons: 'letshunt_saved_polygons',
@@ -82,7 +81,6 @@ export interface LetsHuntBackup {
     customBackground: string | null;
     bgOpacity: number;
     bgBlur: number;
-    simpleMode?: boolean;
   };
   logs: DeerKillLog[];
   map: {
@@ -185,7 +183,6 @@ export async function exportBackupData(): Promise<{ json: string; summary: Backu
       customBackground: safeGet(LOCAL_STORAGE_KEYS.customBackground),
       bgOpacity: numOr(LOCAL_STORAGE_KEYS.bgOpacity, 90),
       bgBlur: numOr(LOCAL_STORAGE_KEYS.bgBlur, 12),
-      simpleMode: safeGet(LOCAL_STORAGE_KEYS.simpleMode) === 'true',
     },
     logs: readJSON<DeerKillLog[]>(LOCAL_STORAGE_KEYS.logs, []),
     map: {
@@ -282,7 +279,6 @@ export async function importBackupData(json: string): Promise<BackupSummary> {
   }
   if (typeof settings.bgOpacity === 'number') safeSet(LOCAL_STORAGE_KEYS.bgOpacity, String(settings.bgOpacity));
   if (typeof settings.bgBlur === 'number') safeSet(LOCAL_STORAGE_KEYS.bgBlur, String(settings.bgBlur));
-  if (typeof settings.simpleMode === 'boolean') safeSet(LOCAL_STORAGE_KEYS.simpleMode, String(settings.simpleMode));
 
   // Harvest logs + map layers
   if (Array.isArray(backup.logs)) safeSet(LOCAL_STORAGE_KEYS.logs, JSON.stringify(backup.logs));

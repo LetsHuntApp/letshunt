@@ -32,7 +32,6 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
-import { SimpleDashboard } from './components/SimpleDashboard';
 import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays, MapPin, X, Loader2 } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
@@ -47,55 +46,10 @@ export default function App() {
   // Navigation tab state: 'dashboard', 'settings', 'details', 'map', 'logs', or 'trailcams'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'settings' | 'details' | 'map' | 'logs' | 'trailcams'>('dashboard');
 
-  // Simple mode is intentionally independent from the existing theme system.
-  // It swaps in a focused dashboard and a separate visual skin while leaving
-  // the normal-mode component tree and styling untouched.
-  const [simpleMode, setSimpleMode] = useState<boolean>(() => safeGetString('letshunt_simple_mode') === 'true');
-
   // Theme state: dark or light
   const [customBackground, setCustomBackground] = useState<string | null>(() => {
     return safeGetString('letshunt_custom_background');
   });
-  const [simpleBackgroundTone, setSimpleBackgroundTone] = useState<'light' | 'dark'>('light');
-
-  // Let Simple Mode choose a readable foreground palette for the user's
-  // background photo instead of assuming the photo is always light or dark.
-  useEffect(() => {
-    if (!customBackground) {
-      setSimpleBackgroundTone('light');
-      return;
-    }
-
-    let cancelled = false;
-    const image = new Image();
-    image.onload = () => {
-      if (cancelled) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = 32;
-      canvas.height = 32;
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) return;
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-      let luminance = 0;
-      let weight = 0;
-      for (let index = 0; index < pixels.length; index += 4) {
-        const alpha = pixels[index + 3] / 255;
-        luminance += (0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2]) * alpha;
-        weight += alpha;
-      }
-      if (!cancelled) setSimpleBackgroundTone(weight > 0 && luminance / weight < 145 ? 'dark' : 'light');
-    };
-    image.onerror = () => {
-      if (!cancelled) setSimpleBackgroundTone('light');
-    };
-    image.src = customBackground;
-
-    return () => {
-      cancelled = true;
-    };
-  }, [customBackground]);
-
   // Theme: 4-variant × light/dark matrix. Two orthogonal state slots.
   // Persistence: split into two localStorage keys. The old single-string
   // `letshunt_theme` key was used by LetsHunt builds before this split,
@@ -254,10 +208,6 @@ export default function App() {
   useEffect(() => {
     safeSet('letshunt_theme_mode', themeMode);
   }, [themeMode]);
-
-  useEffect(() => {
-    safeSet('letshunt_simple_mode', simpleMode ? 'true' : 'false');
-  }, [simpleMode]);
 
   useEffect(() => {
     safeSetJSON('letshunt_default_location', defaultLocation);
@@ -652,7 +602,7 @@ export default function App() {
         activeTab === 'map'
           ? 'h-screen max-h-screen overflow-hidden'
           : 'min-h-screen pb-14 sm:pb-0'
-      } ${simpleMode ? 'simple-mode' : ''} ${customBackground ? 'has-custom-background' : ''} ${customBackground ? `simple-bg-${simpleBackgroundTone}` : ''} ${
+      } ${customBackground ? 'has-custom-background' : ''} ${
         themeMode === 'dark'
           ? themeVariant === 'hunting'
             ? 'bg-[#201c17] text-[#e8dfd2] selection:bg-[#b66a38] selection:text-white'
@@ -668,7 +618,6 @@ export default function App() {
       style={{
         '--card-opacity': `${customBackgroundOpacity / 100}`,
         '--card-blur': `${customBackgroundBlur}px`,
-        '--simple-background-image': customBackground ? `url(${customBackground})` : 'none',
         ...(customBackground ? {
           backgroundImage: `url(${customBackground})`,
           backgroundSize: 'cover',
@@ -716,7 +665,6 @@ export default function App() {
         onOpenGuide={() => setIsGuideOpen(true)}
         onOpenPwaModal={() => setIsPwaModalOpen(true)}
         activeTab={activeTab}
-        simpleMode={simpleMode}
         onTabChange={(tab) => {
           setActiveTab(tab);
           // Returning to Dashboard from any route always lands on the main
@@ -765,15 +713,6 @@ export default function App() {
             onSetCustomBackgroundOpacity={setCustomBackgroundOpacity}
             customBackgroundBlur={customBackgroundBlur}
             onSetCustomBackgroundBlur={setCustomBackgroundBlur}
-            simpleMode={simpleMode}
-            onToggleSimpleMode={(enabled) => {
-              setSimpleMode(enabled);
-              if (enabled) {
-                setActiveTab('dashboard');
-                setIsFourteenDayView(false);
-              }
-              showToast(enabled ? 'Simple mode on' : 'Full dashboard restored');
-            }}
           />
         ) : activeTab === 'map' ? (
           <MapView
@@ -839,21 +778,7 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Simple mode owns a separate dashboard tree. The normal branch
-                below is unchanged, so turning the setting off restores the
-                existing dashboard exactly. */}
-            {activeTab === 'dashboard' && simpleMode && !isFourteenDayView && activeDay ? (
-              <SimpleDashboard
-                day={activeDay!}
-                forecast={dailyForecast}
-                location={currentLocation}
-                units={units}
-                pressureUnit={pressureUnit}
-                selectedHour={selectedHour}
-                onSelectHour={setSelectedHour}
-                onSelectDate={(date) => setSelectedDate(date)}
-              />
-            ) : activeTab === 'dashboard' && isFourteenDayView ? (
+            {activeTab === 'dashboard' && isFourteenDayView ? (
               /* Dashboard-owned 14-day subpage. It deliberately lives inside the
                  dashboard branch, so it gets no navbar slot of its own. */
               <div className="w-full space-y-4 sm:space-y-6">
@@ -982,7 +907,7 @@ export default function App() {
         )}
 
         {/* Floating Ultra-Compact 24h Hourly Time Slider (Active on Dashboard and Details tabs) */}
-        {!loading && !error && activeDay && !simpleMode && (activeTab === 'details' || activeTab === 'dashboard') && (
+        {!loading && !error && activeDay && (activeTab === 'details' || activeTab === 'dashboard') && (
           <FloatingHourlySlider
             selectedHour={selectedHour}
             onSelectHour={setSelectedHour}

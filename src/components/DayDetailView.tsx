@@ -690,7 +690,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 >
                   <Wind className="w-4 h-4 text-sky-500 flex-shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs sm:text-xs font-bold uppercase tracking-wider text-sky-700/80 dark:text-sky-300/80">Wind · tap to view</span>
+                    <span className="block text-xs sm:text-xs font-bold uppercase tracking-wider text-sky-700/80 dark:text-sky-300/80">Wind</span>
                     <span className="block text-xs font-black truncate">{currentWindSummary}</span>
                   </span>
                   <span className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-300">
@@ -716,7 +716,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                 >
                   <Gauge className="w-4 h-4 text-purple-500 flex-shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs sm:text-xs font-bold uppercase tracking-wider text-purple-700/80 dark:text-purple-300/80">Barometer · tap to view</span>
+                    <span className="block text-xs sm:text-xs font-bold uppercase tracking-wider text-purple-700/80 dark:text-purple-300/80">Barometer</span>
                     <span className="block text-xs font-black truncate">
                       {hourData 
                         ? (pressureUnit === 'inHg' ? `${hourData.pressureInHg} inHg` : `${hourData.pressureHpa} hPa`)
