@@ -232,38 +232,38 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           : `${hasCustomBackground ? 'bg-white/[var(--card-opacity)] backdrop-blur-xl' : 'bg-white'} border-slate-200 text-slate-900`
       }`}
     >
-      {/* Header */}
-      <div className={`px-3 sm:px-4 py-2.5 border-b flex items-center justify-between gap-2 ${
+      {/* Header — two rows on narrow screens so the title, day badge, and
+          wind badge never crowd each other: title + wind badge up top, then
+          day badge + location/hour beneath. */}
+      <div className={`px-3 sm:px-4 py-2.5 border-b ${
         isDark ? 'border-slate-800' : theme === 'hunting' ? 'border-[#d4c4a8]' : theme === 'olive' ? 'border-[#d8d2c0]' : 'border-slate-100'
       }`}>
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
             isDark ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/30'
           }`}>
             <Navigation className="w-4 h-4" />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="text-xs font-black uppercase tracking-wider truncate">Wind & Scent Map</div>
-              {selectedDayName && (
-                <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
-                  isDark ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
-                }`}>
-                  <CalendarDays className="w-2.5 h-2.5" />
-                  {selectedDayName}{selectedDateFormatted ? ` (${selectedDateFormatted})` : ''}
-                </span>
-              )}
-            </div>
-            <div className="text-[11px] font-semibold opacity-70 truncate">
-              Satellite · {location.name} · {getHour12Label(mapHour)}
-            </div>
+          <div className="text-xs font-black uppercase tracking-wider truncate min-w-[132px] flex-1">Wind & Scent Map</div>
+          <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+            isDark ? 'bg-slate-950/60 border-slate-700 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
+          }`}>
+            <Wind className="w-2.5 h-2.5" /> {windText} @ {speedVal} {unitLabel}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 mt-1 min-w-0">
+          {selectedDayName && (
+            <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+              isDark ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
+            }`}>
+              <CalendarDays className="w-2.5 h-2.5" />
+              {selectedDayName}{selectedDateFormatted ? ` (${selectedDateFormatted})` : ''}
+            </span>
+          )}
+          <div className="text-[11px] font-semibold opacity-70 truncate min-w-0">
+            Satellite · {location.name} · {getHour12Label(mapHour)}
           </div>
         </div>
-        <span className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
-          isDark ? 'bg-slate-950/60 border-slate-700 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
-        }`}>
-          <Wind className="w-3 h-3" /> {windText} @ {speedVal} {unitLabel}
-        </span>
       </div>
 
       {/* Map canvas */}
