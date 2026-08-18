@@ -218,6 +218,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const heroScore = heroHourData ? heroHourData.huntScore : activeDay.huntScore;
   const heroRating = getRatingFromScore(heroScore);
   const stroke = getScoreStroke(heroScore, theme as ThemeVariantMode, isDark);
+  // Muted track behind the score fill (matches the old dial's ring background).
+  const trackColor = isDark
+    ? theme === 'hunting' ? '#4a3320' : theme === 'olive' ? '#2a3620' : '#1e293b'
+    : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0';
   const nowDetails = heroHourData ? getWeatherDetails(heroHourData.weatherCode) : getWeatherDetails(activeDay.weatherCode);
   const nowDesc = heroHourData ? heroHourData.weatherDesc : activeDay.weatherDesc;
   const nowTemp = heroHourData ? heroHourData.temp : activeDay.maxTemp;
@@ -262,39 +266,35 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             {isLiveNow ? 'Live conditions' : `${getHour12Label(heroHour)} conditions`}
           </span>
         </div>
-        <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-3 sm:gap-5 relative z-10">
-          {/* Score dial */}
-          <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex items-center justify-center">
-            <svg className="absolute w-full h-full transform -rotate-90" viewBox="0 0 100 100" role="img" aria-label={`Hunt score ${heroScore} out of 100, rated ${heroRating}`}>
-              <circle
-                cx="50" cy="50" r="40" fill="transparent"
-                stroke={isDark ? (theme === 'hunting' ? '#4a3320' : theme === 'olive' ? '#2a3620' : '#1e293b') : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0'}
-                strokeWidth="9"
-              />
-              <circle
-                cx="50" cy="50" r="40" fill="transparent"
-                stroke={stroke}
-                strokeWidth="9"
-                strokeDasharray={`${2 * Math.PI * 40}`}
-                strokeDashoffset={`${2 * Math.PI * 40 * (1 - heroScore / 100)}`}
-                strokeLinecap="round"
-                className="transition-all duration-300 ease-out"
-              />
-            </svg>
-            <div className="score-dial-content text-center z-10 flex flex-col items-center justify-center">
-              <DeerIcon className="w-8 h-8 sm:w-9 sm:h-9 -mb-0.5" style={{ color: stroke, fill: stroke }} />
-              <div className="text-2xl sm:text-3xl font-black tracking-tight leading-none" style={{ color: stroke }}>
+        {/* Score progress bar (compact, replaces the dial) */}
+        <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 mb-2.5 sm:mb-3">
+          <DeerIcon className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" style={{ color: stroke, fill: stroke }} />
+          <div
+            className="relative flex-1 min-w-0 h-8 sm:h-9 rounded-full overflow-hidden"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={heroScore}
+            aria-label={`Hunt score ${heroScore} out of 100, rated ${heroRating}`}
+          >
+            <div className="absolute inset-0" style={{ backgroundColor: trackColor }} />
+            <div
+              className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out flex items-center justify-end"
+              style={{ width: `${heroScore}%`, backgroundColor: stroke }}
+            >
+              <span className="text-white text-sm sm:text-base font-black leading-none pr-2.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
                 {heroScore}
-              </div>
-              <div className="text-sm font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1" style={{ color: stroke }}>
-                {heroScore >= RATING_THRESHOLDS.excellent && <Star className="w-3.5 h-3.5" style={{ color: stroke, fill: stroke }} />}
-                <span>{heroRating}</span>
-              </div>
+              </span>
             </div>
           </div>
+          <div className="shrink-0 flex items-center gap-1 leading-none" style={{ color: stroke }}>
+            {heroScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3" style={{ color: stroke, fill: stroke }} />}
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider">{heroRating}</span>
+          </div>
+        </div>
 
-          {/* Current conditions grid */}
-          <div className="flex-1 grid grid-cols-2 gap-2 min-w-0 w-full">
+        {/* Current conditions grid */}
+        <div className="grid grid-cols-2 gap-2 min-w-0 w-full relative z-10">
             {/* Condition + temp */}
             <div className={`rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 min-w-0 ${
               isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-700/70' : theme === 'hunting' ? 'bg-[#f4eee1]/70 border-[#d4c4a8]' : theme === 'olive' ? 'bg-[#f7f5ed]/80 border-[#d8d2c0]' : 'bg-slate-50 border-slate-200'
@@ -341,7 +341,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* 2. Hourly hunt score bar */}
