@@ -444,8 +444,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             )}
           </div>
 
-          {/* Custom track: same 24-column flex geometry as the bars above, so the
-              thumb sits exactly under the selected hour's bar. */}
+          {/* Slider track: thin sectional rail with the same 24-column flex
+              geometry as the bars above, so the drag pointer sits exactly
+              under the selected hour's bar. Fills up to the selected hour
+              like a normal slider; the rounded pointer marks the position. */}
           <div
             ref={hourlySliderRef}
             role="slider"
@@ -470,22 +472,27 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               else if (e.key === 'Home') { setHeroHour(0); e.preventDefault(); }
               else if (e.key === 'End') { setHeroHour(23); e.preventDefault(); }
             }}
-            className="relative h-6 cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+            className="relative h-7 cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
           >
-            <div className="flex h-full gap-[2px]">
+            <div className="flex h-full items-center gap-[2px]">
               {hourlyBars.map((h, i) => {
                 const selected = i === heroHour;
+                const filled = i <= heroHour;
                 return (
                   <div
                     key={`${h.time}-${i}`}
-                    className={`flex-1 h-full relative rounded-sm transition-colors ${
-                      selected
-                        ? (isDark ? 'bg-emerald-400' : theme === 'hunting' ? 'bg-[#c85a17]' : theme === 'olive' ? 'bg-[#556b2f]' : 'bg-emerald-600')
+                    className={`relative flex-1 h-1.5 rounded-full transition-colors ${
+                      filled
+                        ? (isDark ? 'bg-emerald-400/80' : theme === 'hunting' ? 'bg-[#c85a17]/80' : theme === 'olive' ? 'bg-[#556b2f]/80' : 'bg-emerald-600/80')
                         : (isDark ? 'bg-slate-700/40' : theme === 'hunting' ? 'bg-[#d4c4a8]/40' : theme === 'olive' ? 'bg-[#d8d2c0]/50' : 'bg-slate-200')
                     }`}
                   >
                     {selected && (
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white ring-2 ring-black/10 shadow" />
+                      <span
+                        className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white shadow-md ring-2 ${
+                          isDark ? 'ring-emerald-400' : theme === 'hunting' ? 'ring-[#c85a17]' : theme === 'olive' ? 'ring-[#556b2f]' : 'ring-emerald-600'
+                        }`}
+                      />
                     )}
                   </div>
                 );
