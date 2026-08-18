@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { DailyForecast, HourlyForecast, Location, PressureUnit, UnitSystem } from '../types';
 import { DeerIcon } from './DeerIcon';
+import { SimpleWindMap } from './SimpleWindMap';
 import { getHour12Label, getPeakHuntScore, getWeatherDetails } from '../utils/huntingEngine';
 
 interface SimpleDashboardProps {
@@ -88,13 +89,14 @@ interface SimpleScoreGraphProps {
   hourly: HourlyForecast[];
   selectedHour: number;
   onSelectHour: (hour: number) => void;
+  units: UnitSystem;
   dayLabel?: string;
   forecast?: DailyForecast[];
   activeDate?: string;
   onSelectDate?: (date: string) => void;
 }
 
-export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, dayLabel, forecast, activeDate, onSelectDate }) => {
+export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, selectedHour, onSelectHour, units, dayLabel, forecast, activeDate, onSelectDate }) => {
   const tabDays = forecast?.slice(0, 14) || [];
   const activeTabDate = activeDate || tabDays[0]?.date;
   const tabDay = tabDays.find((item) => item.date === activeTabDate);
@@ -102,6 +104,11 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
   const graphDayLabel = tabDay ? `${tabDay.dayName} · ${tabDay.dateFormatted}` : dayLabel;
   const graphSelectedHour = graphHourly.length > 0 ? Math.max(0, Math.min(graphHourly.length - 1, selectedHour)) : 0;
   const selectedMetric = graphHourly[graphSelectedHour];
+  const [showWeatherOverlay, setShowWeatherOverlay] = useState(false);
+  const pressureValues = graphHourly.map((item) => item.pressureHpa);
+  const pressureMin = pressureValues.length > 0 ? Math.min(...pressureValues) : 0;
+  const pressureRange = Math.max(1, (pressureValues.length > 0 ? Math.max(...pressureValues) : 0) - pressureMin);
+  const windMax = Math.max(1, ...graphHourly.map((item) => item.windSpeedMph));
 
   return (
     <div className="simple-graph" aria-label="Hourly movement score graph">
@@ -117,6 +124,16 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
             <span className="fair"><i /> 46–75</span>
             <span className="poor"><i /> &lt;46</span>
           </div>
+          <button
+            type="button"
+            className={`simple-weather-toggle ${showWeatherOverlay ? 'active' : ''}`}
+            onClick={() => setShowWeatherOverlay((visible) => !visible)}
+            aria-expanded={showWeatherOverlay}
+          >
+            <CloudSun size={14} />
+            <span>{showWeatherOverlay ? 'Hide conditions' : 'Conditions'}</span>
+            <ChevronDown size={13} className={showWeatherOverlay ? 'open' : ''} />
+          </button>
         </div>
       </div>
       {tabDays.length > 0 && onSelectDate && (
@@ -162,6 +179,45 @@ export const SimpleScoreGraph: React.FC<SimpleScoreGraphProps> = ({ hourly, sele
         </div>}
         <div className="simple-graph-axis"><span>12 AM</span><span>Dawn</span><span>Midday</span><span>Dusk</span><span>12 AM</span></div>
       </div>
+      {showWeatherOverlay && (
+        <div className="simple-weather-overlay" aria-label="Optional weather conditions by hour">
+          <div className="simple-weather-overlay-heading">
+            <div><p className="simple-eyebrow">Optional field conditions</p><strong>Weather behind the movement</strong></div>
+            <span>{selectedMetric ? `${hourLabel(graphSelectedHour)} selected` : 'Choose an hour'}</span>
+          </div>
+          <div className="simple-weather-overlay-rows">
+            <div className="simple-weather-overlay-row">
+              <strong>Rain</strong>
+              <div className="simple-weather-overlay-cells">
+                {graphHourly.map((item, index) => (
+                  <button key={index} type="button" className={index === graphSelectedHour ? 'selected' : ''} onClick={() => onSelectHour(index)} aria-label={`${hourLabel(index)} rain chance ${item.precipProbability}%`}>
+                    <i style={{ height: `${Math.max(4, item.precipProbability)}%` }} />
+                    <small>{item.precipProbability}%</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="simple-weather-overlay-row">
+              <strong>Wind</strong>
+              <div className="simple-weather-overlay-cells">
+                {graphHourly.map((item, index) => {
+                  const speed = units === 'metric' ? item.windSpeedKmh : item.windSpeedMph;
+                  return <button key={index} type="button" className={index === graphSelectedHour ? 'selected' : ''} onClick={() => onSelectHour(index)} aria-label={`${hourLabel(index)} wind ${speed} ${units === 'metric' ? 'kilometers per hour' : 'miles per hour'} ${item.windDirectionText}`}><i style={{ width: `${Math.max(4, (item.windSpeedMph / windMax) * 100)}%` }} /><small>{Math.round(speed)}</small></button>;
+                })}
+              </div>
+            </div>
+            <div className="simple-weather-overlay-row">
+              <strong>Baro</strong>
+              <div className="simple-weather-overlay-cells">
+                {graphHourly.map((item, index) => {
+                  const pressureHeight = ((item.pressureHpa - pressureMin) / pressureRange) * 76 + 24;
+                  return <button key={index} type="button" className={index === graphSelectedHour ? 'selected' : ''} onClick={() => onSelectHour(index)} aria-label={`${hourLabel(index)} pressure ${Math.round(item.pressureHpa)} hectopascals`}><i style={{ height: `${pressureHeight}%` }} /><small>{Math.round(item.pressureHpa)}</small></button>;
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -395,9 +451,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         activeDate={day.date}
         selectedHour={safeSelectedHour}
         onSelectHour={onSelectHour}
+        units={units}
         onSelectDate={onSelectDate}
         dayLabel={`${day.dayName} · ${day.dateFormatted}`}
       />
+      {hour && <SimpleWindMap location={location} hour={hour} hourIndex={safeSelectedHour} dayLabel={`${day.dayName} · ${day.dateFormatted}`} units={units} />}
       <section className="simple-pro-grid">
         <div className="simple-pro-panel">
           <div className="simple-pro-panel-heading"><div><p className="simple-eyebrow">Best times to sit · {day.dayName}</p><h2>Be in the woods</h2></div><Sunrise size={19} /></div>
