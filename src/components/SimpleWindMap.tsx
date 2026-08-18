@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HourlyForecast, Location, UnitSystem, ThemeVariantMode } from '../types';
-import { Wind, Crosshair, ZoomIn, ZoomOut, RotateCcw, MapPin, Clock, Navigation } from 'lucide-react';
+import { Wind, Crosshair, ZoomIn, ZoomOut, RotateCcw, MapPin, Navigation } from 'lucide-react';
 import { getHour12Label } from '../utils/huntingEngine';
 
 interface SimpleWindMapProps {
@@ -11,7 +11,8 @@ interface SimpleWindMapProps {
   isDark?: boolean;
   hasCustomBackground?: boolean;
   selectedHour: number;
-  onSelectHour: (hour: number) => void;
+  selectedDayName?: string;
+  selectedDateFormatted?: string;
 }
 
 // Coordinate conversions for Web Mercator (Slippy Map Tiles)
@@ -52,15 +53,6 @@ function getSvgArcPath(cx: number, cy: number, r: number, startAngle: number, en
   return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
 }
 
-/** Wind-speed color ramp used to color the hourly slider track. */
-function getWindColor(mph: number): string {
-  if (mph < 3) return '#94a3b8'; // dead calm
-  if (mph < 8) return '#34d399'; // light breeze
-  if (mph < 13) return '#fbbf24'; // moderate
-  if (mph < 20) return '#fb923c'; // breezy
-  return '#f87171'; // strong
-}
-
 export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   location,
   hourly,
@@ -69,7 +61,8 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   isDark = theme === 'dark',
   hasCustomBackground = false,
   selectedHour,
-  onSelectHour,
+  selectedDayName,
+  selectedDateFormatted,
 }) => {
   const [zoom, setZoom] = useState(15);
   const defaultLat = location?.latitude ?? 39.8283;
@@ -120,7 +113,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   const hourData = hourly[selectedHour] || hourly[0] || null;
   const windDeg = hourData ? hourData.windDirectionDeg : 0;
   const windMph = hourData ? hourData.windSpeedMph : 0;
-  const windText = hourData ? hourData.windDirectionText : '—';
+  const windText = hourData ? hourData.windDirectionText : getWindDirectionText(windDeg);
   // Scent blows downwind (away from the source), so flip the wind vector.
   const downwindDeg = (windDeg + 180) % 360;
   const scentSpread = 45;
@@ -213,25 +206,14 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
     setCenterLng(defaultLng);
   };
 
-  // Compact slider state (local for lag-free scrub, mirroring FloatingHourlySlider).
-  const [localHour, setLocalHour] = useState(selectedHour);
-  useEffect(() => {
-    setLocalHour(selectedHour);
-  }, [selectedHour]);
-  const [currentLocalHour, setCurrentLocalHour] = useState(() => new Date().getHours());
-  useEffect(() => {
-    const tick = () => setCurrentLocalHour(new Date().getHours());
-    tick();
-    const id = window.setInterval(tick, 60_000);
-    return () => window.clearInterval(id);
-  }, []);
-  const isNow = localHour === currentLocalHour;
-  const handlePercent = (localHour / 23) * 100;
-
   const speedVal = units === 'metric'
     ? Math.round(hourData ? hourData.windSpeedKmh : 0)
     : Math.round(windMph);
   const unitLabel = units === 'metric' ? 'km/h' : 'mph';
+
+  const dayContext = selectedDayName
+    ? `${selectedDayName}${selectedDateFormatted ? ` (${selectedDateFormatted})` : ''} · `
+    : '';
 
   return (
     <div
@@ -257,7 +239,9 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           </div>
           <div className="min-w-0">
             <div className="text-xs font-black uppercase tracking-wider truncate">Wind & Scent Map</div>
-            <div className="text-[11px] font-semibold opacity-70 truncate">Satellite · {location.name}</div>
+            <div className="text-[11px] font-semibold opacity-70 truncate">
+              Satellite · {location.name} · {dayContext}{getHour12Label(selectedHour)}
+            </div>
           </div>
         </div>
         <span className={`shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
@@ -357,76 +341,6 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[11px] font-black uppercase text-white shadow-sm">
             <MapPin className="w-3 h-3 text-emerald-400" /> Drag to pan
           </span>
-        </div>
-      </div>
-
-      {/* Embedded hourly slider + readout */}
-      <div className={`px-3 sm:px-4 py-3 border-t ${
-        isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)]' : theme === 'hunting' ? 'border-[#d4c4a8] bg-[#eae1cf]/[var(--card-opacity)]' : theme === 'olive' ? 'border-[#d8d2c0] bg-[#efebd9]/[var(--card-opacity)]' : 'border-slate-100 bg-slate-50/[var(--card-opacity)]'
-      }`}>
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <span className={`inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ${
-            isDark ? 'text-emerald-400' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-emerald-700'
-          }`}>
-            <Clock className="w-3.5 h-3.5" />
-            {isNow ? 'Wind Now' : `Wind @ ${getHour12Label(localHour)}`}
-          </span>
-          <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            {hourData ? `${windText} ${speedVal} ${unitLabel} · ${hourData.huntScore}/100` : 'No wind data'}
-          </span>
-        </div>
-
-        <div className="relative h-8 select-none">
-          {/* Colored track */}
-          <div className={`w-full h-3.5 rounded-full overflow-hidden border flex items-center ${
-            isDark ? 'bg-slate-800 border-slate-700' : theme === 'hunting' ? 'bg-[#d6b98f] border-[#a47b4e]' : theme === 'olive' ? 'bg-[#cbd5a8] border-[#7d8d55]' : 'bg-slate-200 border-slate-300'
-          }`}>
-            {hourly.slice(0, 24).map((h, i) => (
-              <span
-                key={`${h.time}-${i}`}
-                className="flex-1 h-full"
-                style={{ backgroundColor: getWindColor(h.windSpeedMph), opacity: i === localHour ? 1 : 0.7 }}
-              />
-            ))}
-          </div>
-
-          {/* Thumb */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 z-10 pointer-events-none flex items-center justify-center"
-            style={{ left: `${handlePercent}%`, transform: 'translate(-50%, -50%)' }}
-          >
-            <div className={`h-7 px-2.5 rounded-lg font-black text-[11px] shadow-md border-2 flex items-center justify-center gap-1 whitespace-nowrap ring-2 ${
-              isNow
-                ? isDark ? 'bg-amber-400 text-slate-950 border-amber-200 ring-amber-400/30' : 'bg-amber-500 text-slate-950 border-amber-300 ring-amber-500/30'
-                : isDark ? 'bg-emerald-500 text-slate-950 border-emerald-300 ring-emerald-500/30' : 'bg-emerald-500 text-slate-950 border-emerald-300 ring-emerald-500/30'
-            }`}>
-              {isNow ? `NOW ${getHour12Label(localHour)}` : getHour12Label(localHour)}
-            </div>
-          </div>
-
-          {/* Range input */}
-          <input
-            type="range"
-            min={0}
-            max={23}
-            step={1}
-            value={localHour}
-            onChange={(e) => {
-              const next = parseInt(e.target.value, 10);
-              setLocalHour(next);
-              onSelectHour(next);
-            }}
-            className="absolute inset-0 w-full h-full appearance-none opacity-0 cursor-pointer z-20"
-            aria-label="Wind hour slider"
-          />
-        </div>
-
-        <div className="flex justify-between text-[10px] font-black text-slate-400 px-0.5 mt-1 leading-none select-none">
-          <span>12 AM</span>
-          <span>6 AM</span>
-          <span className={isDark ? 'text-emerald-400' : 'text-emerald-600'}>12 PM</span>
-          <span>6 PM</span>
-          <span>12 AM</span>
         </div>
       </div>
     </div>

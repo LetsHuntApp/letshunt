@@ -117,6 +117,10 @@ const getScoreBarColor = (score: number): string => {
   return '#c45b53';
 };
 
+/** Compact day label used across the simple dashboard cards. */
+const dayLabel = (d: DailyForecast) =>
+  d.dayName === 'Today' ? 'Today' : d.dayName === 'Tomorrow' ? 'Tmrw' : d.dayName;
+
 export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   daily,
   location,
@@ -131,8 +135,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   // Day-detail (factor breakdown) subpage state, opened by "View detailed forecast".
   const [detailDayDate, setDetailDayDate] = useState<string | null>(null);
   const [detailHour, setDetailHour] = useState<number>(() => new Date().getHours());
-  // Wind-map slider state (independent from the removed global hourly slider).
-  const [windHour, setWindHour] = useState<number>(() => new Date().getHours());
   // Hero preview hour, driven by the small hourly-card scrubber.
   const [heroHour, setHeroHour] = useState<number>(() => new Date().getHours());
 
@@ -201,13 +203,23 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     ? 'text-[#3d4f21]'
     : 'text-emerald-700';
 
-  const dayLabel = (d: DailyForecast) =>
-    d.dayName === 'Today' ? 'Today' : d.dayName === 'Tomorrow' ? 'Tmrw' : d.dayName;
-
   return (
     <div className="w-full space-y-4 sm:space-y-6 animate-fadeIn">
       {/* 1. Compact hero */}
       <div className={`rounded-3xl border p-3 sm:p-4 shadow-xl relative overflow-hidden ${cardSurface}`}>
+        <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3 relative z-10">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+            isDark ? 'bg-slate-950/60 border-slate-700 text-slate-200'
+            : theme === 'hunting' ? 'bg-[#f4eee1]/80 border-[#d4c4a8] text-[#2a1b0e]'
+            : theme === 'olive' ? 'bg-[#f7f5ed]/90 border-[#d8d2c0] text-[#1e2e1b]'
+            : 'bg-slate-50 border-slate-200 text-slate-700'
+          }`}>
+            <CalendarDays className="w-3 h-3" /> {dayLabel(activeDay)} · {activeDay.dateFormatted}
+          </span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {isLiveNow ? 'Live conditions' : `${getHour12Label(heroHour)} conditions`}
+          </span>
+        </div>
         <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-3 sm:gap-5 relative z-10">
           {/* Score dial */}
           <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex items-center justify-center">
@@ -228,16 +240,13 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               />
             </svg>
             <div className="score-dial-content text-center z-10 flex flex-col items-center justify-center">
-              <DeerIcon className="w-7 h-7 -mb-0.5" style={{ color: stroke, fill: stroke }} />
+              <DeerIcon className="w-8 h-8 sm:w-9 sm:h-9 -mb-0.5" style={{ color: stroke, fill: stroke }} />
               <div className="text-2xl sm:text-3xl font-black tracking-tight leading-none" style={{ color: stroke }}>
                 {heroScore}
               </div>
-              <div className="text-[11px] font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1" style={{ color: stroke }}>
-                {heroScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3" style={{ color: stroke, fill: stroke }} />}
+              <div className="text-sm font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1" style={{ color: stroke }}>
+                {heroScore >= RATING_THRESHOLDS.excellent && <Star className="w-3.5 h-3.5" style={{ color: stroke, fill: stroke }} />}
                 <span>{heroRating}</span>
-              </div>
-              <div className="text-[9px] font-bold uppercase tracking-widest opacity-80" style={{ color: stroke }}>
-                HUNT SCORE
               </div>
             </div>
           </div>
@@ -275,7 +284,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <Sunrise className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500 shrink-0" />
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Sunrise</div>
-                <div className="text-xs font-black truncate">{today.solunar?.sunrise || '6:30 AM'}</div>
+                <div className="text-xs font-black truncate">{activeDay.solunar?.sunrise || '6:30 AM'}</div>
               </div>
             </div>
 
@@ -286,7 +295,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               <Sunset className="w-6 h-6 sm:w-7 sm:h-7 text-orange-500 shrink-0" />
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Sunset</div>
-                <div className="text-xs font-black truncate">{today.solunar?.sunset || '6:45 PM'}</div>
+                <div className="text-xs font-black truncate">{activeDay.solunar?.sunset || '6:45 PM'}</div>
               </div>
             </div>
           </div>
@@ -420,9 +429,14 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         boxShadow: isSelected ? `0 0 0 2px ${stroke}` : undefined,
                       }}
                     >
-                      <span className="text-[10px] font-black leading-none text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)] mt-1">
-                        {d.huntScore}
-                      </span>
+                      <div className="flex flex-col items-center gap-[2px] mt-1 leading-none">
+                        {d.huntScore >= RATING_THRESHOLDS.excellent && (
+                          <Star className="w-3 h-3 text-white fill-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
+                        )}
+                        <span className="text-[10px] font-black text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
+                          {d.huntScore}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <span className="text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100 mt-1 mb-0.5">
@@ -443,22 +457,23 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         theme={theme}
         isDark={isDark}
         hasCustomBackground={hasCustomBackground}
-        selectedHour={windHour}
-        onSelectHour={setWindHour}
+        selectedHour={heroHour}
+        onSelectHour={setHeroHour}
         selectedDayName={today.dayName}
         selectedDateFormatted={today.dateFormatted}
       />
 
-      {/* 5. Satellite wind map with scent cone + hourly slider */}
+      {/* 5. Satellite wind map with scent cone, following the selected day + hour */}
       <SimpleWindMap
         location={location}
-        hourly={today.hourly}
+        hourly={activeDay.hourly}
         units={units}
         theme={theme}
         isDark={isDark}
         hasCustomBackground={hasCustomBackground}
-        selectedHour={windHour}
-        onSelectHour={setWindHour}
+        selectedHour={heroHour}
+        selectedDayName={dayLabel(activeDay)}
+        selectedDateFormatted={activeDay.dateFormatted}
       />
     </div>
   );
