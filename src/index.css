@@ -216,6 +216,98 @@ input[type="range"]::-moz-range-thumb {
   filter: saturate(1.12) brightness(1.08);
 }
 
+/* Modern floating control treatment. The extra mobile clearance keeps the
+   slider above the fixed bottom navigation and respects phone safe areas. */
+.hourly-slider-shell {
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+.hourly-slider-card {
+  position: relative;
+  overflow: visible;
+  padding: 11px !important;
+  border-radius: 20px !important;
+}
+.hourly-slider-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 18px;
+  right: 18px;
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #2f8f68 0%, #69a86f 38%, #d38a3a 68%, #c45b53 100%);
+  opacity: .9;
+  pointer-events: none;
+}
+.hourly-slider-title-wrap {
+  display: grid;
+  gap: 1px;
+  line-height: 1;
+}
+.hourly-slider-title-wrap small {
+  color: currentColor;
+  opacity: .52;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.hourly-slider-icon {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  border-color: color-mix(in srgb, currentColor 42%, transparent) !important;
+}
+.hourly-slider-score-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 4px 7px;
+  border: 1px solid currentColor;
+  border-radius: 9px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1;
+}
+.hourly-slider-score-chip small {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .75;
+}
+.hourly-slider-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 18px !important;
+  transform: translateY(-50%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .22), 0 1px 2px rgba(0, 0, 0, .14) !important;
+}
+.hourly-slider-segments span {
+  border-right-color: color-mix(in srgb, currentColor 28%, transparent);
+}
+@media (min-width: 640px) {
+  .hourly-slider-shell { bottom: 1rem; }
+}
+@media (max-width: 639px) {
+  .hourly-slider-header { align-items: flex-start; flex-wrap: wrap; row-gap: 6px; }
+  .hourly-slider-header > div:first-child { flex-basis: 160px; }
+  .hourly-slider-header-actions { padding-top: 1px; }
+  .hourly-slider-card { padding: 10px !important; }
+  .hourly-slider-card .hourly-slider-score-chip { padding-inline: 6px; }
+}
+
+/* Keep score-dial center copy comfortably inside the ring's inner edge.
+   The dial's outer ring is intentionally decorative; this inset scale keeps
+   labels such as “Fair Hunt Forecast” from visually touching it. */
+.score-dial-content,
+.detailed-score-dial-content {
+  transform: scale(.82);
+  transform-origin: center;
+  gap: 1px;
+  white-space: nowrap;
+}
+
 /* Smooth underline animation for links */
 .link-underline {
   position: relative;

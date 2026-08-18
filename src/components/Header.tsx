@@ -10,6 +10,8 @@ import {              Compass,
               Map,
               ScrollText,
               Camera,
+              Sun,
+              Moon,
             } from 'lucide-react';
 import { Location, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
@@ -28,6 +30,7 @@ interface HeaderProps {
   onOpenGuide: () => void;
   onOpenPwaModal: () => void;
   activeTab: 'dashboard' | 'settings' | 'map' | 'details' | 'logs' | 'trailcams';
+  onToggleColorMode: () => void;
   onTabChange: (tab: 'dashboard' | 'settings' | 'map' | 'logs' | 'trailcams') => void;
 }
 
@@ -42,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   favorites,
   onToggleFavorite,
   activeTab,
+  onToggleColorMode,
   onTabChange,
 }) => {
   // Header brand mark: inline the horizontal LetsHunt logo
@@ -264,6 +268,29 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Light / dark mode toggle stays beside location search for quick field adjustments. */}
+            <button
+              type="button"
+              onClick={onToggleColorMode}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className={`header-color-mode-toggle w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border flex-shrink-0 transition-all hover:-translate-y-0.5 active:translate-y-0 ${
+                isDark
+                  ? theme === 'hunting'
+                    ? 'bg-[#3a332a] border-[#655745] text-[#f0ba7a] hover:bg-[#4a3b2c]'
+                    : theme === 'olive'
+                    ? 'bg-[#26351b] border-[#465b2d] text-[#c0d094] hover:bg-[#304522]'
+                    : 'bg-slate-900 border-slate-700 text-amber-300 hover:bg-slate-800'
+                  : theme === 'hunting'
+                  ? 'bg-[#f0d7b5] border-[#c85a17] text-[#a34610] hover:bg-[#e6c298]'
+                  : theme === 'olive'
+                  ? 'bg-[#e1e5c7] border-[#8a9a5b] text-[#556b2f] hover:bg-[#d2d9ad]'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
+            </button>
 
             {/* Active Location Badge */}
             <div className={`hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-xl border max-w-[130px] md:max-w-[180px] lg:max-w-[220px] flex-shrink-0 ${

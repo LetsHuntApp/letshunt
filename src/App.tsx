@@ -665,6 +665,11 @@ export default function App() {
         onOpenGuide={() => setIsGuideOpen(true)}
         onOpenPwaModal={() => setIsPwaModalOpen(true)}
         activeTab={activeTab}
+        onToggleColorMode={() => {
+          const nextMode = isDark ? 'light' : 'dark';
+          setMode(nextMode);
+          showToast(nextMode === 'dark' ? 'Dark mode on' : 'Light mode on');
+        }}
         onTabChange={(tab) => {
           setActiveTab(tab);
           // Returning to Dashboard from any route always lands on the main

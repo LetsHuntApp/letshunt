@@ -110,6 +110,15 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
     ? { backgroundColor: '#cbd5a8', borderColor: '#7d8d55' }
     : { backgroundColor: '#e2e8f0', borderColor: '#94a3b8' };
 
+  const sliderAccentTextClass = isDark
+    ? theme === 'hunting' ? 'text-[#e08a5a]' : theme === 'olive' ? 'text-[#a8c078]' : 'text-emerald-400'
+    : theme === 'hunting' ? 'text-[#a34610]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-600';
+  const sliderAccentSurfaceClass = theme === 'hunting'
+    ? 'bg-[#c85a17] border-[#e08a5a]'
+    : theme === 'olive'
+    ? 'bg-[#556b2f] border-[#8a9a5b]'
+    : 'bg-emerald-600 border-emerald-300';
+
   const sliderThumbClass = isNow
     ? isDark
       ? theme === 'hunting' ? 'bg-[#e08a5a] text-[#24150e] border-[#f0ba7a] ring-[#e08a5a]/30' : theme === 'olive' ? 'bg-[#a8c078] text-[#1c2614] border-[#d0dc9e] ring-[#a8c078]/30' : 'bg-amber-400 text-slate-950 border-amber-200 ring-amber-400/30'
@@ -119,7 +128,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
     : theme === 'hunting' ? 'bg-[#a34610] text-white border-[#d97642] ring-[#a34610]/30' : theme === 'olive' ? 'bg-[#556b2f] text-white border-[#8a9a5b] ring-[#556b2f]/30' : 'bg-emerald-500 text-slate-950 border-emerald-300 ring-emerald-500/30';
 
   return (
-    <div className="fixed bottom-13 sm:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-xl animate-fadeIn pointer-events-auto">
+    <div className="hourly-slider-shell fixed left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1rem)] sm:w-[95%] max-w-xl animate-fadeIn pointer-events-auto">
       <div
         style={{
           backgroundColor: isDark
@@ -134,7 +143,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
             ? 'rgba(247, 245, 237, var(--slider-opacity, 0.98))'
             : 'rgba(255, 255, 255, var(--slider-opacity, 0.98))'
         }}
-        className={`rounded-2xl backdrop-blur-xl border shadow-2xl p-2 sm:p-2.5 transition-all ${
+        className={`hourly-slider-card rounded-2xl backdrop-blur-xl border shadow-2xl p-2 sm:p-2.5 transition-all ${
           isDark
             ? theme === 'hunting'
               ? 'border-[#4a3320] text-[#f5e9d6] shadow-black/30'
@@ -149,25 +158,30 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
         }`}
       >
         {/* Compact Header Row */}
-        <div className="flex items-center justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
+        <div className="hourly-slider-header flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex flex-1 items-center gap-1.5 min-w-0">
+            <div className={`hourly-slider-icon w-5 h-5 sm:w-6 sm:h-6 rounded-lg border flex items-center justify-center flex-shrink-0 ${sliderAccentTextClass}`}>
               <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
-            <span className={`text-xs font-black uppercase tracking-wider truncate ${
-              isDark
-                ? theme === 'hunting' ? 'text-[#e08a5a]' : theme === 'olive' ? 'text-[#a8c078]' : 'text-emerald-400'
- : theme === 'hunting' ? 'text-[#a34610]' : theme === 'olive' ? 'text-[#556b2f]' : 'text-emerald-600'
-            }`}>
-              Hourly Hunt
-            </span>
+            <div className="hourly-slider-title-wrap min-w-0">
+              <span className={`text-xs font-black uppercase tracking-wider truncate ${sliderAccentTextClass}`}>
+                Hourly Hunt
+              </span>
+              <small>Movement by hour</small>
+            </div>
             {currentHourData?.isPrimeWindow && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-600 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex-shrink-0 animate-pulse shadow-xs">
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-white font-black rounded-full text-[11px] uppercase tracking-wider flex-shrink-0 animate-pulse shadow-xs ${sliderAccentSurfaceClass}`}>
                 <Zap className="w-2.5 h-2.5" /> Best Hunt
               </span>
             )}
           </div>
 
+          <div className="hourly-slider-header-actions flex items-center gap-1.5 shrink-0">
+            {currentHourData && (
+              <span className="hourly-slider-score-chip" style={{ color: getHourlyScoreColor(currentHourData.huntScore) }}>
+                {currentHourData.huntScore} <small>score</small>
+              </span>
+            )}
           {!isNow && (
             <button
               onClick={() => { handleHourChange(currentLocalHour); onResetToToday?.(); }}
@@ -185,6 +199,7 @@ export const FloatingHourlySlider: React.FC<FloatingHourlySliderProps> = ({
               <RotateCcw className="w-2.5 h-2.5" /> Reset to Live
             </button>
           )}
+          </div>
         </div>
 
         {/* Custom Interactive Track with Pop-Up Time Indicator on Drag */}

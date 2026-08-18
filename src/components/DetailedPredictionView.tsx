@@ -291,7 +291,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 className="transition-all duration-300 ease-out"
               />
             </svg>
-            <div className="text-center z-10 flex flex-col items-center justify-center">
+            <div className="detailed-score-dial-content text-center z-10 flex flex-col items-center justify-center">
               <DeerIcon
                 className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
                 style={{ color: colors.stroke, fill: colors.stroke }}

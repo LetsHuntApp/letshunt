@@ -412,7 +412,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
 
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 sm:gap-4 relative z-10">
           {/* Left: Score Dial, Date, Badges & Verdict */}
-          <div className="flex flex-col items-center sm:items-start gap-2 w-full lg:w-auto">
+          <div className="score-summary-column flex flex-col items-center sm:items-start gap-4 w-full lg:w-auto">
             <div className="flex flex-row items-center justify-center gap-3 sm:gap-5 flex-shrink-0 self-center sm:self-auto">
               {/* Circular Gauge Score */}
               <div style={scoreDialFrameStyle} className={`relative flex items-center justify-center shrink-0 transition-all ${
@@ -453,7 +453,7 @@ export const DayDetailView: React.FC<DayDetailViewProps> = ({
                     className="transition-all duration-300 ease-out"
                   />
                 </svg>
-                <div className="text-center z-10 flex flex-col items-center justify-center">
+                <div className="score-dial-content text-center z-10 flex flex-col items-center justify-center">
                   <DeerIcon
                     className={`fill-current -mb-0.5 ${
                       theme === 'light' || theme === 'dark' ? 'w-10 h-10 sm:w-12 sm:h-12' : 'w-9 h-9 sm:w-11 sm:h-11'
