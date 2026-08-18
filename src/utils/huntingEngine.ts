@@ -87,7 +87,7 @@ export function getHour12Label(hour: number): string {
 /**
  * Batch 3 — single source of truth for the hunt-score rating scale.
  *
- * Five movement bands: Great (86+), Good (61-85), Okay (41-60),
+ * Five movement bands: Great (86+), Good (71-85), Okay (41-70),
  * Slow (26-40) and Very Slow (0-25). Every score-band branch in the app
  * reads from this constant: the verdict block in `calculateHuntScore`, the
  * `Great / Good / Okay / Slow / Very Slow` rating returned by
@@ -98,7 +98,7 @@ export function getHour12Label(hour: number): string {
  */
 export const RATING_THRESHOLDS = {
   excellent: 86, // Great
-  good: 61,      // Good
+  good: 71,      // Good
   okay: 41,      // Okay
   slow: 26,      // Slow
 } as const;

@@ -363,7 +363,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
       <div className={`px-3 sm:px-4 py-2.5 border-t flex items-center gap-2.5 ${
         isDark ? 'border-slate-800 bg-slate-950/[var(--card-opacity)]' : theme === 'hunting' ? 'border-[#d4c4a8] bg-[#eae1cf]/[var(--card-opacity)]' : theme === 'olive' ? 'border-[#d8d2c0] bg-[#efebd9]/[var(--card-opacity)]' : 'border-slate-100 bg-slate-50/[var(--card-opacity)]'
       }`}>
-        <span className={`shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-300' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-emerald-700'}`}>
+        <span className={`shrink-0 w-[54px] whitespace-nowrap text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-300' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-emerald-700'}`}>
           {getHour12Label(mapHour)}
         </span>
         <input
@@ -376,7 +376,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           aria-label="Wind map hour slider"
           className={`flex-1 min-w-0 h-1.5 cursor-pointer ${isDark ? 'accent-emerald-400' : 'accent-emerald-600'}`}
         />
-        <span className={`shrink-0 whitespace-nowrap text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <span className={`shrink-0 w-[76px] text-right whitespace-nowrap text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           {windText} {speedVal} {unitLabel}
         </span>
       </div>

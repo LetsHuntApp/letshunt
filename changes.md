@@ -1,5 +1,10 @@
 # Changes Log
 
+## Batch 13 — Okay Band Widened to 41–70 + Wind-Map Slider Smoothness
+
+- **Okay band widened to 41–70** (was 41–60); **Good is now 71–85** and Great stays 86+. Only `RATING_THRESHOLDS.good` moved (61 → 71) — every rating, verdict, explanation, and color table across both dashboards, day-detail pages, forecast cards, and charts reads from the shared constant.
+- **Wind-map hour slider no longer jitters.** The time and wind readouts beside the slider now sit in fixed-width slots, so the slider track's width no longer breathes as the label text changes (the thumb used to shift ~17px mid-drag).
+
 ## Batch 12 — Five-Band Hunt-Score Ratings (Very Slow → Great)
 
 - **New five-band movement scale across the whole app** (both dashboards, day-detail, forecast cards, sliders, and charts): **Great 86+**, **Good 61–85**, **Okay 41–60**, **Slow 26–40**, **Very Slow 0–25**. `RATING_THRESHOLDS` in `huntingEngine.ts` is the single source of truth — the verdict copy, ratings, explanation thresholds, and every color table read from it.
