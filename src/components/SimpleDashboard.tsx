@@ -31,12 +31,9 @@ import {
   Wind,
   Sunrise,
   Sunset,
-  LayoutDashboard,
   BarChart3,
   CalendarDays,
-  MapPin,
   Star,
-  RefreshCw,
   ArrowRight,
 } from 'lucide-react';
 
@@ -128,8 +125,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   theme = 'dark',
   isDark = theme === 'dark',
   hasCustomBackground = false,
-  lastRefreshed,
-  onSwitchToFullDashboard,
 }) => {
   // Which day's hourly bars are shown in the "Hourly Hunt Score" card.
   const [activeDayDate, setActiveDayDate] = useState<string>('');
@@ -211,48 +206,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 animate-fadeIn">
-      {/* Compact header strip */}
-      <div className={`rounded-2xl border px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-lg ${cardSurface}`}>
-        <div className="min-w-0 flex items-center gap-2">
-          <LayoutDashboard className={`w-4 h-4 shrink-0 ${accentText}`} />
-          <div className="min-w-0">
-            <div className="text-sm font-black leading-tight flex items-center gap-1.5">
-              Simple Dashboard
-              <span className={`hidden sm:inline-flex items-center gap-1 text-xs font-bold opacity-70`}>
-                <MapPin className="w-3 h-3" /> {location.name}
-              </span>
-            </div>
-            <div className="text-[11px] font-semibold opacity-70 flex items-center gap-1">
-              {location.name} · {today.dayName} {today.dateFormatted}
-              {lastRefreshed && (
-                <>
-                  <span className="opacity-50">·</span>
-                  <RefreshCw className="w-2.5 h-2.5" />
-                  {lastRefreshed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        {onSwitchToFullDashboard && (
-          <button
-            type="button"
-            onClick={onSwitchToFullDashboard}
-            className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
-              isDark
-                ? 'border-slate-600 text-slate-300 hover:bg-slate-800 focus-visible:ring-emerald-400'
-                : theme === 'hunting'
-                ? 'border-[#c85a17]/40 text-[#7a3208] hover:bg-[#c85a17]/10 focus-visible:ring-[#c85a17]'
-                : theme === 'olive'
-                ? 'border-[#556b2f]/40 text-[#3d4f21] hover:bg-[#556b2f]/10 focus-visible:ring-[#556b2f]'
-                : 'border-slate-300 text-slate-600 hover:bg-slate-100 focus-visible:ring-emerald-600'
-            }`}
-          >
-            Full Dashboard
-          </button>
-        )}
-      </div>
-
       {/* 1. Compact hero */}
       <div className={`rounded-3xl border p-3 sm:p-4 shadow-xl relative overflow-hidden ${cardSurface}`}>
         <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-3 sm:gap-5 relative z-10">
