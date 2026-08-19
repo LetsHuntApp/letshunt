@@ -15,6 +15,7 @@ import {
   getHour12Label,
   getRatingFromScore,
   getWeatherDetails,
+  isHourlyRainBreak,
   isSignificantColdFront,
   RATING_THRESHOLDS,
 } from '../utils/huntingEngine';
@@ -89,27 +90,43 @@ const getDownwindText = (deg: number): string => {
 };
 
 /**
- * Builds today's "Daily Tip": a short, ultra-specific, down-to-earth rundown
+ * Builds a day's "Daily Tip": a short, ultra-specific, down-to-earth rundown
  * of the standout conditions a hunter should act on — big cold front, moon
- * phase, wet weather, wind, temperature, and rut. Returns up to 3 sentences
- * so the dropdown stays scannable; always returns at least one.
+ * phase, wet weather, wind, temperature, and rut. When an hour is supplied
+ * (the hour selected in the hourly scrubber) the tip keys off that hour's
+ * weather, temperature, and wind so it stays specific to the day/hour shown.
+ * Returns up to 3 sentences; always returns at least one.
  */
-const buildDailyTip = (day: DailyForecast, units: UnitSystem, location: Location): string[] => {
+const buildDailyTip = (
+  day: DailyForecast,
+  units: UnitSystem,
+  location: Location,
+  hour?: HourlyForecast | null,
+  hourIndex?: number,
+): string[] => {
   const tips: string[] = [];
   const isMetric = units === 'metric';
   const tempUnit = isMetric ? '°C' : '°F';
-  const windSpeed = Math.round(isMetric ? day.windSpeedMaxKmh : day.windSpeedMaxMph);
+  const isHourly = !!hour;
+
+  // Hour-specific values when the tip is for a selected hour; day-level
+  // fallbacks keep the function working for a day-only context.
+  const windSpeed = Math.round(
+    isMetric ? (hour?.windSpeedKmh ?? day.windSpeedMaxKmh) : (hour?.windSpeedMph ?? day.windSpeedMaxMph),
+  );
   const windUnit = isMetric ? 'km/h' : 'mph';
-  const maxTemp = Math.round(day.maxTemp);
+  const temp = Math.round(hour?.temp ?? day.maxTemp);
   const tempDrop = Math.round(day.tempDrop24h || 0);
   const moonName = day.solunar?.moonPhaseName || '';
-  const code = day.weatherCode;
+  const code = hour?.weatherCode ?? day.weatherCode;
   const isRaining = (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
   const isSnowing = code >= 71 && code <= 75;
   const isStorming = code >= 95;
-  const rainJustStopped = (day.hasRainBreak || day.isPostStorm) && !isRaining && !isSnowing && !isStorming;
+  const rainJustStopped = hour
+    ? isHourlyRainBreak(day, code, hourIndex)
+    : (day.hasRainBreak || day.isPostStorm) && !isRaining && !isSnowing && !isStorming;
   const coldFront = isSignificantColdFront(day.tempDrop24h, units);
-  const downwindDir = getDownwindText((day.windDirectionDeg + 180) % 360);
+  const downwindDir = getDownwindText(((hour?.windDirectionDeg ?? day.windDirectionDeg) + 180) % 360);
   const rut = getRutPhase(day.date, location);
 
   // 1. Big cold front — the single biggest daylight-movement trigger.
@@ -142,11 +159,11 @@ const buildDailyTip = (day: DailyForecast, units: UnitSystem, location: Location
     tips.push("Pre-rut is heating up — scrape lines are popping up. Try a mock scrape or some light rattling.");
   }
 
-  // 5. Temperature extremes.
-  if (maxTemp >= (isMetric ? 29 : 85)) {
-    tips.push(`It's hot today (${maxTemp}${tempUnit}) — deer will move early and late. Get in the stand before first light.`);
-  } else if (maxTemp <= (isMetric ? -7 : 20)) {
-    tips.push(`Bitter cold (${maxTemp}${tempUnit}) — deer need heavy calories. Sit on food: corn, beans, or acorns.`);
+  // 5. Temperature extremes — use the selected hour's temp when available.
+  if (temp >= (isMetric ? 29 : 85)) {
+    tips.push(`It's hot ${isHourly ? 'this hour' : 'today'} (${temp}${tempUnit}) — deer will move early and late. Get in the stand before first light.`);
+  } else if (temp <= (isMetric ? -7 : 20)) {
+    tips.push(`Bitter cold (${temp}${tempUnit}) — deer need heavy calories. Sit on food: corn, beans, or acorns.`);
   }
 
   // 6. Wind & scent — only when there's room so headline tips stay on top.
@@ -364,9 +381,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   if (!today) return null;
 
-  // Today's tip sentences shown in the Daily Tip dropdown (always about today).
-  const todayTips = buildDailyTip(today, units, location);
-
   // The day powering the hourly bar (defaults to today).
   const activeDay = daily.find((d) => d.date === activeDayDate) || today;
 
@@ -377,6 +391,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const currentLocalHour = new Date().getHours();
   // The hero previews the hour selected by the small hourly-card scrubber.
   const heroHourData: HourlyForecast | null = activeDay.hourly?.[heroHour] ?? activeDay.hourly?.[0] ?? null;
+  // Tip sentences for the Daily Tip dropdown — keyed to the selected day and
+  // hour so the advice matches exactly what's on screen.
+  const activeTips = buildDailyTip(activeDay, units, location, heroHourData, heroHour);
   const isLiveNow = activeDay.date === today.date && heroHour === currentLocalHour;
   const heroScore = heroHourData ? heroHourData.huntScore : activeDay.huntScore;
   const heroRating = getRatingFromScore(heroScore);
@@ -419,22 +436,21 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       {/* Page title — Oswald/display face on the Hunting theme, standard
           sans elsewhere (h1 picks it up automatically). Follows the
           selected day so the header always labels whose data is shown. The
-          Daily Tip badge sits to the right of today's title and opens a
-          dropdown with an ultra-specific tip for today's hunt. */}
+          Daily Tip badge sits to the right of the selected day's title and
+          opens a dropdown with an ultra-specific tip for that day/hour. */}
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
         <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${
           isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'
         }`}>
           {activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} Hunt
         </h1>
-        {activeDay.dayName === 'Today' && (
           <div className="relative inline-flex" ref={tipRef}>
             <button
               type="button"
               onClick={toggleTip}
               aria-expanded={tipOpen}
               aria-haspopup="true"
-              aria-label="Today's daily tip"
+              aria-label={`${activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} daily tip`}
               className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
                 isDark
                   ? 'bg-slate-950/70 border-amber-400/40 text-amber-300 hover:bg-slate-800/80 focus-visible:ring-amber-400'
@@ -466,10 +482,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 <div className={`text-[10px] font-black uppercase tracking-wider mb-2 ${
                   isDark ? 'text-amber-300' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-amber-600'
                 }`}>
-                  Today's Daily Tip · {today.dateFormatted}
+                  {activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} Daily Tip · {activeDay.dateFormatted}
                 </div>
                 <div className="space-y-1.5">
-                  {todayTips.map((tip) => (
+                  {activeTips.map((tip) => (
                     <p key={tip} className="text-sm leading-snug">
                       {tip}
                     </p>
@@ -478,7 +494,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               </div>
             )}
           </div>
-        )}
       </div>
 
       {/* 1. Compact hero */}
