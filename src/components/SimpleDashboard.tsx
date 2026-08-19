@@ -671,7 +671,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   >
                     {selected && (
                       <span
-                        className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white shadow-md ring-2 ${
+                        className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-white shadow-md ring-2 ${
                           isDark ? 'ring-emerald-400' : theme === 'hunting' ? 'ring-[#c85a17]' : theme === 'olive' ? 'ring-[#556b2f]' : 'ring-emerald-600'
                         }`}
                       />
