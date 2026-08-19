@@ -254,9 +254,26 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const [heroHour, setHeroHour] = useState<number>(() => new Date().getHours());
   // Daily-tip badge dropdown visibility.
   const [tipOpen, setTipOpen] = useState(false);
+  // Max panel width, clamped to the viewport space to the right of the badge
+  // so the dropdown never runs off a phone screen.
+  const [tipMaxWidth, setTipMaxWidth] = useState(320);
   const tipRef = useRef<HTMLDivElement>(null);
 
-  // Close the tip dropdown on outside tap/click or Escape.
+  // Measure how far the badge sits from the screen's left edge and clamp the
+  // panel to the space that remains (with a 16px right margin).
+  const updateTipMaxWidth = () => {
+    if (tipRef.current) {
+      const rect = tipRef.current.getBoundingClientRect();
+      setTipMaxWidth(Math.max(160, Math.min(320, window.innerWidth - rect.left - 16)));
+    }
+  };
+  const toggleTip = () => {
+    if (!tipOpen) updateTipMaxWidth();
+    setTipOpen((o) => !o);
+  };
+
+  // Close the tip dropdown on outside tap/click or Escape; re-clamp the panel
+  // width on resize while open so rotating the phone can't push it off-screen.
   useEffect(() => {
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
       if (tipRef.current && !tipRef.current.contains(e.target as Node)) {
@@ -266,15 +283,20 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setTipOpen(false);
     };
+    const onResize = () => {
+      if (tipOpen) updateTipMaxWidth();
+    };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onResize);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('touchstart', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', onResize);
     };
-  }, []);
+  }, [tipOpen]);
 
   // Custom scrubber geometry: a 24-cell track mirroring the bar chart so the
   // thumb lines up exactly under the selected hour's bar.
@@ -383,7 +405,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           <div className="relative inline-flex" ref={tipRef}>
             <button
               type="button"
-              onClick={() => setTipOpen((o) => !o)}
+              onClick={toggleTip}
               aria-expanded={tipOpen}
               aria-haspopup="true"
               aria-label="Today's daily tip"
@@ -403,7 +425,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </button>
             {tipOpen && (
               <div
-                className={`absolute left-0 top-full mt-2 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border p-3.5 shadow-2xl ${
+                style={{ maxWidth: tipMaxWidth }}
+                className={`absolute left-0 top-full mt-2 z-50 w-80 rounded-2xl border p-3.5 shadow-2xl ${
                   isDark
                     ? 'bg-slate-900/95 backdrop-blur-xl border-slate-700 text-slate-100'
                     : theme === 'hunting'
