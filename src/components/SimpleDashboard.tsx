@@ -562,7 +562,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         {d.huntScore >= RATING_THRESHOLDS.excellent && (
                           <Star className="w-3 h-3 text-white fill-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
                         )}
-                        <span className="text-[10px] font-black text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
+                        <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
                           {d.huntScore}
                         </span>
                       </div>
