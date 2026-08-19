@@ -9,10 +9,14 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: write
 
+# One Pages deployment at a time. Do NOT cancel an in-progress run: a run that
+# is cancelled mid-deploy can leave a GitHub Pages deployment stuck "in
+# progress" and block the next deploy. New runs queue behind the current one.
 concurrency:
   group: 'pages'
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -46,6 +50,20 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      # Re-running a failed run uploads a second "github-pages" artifact, and
+      # deploy-pages then fails with "Multiple artifacts ... Artifact count is
+      # 2". Delete any stale one from this run before uploading a fresh copy.
+      - name: Delete stale Pages artifacts from this run
+        if: github.run_attempt > 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" \
+            --jq '.artifacts[] | select(.name == "github-pages") | .id' \
+            | while IFS= read -r id; do
+                echo "Removing stale github-pages artifact $id"
+                gh api --silent --method DELETE "repos/${{ github.repository }}/actions/artifacts/$id" || true
+              done || true
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
