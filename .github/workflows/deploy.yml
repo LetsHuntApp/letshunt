@@ -1,53 +1,55 @@
 name: Deploy to GitHub Pages
 
-# Builds the app and publishes it to GitHub Pages on every push to main
-# (and on manual dispatch). The Vite base path is set to this repo's Pages
-# site root (/letshunt/) — the original repo uses /LetsHunt/ and is deployed
-# separately, so this workflow only ever targets the LetsHuntApp/letshunt
-# Pages site.
-
 on:
   push:
-    branches: [main]
+    branches: ['main']
   workflow_dispatch:
 
-# Give the workflow permission to publish the Pages site.
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# One deployment at a time; cancel a superseded run.
 concurrency:
-  group: pages
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci
-
-      - name: Build
-        run: VITE_BASE=/letshunt/ npm run build
-
-      - name: Configure Pages
+      - name: Build project
+        run: npm run build
+        env:
+          # Base path matches whichever repo this runs on: /LetsHunt/ on the
+          # original repo, /letshunt/ on LetsHuntApp/letshunt.
+          VITE_BASE: ${{ github.repository == 'benptrs2007-spec/LetsHunt' && '/LetsHunt/' || '/letshunt/' }}
+          # Injected at build time into import.meta.env — set these in
+          # Settings → Secrets and variables → Actions on GitHub.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_B2_BUCKET: ${{ secrets.VITE_B2_BUCKET }}
+          VITE_B2_ENDPOINT: ${{ secrets.VITE_B2_ENDPOINT }}
+      - name: Setup Pages
         uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
+        with:
+          enablement: true
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
-
+          path: './dist'
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
