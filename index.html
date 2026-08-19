@@ -15,10 +15,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Playfair+Display:ital,wght@0,600;0,800;0,900;1,700&display=swap" rel="stylesheet">
 
     <!-- PWA & Mobile Optimization -->
-    <link rel="manifest" href="/LetsHunt/manifest.json" />
-    <link rel="icon" type="image/png" sizes="120x120" href="/LetsHunt/hunt-icon-120.png" />
-    <link rel="shortcut icon" type="image/png" href="/LetsHunt/hunt-icon-120.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/LetsHunt/apple-touch-icon-v8.png" />
+    <!-- %BASE_URL% is replaced by Vite with the configured base path, so
+         the manifest/icons resolve correctly on every GitHub Pages site
+         (/LetsHunt/ on the original repo, /letshunt/ on the second). -->
+    <link rel="manifest" href="%BASE_URL%manifest.json" />
+    <link rel="icon" type="image/png" sizes="120x120" href="%BASE_URL%hunt-icon-120.png" />
+    <link rel="shortcut icon" type="image/png" href="%BASE_URL%hunt-icon-120.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon-v8.png" />
     <meta name="theme-color" content="#020617" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />

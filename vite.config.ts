@@ -6,7 +6,10 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
-base: '/LetsHunt/',
+    // GitHub Pages site root: existing repo serves at /LetsHunt/, the
+    // second repo at /letshunt/. Override per-repo with VITE_BASE, e.g.
+    //   VITE_BASE=/letshunt/ npm run build
+    base: process.env.VITE_BASE || '/LetsHunt/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

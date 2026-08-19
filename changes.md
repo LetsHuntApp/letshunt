@@ -1,5 +1,10 @@
 # Changes Log
 
+## Batch 18 — Repo-Agnostic GitHub Pages Build Path
+
+- **Vite base is now env-driven**: `base: process.env.VITE_BASE || '/LetsHunt/'`. The existing build is unchanged by default; building for the second repo uses `VITE_BASE=/letshunt/` (on Windows Git Bash, prefix with `MSYS2_ENV_CONV_EXCL="VITE_BASE"` to avoid Git Bash mangling the path).
+- **`index.html` manifest/icon links now use `%BASE_URL%`** so they resolve correctly on every Pages site instead of hardcoding `/LetsHunt/`.
+
 ## Batch 17 — Larger Daily-Bar Condition Icons & Consistent Day Labels
 
 - **Condition icons under each daily bar grown to 24px** (up from 20px).
