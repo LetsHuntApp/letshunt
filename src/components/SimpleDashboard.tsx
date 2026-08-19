@@ -98,6 +98,17 @@ const getScoreBarColor = (score: number): string => {
 const dayLabel = (d: DailyForecast) =>
   d.dayName === 'Today' ? 'Today' : d.dayName === 'Tomorrow' ? 'Tmrw' : d.dayName;
 
+/** Day label for the daily bars: "Today" for today, the actual weekday for
+    every other day — so Tomorrow renders as "Wed 19" like the rest. */
+const getDayBarLabel = (d: DailyForecast): string => {
+  if (d.dayName === 'Today') return 'Today';
+  const dt = new Date(`${d.date}T00:00:00`);
+  if (!Number.isNaN(dt.getTime())) {
+    return dt.toLocaleDateString('en-US', { weekday: 'short' });
+  }
+  return d.dayName;
+};
+
 /** Color tone for the daily-bar weather icon, keyed off the WMO code. */
 const getWeatherIconTone = (code: number): string => {
   if (code >= 95) return 'text-purple-500';
@@ -591,9 +602,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-center w-full mt-1.5 h-12">
-                    <div className="flex items-center justify-center gap-0.5 h-5 leading-none">
-                      {getWeatherIcon(d.weatherIcon, `w-5 h-5 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
+                  <div className="flex flex-col items-center w-full mt-1.5 h-14">
+                    <div className="flex items-center justify-center gap-0.5 h-6 leading-none">
+                      {getWeatherIcon(d.weatherIcon, `w-6 h-6 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
                       {wet && (
                         <span className={`text-[8px] font-black leading-none ${isDark ? 'text-sky-400' : 'text-sky-500'}`}>
                           {maxPrecipProb}%
@@ -607,8 +618,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         </span>
                       )}
                     </div>
-                    <span className="mt-auto text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100">
-                      {dayLabel(d)} <span className="opacity-60">{dayNum}</span>
+                    <span className="mt-auto text-xs font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100">
+                      {getDayBarLabel(d)} <span className="opacity-60">{dayNum}</span>
                     </span>
                   </div>
                 </button>

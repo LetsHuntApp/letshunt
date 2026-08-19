@@ -1,5 +1,11 @@
 # Changes Log
 
+## Batch 17 — Larger Daily-Bar Condition Icons & Consistent Day Labels
+
+- **Condition icons under each daily bar grown to 24px** (up from 20px).
+- **Day/date label under each bar enlarged** to 12px (up from 10px).
+- **Tomorrow now shows its weekday + date like every other day** — "Wed 19" instead of "Tmrw 19" (computed from the forecast date, so it always matches).
+
 ## Batch 16 — Bigger Daily-Bar Icons & Dated Day Labels
 
 - **Bigger deer icon and score** on every daily bar in the Simple Dashboard (20px each, up from 16px), with the minimum bar height raised to match so nothing clips.
