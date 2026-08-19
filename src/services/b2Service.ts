@@ -76,7 +76,7 @@ export async function uploadPhotoBlob(
 
 /**
  * A short-lived (1h) URL that streams the full-res photo from B2.
- * Cached per photo so the gallery doesn't re-sign on every render.
+ * Cached per club/photo so the gallery doesn't re-sign on every render.
  */
 export async function getPhotoDownloadUrl(clubId: string, photoId: string): Promise<string> {
   const cacheKey = `${clubId}:${photoId}`;
@@ -86,6 +86,16 @@ export async function getPhotoDownloadUrl(clubId: string, photoId: string): Prom
   const url = await requestSignedUrl('download', clubId, photoId);
   downloadUrlCache.set(cacheKey, { url, expiresAt: Date.now() + urlExpiryMs(url) });
   return url;
+}
+
+/** Download and validate a full-resolution club photo for local caching. */
+export async function downloadPhotoBlob(clubId: string, photoId: string): Promise<Blob> {
+  const url = await getPhotoDownloadUrl(clubId, photoId);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Photo download failed (${response.status})`);
+  const blob = await response.blob();
+  if (blob.size === 0) throw new Error('Photo download returned an empty file.');
+  return blob;
 }
 
 /** Rough expiry from the presigned URL's X-Amz-Expires (default 3600s). */

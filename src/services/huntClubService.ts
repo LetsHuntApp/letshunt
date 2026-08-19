@@ -14,7 +14,7 @@
 import { supabase, getCurrentUser } from './supabaseService';
 import { exportBackupData, importBackupData, type BackupSummary, type LetsHuntBackup } from './dataBackupService';
 import { getAllPhotos, getFullImageBlob, saveFullImageBlob } from './trailCameraService';
-import { getPhotoDownloadUrl, uploadPhotoBlob } from './b2Service';
+import { downloadPhotoBlob, uploadPhotoBlob } from './b2Service';
 import type { ActiveClub, HuntClub, HuntClubRole, PublishResult } from '../types';
 import { safeGetJSON, safeSetJSON, safeRemove } from '../utils/storage';
 
@@ -140,13 +140,14 @@ async function restoreClubData(clubId: string, row: ClubDataRow): Promise<Backup
   for (const photo of cloudPhotos) {
     if (!photo?.id) continue;
     try {
-      if (await getFullImageBlob(photo.id)) continue;
+      const existingBlob = await getFullImageBlob(photo.id);
+      if (existingBlob && existingBlob.size > 0) continue;
 
-      const url = await getPhotoDownloadUrl(clubId, photo.id);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`download failed (${response.status})`);
-      const blob = await response.blob();
-      if (blob.size > 0) await saveFullImageBlob(photo.id, blob);
+      // Fetch the actual B2 bytes and cache them locally. Keeping this as a
+      // Blob (instead of only storing a signed URL) means the photo detail
+      // view uses the original after the reload that follows a club load.
+      const blob = await downloadPhotoBlob(clubId, photo.id);
+      await saveFullImageBlob(photo.id, blob);
     } catch (err) {
       console.warn(`[club] full-resolution download failed for photo \"${photo.id}\":`, err);
     }

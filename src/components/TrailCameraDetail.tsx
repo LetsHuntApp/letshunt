@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Star, Trash2, Calendar, Clock, MapPin, Wind, Thermometer, Gauge, Droplets, Moon, Sun, Camera, FileText, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Save, Crosshair, Navigation, Target, AlertCircle, Eraser } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
-import { getFullImageBlob, getThumbnailUrl, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
-import { getPhotoDownloadUrl } from '../services/b2Service';
+import { getFullImageBlob, getThumbnailUrl, saveFullImageBlob, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
+import { downloadPhotoBlob, getPhotoDownloadUrl } from '../services/b2Service';
 import { getActiveClub } from '../services/huntClubService';
 
 interface TrailCameraDetailProps {
@@ -100,20 +100,36 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
     imageFallbackAttemptRef.current = 0;
 
     const loadCloudOrThumbnail = async () => {
-      // Photos restored from a HuntClub may not have their original blob in
-      // IndexedDB yet. Try the signed B2 object before using the thumbnail.
+      // Photos restored from a HuntClub may have only their thumbnail locally.
+      // Download the B2 bytes, cache them in IndexedDB, and display that blob
+      // so a club-loaded photo becomes a normal offline-capable full-res photo.
       const club = getActiveClub();
       if (club) {
         try {
-          const cloudUrl = await getPhotoDownloadUrl(club.id, photo.id);
+          const cloudBlob = await downloadPhotoBlob(club.id, photo.id);
+          await saveFullImageBlob(photo.id, cloudBlob);
           if (active) {
-            setImageUrl(cloudUrl);
+            objectUrl = URL.createObjectURL(cloudBlob);
+            setImageUrl(objectUrl);
             return;
           }
         } catch (error) {
-          console.warn('[trail cam] full-resolution cloud preview unavailable:', error);
+          console.warn('[trail cam] full-resolution cloud download unavailable:', error);
+
+          // Keep the signed URL fallback for environments where the image can
+          // be rendered from B2 but a direct fetch is blocked by CORS.
+          try {
+            const cloudUrl = await getPhotoDownloadUrl(club.id, photo.id);
+            if (active) {
+              setImageUrl(cloudUrl);
+              return;
+            }
+          } catch (urlError) {
+            console.warn('[trail cam] full-resolution cloud preview unavailable:', urlError);
+          }
         }
       }
+
       const thumb = await getThumbnailUrl(photo.id);
       if (active) setImageUrl(thumb || null);
     };
