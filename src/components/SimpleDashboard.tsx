@@ -529,6 +529,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               const coldFront = isSignificantColdFront(d.tempDrop24h, units);
               const coldFrontDrop = Math.round((d.tempDrop24h || 0) * 10) / 10;
               const hasMoonBadge = d.solunar?.moonPhaseName === 'Full Moon';
+              // Day-of-month for the bar label, e.g. "Fri 13".
+              const dayNum = parseInt(d.date.split('-')[2], 10);
               return (
                 <button
                   key={d.date}
@@ -574,7 +576,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       className="absolute bottom-0 left-0 right-0 rounded-t-sm flex items-start justify-center overflow-hidden"
                       style={{
                         // Tall enough to always fit the deer icon + score.
-                        height: `${Math.max(42, d.huntScore)}%`,
+                        height: `${Math.max(50, d.huntScore)}%`,
                         backgroundColor: getScoreBarColor(d.huntScore),
                       }}
                     >
@@ -582,16 +584,16 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         {d.huntScore >= RATING_THRESHOLDS.excellent && (
                           <Star className="w-3 h-3 text-white fill-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
                         )}
-                        <DeerIcon className="w-4 h-4 shrink-0 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
-                        <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
+                        <DeerIcon className="w-5 h-5 shrink-0 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
+                        <span className="text-xl font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
                           {d.huntScore}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-col items-center w-full mt-1.5 h-12">
-                    <div className="flex items-center justify-center gap-0.5 h-4 leading-none">
-                      {getWeatherIcon(d.weatherIcon, `w-3.5 h-3.5 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
+                    <div className="flex items-center justify-center gap-0.5 h-5 leading-none">
+                      {getWeatherIcon(d.weatherIcon, `w-5 h-5 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
                       {wet && (
                         <span className={`text-[8px] font-black leading-none ${isDark ? 'text-sky-400' : 'text-sky-500'}`}>
                           {maxPrecipProb}%
@@ -606,7 +608,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                       )}
                     </div>
                     <span className="mt-auto text-[10px] font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100">
-                      {dayLabel(d)}
+                      {dayLabel(d)} <span className="opacity-60">{dayNum}</span>
                     </span>
                   </div>
                 </button>

@@ -1,5 +1,11 @@
 # Changes Log
 
+## Batch 16 — Bigger Daily-Bar Icons & Dated Day Labels
+
+- **Bigger deer icon and score** on every daily bar in the Simple Dashboard (20px each, up from 16px), with the minimum bar height raised to match so nothing clips.
+- **Larger condition icon** under each bar (20px, up from 14px).
+- **Day labels now include the date number**: "Today 18", "Tmrw 19", "Fri 21", "Sat 22", etc. instead of just the day name.
+
 ## Batch 15 — Daily-Bar Deer Icons + Cold Front Badges
 
 - **Deer icon on every daily bar.** Each day in the Simple Dashboard's daily hunt-score graph now shows a small white deer icon directly above its score number inside the bar (Great-day stars sit above that). The minimum bar height was raised so the icon + score always fit even on very low-scoring days.
