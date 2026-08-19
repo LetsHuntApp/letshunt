@@ -1,5 +1,10 @@
 # Changes Log
 
+## Batch 15 — Daily-Bar Deer Icons + Cold Front Badges
+
+- **Deer icon on every daily bar.** Each day in the Simple Dashboard's daily hunt-score graph now shows a small white deer icon directly above its score number inside the bar (Great-day stars sit above that). The minimum bar height was raised so the icon + score always fit even on very low-scoring days.
+- **"COLD FRONT!" badge.** Any day whose 24-hour temperature drop qualifies as a significant cold front (≥9°F / 5°C, via the shared `isSignificantColdFront` threshold) now shows a rounded blue badge with a snowflake above its bar — same placement as the Full Moon badge, and they stack cleanly if a day has both.
+
 ## Batch 14 — Simple Dashboard Is Now the Default + "Today's Hunt" Title
 
 - **The Simple Dashboard is now the app-wide default.** New visitors (and anyone who never explicitly switched) land on the compact glance-first view; users who turned on the full dashboard keep their saved choice. The Settings toggle is now labeled **Advanced Dashboard** — flipping it on swaps in the full-featured view (factor breakdowns, prime windows, 14-day forecast).

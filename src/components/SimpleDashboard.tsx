@@ -15,6 +15,7 @@ import {
   getHour12Label,
   getRatingFromScore,
   getWeatherDetails,
+  isSignificantColdFront,
   RATING_THRESHOLDS,
 } from '../utils/huntingEngine';
 import {
@@ -525,6 +526,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               const precipAmount = units === 'imperial'
                 ? `${(d.precipSumInches || 0).toFixed(2)} in`
                 : `${(d.precipSumMm || 0).toFixed(1)} mm`;
+              const coldFront = isSignificantColdFront(d.tempDrop24h, units);
+              const coldFrontDrop = Math.round((d.tempDrop24h || 0) * 10) / 10;
+              const hasMoonBadge = d.solunar?.moonPhaseName === 'Full Moon';
               return (
                 <button
                   key={d.date}
@@ -539,7 +543,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   }`}
                 >
                   <div className="relative w-full h-24 sm:h-28 flex items-end justify-center">
-                    {d.solunar?.moonPhaseName === 'Full Moon' && (
+                    {hasMoonBadge && (
                       <div
                         className={`absolute top-0.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-wide whitespace-nowrap shadow-sm border ${
                           isDark
@@ -551,10 +555,26 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         Full Moon
                       </div>
                     )}
+                    {coldFront && (
+                      <div
+                        title={`Significant 24-hour temperature drop: ${coldFrontDrop}°${units === 'imperial' ? 'F' : 'C'}`}
+                        className={`absolute left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-wide whitespace-nowrap shadow-sm border ${
+                          hasMoonBadge ? 'top-[21px]' : 'top-0.5'
+                        } ${
+                          isDark
+                            ? 'bg-slate-950/85 text-sky-300 border-sky-400/50'
+                            : 'bg-white/95 text-sky-600 border-sky-400/60'
+                        }`}
+                      >
+                        <Snowflake className="w-2.5 h-2.5 shrink-0" />
+                        Cold Front!
+                      </div>
+                    )}
                     <div
                       className="absolute bottom-0 left-0 right-0 rounded-t-sm flex items-start justify-center overflow-hidden"
                       style={{
-                        height: `${Math.max(16, d.huntScore)}%`,
+                        // Tall enough to always fit the deer icon + score.
+                        height: `${Math.max(42, d.huntScore)}%`,
                         backgroundColor: getScoreBarColor(d.huntScore),
                       }}
                     >
@@ -562,6 +582,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         {d.huntScore >= RATING_THRESHOLDS.excellent && (
                           <Star className="w-3 h-3 text-white fill-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
                         )}
+                        <DeerIcon className="w-4 h-4 shrink-0 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
                         <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
                           {d.huntScore}
                         </span>
