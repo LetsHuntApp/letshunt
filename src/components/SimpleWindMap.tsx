@@ -128,9 +128,10 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   const downwindDeg = (windDeg + 180) % 360;
 
   // Wind flow animation streaks (same visual language as the main Map page):
-  // deterministic positions so streaks don't jump on hour change; rotation
-  // and speed derive from the selected hour's wind. Scaled down for the
-  // compact map so the overlay stays atmospheric instead of crowded.
+  // deterministic positions so streaks don't jump unpredictably on hour
+  // change; rotation and speed derive from the selected hour's wind. The
+  // field is intentionally denser than before and every droplet's path is
+  // guaranteed to cross the visible map, so the overlay never looks empty.
   const windStreaks = useMemo(() => {
     const w = Math.max(containerWidth, 320);
     const h = Math.max(containerHeight, 320);
@@ -139,27 +140,62 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
     const travel = Math.hypot(w, h) + margin * 2;
     const speed = Math.max(45, mph * 34); // px per second
     const dur = travel / speed;
-    const count = Math.max(20, Math.min(60, Math.round((w * h) / 3000)));
-    // Deterministic hash so streak positions stay put across slider scrubs.
+    // Denser stream: about twice the original density, capped so the compact
+    // card stays readable without ever dropping to zero visible droplets.
+    const count = Math.max(48, Math.min(120, Math.round((w * h) / 1500)));
+
+    // Deterministic hash so droplet sizes/offsets stay put across slider scrubs.
     const hash = (n: number) => {
       const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
       return x - Math.floor(x);
     };
+
+    // The droplets are drawn along the local +x axis and the render-side
+    // transform rotates each one by (downwindDeg - 90), so local +x points
+    // along (dx, dy) in screen coordinates.
+    const rad = ((downwindDeg - 90) * Math.PI) / 180;
+    const dx = Math.cos(rad);
+    const dy = Math.sin(rad);
+    // Perpendicular axis, used to fan droplets across the full cross-section
+    // of the viewport so their paths always pass through the visible map.
+    const px = -dy;
+    const py = dx;
+
+    // Project the viewport corners onto the travel / perpendicular axes to
+    // find where the screen sits in the droplet's rotated frame.
+    const corners: [number, number][] = [[0, 0], [w, 0], [0, h], [w, h]];
+    let qMin = Infinity;
+    let pMin = Infinity;
+    let pMax = -Infinity;
+    for (const [cx, cy] of corners) {
+      const q = cx * dx + cy * dy;
+      const p = cx * px + cy * py;
+      qMin = Math.min(qMin, q);
+      pMin = Math.min(pMin, p);
+      pMax = Math.max(pMax, p);
+    }
+
     const streaks: { x: number; y: number; len: number; width: number; opacity: number; delay: number; dur: number; travel: number }[] = [];
     for (let i = 0; i < count; i++) {
+      // Every droplet starts the same margin behind the leading edge, then a
+      // near-uniform negative delay staggers them along the whole loop. That
+      // keeps the stream continuous: at any instant droplets are spread
+      // evenly across the screen instead of clustering off to one side.
+      const q = qMin - margin;
+      const p = pMin + hash(i * 3 + 2) * (pMax - pMin);
       streaks.push({
-        x: hash(i * 3 + 1) * (w + margin * 2) - margin,
-        y: hash(i * 3 + 2) * (h + margin * 2) - margin,
+        x: q * dx + p * px,
+        y: q * dy + p * py,
         len: Math.max(12, mph * 3) + hash(i * 3 + 3) * mph * 3,
         width: 0.6 + mph * 0.08 + hash(i * 3 + 4) * (0.9 + mph * 0.05),
         opacity: 0.15 + hash(i * 3 + 5) * 0.18,
-        delay: -hash(i * 3 + 6) * dur,
+        delay: -((i / count) + hash(i * 3 + 6) * 0.5) * dur,
         dur,
         travel,
       });
     }
     return streaks;
-  }, [windMph, containerWidth, containerHeight]);
+  }, [windMph, containerWidth, containerHeight, downwindDeg]);
 
   // Drag handlers
   const handleDragStart = (clientX: number, clientY: number) => {
