@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Sparkles, TrendingUp, AlertCircle, CheckCircle2, Award, Zap, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Calendar, CloudRain, Compass, Gauge, Moon, Sparkles, Sun, Thermometer, TrendingUp, Clock, ShieldCheck } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode } from '../types';
 import { PatternInsight } from '../services/trailCameraService';
 
@@ -10,6 +10,20 @@ interface TrailCameraInsightsProps {
   totalPhotosCount: number;
   weatherMatchedCount: number;
 }
+
+type InsightIconComponent = React.ComponentType<{ className?: string }>;
+
+const getInsightIcon = (label: string): InsightIconComponent => {
+  if (label.includes('Wind')) return Compass;
+  if (label.includes('Temp')) return Thermometer;
+  if (label.includes('Pressure')) return Gauge;
+  if (label.includes('Moon')) return Moon;
+  if (label.includes('Month')) return Calendar;
+  if (label.includes('Activity Time')) return Clock;
+  if (label.includes('Rain')) return CloudRain;
+  if (label.includes('Dry')) return Sun;
+  return TrendingUp;
+};
 
 const getThemeClasses = (theme?: ThemeVariantMode, isDark = theme === 'dark') => {
   const isHunting = theme === 'hunting';
@@ -75,6 +89,7 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {insights.map((insight, idx) => {
+            const InsightIcon = getInsightIcon(insight.label);
             const confidenceColor =
               insight.confidence === 'high'
                 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
@@ -85,8 +100,10 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
             return (
               <div key={idx} className={`rounded-2xl border p-4 sm:p-5 backdrop-blur-xl shadow-xl space-y-3 transition-all ${tc.cardBg}`}>
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center flex-shrink-0">
+                      <InsightIcon className="w-4 h-4 text-emerald-500" />
+                    </div>
                     <h4 className="font-extrabold text-xs uppercase tracking-wider">{insight.label}</h4>
                   </div>
 
@@ -97,7 +114,7 @@ export const TrailCameraInsights: React.FC<TrailCameraInsightsProps> = ({
                 </div>
 
                 <div className={`p-3 rounded-xl border ${tc.innerBg}`}>
-                  "{insight.detail}"
+                  {insight.detail}
                 </div>
               </div>
             );
