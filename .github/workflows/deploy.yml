@@ -68,6 +68,26 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
+      # GitHub Pages allows only one deployment at a time, so a deployment
+      # that starts while the previous one is still finishing fails with a
+      # transient 400 ("in progress deployment"). Retry with backoff instead
+      # of failing the run, so back-to-back pushes self-heal.
       - name: Deploy to GitHub Pages
         id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before Pages deploy retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 45
+      - name: Deploy to GitHub Pages (retry 1)
+        id: deployment-retry-1
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait before final Pages deploy retry
+        if: steps.deployment-retry-1.outcome == 'failure'
+        run: sleep 90
+      - name: Deploy to GitHub Pages (retry 2)
+        id: deployment-retry-2
+        if: steps.deployment-retry-1.outcome == 'failure'
         uses: actions/deploy-pages@v4

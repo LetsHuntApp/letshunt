@@ -635,7 +635,7 @@ export async function fetch5DayHuntingForecast(
         cloudCover: hCloudCover,
         pressureTrend: hourlyPressureTrend,
         weatherCode: dayHourlyRaw.weatherCode[idx] || 0,
-        weatherDesc: isRainBreakHour ? 'Rain Break (Dry Window)' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
+        weatherDesc: isRainBreakHour ? 'Rain Break' : getWeatherDetails(dayHourlyRaw.weatherCode[idx] || 0).desc,
         huntScore: hScore,
         isPrimeWindow,
         solunarRating: hSolunarRating,
