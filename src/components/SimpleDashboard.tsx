@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   DailyForecast,
   Location,
@@ -37,7 +37,10 @@ import {
   CalendarDays,
   Star,
   ArrowRight,
+  Lightbulb,
+  ChevronDown,
 } from 'lucide-react';
+import { getRutPhase } from '../utils/rutEngine';
 
 interface SimpleDashboardProps {
   daily: DailyForecast[];
@@ -83,6 +86,92 @@ const getDownwindText = (deg: number): string => {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round((deg % 360) / 22.5) % 16;
   return directions[index];
+};
+
+/**
+ * Builds today's "Daily Tip": a short, ultra-specific, down-to-earth rundown
+ * of the standout conditions a hunter should act on — big cold front, moon
+ * phase, wet weather, wind, temperature, and rut. Returns up to 3 sentences
+ * so the dropdown stays scannable; always returns at least one.
+ */
+const buildDailyTip = (day: DailyForecast, units: UnitSystem, location: Location): string[] => {
+  const tips: string[] = [];
+  const isMetric = units === 'metric';
+  const tempUnit = isMetric ? '°C' : '°F';
+  const windSpeed = Math.round(isMetric ? day.windSpeedMaxKmh : day.windSpeedMaxMph);
+  const windUnit = isMetric ? 'km/h' : 'mph';
+  const maxTemp = Math.round(day.maxTemp);
+  const tempDrop = Math.round(day.tempDrop24h || 0);
+  const moonName = day.solunar?.moonPhaseName || '';
+  const code = day.weatherCode;
+  const isRaining = (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
+  const isSnowing = code >= 71 && code <= 75;
+  const isStorming = code >= 95;
+  const rainJustStopped = (day.hasRainBreak || day.isPostStorm) && !isRaining && !isSnowing && !isStorming;
+  const coldFront = isSignificantColdFront(day.tempDrop24h, units);
+  const downwindDir = getDownwindText((day.windDirectionDeg + 180) % 360);
+  const rut = getRutPhase(day.date, location);
+
+  // 1. Big cold front — the single biggest daylight-movement trigger.
+  if (coldFront) {
+    tips.push(`A big cold front is here — temps dropped ${tempDrop}${tempUnit}! Deer will be up on their feet feeding. Get in the stand!`);
+  }
+
+  // 2. Moon phase.
+  if (moonName === 'Full Moon') {
+    tips.push("It's a full moon tonight — deer may move earlier in the evening. Be in the stand before dark!");
+  } else if (moonName === 'New Moon') {
+    tips.push("New moon tonight — dark nights push deer to move more in daylight. Hunt the first and last hours of light.");
+  }
+
+  // 3. Wet weather — a rain break is a goldmine.
+  if (rainJustStopped) {
+    tips.push("Rain just let up — the woods are wet and quiet, and deer love stepping out to feed right after a break.");
+  } else if (isStorming) {
+    tips.push("Thunderstorms are rolling in — deer will hunker down until it passes. If you go, hunt the edge of the storm.");
+  } else if (isSnowing) {
+    tips.push("Snow is falling — deer feed hard before and after a snow. Sit on field edges and food sources.");
+  } else if (isRaining) {
+    tips.push("It's raining — deer usually stay tucked in thick cover until it slacks off. Hunt the lulls.");
+  }
+
+  // 4. Rut phase — only when it really matters.
+  if (rut.phaseId === 'peak_rut') {
+    tips.push("The rut is on — bucks are chasing does in broad daylight. Sit all day near funnels and doe bedding.");
+  } else if (rut.phaseId === 'pre_rut') {
+    tips.push("Pre-rut is heating up — scrape lines are popping up. Try a mock scrape or some light rattling.");
+  }
+
+  // 5. Temperature extremes.
+  if (maxTemp >= (isMetric ? 29 : 85)) {
+    tips.push(`It's hot today (${maxTemp}${tempUnit}) — deer will move early and late. Get in the stand before first light.`);
+  } else if (maxTemp <= (isMetric ? -7 : 20)) {
+    tips.push(`Bitter cold (${maxTemp}${tempUnit}) — deer need heavy calories. Sit on food: corn, beans, or acorns.`);
+  }
+
+  // 6. Wind & scent — only when there's room so headline tips stay on top.
+  if (tips.length < 2) {
+    if (windSpeed >= (isMetric ? 30 : 19)) {
+      tips.push(`Wind is ripping at ${windSpeed} ${windUnit} — deer will be holed up in thick cover. Hunt the downwind edge.`);
+    } else if (windSpeed <= (isMetric ? 5 : 3)) {
+      tips.push("It's dead calm — your scent will hang right on you. Use a ground blind or play the thermals.");
+    } else {
+      tips.push(`Scent is blowing to the ${downwindDir} — set up so your smell carries away from where deer will come.`);
+    }
+  }
+
+  // 7. Never leave the tip empty — fall back to the day's rating.
+  if (tips.length <= 1) {
+    if (day.huntScore >= RATING_THRESHOLDS.excellent) {
+      tips.push("It's a Great day in the woods — get in the stand and stay there!");
+    } else if (day.huntScore >= RATING_THRESHOLDS.good) {
+      tips.push("It's a good day — be in the stand for first light and the last hour before dark.");
+    } else {
+      tips.push("Movement looks slow today — your best bet is first light and the last hour of daylight near thick cover.");
+    }
+  }
+
+  return tips.slice(0, 3);
 };
 
 /** Score-to-bar color used by the hourly and daily bars. */
@@ -163,6 +252,29 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const [detailHour, setDetailHour] = useState<number>(() => new Date().getHours());
   // Hero preview hour, driven by the small hourly-card scrubber.
   const [heroHour, setHeroHour] = useState<number>(() => new Date().getHours());
+  // Daily-tip badge dropdown visibility.
+  const [tipOpen, setTipOpen] = useState(false);
+  const tipRef = useRef<HTMLDivElement>(null);
+
+  // Close the tip dropdown on outside tap/click or Escape.
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      if (tipRef.current && !tipRef.current.contains(e.target as Node)) {
+        setTipOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTipOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
 
   // Custom scrubber geometry: a 24-cell track mirroring the bar chart so the
   // thumb lines up exactly under the selected hour's bar.
@@ -203,6 +315,9 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   }
 
   if (!today) return null;
+
+  // Today's tip sentences shown in the Daily Tip dropdown (always about today).
+  const todayTips = buildDailyTip(today, units, location);
 
   // The day powering the hourly bar (defaults to today).
   const activeDay = daily.find((d) => d.date === activeDayDate) || today;
@@ -255,12 +370,66 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     <div className="w-full space-y-4 sm:space-y-6 animate-fadeIn">
       {/* Page title — Oswald/display face on the Hunting theme, standard
           sans elsewhere (h1 picks it up automatically). Follows the
-          selected day so the header always labels whose data is shown. */}
-      <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${
-        isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'
-      }`}>
-        {activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} Hunt
-      </h1>
+          selected day so the header always labels whose data is shown. The
+          Daily Tip badge sits to the right of today's title and opens a
+          dropdown with an ultra-specific tip for today's hunt. */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+        <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${
+          isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'
+        }`}>
+          {activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} Hunt
+        </h1>
+        {activeDay.dayName === 'Today' && (
+          <div className="relative inline-flex" ref={tipRef}>
+            <button
+              type="button"
+              onClick={() => setTipOpen((o) => !o)}
+              aria-expanded={tipOpen}
+              aria-haspopup="true"
+              aria-label="Today's daily tip"
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
+                isDark
+                  ? 'bg-slate-950/70 border-amber-400/40 text-amber-300 hover:bg-slate-800/80 focus-visible:ring-amber-400'
+                  : theme === 'hunting'
+                  ? 'bg-[#f4eee1]/90 border-[#c85a17]/50 text-[#7a3208] hover:bg-[#eae1cf] focus-visible:ring-[#c85a17]'
+                  : theme === 'olive'
+                  ? 'bg-[#f7f5ed]/90 border-[#556b2f]/50 text-[#3d4f21] hover:bg-[#efebd9] focus-visible:ring-[#556b2f]'
+                  : 'bg-amber-50 border-amber-400/60 text-amber-700 hover:bg-amber-100 focus-visible:ring-amber-600'
+              }`}
+            >
+              <Lightbulb className="w-3 h-3" />
+              Daily Tip
+              <ChevronDown className={`w-3 h-3 transition-transform ${tipOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {tipOpen && (
+              <div
+                className={`absolute left-0 top-full mt-2 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border p-3.5 shadow-2xl ${
+                  isDark
+                    ? 'bg-slate-900/95 backdrop-blur-xl border-slate-700 text-slate-100'
+                    : theme === 'hunting'
+                    ? 'bg-[#f4eee1] border-[#d4c4a8] text-[#2a1b0e]'
+                    : theme === 'olive'
+                    ? 'bg-[#f7f5ed] border-[#d8d2c0] text-[#1e2e1b]'
+                    : 'bg-white border-slate-200 text-slate-900'
+                }`}
+              >
+                <div className={`text-[10px] font-black uppercase tracking-wider mb-2 ${
+                  isDark ? 'text-amber-300' : theme === 'hunting' ? 'text-[#7a3208]' : theme === 'olive' ? 'text-[#3d4f21]' : 'text-amber-600'
+                }`}>
+                  Today's Daily Tip · {today.dateFormatted}
+                </div>
+                <div className="space-y-1.5">
+                  {todayTips.map((tip) => (
+                    <p key={tip} className="text-sm leading-snug">
+                      {tip}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* 1. Compact hero */}
       <div className={`rounded-3xl border p-3 sm:p-4 shadow-xl relative overflow-hidden ${cardSurface}`}>
