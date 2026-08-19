@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   DailyForecast,
   Location,
@@ -254,26 +254,52 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   const [heroHour, setHeroHour] = useState<number>(() => new Date().getHours());
   // Daily-tip badge dropdown visibility.
   const [tipOpen, setTipOpen] = useState(false);
-  // Max panel width, clamped to the viewport space to the right of the badge
-  // so the dropdown never runs off a phone screen.
-  const [tipMaxWidth, setTipMaxWidth] = useState(320);
+  // Fixed-position panel placement. The panel is positioned in viewport
+  // coordinates (position: fixed) with every side clamped inside the screen,
+  // so it physically cannot run off a phone — regardless of font scaling,
+  // title wrapping, or rotation.
+  const [tipPos, setTipPos] = useState<{ left: number; top: number; width: number } | null>(null);
   const tipRef = useRef<HTMLDivElement>(null);
+  const tipPanelRef = useRef<HTMLDivElement>(null);
 
-  // Measure how far the badge sits from the screen's left edge and clamp the
-  // panel to the space that remains (with a 16px right margin).
-  const updateTipMaxWidth = () => {
-    if (tipRef.current) {
-      const rect = tipRef.current.getBoundingClientRect();
-      setTipMaxWidth(Math.max(160, Math.min(320, window.innerWidth - rect.left - 16)));
+  // Anchor the panel just below the badge, clamped to the viewport: width is
+  // capped to the screen, left is nudged right if the badge sits too far left,
+  // and top is lifted if the rendered panel would run past the bottom.
+  const updateTipPos = () => {
+    if (!tipRef.current) return;
+    const badgeRect = tipRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const width = Math.min(320, vw - 16);
+    const left = Math.max(8, Math.min(badgeRect.left, vw - width - 8));
+    let top = badgeRect.bottom + 8;
+    if (tipPanelRef.current) {
+      const panelHeight = tipPanelRef.current.getBoundingClientRect().height;
+      if (top + panelHeight > vh - 8) {
+        top = Math.max(8, vh - panelHeight - 8);
+      }
     }
+    setTipPos({ left, top, width });
   };
   const toggleTip = () => {
-    if (!tipOpen) updateTipMaxWidth();
-    setTipOpen((o) => !o);
+    if (tipOpen) {
+      setTipOpen(false);
+      return;
+    }
+    // Position before the panel exists (height unknown — top will be clamped
+    // again by the layout effect below once it has rendered).
+    updateTipPos();
+    setTipOpen(true);
   };
 
+  // Once the panel has rendered, re-clamp so its bottom never leaves the
+  // screen either.
+  useLayoutEffect(() => {
+    if (tipOpen) updateTipPos();
+  }, [tipOpen]);
+
   // Close the tip dropdown on outside tap/click or Escape; re-clamp the panel
-  // width on resize while open so rotating the phone can't push it off-screen.
+  // on resize while open so rotating the phone can't push it off-screen.
   useEffect(() => {
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
       if (tipRef.current && !tipRef.current.contains(e.target as Node)) {
@@ -284,7 +310,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       if (e.key === 'Escape') setTipOpen(false);
     };
     const onResize = () => {
-      if (tipOpen) updateTipMaxWidth();
+      if (tipOpen) updateTipPos();
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('touchstart', onPointerDown);
@@ -423,10 +449,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               Daily Tip
               <ChevronDown className={`w-3 h-3 transition-transform ${tipOpen ? 'rotate-180' : ''}`} />
             </button>
-            {tipOpen && (
+            {tipOpen && tipPos && (
               <div
-                style={{ maxWidth: tipMaxWidth }}
-                className={`absolute left-0 top-full mt-2 z-50 w-80 rounded-2xl border p-3.5 shadow-2xl ${
+                ref={tipPanelRef}
+                style={{ left: tipPos.left, top: tipPos.top, width: tipPos.width }}
+                className={`fixed z-50 rounded-2xl border p-3.5 shadow-2xl ${
                   isDark
                     ? 'bg-slate-900/95 backdrop-blur-xl border-slate-700 text-slate-100'
                     : theme === 'hunting'
