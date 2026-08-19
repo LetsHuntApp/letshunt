@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HourlyForecast, Location, UnitSystem, ThemeVariantMode } from '../types';
-import { Wind, Crosshair, ZoomIn, ZoomOut, RotateCcw, MapPin, Navigation, CalendarDays } from 'lucide-react';
+import { Wind, ZoomIn, ZoomOut, RotateCcw, MapPin, Navigation, CalendarDays } from 'lucide-react';
 import { getHour12Label } from '../utils/huntingEngine';
 
 interface SimpleWindMapProps {
@@ -39,18 +39,19 @@ function getWindDirectionText(deg: number): string {
   return directions[index];
 }
 
-// Generate an SVG path for a filled sector (cone) centered at the hunter marker.
-function getSvgArcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
-  const startRad = ((startAngle - 90) * Math.PI) / 180;
-  const endRad = ((endAngle - 90) * Math.PI) / 180;
-  const x1 = cx + r * Math.cos(startRad);
-  const y1 = cy + r * Math.sin(startRad);
-  const x2 = cx + r * Math.cos(endRad);
-  const y2 = cy + r * Math.sin(endRad);
-  const angleDiff = (endAngle - startAngle + 360) % 360;
-  const largeArcFlag = angleDiff <= 180 ? 0 : 1;
-  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-}
+// Builds an elongated teardrop path pointing in the +x direction: a rounded head
+// at the leading (downwind) edge that tapers to a point at the trailing end.
+// Shared with the main Map page's animated wind flow overlay.
+const dropletPath = (len: number, headR: number, bodyW: number) => {
+  const hx = len - headR;
+  return [
+    `M 0 0`,
+    `C ${(len * 0.25).toFixed(1)} ${(-bodyW).toFixed(1)}, ${(len * 0.7).toFixed(1)} ${(-headR).toFixed(1)}, ${hx.toFixed(1)} ${(-headR).toFixed(1)}`,
+    `A ${headR.toFixed(1)} ${headR.toFixed(1)} 0 0 1 ${hx.toFixed(1)} ${headR.toFixed(1)}`,
+    `C ${(len * 0.7).toFixed(1)} ${headR.toFixed(1)}, ${(len * 0.25).toFixed(1)} ${bodyW.toFixed(1)}, 0 0`,
+    `Z`,
+  ].join(' ');
+};
 
 export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   location,
@@ -123,12 +124,42 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
   const windDeg = hourData ? hourData.windDirectionDeg : 0;
   const windMph = hourData ? hourData.windSpeedMph : 0;
   const windText = hourData ? hourData.windDirectionText : getWindDirectionText(windDeg);
-  // Scent blows downwind (away from the source), so flip the wind vector.
+  // Wind blows toward the downwind direction — the streaks animate along it.
   const downwindDeg = (windDeg + 180) % 360;
-  const scentSpread = 45;
-  const startAngle = downwindDeg - scentSpread / 2;
-  const endAngle = downwindDeg + scentSpread / 2;
-  const plumeRadius = Math.min(150, Math.max(90, Math.min(containerWidth, containerHeight) * 0.42));
+
+  // Wind flow animation streaks (same visual language as the main Map page):
+  // deterministic positions so streaks don't jump on hour change; rotation
+  // and speed derive from the selected hour's wind. Scaled down for the
+  // compact map so the overlay stays atmospheric instead of crowded.
+  const windStreaks = useMemo(() => {
+    const w = Math.max(containerWidth, 320);
+    const h = Math.max(containerHeight, 320);
+    const margin = 220;
+    const mph = windMph || 5;
+    const travel = Math.hypot(w, h) + margin * 2;
+    const speed = Math.max(45, mph * 34); // px per second
+    const dur = travel / speed;
+    const count = Math.max(20, Math.min(60, Math.round((w * h) / 3000)));
+    // Deterministic hash so streak positions stay put across slider scrubs.
+    const hash = (n: number) => {
+      const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const streaks: { x: number; y: number; len: number; width: number; opacity: number; delay: number; dur: number; travel: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      streaks.push({
+        x: hash(i * 3 + 1) * (w + margin * 2) - margin,
+        y: hash(i * 3 + 2) * (h + margin * 2) - margin,
+        len: Math.max(12, mph * 3) + hash(i * 3 + 3) * mph * 3,
+        width: 0.6 + mph * 0.08 + hash(i * 3 + 4) * (0.9 + mph * 0.05),
+        opacity: 0.15 + hash(i * 3 + 5) * 0.18,
+        delay: -hash(i * 3 + 6) * dur,
+        dur,
+        travel,
+      });
+    }
+    return streaks;
+  }, [windMph, containerWidth, containerHeight]);
 
   // Drag handlers
   const handleDragStart = (clientX: number, clientY: number) => {
@@ -244,7 +275,7 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           }`}>
             <Navigation className="w-4 h-4" />
           </div>
-          <div className="text-xs font-black uppercase tracking-wider truncate min-w-[132px] flex-1">Wind & Scent Map</div>
+          <div className="text-xs font-black uppercase tracking-wider truncate min-w-[132px] flex-1">Wind Map</div>
           <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
             isDark ? 'bg-slate-950/60 border-slate-700 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'
           }`}>
@@ -296,23 +327,41 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           ))}
         </div>
 
-        {/* Scent plume overlay */}
+        {/* Animated wind flow overlay — droplets stream in the downwind
+            direction, mirroring the main Map page's wind streaks. */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
-          <defs>
-            <radialGradient id="simpleScentFade" cx={halfW} cy={halfH} r={plumeRadius} gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
-              <stop offset="40%" stopColor="#3b82f6" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <path
-            d={getSvgArcPath(halfW, halfH, plumeRadius, startAngle, endAngle)}
-            fill="url(#simpleScentFade)"
-          />
-          {/* Pulsing concentric scent waves */}
-          <g className="animate-pulse">
-            <path d={getSvgArcPath(halfW, halfH, plumeRadius * 0.45, startAngle, endAngle)} fill="none" stroke="#60a5fa" strokeWidth="1.2" strokeDasharray="4,4" opacity="0.6" />
-            <path d={getSvgArcPath(halfW, halfH, plumeRadius * 0.75, startAngle, endAngle)} fill="none" stroke="#3b82f6" strokeWidth="1.2" strokeDasharray="6,6" opacity="0.4" />
+          <g className="pointer-events-none">
+            {windStreaks.map((s, i) => (
+              <g
+                key={`wind-streak-${i}`}
+                transform={`translate(${s.x} ${s.y}) rotate(${downwindDeg - 90})`}
+              >
+                <g
+                  opacity={Math.min(0.7, s.opacity + 0.12)}
+                  style={{
+                    animation: `windFlow ${s.dur}s linear infinite`,
+                    animationDelay: `${s.delay}s`,
+                    animationFillMode: 'backwards',
+                    ...({ '--travel': `${s.travel}px` } as Record<string, string>),
+                  }}
+                >
+                  {/* Elongated droplet: rounded head leads downwind, tail
+                      tapers behind. The near-white body reads as an icy streak;
+                      the darker underlay keeps droplets visible over bright
+                      satellite tiles. */}
+                  <path
+                    d={dropletPath(s.len, Math.min((s.width + 3) * 1.3, s.len * 0.4), Math.min((s.width + 3) * 0.8, s.len * 0.3))}
+                    fill="#082f49"
+                    fillOpacity={0.4}
+                  />
+                  <path
+                    d={dropletPath(s.len, Math.min((s.width + 1) * 1.3, s.len * 0.4), Math.min((s.width + 1) * 0.8, s.len * 0.3))}
+                    fill="#f8fafc"
+                    fillOpacity={0.6}
+                  />
+                </g>
+              </g>
+            ))}
           </g>
           {/* Cardinal labels */}
           <text x={halfW} y={20} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">N</text>
@@ -320,11 +369,6 @@ export const SimpleWindMap: React.FC<SimpleWindMapProps> = ({
           <text x={halfW} y={containerHeight - 12} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">S</text>
           <text x={15} y={halfH + 4} textAnchor="middle" className="text-xs font-black fill-white drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.85)]">W</text>
         </svg>
-
-        {/* Center hunter marker */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full border-2 border-emerald-400 bg-emerald-950/90 flex items-center justify-center shadow-lg">
-          <Crosshair className="w-4 h-4 text-emerald-300" />
-        </div>
 
         {/* Zoom / reset controls */}
         <div className="absolute bottom-2.5 right-2.5 z-30 flex flex-col gap-1.5">
