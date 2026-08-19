@@ -127,9 +127,10 @@ export default function App() {
   // activeTab/navbar item: browser/mobile navigation continues to read as
   // Dashboard while this view is open.
   const [isFourteenDayView, setIsFourteenDayView] = useState(false);
-  // Toggleable Simple Dashboard (kept separate from the regular dashboard).
+  // Simple Dashboard is the app default; users who explicitly switched to
+  // the Advanced (full) dashboard keep their saved choice.
   const [simpleDashboard, setSimpleDashboard] = useState<boolean>(() => {
-    return safeGetString('letshunt_simple_dashboard') === 'true';
+    return safeGetString('letshunt_simple_dashboard') !== 'false';
   });
   const [selectedHour, setSelectedHour] = useState<number>(() => new Date().getHours()); // Default to current local time hour
   const [loading, setLoading] = useState<boolean>(true);
@@ -709,7 +710,7 @@ export default function App() {
             simpleDashboard={simpleDashboard}
             onToggleSimpleDashboard={(v) => {
               setSimpleDashboard(v);
-              showToast(v ? 'Simple Dashboard enabled' : 'Full Dashboard enabled');
+              showToast(v ? 'Simple Dashboard enabled' : 'Advanced Dashboard enabled');
             }}
             theme={theme}
             isDark={isDark}

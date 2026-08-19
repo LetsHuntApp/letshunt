@@ -1,5 +1,11 @@
 # Changes Log
 
+## Batch 14 — Simple Dashboard Is Now the Default + "Today's Hunt" Title
+
+- **The Simple Dashboard is now the app-wide default.** New visitors (and anyone who never explicitly switched) land on the compact glance-first view; users who turned on the full dashboard keep their saved choice. The Settings toggle is now labeled **Advanced Dashboard** — flipping it on swaps in the full-featured view (factor breakdowns, prime windows, 14-day forecast).
+- **"Today's Hunt" title added** above the hero card on the Simple Dashboard, in a theme-appropriate display face (Oswald on the Hunting theme, standard sans elsewhere). The title follows the selected day ("Today's Hunt", "Friday's Hunt", …) so it always labels whose data is shown.
+- **Hourly hunt-score bars always show their true score color.** The old behavior dimmed every unselected bar to 60%; now all 24 bars render at full color and the selected hour simply glows (a soft color-matched halo) so it stands out without muting the rest.
+
 ## Batch 13 — Okay Band Widened to 41–70 + Wind-Map Slider Smoothness
 
 - **Okay band widened to 41–70** (was 41–60); **Good is now 71–85** and Great stays 86+. Only `RATING_THRESHOLDS.good` moved (61 → 71) — every rating, verdict, explanation, and color table across both dashboards, day-detail pages, forecast cards, and charts reads from the shared constant.

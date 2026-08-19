@@ -241,6 +241,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
   return (
     <div className="w-full space-y-4 sm:space-y-6 animate-fadeIn">
+      {/* Page title — Oswald/display face on the Hunting theme, standard
+          sans elsewhere (h1 picks it up automatically). Follows the
+          selected day so the header always labels whose data is shown. */}
+      <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${
+        isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'
+      }`}>
+        {activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} Hunt
+      </h1>
+
       {/* 1. Compact hero */}
       <div className={`rounded-3xl border p-3 sm:p-4 shadow-xl relative overflow-hidden ${cardSurface}`}>
         <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3 relative z-10">
@@ -383,8 +392,16 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 role="button"
                 tabIndex={-1}
                 aria-label={`${h.time} — hunt score ${h.huntScore}, ${getRatingFromScore(h.huntScore)}. Tap to preview this hour.`}
-                className={`flex-1 rounded-t-sm min-w-0 cursor-pointer transition-opacity ${selected ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-                style={{ height: `${Math.max(6, h.huntScore)}%`, backgroundColor: getScoreBarColor(h.huntScore) }}
+                className={`flex-1 rounded-t-sm min-w-0 cursor-pointer transition-all ${selected ? 'z-10' : 'hover:brightness-110'}`}
+                style={{
+                  height: `${Math.max(6, h.huntScore)}%`,
+                  backgroundColor: getScoreBarColor(h.huntScore),
+                  // Bars always show their true score color; the selected
+                  // hour just glows a little brighter than the rest.
+                  boxShadow: selected
+                    ? `0 0 10px 2px ${getScoreBarColor(h.huntScore)}cc`
+                    : 'none',
+                }}
               />
             );
           })}

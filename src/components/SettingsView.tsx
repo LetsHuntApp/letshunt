@@ -729,7 +729,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             }`}>
               <div className="flex items-center gap-3 min-w-0">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  simpleDashboard
+                  !simpleDashboard
                     ? isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-500/15 text-emerald-700'
                     : isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'
                 }`}>
@@ -737,14 +737,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
                 <div className="min-w-0">
                   <div className={`text-xs font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Simple Dashboard
+                    Advanced Dashboard
                   </div>
                   <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    A compact, glance-first view with a score dial, color-coded day/hour bars, and a wind map. The regular dashboard stays available.
+                    The full-featured view with detailed factor breakdowns, prime hunting windows, and the 14-day forecast. The compact Simple Dashboard is the default.
                   </div>
                 </div>
               </div>
-              {renderToggle(simpleDashboard, (v) => onToggleSimpleDashboard?.(v))}
+              {renderToggle(!simpleDashboard, (v) => onToggleSimpleDashboard?.(!v))}
             </div>
           </div>
 
