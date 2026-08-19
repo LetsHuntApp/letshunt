@@ -351,7 +351,18 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   return (
     <div className="space-y-4">
       {/* Gallery Action Bar */}
-      <div className={`flex flex-col gap-2 p-3 rounded-2xl ${tc.cardBg} sm:flex-row sm:flex-wrap sm:items-center sm:justify-between`}>
+      <div className={`flex flex-col gap-3 p-3 sm:p-4 rounded-2xl ${tc.cardBg}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">Photo library</div>
+            <div className="text-sm font-black mt-0.5">{photos.length} photo{photos.length === 1 ? '' : 's'} shown{totalPhotosCount > photos.length ? ` · ${totalPhotosCount} total` : ''}</div>
+          </div>
+          {showTimeDefaultedOnly && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-500">
+              <AlertTriangle className="w-3 h-3" /> Needs time review
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {

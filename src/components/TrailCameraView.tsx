@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Camera, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2, Trash2, Filter } from 'lucide-react';
+import { Camera, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2, Trash2, Filter, Sparkles, Settings2 } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
 import { TrailCameraFilters } from './TrailCameraFilters';
@@ -7,6 +7,7 @@ import { TrailCameraGallery } from './TrailCameraGallery';
 import { TrailCameraDetail } from './TrailCameraDetail';
 import { TrailCameraAnalytics } from './TrailCameraAnalytics';
 import { TrailCameraTargetManager } from './TrailCameraTargetManager';
+import { TrailCameraInsights } from './TrailCameraInsights';
 import {
   getAllPhotos,
   startPhotoImport,
@@ -22,6 +23,7 @@ import {
   deleteTarget,
   filterPhotos,
   computeAnalytics,
+  generateInsights,
   matchWeatherForPhoto,
   getThumbnailUrl,
 } from '../services/trailCameraService';
@@ -679,6 +681,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
       filter.dateStart,
       filter.dateEnd,
       filter.cameraLocationId,
+      filter.targetId,
       filter.windDirection,
       filter.tempMin != null || filter.tempMax != null,
       filter.windSpeedMin != null || filter.windSpeedMax != null,
@@ -697,6 +700,10 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const analytics = useMemo(() => {
     return computeAnalytics(photos, units, pressureUnit);
   }, [photos, units, pressureUnit]);
+
+  const insights = useMemo(() => {
+    return generateInsights(photos, analytics);
+  }, [photos, analytics]);
 
   // Theme-aware class helpers
   const cardBase = 'rounded-2xl border p-3 sm:p-4 backdrop-blur-xl shadow-xl';
@@ -744,20 +751,37 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const modalInputBg = isDark ? 'bg-slate-950 border-slate-700 text-white' : 'bg-slate-50 border-slate-300 text-slate-900';
 
   return (
-    <div className="space-y-2 sm:space-y-3">
-      {/* Top Header Card — relative z-30 so the filters dropdown can paint
-          above the page content below. */}
-      <div className={`${cardBase} ${cardBg} relative z-30 flex flex-col gap-2.5`}>
-        {/* Title row — always on top */}
-        <div className="flex items-start gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-500 flex-shrink-0">
-            <Camera className="w-4 h-4 sm:w-6 sm:h-6" />
+    <div className="space-y-3 sm:space-y-4">
+      {/* Trail cam command center. The header keeps the primary actions visible,
+          while setup controls live in the expandable card below. */}
+      <div className={`${cardBase} ${cardBg} relative z-30 overflow-visible flex flex-col gap-3 sm:gap-4`}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/35 flex items-center justify-center text-emerald-500 flex-shrink-0 shadow-inner">
+              <Camera className="w-5 h-5 sm:w-7 sm:h-7" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500 mb-1">Field library</div>
+              <h2 className="text-lg sm:text-2xl font-black tracking-tight leading-tight">Trail cameras</h2>
+              <p className="text-xs sm:text-sm opacity-70 mt-1 max-w-xl">
+                Turn camera captures into weather-backed deer movement patterns.
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm sm:text-lg font-black tracking-tight leading-tight">Trail Cam Photo Analyzer</h2>
-            <p className="text-xs sm:text-xs opacity-70 mt-0.5">
-              Bulk photo import, automatic historical weather matching &amp; deer movement analytics.
-            </p>
+
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:items-stretch lg:min-w-[360px]">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-2 sm:min-w-[88px]">
+              <div className="text-[10px] font-black uppercase tracking-wider opacity-60">Photos</div>
+              <div className="text-lg font-black tabular-nums leading-tight">{photos.length}</div>
+            </div>
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/10 px-2.5 py-2 sm:min-w-[110px]">
+              <div className="text-[10px] font-black uppercase tracking-wider opacity-60">Weather matched</div>
+              <div className="text-lg font-black tabular-nums leading-tight">{analytics.withWeather}</div>
+            </div>
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-2.5 py-2 sm:min-w-[88px]">
+              <div className="text-[10px] font-black uppercase tracking-wider opacity-60">Spots</div>
+              <div className="text-lg font-black tabular-nums leading-tight">{allSpots.length}</div>
+            </div>
           </div>
         </div>
 
@@ -903,6 +927,23 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             >
               <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Analytics</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`flex-1 sm:flex-none justify-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-lg text-xs sm:text-xs font-black flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'insights'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md'
+                  : isDark
+                  ? 'text-slate-400 hover:text-white'
+                  : isHunting
+                  ? 'text-[#8b7355] hover:text-[#2a1b0e]'
+                  : isOlive
+                  ? 'text-[#6e6a5e] hover:text-[#1e2e1b]'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span>Insights</span>
+            </button>
           </div>
         </div>
       </div>
@@ -926,9 +967,25 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             </div>
           )}
 
-          {/* Location & Target Management Card — Spots and Targets merged into
-              one compact card with two tight rows so the page stays short. */}
-          <div className={`rounded-2xl border backdrop-blur-xl shadow-xl ${cardBg} flex flex-wrap items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 text-xs`}>
+          {/* Location & Target Management — collapsed by default so the photo
+              library stays focused, while every setup action remains available. */}
+          <details className={`group rounded-2xl border backdrop-blur-xl shadow-xl ${cardBg}`}>
+            <summary className="list-none cursor-pointer flex items-center justify-between gap-3 px-3 py-3 sm:px-4 sm:py-3.5 select-none">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-500 shrink-0">
+                  <Settings2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-black">Camera setup</div>
+                  <div className="text-[11px] opacity-60 truncate">{allSpots.length} spot{allSpots.length === 1 ? '' : 's'} · {targets.length} target{targets.length === 1 ? '' : 's'}{defaultLocId ? ' · default upload spot set' : ''}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {defaultLocId && <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-500">Ready to import</span>}
+                <span className="text-xs font-black opacity-60 group-open:rotate-180 transition-transform">⌄</span>
+              </div>
+            </summary>
+            <div className="border-t border-slate-500/15 p-3 sm:p-4 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
             <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
             </span>
@@ -1157,7 +1214,8 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 <span>Select a Target, then press <strong>Add photos to Target</strong> to import and tag photos in one step.</span>
               </div>
             )}
-          </div>
+            </div>
+          </details>
 
           {/* Photo Gallery Grid */}
           <TrailCameraGallery
@@ -1197,6 +1255,16 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           onFilterChange={setFilter}
           units={units}
           pressureUnit={pressureUnit}
+        />
+      )}
+
+      {activeTab === 'insights' && (
+        <TrailCameraInsights
+          theme={theme}
+          isDark={isDark}
+          insights={insights}
+          totalPhotosCount={photos.length}
+          weatherMatchedCount={analytics.withWeather}
         />
       )}
 
