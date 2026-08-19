@@ -405,7 +405,13 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     ? theme === 'hunting' ? '#4a3320' : theme === 'olive' ? '#2a3620' : '#1e293b'
     : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0';
   const nowDetails = heroHourData ? getWeatherDetails(heroHourData.weatherCode) : getWeatherDetails(activeDay.weatherCode);
-  const nowDesc = heroHourData ? heroHourData.weatherDesc : activeDay.weatherDesc;
+  // Keep the hero's condition badge compact: a rain-break hour reads as
+  // "Rain Break" instead of the longer "Rain Break (Dry Window)" string.
+  const nowDesc = heroHourData
+    ? isHourlyRainBreak(activeDay, heroHourData.weatherCode, heroHour)
+      ? 'Rain Break'
+      : heroHourData.weatherDesc
+    : activeDay.weatherDesc;
   const nowTemp = heroHourData ? heroHourData.temp : activeDay.maxTemp;
   const nowWindText = heroHourData ? heroHourData.windDirectionText : activeDay.windDirectionText;
   const nowWindSpeed = heroHourData
