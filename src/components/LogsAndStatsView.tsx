@@ -198,7 +198,8 @@ const cardBgLight = hasCustomBackground
   const [selectedGenderFilter, setSelectedGenderFilter] = useState<string>('All');
   const [selectedStandFilter, setSelectedStandFilter] = useState<string>('All');
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>('All');
-  const [activeTab, setActiveTab] = useState<'analytics' | 'logs'>('analytics');
+  // Open on the practical logbook; the full analytics dashboard remains one tap away.
+  const [activeTab, setActiveTab] = useState<'analytics' | 'logs'>('logs');
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
 
   // Auto populate default datetime in form
@@ -695,10 +696,10 @@ const cardBgLight = hasCustomBackground
   const topStand = standRankingData.length > 0 ? standRankingData[0].stand : 'N/A';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {/* Top Banner Header & Primary Action Controls */}
       <div
-        className={`p-5 sm:p-6 rounded-3xl border shadow-xl relative overflow-hidden transition-all ${
+        className={`p-4 sm:p-5 rounded-2xl border shadow-xl relative overflow-hidden transition-all ${
           isDark
             ? `${cardBg} border-slate-800 text-slate-100`
             : theme === 'hunting'
@@ -712,14 +713,14 @@ const cardBgLight = hasCustomBackground
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                <Trophy className="w-3 h-3" /> Harvest Journal & Analytics
+                <Trophy className="w-3 h-3" /> Harvest journal
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black mt-1.5 tracking-tight flex items-center gap-2">
-              Logs & Hunting Statistics
+              Harvest logs
             </h1>
             <p className={`text-xs mt-1 max-w-2xl ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Log your harvests, track stands and times, and see which weather, hours, and spots lead to more deer.
+              Record each harvest once, then use your field data to spot better times, stands, and weather patterns.
             </p>
           </div>
 
@@ -729,7 +730,7 @@ const cardBgLight = hasCustomBackground
               className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Log Deer Harvest</span>
+              <span>Add harvest</span>
             </button>
           </div>
         </div>
@@ -780,7 +781,7 @@ const cardBgLight = hasCustomBackground
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" />
-            <span>Visual Graphs & Stats</span>
+            <span>Analytics</span>
           </button>
 
           <button
@@ -794,7 +795,7 @@ const cardBgLight = hasCustomBackground
             }`}
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span>All Harvest Logs ({logs.length})</span>
+            <span>Harvest logs ({logs.length})</span>
           </button>
         </div>
       </div>
@@ -822,10 +823,10 @@ const cardBgLight = hasCustomBackground
         /* ================= GRAPH & ANALYTICS VIEW ================= */
         <div className="space-y-6">
           {/* Top Row: Graph 1 (Shot Time Distribution) & Graph 3 (Gender Pie Chart) */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* GRAPH 1: Time of Day Shot Distribution */}
             <div
-              className={`lg:col-span-2 p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`lg:col-span-2 p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -904,7 +905,7 @@ const cardBgLight = hasCustomBackground
 
             {/* GRAPH 3: Gender Breakdown Pie Chart */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -980,10 +981,10 @@ const cardBgLight = hasCustomBackground
           </div>
 
           {/* Bottom Row: Graph 2 (Seasonal Dates Distribution) & Graph 4 (Stand Ranking) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* GRAPH 2: Dates / Seasonal Distribution */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -1055,7 +1056,7 @@ const cardBgLight = hasCustomBackground
 
             {/* GRAPH 4: Stand / Hunting Spot Ranking */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -1129,10 +1130,10 @@ const cardBgLight = hasCustomBackground
           </div>
 
           {/* Middle Row: GRAPH 5 (Specific Calendar Harvest Dates) & GRAPH 6 (Temperature Distribution) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* GRAPH 5: Specific Calendar Harvest Dates */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -1214,7 +1215,7 @@ const cardBgLight = hasCustomBackground
 
             {/* GRAPH 6: Temperature Distribution Chart */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -1279,10 +1280,10 @@ const cardBgLight = hasCustomBackground
           </div>
 
           {/* Bottom Row: GRAPH 7 (Wind Speed Distribution) & GRAPH 8 (Wind Direction Distribution) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* GRAPH 7: Wind Speed Distribution */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -1336,7 +1337,7 @@ const cardBgLight = hasCustomBackground
 
             {/* GRAPH 8: Wind Direction Distribution */}
             <div
-              className={`p-5 sm:p-6 rounded-3xl border shadow-xl flex flex-col justify-between ${
+              className={`p-5 sm:p-6 rounded-2xl border shadow-xl flex flex-col justify-between ${
                 isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
               }`}
             >
@@ -1394,24 +1395,33 @@ const cardBgLight = hasCustomBackground
         <div className="space-y-4">
           {/* Filters Bar */}
           <div
-            className={`p-4 rounded-3xl border shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+            className={`p-3 sm:p-4 rounded-2xl border shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-3 ${
               isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`
             }`}
           >
             {/* Search input */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search notes, stand names, weapons..."
-                className={`w-full pl-9 pr-3 py-2 rounded-2xl text-xs font-semibold focus:outline-none border transition-all ${
-                  isDark
-                    ? 'bg-slate-950 border-slate-800 text-white focus:border-emerald-500'
-                    : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-600'
-                }`}
-              />
+            <div className="flex-1 min-w-[200px] space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider opacity-70">
+                  <Filter className="w-3.5 h-3.5 text-emerald-500" /> Harvest library
+                </div>
+                <span className="text-xs font-bold opacity-60 tabular-nums">{filteredLogs.length} shown of {logs.length}</span>
+              </div>
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search notes, stands, weapons..."
+                  aria-label="Search harvest logs"
+                  className={`w-full pl-9 pr-3 py-2 rounded-xl text-xs font-semibold focus:outline-none border transition-all ${
+                    isDark
+                      ? 'bg-slate-950 border-slate-800 text-white focus:border-emerald-500'
+                      : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-600'
+                  }`}
+                />
+              </div>
             </div>
 
             {/* Filter Dropdowns */}
@@ -1486,7 +1496,26 @@ const cardBgLight = hasCustomBackground
           </div>
 
           {/* Logs Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredLogs.length === 0 && (
+            <div className={`rounded-2xl border p-8 text-center shadow-lg ${isDark ? `${cardBg} border-slate-800` : `${cardBgLight} border-slate-200`}`}>
+              <Filter className="w-8 h-8 mx-auto text-emerald-500 mb-3" />
+              <h3 className="text-sm font-black">No harvests match these filters</h3>
+              <p className="text-xs opacity-65 mt-1 max-w-sm mx-auto">Try a different search or clear the filters to see your full harvest library.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedGenderFilter('All');
+                  setSelectedStandFilter('All');
+                  setSelectedYearFilter('All');
+                }}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white hover:bg-emerald-500 transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Clear filters
+              </button>
+            </div>
+          )}
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${filteredLogs.length === 0 ? 'hidden' : ''}`}>
             {filteredLogs.map((log) => {
               const dateObj = new Date(log.dateTime);
               const formattedDate = !isNaN(dateObj.getTime())
@@ -1508,7 +1537,7 @@ const cardBgLight = hasCustomBackground
               return (
                 <div
                   key={log.id}
-                  className={`rounded-3xl border shadow-lg overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01] ${
+                  className={`rounded-2xl border shadow-lg overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01] ${
                     isDark ? `${cardBg} border-slate-800 text-slate-100` : `${cardBgLight} border-slate-200 text-slate-900`
                   }`}
                 >
@@ -1638,7 +1667,7 @@ const cardBgLight = hasCustomBackground
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
           <div
-            className={`w-full max-w-xl my-8 p-6 sm:p-8 rounded-3xl border shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto ${
+            className={`w-full max-w-xl my-8 p-6 sm:p-8 rounded-2xl border shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto ${
               isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
@@ -2055,7 +2084,7 @@ const cardBgLight = hasCustomBackground
             <img
               src={previewPhotoUrl}
               alt="Full Harvest Photo"
-              className="max-w-full max-h-[85vh] rounded-3xl object-contain shadow-2xl border border-white/10"
+              className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl border border-white/10"
             />
           </div>
         </div>
