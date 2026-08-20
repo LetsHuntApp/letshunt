@@ -200,6 +200,102 @@ const getScoreBarColor = (score: number): string => {
   return '#c45b53';
 };
 
+/**
+ * Daily-section rating threshold (slightly looser than RATING_THRESHOLDS so
+ * the AM/PM buckets spread out more evenly on typical days): 70+ Great,
+ * 60–69 Good, 50–59 Okay, 40–49 Slow, Below 40 Very Slow. Kept local to
+ * the daily card so the hourly bars, slider, and scoring engine stay
+ * untouched.
+ */
+const DAILY_RATING_THRESHOLDS = {
+  excellent: 70, // Great
+  good: 60,      // Good
+  okay: 50,      // Okay
+  slow: 40,      // Slow
+} as const;
+
+const getDailyRatingFromScore = (score: number): 'Very Slow' | 'Slow' | 'Okay' | 'Good' | 'Great' => {
+  if (score >= DAILY_RATING_THRESHOLDS.excellent) return 'Great';
+  if (score >= DAILY_RATING_THRESHOLDS.good) return 'Good';
+  if (score >= DAILY_RATING_THRESHOLDS.okay) return 'Okay';
+  if (score >= DAILY_RATING_THRESHOLDS.slow) return 'Slow';
+  return 'Very Slow';
+};
+
+/** Same five-color palette as `getScoreBarColor`, just keyed off the
+    looser daily-section thresholds so the AM/PM card colors line up
+    with the "70+ Great / 60–69 Good / …" legend. */
+const getDailyScoreBarColor = (score: number): string => {
+  if (score >= DAILY_RATING_THRESHOLDS.excellent) return '#2f8f68';
+  if (score >= DAILY_RATING_THRESHOLDS.good) return '#69a86f';
+  if (score >= DAILY_RATING_THRESHOLDS.okay) return '#d9a92c';
+  if (score >= DAILY_RATING_THRESHOLDS.slow) return '#d38a3a';
+  return '#c45b53';
+};
+
+/** Pull a clock time out of a morning/evening prime-window summary
+    string (e.g. "6:00 AM - 9:00 AM"). Returns minutes since local
+    midnight; callers choose first vs. last to read either bound out
+    of the same parser. */
+const parsePrimeTimeToken = (
+  str: string | undefined,
+  position: 'first' | 'last',
+  fallback: number,
+): number => {
+  if (!str) return fallback;
+  const matches = Array.from(str.matchAll(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi));
+  if (matches.length === 0) return fallback;
+  const m = position === 'last' ? matches[matches.length - 1] : matches[0];
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ampm = m[3].toUpperCase();
+  if (ampm === 'PM' && h !== 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+};
+
+/** Compute AM and PM hunt scores by averaging the day's hourly entries
+    that fall inside the existing morning/evening prime windows (the
+    same `weatherService` uses for the daily score). Falls back to the
+    daily `huntScore` when hourly data is missing so the cards still
+    render on legacy / sparse days. */
+const computeAmPmScores = (
+  d: DailyForecast,
+): { am: number; pm: number; amHours: number; pmHours: number } => {
+  if (!d.hourly || d.hourly.length === 0) {
+    return { am: d.huntScore, pm: d.huntScore, amHours: 0, pmHours: 0 };
+  }
+  const amStart = parsePrimeTimeToken(d.morningPrime, 'first', 360);   // 6:00 AM
+  const amEnd = parsePrimeTimeToken(d.morningPrime, 'last', 540);      // 9:00 AM
+  const pmStart = parsePrimeTimeToken(d.eveningPrime, 'first', 990);  // 4:30 PM
+  const pmEnd = parsePrimeTimeToken(d.eveningPrime, 'last', 1170);     // 7:30 PM
+
+  const inWindow = (ts: number, start: number, end: number) => {
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
+    const dt = new Date(ts);
+    const minOfDay = dt.getHours() * 60 + dt.getMinutes();
+    return minOfDay >= lo && minOfDay <= hi;
+  };
+
+  const amScores = d.hourly
+    .filter((h) => inWindow(h.timestamp, amStart, amEnd))
+    .map((h) => h.huntScore);
+  const pmScores = d.hourly
+    .filter((h) => inWindow(h.timestamp, pmStart, pmEnd))
+    .map((h) => h.huntScore);
+
+  const avg = (arr: number[]) =>
+    arr.length === 0 ? 0 : Math.round(arr.reduce((s, n) => s + n, 0) / arr.length);
+
+  return {
+    am: amScores.length > 0 ? avg(amScores) : d.huntScore,
+    pm: pmScores.length > 0 ? avg(pmScores) : d.huntScore,
+    amHours: amScores.length,
+    pmHours: pmScores.length,
+  };
+};
+
 /** Compact day label used across the simple dashboard cards. */
 const dayLabel = (d: DailyForecast) =>
   d.dayName === 'Today' ? 'Today' : d.dayName === 'Tomorrow' ? 'Tmrw' : d.dayName;
@@ -755,21 +851,21 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
       </div>
 
-      {/* 3. Daily hunt score bar */}
+      {/* 3. Daily hunt score — compact AM + PM card per day. */}
       <div className={`rounded-2xl border p-3 sm:p-4 shadow-md ${cardSurface}`}>
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <div>
+        <div className="flex items-start justify-between gap-2 mb-2.5">
+          <div className="min-w-0">
             <h2 className={`text-sm font-black uppercase tracking-wider flex items-center gap-2 ${accentText}`}>
               <CalendarDays className="w-4 h-4" /> Daily Hunt Score
             </h2>
             <p className={`text-[11px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              Tap a bar to see its hourly hunt score
+              Morning and evening at a glance
             </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto pb-1">
-          <div className="flex items-start gap-1 sm:gap-1.5 min-w-[560px]">
+        <div className="overflow-x-auto pb-1.5 -mx-1 px-1">
+          <div className="flex items-stretch gap-2 sm:gap-2.5 min-w-[560px]">
             {daily.map((d) => {
               const isSelected = d.date === (activeDayDate || today.date);
               const wet = isWetDay(d);
@@ -778,10 +874,26 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 ? `${(d.precipSumInches || 0).toFixed(2)} in`
                 : `${(d.precipSumMm || 0).toFixed(1)} mm`;
               const coldFront = isSignificantColdFront(d.tempDrop24h, units);
-              const coldFrontDrop = Math.round((d.tempDrop24h || 0) * 10) / 10;
               const hasMoonBadge = d.solunar?.moonPhaseName === 'Full Moon';
-              // Day-of-month for the bar label, e.g. "Fri 13".
-              const dayNum = parseInt(d.date.split('-')[2], 10);
+              const { am, pm } = computeAmPmScores(d);
+              const amRating = getDailyRatingFromScore(am);
+              const pmRating = getDailyRatingFromScore(pm);
+              const amColor = getDailyScoreBarColor(am);
+              const pmColor = getDailyScoreBarColor(pm);
+              const ringClass = isSelected
+                ? (isDark ? 'ring-2 ring-emerald-400/80 bg-slate-800/55'
+                  : theme === 'hunting' ? 'ring-2 ring-[#7a3208]/55 bg-[#f4eee1]/80'
+                  : theme === 'olive' ? 'ring-2 ring-[#556b2f]/55 bg-[#f7f5ed]/80'
+                  : 'ring-2 ring-emerald-500/70 bg-emerald-50/60')
+                : (isDark ? 'bg-slate-800/30 hover:bg-slate-800/60 ring-1 ring-slate-700/40'
+                  : theme === 'hunting' ? 'bg-[#f4eee1]/40 hover:bg-[#f4eee1]/80 ring-1 ring-[#d4c4a8]/60'
+                  : theme === 'olive' ? 'bg-[#f7f5ed]/40 hover:bg-[#f7f5ed]/80 ring-1 ring-[#d8d2c0]/60'
+                  : 'bg-slate-50 hover:bg-slate-100 ring-1 ring-slate-200');
+              const subText = isDark ? 'text-slate-300' : 'text-slate-600';
+              const headText = isDark ? 'text-slate-100'
+                : theme === 'hunting' ? 'text-[#2a1b0e]'
+                : theme === 'olive' ? 'text-[#1e2e1b]'
+                : 'text-slate-800';
               return (
                 <button
                   key={d.date}
@@ -790,84 +902,121 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     setActiveDayDate((prev) => (prev === d.date ? '' : d.date));
                     setHeroHour(new Date().getHours());
                   }}
-                  title={`${d.dayName} ${d.dateFormatted} · ${d.huntScore}/100 (${d.rating})`}
-                  className={`group flex-1 min-w-[80px] flex flex-col items-center rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-                    isSelected ? (isDark ? 'bg-slate-800/60' : 'bg-slate-100') : 'hover:bg-slate-500/5'
-                  }`}
+                  title={`${d.dayName} ${d.dateFormatted} · AM ${am} (${amRating}) · PM ${pm} (${pmRating})`}
+                  className={`group flex-1 min-w-[112px] flex flex-col rounded-xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${ringClass}`}
                 >
-                  <div className="relative w-full h-24 sm:h-28 flex items-end justify-center">
-                    {hasMoonBadge && (
-                      <div
-                        className={`absolute top-0.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-wide whitespace-nowrap shadow-sm border ${
-                          isDark
-                            ? 'bg-slate-950/85 text-amber-300 border-amber-400/40'
-                            : 'bg-white/95 text-amber-600 border-amber-400/60'
-                        }`}
-                      >
-                        <Moon className="w-2.5 h-2.5 shrink-0 fill-current" />
-                        Full Moon
-                      </div>
-                    )}
-                    {coldFront && (
-                      <div
-                        title={`Significant 24-hour temperature drop: ${coldFrontDrop}°${units === 'imperial' ? 'F' : 'C'}`}
-                        className={`absolute left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[7px] sm:text-[8px] font-black uppercase tracking-wide whitespace-nowrap shadow-sm border ${
-                          hasMoonBadge ? 'top-[21px]' : 'top-0.5'
-                        } ${
-                          isDark
-                            ? 'bg-slate-950/85 text-sky-300 border-sky-400/50'
-                            : 'bg-white/95 text-sky-600 border-sky-400/60'
-                        }`}
-                      >
-                        <Snowflake className="w-2.5 h-2.5 shrink-0" />
-                        Cold Front!
-                      </div>
-                    )}
-                    <div
-                      className="absolute bottom-0 left-0 right-0 rounded-t-sm flex items-start justify-center overflow-hidden"
-                      style={{
-                        // Tall enough to always fit the deer icon + score.
-                        height: `${Math.max(50, d.huntScore)}%`,
-                        backgroundColor: getScoreBarColor(d.huntScore),
-                      }}
-                    >
-                      <div className="flex flex-col items-center gap-[2px] mt-1 leading-none">
-                        {d.huntScore >= RATING_THRESHOLDS.excellent && (
-                          <Star className="w-3 h-3 text-white fill-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
-                        )}
-                        <DeerIcon className="w-5 h-5 shrink-0 text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]" />
-                        <span className="text-xl font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]">
-                          {d.huntScore}
-                        </span>
-                      </div>
+                  {/* Day header — compact day label + subtle status icons */}
+                  <div className="px-2 pt-2 pb-1.5 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-0.5 h-3.5">
+                      {hasMoonBadge && <Moon className="w-3 h-3 text-amber-400 fill-amber-400" aria-label="Full moon" />}
+                      {coldFront && (
+                        <Snowflake className="w-3 h-3 text-sky-400" aria-label="Cold front" />
+                      )}
+                    </div>
+                    <div className={`text-[11px] font-black uppercase tracking-wider ${headText}`}>
+                      {d.dayName === 'Today' ? 'Today' : d.dayName}
+                    </div>
+                    <div className={`text-[9px] font-bold uppercase tracking-wider opacity-60 ${subText}`}>
+                      {d.dateFormatted}
                     </div>
                   </div>
-                  <div className="flex flex-col items-center w-full mt-1.5 h-14">
-                    <div className="flex items-center justify-center gap-0.5 h-6 leading-none">
-                      {getWeatherIcon(d.weatherIcon, `w-6 h-6 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
-                      {wet && (
-                        <span className={`text-[8px] font-black leading-none ${isDark ? 'text-sky-400' : 'text-sky-500'}`}>
-                          {maxPrecipProb}%
-                        </span>
-                      )}
+
+                  {/* AM score row — sunrise icon + score chip */}
+                  <div className="px-2 pb-1.5 flex items-stretch gap-1.5">
+                    <div className="flex flex-col items-center justify-center shrink-0 w-5">
+                      <Sunrise className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span className={`text-[9px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>AM</span>
                     </div>
-                    <div className="h-3.5 flex items-center justify-center">
-                      {wet && (
-                        <span className={`text-[8px] font-bold leading-none whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {precipAmount}
-                        </span>
-                      )}
+                    <div
+                      className="flex-1 rounded-md px-1.5 py-1 flex items-center justify-between gap-1 min-w-0"
+                      style={{ backgroundColor: amColor }}
+                    >
+                      <div className="flex items-center gap-1 min-w-0">
+                        <DeerIcon
+                          className="w-3.5 h-3.5 shrink-0 text-white"
+                          style={{ fill: 'white', color: 'white' }}
+                        />
+                        <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{am}</span>
+                      </div>
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
+                        {amRating}
+                      </span>
                     </div>
-                    <span className="mt-auto text-xs font-bold leading-none whitespace-nowrap opacity-70 group-hover:opacity-100">
-                      {getDayBarLabel(d)} <span className="opacity-60">{dayNum}</span>
-                    </span>
+                  </div>
+
+                  {/* PM score row — sunset icon + score chip */}
+                  <div className="px-2 pb-2 flex items-stretch gap-1.5">
+                    <div className="flex flex-col items-center justify-center shrink-0 w-5">
+                      <Sunset className="w-4 h-4 text-orange-500 shrink-0" />
+                      <span className={`text-[9px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>PM</span>
+                    </div>
+                    <div
+                      className="flex-1 rounded-md px-1.5 py-1 flex items-center justify-between gap-1 min-w-0"
+                      style={{ backgroundColor: pmColor }}
+                    >
+                      <div className="flex items-center gap-1 min-w-0">
+                        <DeerIcon
+                          className="w-3.5 h-3.5 shrink-0 text-white"
+                          style={{ fill: 'white', color: 'white' }}
+                        />
+                        <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{pm}</span>
+                      </div>
+                      <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
+                        {pmRating}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Weather footer — icon + precip prob + precip amount */}
+                  <div className={`flex items-center justify-center gap-1.5 px-2 py-1.5 border-t ${
+                    isDark ? 'border-slate-700/70'
+                      : theme === 'hunting' ? 'border-[#d4c4a8]'
+                      : theme === 'olive' ? 'border-[#d8d2c0]'
+                      : 'border-slate-200'
+                  }`}>
+                    {getWeatherIcon(d.weatherIcon, `w-5 h-5 sm:w-6 sm:h-6 shrink-0 ${getWeatherIconTone(d.weatherCode)}`)}
+                    {wet ? (
+                      <div className="flex items-baseline gap-1 leading-none">
+                        <span className={`text-[11px] sm:text-xs font-black ${isDark ? 'text-sky-400' : 'text-sky-500'}`}>{maxPrecipProb}%</span>
+                        <span className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{precipAmount}</span>
+                      </div>
+                    ) : (
+                      <span className={`text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider opacity-70 truncate ${subText}`}>
+                        {d.weatherDesc}
+                      </span>
+                    )}
                   </div>
                 </button>
               );
             })}
           </div>
         </div>
+
+        {/* Shared rating legend — same color buckets as the AM/PM chips. */}
+        <div className={`flex items-center justify-center gap-x-2 sm:gap-x-3 gap-y-1 text-[9px] sm:text-[10px] font-bold flex-wrap mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm inline-block" style={{ background: getDailyScoreBarColor(75) }} />
+            70+ Great
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm inline-block" style={{ background: getDailyScoreBarColor(65) }} />
+            60–69 Good
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm inline-block" style={{ background: getDailyScoreBarColor(55) }} />
+            50–59 Okay
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm inline-block" style={{ background: getDailyScoreBarColor(45) }} />
+            40–49 Slow
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-sm inline-block" style={{ background: getDailyScoreBarColor(20) }} />
+            Below 40 Very Slow
+          </span>
+        </div>
       </div>
+
 
       {/* 4. Selected day pressure + precipitation */}
       <PressureChart
