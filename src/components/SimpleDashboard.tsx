@@ -831,7 +831,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto pb-1.5 -mx-1 px-1">
+        <div className="overflow-x-auto py-1.5 -mx-1 px-1">
           <div className="flex items-stretch gap-2 sm:gap-2.5 min-w-[560px]">
             {daily.map((d) => {
               const isSelected = d.date === (activeDayDate || today.date);
