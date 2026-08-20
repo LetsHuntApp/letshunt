@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, Calendar, CloudRain, Compass, Gauge, Moon, Sparkles, Sun, Thermometer, TrendingUp, Clock, ShieldCheck } from 'lucide-react';
+import { AlertCircle, BarChart3, Calendar, CloudRain, Compass, Gauge, Moon, Sparkles, Sun, Thermometer, TrendingUp, Wind, Clock, ShieldCheck } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode } from '../types';
 import { PatternInsight } from '../services/trailCameraService';
 
@@ -14,9 +14,11 @@ interface TrailCameraInsightsProps {
 type InsightIconComponent = React.ComponentType<{ className?: string }>;
 
 const getInsightIcon = (label: string): InsightIconComponent => {
+  if (label.includes('Secondary Wind')) return Wind;
   if (label.includes('Wind')) return Compass;
-  if (label.includes('Temp')) return Thermometer;
+  if (label.includes('Pressure Trend')) return BarChart3;
   if (label.includes('Pressure')) return Gauge;
+  if (label.includes('Temp')) return Thermometer;
   if (label.includes('Moon')) return Moon;
   if (label.includes('Month')) return Calendar;
   if (label.includes('Activity Time')) return Clock;
