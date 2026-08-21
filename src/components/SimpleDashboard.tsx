@@ -40,6 +40,7 @@ import {
   ArrowRight,
   Lightbulb,
   ChevronDown,
+  Thermometer,
 } from 'lucide-react';
 import { getRutPhase } from '../utils/rutEngine';
 
@@ -90,12 +91,15 @@ const getDownwindText = (deg: number): string => {
 };
 
 /**
- * Builds a day's "Daily Tip": a short, ultra-specific, down-to-earth rundown
- * of the standout conditions a hunter should act on — big cold front, moon
- * phase, wet weather, wind, temperature, and rut. When an hour is supplied
- * (the hour selected in the hourly scrubber) the tip keys off that hour's
- * weather, temperature, and wind so it stays specific to the day/hour shown.
- * Returns up to 3 sentences; always returns at least one.
+ * Builds a coordinated Daily Tip for the selected day/hour.
+ *
+ * The tip is deliberately assembled in three layers — current weather,
+ * movement context, and hunting plan — instead of appending unrelated alerts.
+ * That keeps a rain-break message from being followed by a blanket "stay in
+ * cover" warning, while still using the extra forecast variables available on
+ * hourly data: precipitation probability/amount, humidity, cloud cover,
+ * sustained wind, gusts, pressure trend, temperature trend, moon activity,
+ * rut phase, and the hunt score.
  */
 const buildDailyTip = (
   day: DailyForecast,
@@ -104,91 +108,152 @@ const buildDailyTip = (
   hour?: HourlyForecast | null,
   hourIndex?: number,
 ): string[] => {
-  const tips: string[] = [];
   const isMetric = units === 'metric';
   const tempUnit = isMetric ? '°C' : '°F';
-  const isHourly = !!hour;
-
-  // Hour-specific values when the tip is for a selected hour; day-level
-  // fallbacks keep the function working for a day-only context.
-  const windSpeed = Math.round(
-    isMetric ? (hour?.windSpeedKmh ?? day.windSpeedMaxKmh) : (hour?.windSpeedMph ?? day.windSpeedMaxMph),
-  );
   const windUnit = isMetric ? 'km/h' : 'mph';
-  const temp = Math.round(hour?.temp ?? day.maxTemp);
-  const tempDrop = Math.round(day.tempDrop24h || 0);
-  const moonName = day.solunar?.moonPhaseName || '';
   const code = hour?.weatherCode ?? day.weatherCode;
-  const isRaining = (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
-  const isSnowing = code >= 71 && code <= 75;
+  const weatherDesc = (hour?.weatherDesc ?? day.weatherDesc).toLowerCase();
+  const temp = Math.round(hour?.temp ?? day.maxTemp);
+  const tempDrop = Math.round(hour?.tempDrop24h ?? day.tempDrop24h ?? 0);
+  const windSpeed = Math.round(isMetric ? (hour?.windSpeedKmh ?? day.windSpeedMaxKmh) : (hour?.windSpeedMph ?? day.windSpeedMaxMph));
+  const windGust = hour
+    ? Math.round(isMetric ? (hour.windGustKmh ?? hour.windSpeedKmh) : (hour.windGustMph ?? hour.windSpeedMph))
+    : undefined;
+  const precipProbability = Math.round(hour?.precipProbability ?? (day.hourly.length ? Math.max(...day.hourly.map((h) => h.precipProbability || 0)) : 0));
+  const precipAmount = hour
+    ? (isMetric ? hour.precipMm : hour.precipMm * 0.0393701)
+    : (isMetric ? day.precipSumMm : day.precipSumInches);
+  const precipUnit = isMetric ? 'mm' : 'in';
+  const humidity = hour?.humidity ?? day.humidityAvg;
+  const cloudCover = hour?.cloudCover ?? day.cloudCoverAvg;
+  const pressureTrend = hour?.pressureTrend ?? day.pressureTrend;
+  const moonName = day.solunar?.moonPhaseName || '';
+  const solunarRating = hour?.solunarRating ?? 'Normal';
+  const isPrimeWindow = hour?.isPrimeWindow ?? false;
+  const rut = getRutPhase(day.date, location);
+  const downwindDir = getDownwindText(((hour?.windDirectionDeg ?? day.windDirectionDeg) + 180) % 360);
+
   const isStorming = code >= 95;
+  const isSnowing = code >= 71 && code <= 75;
+  const isRaining = (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
+  const isFoggy = code === 45 || code === 48;
   const rainJustStopped = hour
     ? isHourlyRainBreak(day, code, hourIndex)
     : (day.hasRainBreak || day.isPostStorm) && !isRaining && !isSnowing && !isStorming;
-  const coldFront = isSignificantColdFront(day.tempDrop24h, units);
-  const downwindDir = getDownwindText(((hour?.windDirectionDeg ?? day.windDirectionDeg) + 180) % 360);
-  const rut = getRutPhase(day.date, location);
+  const coldFront = isSignificantColdFront(hour?.tempDrop24h ?? day.tempDrop24h, units);
+  const windIsStrong = windSpeed >= (isMetric ? 29 : 18);
+  const gustIsStrong = windGust !== undefined && windGust >= (isMetric ? 40 : 25);
+  const scentIsUnstable = windIsStrong || gustIsStrong;
+  const windIsCalm = windSpeed <= (isMetric ? 5 : 3);
+  const tempInF = isMetric ? temp * 9 / 5 + 32 : temp;
+  const score = hour?.huntScore ?? day.huntScore;
+  const weatherActive = isStorming || isRaining || isSnowing;
 
-  // 1. Big cold front — the single biggest daylight-movement trigger.
-  if (coldFront) {
-    tips.push(`A big cold front is here — temps dropped ${tempDrop}${tempUnit}! Deer will be up on their feet feeding. Get in the stand!`);
-  }
-
-  // 2. Moon phase.
-  if (moonName === 'Full Moon') {
-    tips.push("It's a full moon tonight — deer may move earlier in the evening. Be in the stand before dark!");
-  } else if (moonName === 'New Moon') {
-    tips.push("New moon tonight — dark nights push deer to move more in daylight. Hunt the first and last hours of light.");
-  }
-
-  // 3. Wet weather — a rain break is a goldmine.
-  if (rainJustStopped) {
-    tips.push("Rain just let up — the woods are wet and quiet, and deer love stepping out to feed right after a break.");
-  } else if (isStorming) {
-    tips.push("Thunderstorms are rolling in — deer will hunker down until it passes. If you go, hunt the edge of the storm.");
+  // Layer 1: choose exactly one weather state. These branches are mutually
+  // exclusive, so an active-rain message cannot coexist with a rain-break
+  // message in the same tip.
+  let weatherTip: string;
+  if (isStorming) {
+    weatherTip = `Active thunderstorms are the limiting factor (${weatherDesc}); wait for the storm to clear before settling into a sit.`;
+  } else if (rainJustStopped) {
+    const amountText = precipAmount > 0
+      ? ` after about ${isMetric ? precipAmount.toFixed(1) : precipAmount.toFixed(2)} ${precipUnit} of precipitation`
+      : '';
+    weatherTip = `Rain just stopped${amountText}; this is a potential short clearing window if wind and visibility cooperate.`;
   } else if (isSnowing) {
-    tips.push("Snow is falling — deer feed hard before and after a snow. Sit on field edges and food sources.");
+    weatherTip = `Snow is falling (${precipProbability}% chance); plan field edges and food sources for the period before and after it eases.`;
   } else if (isRaining) {
-    tips.push("It's raining — deer usually stay tucked in thick cover until it slacks off. Hunt the lulls.");
+    const rainLabel = code === 65 || (hour?.precipMm ?? 0) >= 3 ? 'steady or heavy rain' : 'rain/showers';
+    weatherTip = `${rainLabel[0].toUpperCase()}${rainLabel.slice(1)} are active (${precipProbability}% chance); wait for a lull or the next dry break rather than forcing an exposed sit.`;
+  } else if (isFoggy) {
+    weatherTip = `Fog is reducing visibility; move slowly, keep shots conservative, and favor familiar, sheltered access routes.`;
+  } else if (precipProbability >= 60) {
+    weatherTip = `It is dry right now, but rain remains possible (${precipProbability}% chance${precipAmount > 0 ? `, about ${isMetric ? precipAmount.toFixed(1) : precipAmount.toFixed(2)} ${precipUnit} expected` : ''}); keep the plan flexible around the next break.`;
+  } else if ((cloudCover ?? 0) >= 80) {
+    weatherTip = `Overcast skies (${Math.round(cloudCover!)}% cloud cover) should keep the woods dim and quiet; visibility and wind remain the key setup checks.`;
+  } else {
+    weatherTip = `Conditions are currently dry with ${Math.round(cloudCover ?? 0)}% cloud cover; focus the decision on temperature, wind, and timing rather than sky cover alone.`;
   }
 
-  // 4. Rut phase — only when it really matters.
+  // Layer 2: describe temperature and pressure as a single movement context.
+  // During active precipitation, any positive signal is explicitly deferred
+  // until the weather clears so it cannot promise movement in a storm.
+  let movementTip: string;
+  if (tempInF >= 85) {
+    movementTip = `Warm air (${temp}${tempUnit}) narrows the better opportunity to first/last light, shade, and water`;
+  } else if (tempInF <= 20) {
+    movementTip = `Cold air (${temp}${tempUnit}) concentrates the plan around food and sheltered thermal cover`;
+  } else if (coldFront) {
+    movementTip = `A ${tempDrop}${tempUnit} temperature drop is a favorable cooling trend for daylight movement`;
+  } else if (typeof hour?.tempDeltaF === 'number' && hour.tempDeltaF <= -6) {
+    const delta = isMetric ? Math.round(Math.abs(hour.tempDeltaF) * 5 / 9) : Math.round(Math.abs(hour.tempDeltaF));
+    movementTip = `This hour is about ${delta}${tempUnit} cooler than its seasonal normal, which can improve daytime comfort`;
+  } else {
+    movementTip = `Temperatures are workable at ${temp}${tempUnit}`;
+  }
+
+  if (pressureTrend === 'rapid_drop') {
+    movementTip += isStorming || isRaining
+      ? `, while the rapidly falling barometer says to wait for the system to pass before expecting the better window.`
+      : `, and the rapidly falling barometer can improve movement ahead of the next system.`;
+  } else if (pressureTrend === 'rapid_rise') {
+    movementTip += rainJustStopped || day.isPostStorm
+      ? `; the rising barometer supports a settling post-front window once the woods quiet down.`
+      : `; a rapidly rising barometer usually favors the period after the front has moved through.`;
+  } else if (pressureTrend === 'rising') {
+    movementTip += `; the barometer is rising gradually, a modest positive signal rather than a reason to ignore wind or precipitation.`;
+  } else if (pressureTrend === 'falling') {
+    movementTip += `; the barometer is easing down, so prioritize the safer, more comfortable edge of the window.`;
+  } else {
+    movementTip += `; the steady barometer makes wind, precipitation, and access more important than pressure timing.`;
+  }
+  if (weatherActive) {
+    movementTip += ` Treat that movement signal as a later-window opportunity, not a reason to sit through active weather.`;
+  }
+  movementTip += '.';
+
+  // Layer 3: give one setup/timing plan. Wind and gusts affect scent and
+  // stand choice; humidity/clouds/moon/rut add specificity without making a
+  // second, incompatible claim about whether deer are moving right now.
+  let setupTip: string;
+  if (scentIsUnstable) {
+    setupTip = `Use sheltered cover and keep the ${downwindDir} scent path away from likely travel routes`;
+    if (windGust !== undefined && windGust > windSpeed + (isMetric ? 12 : 7)) {
+      setupTip += ` — gusts are reaching ${windGust} ${windUnit}, so exposed timber will be especially unpredictable`;
+    } else {
+      setupTip += ` — sustained wind is ${windSpeed} ${windUnit}`;
+    }
+  } else if (windIsCalm) {
+    setupTip = `Treat scent as the main risk in the ${windSpeed} ${windUnit} wind: use thermals, a blind, and a route that stays downwind of bedding`;
+  } else {
+    setupTip = `The ${windSpeed} ${windUnit} wind is manageable; set up so scent carries toward the ${downwindDir}, away from expected deer travel`;
+  }
+  if (weatherActive) {
+    setupTip = `Once conditions settle, ${setupTip.charAt(0).toLowerCase()}${setupTip.slice(1)}`;
+  }
+
+  if (humidity !== undefined && humidity >= 85 && windIsCalm) {
+    setupTip += `, especially with humidity at ${humidity}%`;
+  } else if (humidity !== undefined && humidity <= 40 && !weatherActive && !rainJustStopped) {
+    setupTip += `; the drier ${humidity}% air can make scent discipline more important`;
+  }
+
   if (rut.phaseId === 'peak_rut') {
-    tips.push("The rut is on — bucks are chasing does in broad daylight. Sit all day near funnels and doe bedding.");
+    setupTip += weatherActive ? ` When conditions settle, check funnels and doe bedding because the peak rut can extend daylight movement.` : ` Peak rut favors funnels and doe bedding, especially during legal light.`;
   } else if (rut.phaseId === 'pre_rut') {
-    tips.push("Pre-rut is heating up — scrape lines are popping up. Try a mock scrape or some light rattling.");
+    setupTip += weatherActive ? ` When conditions settle, pre-rut favors scrape lines, funnels, and restrained rattling.` : ` Pre-rut favors scrape lines, funnels, and a restrained rattling sequence.`;
+  } else if (solunarRating === 'High') {
+    setupTip += weatherActive ? ` When conditions clear, this hour's major moon-activity window is worth being settled for.` : ` This hour also overlaps a major moon-activity window, so be settled before it begins.`;
+  } else if (moonName === 'Full Moon' && (hour?.timestamp ? new Date(hour.timestamp).getHours() >= 15 : true)) {
+    setupTip += weatherActive ? ` When conditions clear, be settled early for the full-moon evening movement window.` : ` With a full moon, be settled early for the evening movement window.`;
+  } else if (isPrimeWindow) {
+    setupTip += weatherActive ? ` When conditions clear, this is one of the forecast's prime movement windows.` : ` This is one of the forecast's prime movement windows, so be in position before it starts.`;
+  } else if (score < RATING_THRESHOLDS.okay) {
+    setupTip += ` The ${score}/100 score is a slower window; save the longest sit for first or last light.`;
   }
 
-  // 5. Temperature extremes — use the selected hour's temp when available.
-  if (temp >= (isMetric ? 29 : 85)) {
-    tips.push(`It's hot ${isHourly ? 'this hour' : 'today'} (${temp}${tempUnit}) — deer will move early and late. Get in the stand before first light.`);
-  } else if (temp <= (isMetric ? -7 : 20)) {
-    tips.push(`Bitter cold (${temp}${tempUnit}) — deer need heavy calories. Sit on food: corn, beans, or acorns.`);
-  }
-
-  // 6. Wind & scent — only when there's room so headline tips stay on top.
-  if (tips.length < 2) {
-    if (windSpeed >= (isMetric ? 30 : 19)) {
-      tips.push(`Wind is ripping at ${windSpeed} ${windUnit} — deer will be holed up in thick cover. Hunt the downwind edge.`);
-    } else if (windSpeed <= (isMetric ? 5 : 3)) {
-      tips.push("It's dead calm — your scent will hang right on you. Use a ground blind or play the thermals.");
-    } else {
-      tips.push(`Scent is blowing to the ${downwindDir} — set up so your smell carries away from where deer will come.`);
-    }
-  }
-
-  // 7. Never leave the tip empty — fall back to the day's rating.
-  if (tips.length <= 1) {
-    if (day.huntScore >= RATING_THRESHOLDS.excellent) {
-      tips.push("It's a Great day in the woods — get in the stand and stay there!");
-    } else if (day.huntScore >= RATING_THRESHOLDS.good) {
-      tips.push("It's a good day — be in the stand for first light and the last hour before dark.");
-    } else {
-      tips.push("Movement looks slow today — your best bet is first light and the last hour of daylight near thick cover.");
-    }
-  }
-
-  return tips.slice(0, 3);
+  setupTip += '.';
+  return [weatherTip, movementTip, setupTip];
 };
 
 /** Score-to-bar color used by the hourly and daily bars. */
@@ -885,6 +950,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     </div>
                     <div className={`text-[9px] font-bold uppercase tracking-wider opacity-60 ${subText}`}>
                       {d.dateFormatted}
+                    </div>
+                    <div
+                      className="mt-1 flex items-center justify-center gap-1 text-[9px] font-black leading-none"
+                      title={`High ${d.maxTemp}°${units === 'imperial' ? 'F' : 'C'} · Low ${d.minTemp}°${units === 'imperial' ? 'F' : 'C'}`}
+                    >
+                      <Thermometer className="w-3 h-3 text-slate-400" aria-hidden="true" />
+                      <span className="text-orange-500">H {d.maxTemp}°</span>
+                      <span className={isDark ? 'text-slate-600' : 'text-slate-300'}>/</span>
+                      <span className="text-sky-500">L {d.minTemp}°</span>
                     </div>
                   </div>
 
