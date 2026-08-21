@@ -533,14 +533,14 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     : 'text-emerald-700';
 
   return (
-    <div className="w-full space-y-4 sm:space-y-6 animate-fadeIn">
+    <div className="w-full space-y-5 sm:space-y-7 animate-fadeIn">
       {/* Page title — Oswald/display face on the Hunting theme, standard
           sans elsewhere (h1 picks it up automatically). Follows the
           selected day so the header always labels whose data is shown. The
           Hunt Tip badge sits to the right of the selected day's title and
           opens a dropdown with an ultra-specific tip for that day/hour. */}
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-        <h1 className={`text-2xl sm:text-3xl font-black tracking-tight leading-tight ${
+        <h1 className={`text-3xl sm:text-4xl font-black tracking-tight leading-tight ${
           isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'
         }`}>
           {activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} Hunt
@@ -552,7 +552,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               aria-expanded={tipOpen}
               aria-haspopup="true"
               aria-label={`${activeDay.dayName === 'Today' ? "Today's" : `${activeDay.dayName}'s`} hunt tip`}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
                 isDark
                   ? 'bg-slate-950/70 border-amber-400/40 text-amber-300 hover:bg-slate-800/80 focus-visible:ring-amber-400'
                   : theme === 'hunting'
@@ -598,7 +598,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       </div>
 
       {/* 1. Compact hero */}
-      <div className={`rounded-3xl border p-3 sm:p-4 shadow-xl relative overflow-hidden ${cardSurface}`}>
+      <div className={`rounded-3xl border p-4 sm:p-5 shadow-xl relative overflow-hidden ${cardSurface}`}>
         <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3 relative z-10">
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
             isDark ? 'bg-slate-950/60 border-slate-700 text-slate-200'
@@ -613,10 +613,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </span>
         </div>
         {/* Score progress bar (compact, replaces the dial) */}
-        <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 mb-2.5 sm:mb-3">
-          <DeerIcon className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" style={{ color: stroke, fill: stroke }} />
+        <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 mb-3 sm:mb-4">
+          <DeerIcon className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ color: stroke, fill: stroke }} />
           <div
-            className="relative flex-1 min-w-0 h-8 sm:h-9 rounded-full overflow-hidden"
+            className="relative flex-1 min-w-0 h-9 sm:h-10 rounded-full overflow-hidden"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
@@ -628,7 +628,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out flex items-center justify-end"
               style={{ width: `${heroScore}%`, backgroundColor: stroke }}
             >
-              <span className="text-white text-sm sm:text-base font-black leading-none pr-2.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+              <span className="text-white text-base sm:text-lg font-black leading-none pr-2.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
                 {heroScore}
               </span>
             </div>
@@ -640,12 +640,12 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
         </div>
 
         {/* Current conditions grid */}
-        <div className="grid grid-cols-2 gap-2 min-w-0 w-full relative z-10">
+        <div className="grid grid-cols-2 gap-2.5 min-w-0 w-full relative z-10">
             {/* Condition + temp */}
-            <div className={`rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 min-w-0 ${
+            <div className={`rounded-xl border p-2.5 sm:p-3 flex items-center gap-2 min-w-0 ${
               isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-700/70' : theme === 'hunting' ? 'bg-[#f4eee1]/70 border-[#d4c4a8]' : theme === 'olive' ? 'bg-[#f7f5ed]/80 border-[#d8d2c0]' : 'bg-slate-50 border-slate-200'
             }`}>
-              {getWeatherIcon(nowDetails.icon, 'w-7 h-7 sm:w-8 sm:h-8 text-amber-500 shrink-0')}
+              {getWeatherIcon(nowDetails.icon, 'w-8 h-8 sm:w-9 sm:h-9 text-amber-500 shrink-0')}
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">{isLiveNow ? 'Now' : getHour12Label(heroHour)}</div>
                 <div className="text-xs font-black truncate">{nowDesc}</div>
@@ -654,10 +654,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
 
             {/* Wind */}
-            <div className={`rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 min-w-0 ${
+            <div className={`rounded-xl border p-2.5 sm:p-3 flex items-center gap-2 min-w-0 ${
               isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-700/70' : theme === 'hunting' ? 'bg-[#f4eee1]/70 border-[#d4c4a8]' : theme === 'olive' ? 'bg-[#f7f5ed]/80 border-[#d8d2c0]' : 'bg-slate-50 border-slate-200'
             }`}>
-              <Wind className="w-6 h-6 sm:w-7 sm:h-7 text-sky-500 shrink-0" />
+              <Wind className="w-7 h-7 sm:w-8 sm:h-8 text-sky-500 shrink-0" />
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Wind</div>
                 <div className="text-xs font-black truncate">{nowWindText} {nowWindSpeed} {windUnit}</div>
@@ -666,10 +666,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
 
             {/* Sunrise */}
-            <div className={`rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 min-w-0 ${
+            <div className={`rounded-xl border p-2.5 sm:p-3 flex items-center gap-2 min-w-0 ${
               isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-700/70' : theme === 'hunting' ? 'bg-[#f4eee1]/70 border-[#d4c4a8]' : theme === 'olive' ? 'bg-[#f7f5ed]/80 border-[#d8d2c0]' : 'bg-slate-50 border-slate-200'
             }`}>
-              <Sunrise className="w-6 h-6 sm:w-7 sm:h-7 text-amber-500 shrink-0" />
+              <Sunrise className="w-7 h-7 sm:w-8 sm:h-8 text-amber-500 shrink-0" />
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Sunrise</div>
                 <div className="text-xs font-black truncate">{activeDay.solunar?.sunrise || '6:30 AM'}</div>
@@ -677,10 +677,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             </div>
 
             {/* Sunset */}
-            <div className={`rounded-xl border p-2 sm:p-2.5 flex items-center gap-2 min-w-0 ${
+            <div className={`rounded-xl border p-2.5 sm:p-3 flex items-center gap-2 min-w-0 ${
               isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-700/70' : theme === 'hunting' ? 'bg-[#f4eee1]/70 border-[#d4c4a8]' : theme === 'olive' ? 'bg-[#f7f5ed]/80 border-[#d8d2c0]' : 'bg-slate-50 border-slate-200'
             }`}>
-              <Sunset className="w-6 h-6 sm:w-7 sm:h-7 text-orange-500 shrink-0" />
+              <Sunset className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500 shrink-0" />
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Sunset</div>
                 <div className="text-xs font-black truncate">{activeDay.solunar?.sunset || '6:45 PM'}</div>
@@ -714,7 +714,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               setDetailDayDate(activeDay.date);
               window.scrollTo({ top: 0, behavior: 'auto' });
             }}
-            className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
+            className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${
               isDark
                 ? 'border-slate-600 text-emerald-300 hover:bg-emerald-500/10 focus-visible:ring-emerald-400'
                 : theme === 'hunting'
@@ -848,7 +848,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               else if (e.key === 'Home') { setHeroHour(0); e.preventDefault(); }
               else if (e.key === 'End') { setHeroHour(23); e.preventDefault(); }
             }}
-            className="relative h-7 cursor-pointer select-none touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
+            className="relative h-8 cursor-pointer select-none touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
             style={{ touchAction: 'pan-y' }}
           >
             <div className="flex h-full items-center gap-[2px]">
@@ -866,7 +866,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   >
                     {selected && (
                       <span
-                        className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-5 h-5 rounded-full bg-white shadow-md ring-2 ${
+                        className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-white shadow-md ring-2 ${
                           isDark ? 'ring-emerald-400' : theme === 'hunting' ? 'ring-[#c85a17]' : theme === 'olive' ? 'ring-[#556b2f]' : 'ring-emerald-600'
                         }`}
                       />
@@ -931,10 +931,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     setHeroHour(new Date().getHours());
                   }}
                   title={`${d.dayName} ${d.dateFormatted} · AM ${am} (${amRating}) · PM ${pm} (${pmRating})`}
-                  className={`group flex-1 min-w-[112px] flex flex-col rounded-xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${ringClass}`}
+                  className={`group flex-1 min-w-[124px] flex flex-col rounded-xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${ringClass}`}
                 >
                   {/* Day header — compact day label + readable status badges */}
-                  <div className="px-2 pt-2 pb-1.5 text-center">
+                  <div className="px-2.5 pt-2.5 pb-2 text-center">
                     <div className="flex min-h-3.5 items-center justify-center gap-1 mb-0.5">
                       {hasMoonBadge && (
                         <span
@@ -967,7 +967,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   </div>
 
                   {/* AM score row — sunrise icon + score chip */}
-                  <div className="px-2 pb-1.5 flex items-stretch gap-1.5">
+                  <div className="px-2.5 pb-1.5 flex items-stretch gap-1.5">
                     <div className="flex flex-col items-center justify-center shrink-0 w-5">
                       <Sunrise className="w-4 h-4 text-amber-500 shrink-0" />
                       <span className={`text-[10px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>AM</span>
@@ -981,7 +981,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                           className="w-3.5 h-3.5 shrink-0 text-white"
                           style={{ fill: 'white', color: 'white' }}
                         />
-                        <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{am}</span>
+                        <span className="text-lg font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{am}</span>
                       </div>
                       <span className="mt-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
                         {amRating}
@@ -990,7 +990,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   </div>
 
                   {/* PM score row — sunset icon + score chip */}
-                  <div className="px-2 pb-2 flex items-stretch gap-1.5">
+                  <div className="px-2.5 pb-2 flex items-stretch gap-1.5">
                     <div className="flex flex-col items-center justify-center shrink-0 w-5">
                       <Sunset className="w-4 h-4 text-orange-500 shrink-0" />
                       <span className={`text-[10px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>PM</span>
@@ -1004,7 +1004,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                           className="w-3.5 h-3.5 shrink-0 text-white"
                           style={{ fill: 'white', color: 'white' }}
                         />
-                        <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{pm}</span>
+                        <span className="text-lg font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{pm}</span>
                       </div>
                       <span className="mt-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
                         {pmRating}
@@ -1013,7 +1013,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   </div>
 
                   {/* Weather footer — icon + precip prob + precip amount */}
-                  <div className={`flex items-center justify-center gap-1.5 px-2 py-1.5 border-t ${
+                  <div className={`flex items-center justify-center gap-1.5 px-2.5 py-2 border-t ${
                     isDark ? 'border-slate-700/70'
                       : theme === 'hunting' ? 'border-[#d4c4a8]'
                       : theme === 'olive' ? 'border-[#d8d2c0]'
