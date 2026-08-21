@@ -970,7 +970,12 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
           {/* Location & Target Management — collapsed by default so the photo
               library stays focused, while every setup action remains available. */}
-          <details className={`group rounded-2xl border backdrop-blur-xl shadow-xl ${cardBg}`}>
+          {/* relative z-30 lifts this card's whole stacking context (created
+              by backdrop-blur) above the photo library bar below it — without
+              it, open AppSelect dropdowns that extend past this card's bottom
+              edge get painted over by the gallery's "Photo library" header,
+              hiding their last options and scrollbar. */}
+          <details className={`group relative z-30 rounded-2xl border backdrop-blur-xl shadow-xl ${cardBg}`}>
             <summary className="list-none cursor-pointer flex items-center justify-between gap-3 px-3 py-3 sm:px-4 sm:py-3.5 select-none">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-center text-sky-500 shrink-0">
