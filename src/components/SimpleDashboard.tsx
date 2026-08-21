@@ -944,7 +944,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     <div className="flex min-h-3.5 items-center justify-center gap-1 mb-0.5">
                       {hasMoonBadge && (
                         <span
-                          className="inline-flex items-center gap-0.5 whitespace-nowrap text-[8px] font-black leading-none text-amber-500"
+                          className="inline-flex items-center gap-0.5 whitespace-nowrap text-[9px] font-black leading-none text-amber-500"
                           aria-label="Full Moon"
                         >
                           <Moon className="w-3 h-3 fill-amber-400" aria-hidden="true" />
@@ -955,14 +955,14 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         <Snowflake className="w-3 h-3 text-sky-400" aria-label="Cold front" />
                       )}
                     </div>
-                    <div className={`text-[11px] font-black uppercase tracking-wider ${headText}`}>
+                    <div className={`text-xs font-black uppercase tracking-wider ${headText}`}>
                       {d.dayName === 'Today' ? 'Today' : d.dayName}
                     </div>
-                    <div className={`text-[9px] font-bold uppercase tracking-wider opacity-60 ${subText}`}>
+                    <div className={`text-[10px] font-bold uppercase tracking-wider opacity-60 ${subText}`}>
                       {d.dateFormatted}
                     </div>
                     <div
-                      className="mt-1 flex items-center justify-center gap-1 text-[9px] font-black leading-none"
+                      className="mt-1 flex items-center justify-center gap-1 text-[10px] font-black leading-none"
                       title={`High ${d.maxTemp}°${units === 'imperial' ? 'F' : 'C'} · Low ${d.minTemp}°${units === 'imperial' ? 'F' : 'C'}`}
                     >
                       <Thermometer className="w-3 h-3 text-slate-400" aria-hidden="true" />
@@ -976,7 +976,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   <div className="px-2 pb-1.5 flex items-stretch gap-1.5">
                     <div className="flex flex-col items-center justify-center shrink-0 w-5">
                       <Sunrise className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span className={`text-[9px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>AM</span>
+                      <span className={`text-[10px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>AM</span>
                     </div>
                     <div
                       className="flex-1 min-w-0 rounded-md px-1.5 py-1 flex flex-col items-center justify-center leading-none"
@@ -989,7 +989,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         />
                         <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{am}</span>
                       </div>
-                      <span className="mt-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
+                      <span className="mt-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
                         {amRating}
                       </span>
                     </div>
@@ -999,7 +999,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   <div className="px-2 pb-2 flex items-stretch gap-1.5">
                     <div className="flex flex-col items-center justify-center shrink-0 w-5">
                       <Sunset className="w-4 h-4 text-orange-500 shrink-0" />
-                      <span className={`text-[9px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>PM</span>
+                      <span className={`text-[10px] font-black uppercase tracking-wider leading-none mt-0.5 ${subText}`}>PM</span>
                     </div>
                     <div
                       className="flex-1 min-w-0 rounded-md px-1.5 py-1 flex flex-col items-center justify-center leading-none"
@@ -1012,7 +1012,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         />
                         <span className="text-base font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{pm}</span>
                       </div>
-                      <span className="mt-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
+                      <span className="mt-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
                         {pmRating}
                       </span>
                     </div>
@@ -1029,10 +1029,10 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                     {wet ? (
                       <div className="flex items-baseline gap-1 leading-none">
                         <span className={`text-[11px] sm:text-xs font-black ${isDark ? 'text-sky-400' : 'text-sky-500'}`}>{maxPrecipProb}%</span>
-                        <span className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{precipAmount}</span>
+                        <span className={`text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{precipAmount}</span>
                       </div>
                     ) : (
-                      <span className={`text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider opacity-70 truncate ${subText}`}>
+                      <span className={`text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider opacity-70 truncate ${subText}`}>
                         {d.weatherDesc}
                       </span>
                     )}
@@ -1045,7 +1045,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
 
         {/* Shared rating legend — same score thresholds and colors as the
             hourly bars and the hero progress bar. */}
-        <div className={`flex items-center justify-center gap-x-2 sm:gap-x-3 gap-y-1 text-[9px] sm:text-[10px] font-bold flex-wrap mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+        <div className={`flex items-center justify-center gap-x-2 sm:gap-x-3 gap-y-1 text-[10px] sm:text-[11px] font-bold flex-wrap mt-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreBarColor(90) }} />
             86+ Great
