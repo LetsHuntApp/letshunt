@@ -12,6 +12,7 @@ import {
   getWindDirectionText,
   hpaToInHg,
   kmhToMph,
+  isRainBreakHourFromSeries,
 } from '../utils/huntingEngine';
 
 const DEFAULT_LOCATION: Location = {
@@ -457,13 +458,14 @@ export async function fetch5DayHuntingForecast(
     // Rain-break / post-storm signals scoped to the prime windows: only a
     // dry prime hour right after rain (or a day that cleared before prime
     // time) earns the movement surge — not rain that broke at 2 PM.
-    const primeRainBreak = primeHourIndices.some((idx) => {
-      const recentRain = dayHourlyRaw.precip.slice(Math.max(0, idx - 3), idx).some((p: number) => p >= 0.2);
-      return recentRain && (dayHourlyRaw.precip[idx] || 0) < 0.1;
-    });
-    const lastPrimeIdx = primeHourIndices.length ? Math.max(...primeHourIndices) : -1;
-    const allPrimeDry = primeHourIndices.every((idx) => (dayHourlyRaw.precip[idx] || 0) < 0.1);
-    const primeIsPostStorm = isPostStorm && lastRainIdx >= 0 && lastRainIdx < lastPrimeIdx && allPrimeDry;
+    const primeRainBreak = primeHourIndices.some((idx) =>
+      isRainBreakHourFromSeries(dayHourlyRaw.precip, dayHourlyRaw.weatherCode, idx)
+    );
+    // Keep the post-storm bonus on the same bounded rain-break window as the
+    // hourly score. The old day-level check could reward every later dry prime
+    // hour after an early shower, even when the three-hour transition window
+    // had long passed.
+    const primeIsPostStorm = primeRainBreak;
 
     // Temperature deviation for the daily dial compares each prime-window
     // hour with the matching local-hour normal. A dawn temperature must not be
@@ -579,11 +581,14 @@ export async function fetch5DayHuntingForecast(
         : undefined;
 
       const isPrimeWindow = isPrimeTimestamp(hDate.getTime());
-      // A dry hour only earns a rain-break signal when rain occurred in the
-      // immediately preceding three hours; a dry afternoon after dawn rain is
-      // not an automatic movement surge.
-      const recentRain = dayHourlyRaw.precip.slice(Math.max(0, idx - 3), idx).some((p: number) => p >= 0.2);
-      const isRainBreakHour = recentRain && (dayHourlyRaw.precip[idx] || 0) < 0.1;
+      // A dry hour earns a rain-break signal only inside the shared, bounded
+      // post-rain window. Prolonged or extremely heavy events get a modest
+      // extension; an old isolated shower does not.
+      const isRainBreakHour = isRainBreakHourFromSeries(
+        dayHourlyRaw.precip,
+        dayHourlyRaw.weatherCode,
+        idx,
+      );
       const hourlyPressureTrend = getPressureTrend(dayHourlyRaw.pressure, idx);
 
       // Batch 4: the hour's solunar rating (major/minor window membership)

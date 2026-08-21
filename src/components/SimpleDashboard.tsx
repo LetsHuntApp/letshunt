@@ -137,9 +137,11 @@ const buildDailyTip = (
   const isSnowing = code >= 71 && code <= 75;
   const isRaining = (code >= 51 && code <= 65) || (code >= 80 && code <= 82);
   const isFoggy = code === 45 || code === 48;
+  // Without an hourly observation there is no safe way to prove that a
+  // day-level rain flag is still within the short post-rain window.
   const rainJustStopped = hour
     ? isHourlyRainBreak(day, code, hourIndex)
-    : (day.hasRainBreak || day.isPostStorm) && !isRaining && !isSnowing && !isStorming;
+    : false;
   const coldFront = isSignificantColdFront(hour?.tempDrop24h ?? day.tempDrop24h, units);
   const windIsStrong = windSpeed >= (isMetric ? 29 : 18);
   const gustIsStrong = windGust !== undefined && windGust >= (isMetric ? 40 : 25);

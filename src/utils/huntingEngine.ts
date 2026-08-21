@@ -146,48 +146,101 @@ export function getPeakHuntScore(day: Pick<DailyForecast, 'huntScore' | 'hourly'
   return Math.max(day.huntScore, ...day.hourly.map((hour) => hour.huntScore));
 }
 
+/** True for weather codes that represent active precipitation. */
+const isPrecipitatingWeatherCode = (weatherCode: number): boolean =>
+  weatherCode === 51 || weatherCode === 53 || weatherCode === 55 ||
+  weatherCode === 61 || weatherCode === 63 || weatherCode === 65 ||
+  (weatherCode >= 71 && weatherCode <= 75) ||
+  (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95;
+
 /**
- * True when a specific hour represents a break in the rain / post-storm
- * clearing. This is used by the display-side condition explanation to show
- * "Rain Just Stopped" — so it must only fire for hours that are actually
- * near when rain stopped, NOT any dry hour on a rainy day.
- *
- * The hourly weather service already computes `isRainBreakHour` which checks
- * that rain occurred in the preceding 3 hours. This function is the
- * display-side mirror: it should be consistent with that signal.
- *
- * Returns true only when:
- *  - The current hour is NOT currently precipitating, AND
- *  - The day has a rain break (rain occurred then stopped), AND
- *  - The day-level weather suggests rain was significant (code >= 61 or
- *    isPostStorm), so this isn't just scattered light drizzle.
+ * Shared rain-break detector used by both the weather service and display
+ * explanations. The normal window is three dry hours after the last
+ * meaningful rain hour. It can stretch modestly — never indefinitely — when
+ * the preceding event was unusually heavy or prolonged, because the woods can
+ * stay in a genuine post-storm transition longer in those cases.
  */
-export function isHourlyRainBreak(day: DailyForecast, weatherCode: number, hourIndex?: number): boolean {
-  const precipitating =
-    weatherCode === 51 || weatherCode === 53 || weatherCode === 55 ||
-    weatherCode === 61 || weatherCode === 63 || weatherCode === 65 ||
-    (weatherCode >= 71 && weatherCode <= 75) ||
-    (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95;
-  if (precipitating) return false;
-  // Require that rain actually stopped recently (within 3 hours). The
-  // hourly `isRainBreakHour` in weatherService checks the preceding 3 hours;
-  // this function must be consistent: "Rain Just Stopped" should only appear
-  // when rain actually stopped within the last few hours, not any dry hour
-  // on a rainy day.
-  if (day.lastRainHour !== undefined && day.lastRainHour >= 0 && hourIndex !== undefined) {
-    const hoursSinceRain = hourIndex - day.lastRainHour;
-    // Rain stopped 1-3 hours ago → this is the "just stopped" window.
-    // Also allow the hour AFTER rain stops (hoursSinceRain === 0 means
-    // this hour had rain, which is already filtered above).
-    if (hoursSinceRain >= 0 && hoursSinceRain <= 3) {
-      return day.hasRainBreak === true;
-    }
+export function isRainBreakHourFromSeries(
+  precipitationMm: number[],
+  weatherCodes: number[],
+  currentIndex: number,
+): boolean {
+  if (!Number.isInteger(currentIndex) || currentIndex <= 0 || currentIndex >= precipitationMm.length) {
     return false;
   }
-  // Fallback: if lastRainHour is unavailable, use the day-level weather code
-  // to determine if rain was significant enough to warrant the signal.
-  return day.hasRainBreak === true &&
-    (day.weatherCode >= 61 || day.weatherCode === 80 || day.weatherCode === 81 || day.weatherCode === 82 || day.isPostStorm);
+
+  const currentPrecip = precipitationMm[currentIndex] || 0;
+  const currentCode = weatherCodes[currentIndex] || 0;
+  if (currentPrecip >= 0.1 || isPrecipitatingWeatherCode(currentCode)) return false;
+
+  const isRainHour = (index: number): boolean =>
+    (precipitationMm[index] || 0) >= 0.2 || isPrecipitatingWeatherCode(weatherCodes[index] || 0);
+
+  let lastRainIndex = -1;
+  for (let index = currentIndex - 1; index >= 0; index--) {
+    if (isRainHour(index)) {
+      lastRainIndex = index;
+      break;
+    }
+  }
+  if (lastRainIndex < 0) return false;
+
+  const hoursSinceRain = currentIndex - lastRainIndex;
+  if (hoursSinceRain < 1) return false;
+
+  // Measure the recent event rather than treating any isolated shower from
+  // earlier in the day as a prolonged post-storm setup. Up to two dry hours
+  // may separate showers in the same event; a longer gap starts a new event.
+  let eventRainHours = 0;
+  let dryGap = 0;
+  for (let index = lastRainIndex; index >= Math.max(0, lastRainIndex - 23); index--) {
+    if (isRainHour(index)) {
+      eventRainHours += 1;
+      dryGap = 0;
+    } else {
+      dryGap += 1;
+      if (dryGap > 2) break;
+    }
+  }
+
+  const recentTotalMm = precipitationMm
+    .slice(Math.max(0, lastRainIndex - 5), lastRainIndex + 1)
+    .reduce((sum, amount) => sum + (amount || 0), 0);
+  const lastRainAmountMm = precipitationMm[lastRainIndex] || 0;
+  const lastRainCode = weatherCodes[lastRainIndex] || 0;
+  const extremelyHeavy = lastRainCode === 65 || lastRainAmountMm >= 8 || recentTotalMm >= 15;
+  const prolonged = eventRainHours >= 8 || (eventRainHours >= 5 && recentTotalMm >= 8);
+
+  // Normal: 3 hours. Extremely heavy rain: up to 5. A prolonged rain event:
+  // up to 6. These are deliberately bounded so a day with one old shower
+  // cannot keep advertising "Rain Break" all afternoon.
+  const allowedHours = prolonged ? 6 : extremelyHeavy ? 5 : 3;
+  return hoursSinceRain <= allowedHours;
+}
+
+/**
+ * True when a specific hour represents a recent break in rain/post-storm
+ * clearing. Legacy day objects without hourly observations fail closed rather
+ * than showing a stale Rain Break for the rest of the day.
+ */
+export function isHourlyRainBreak(day: DailyForecast, weatherCode: number, hourIndex?: number): boolean {
+  if (isPrecipitatingWeatherCode(weatherCode)) return false;
+
+  if (day.hourly && hourIndex !== undefined && hourIndex >= 0 && hourIndex < day.hourly.length) {
+    return isRainBreakHourFromSeries(
+      day.hourly.map((hour) => hour.precipMm || 0),
+      day.hourly.map((hour) => hour.weatherCode || 0),
+      hourIndex,
+    );
+  }
+
+  // Conservative legacy fallback: retain only the ordinary three-hour rule
+  // when a caller has no hourly series from which to evaluate exceptions.
+  if (day.lastRainHour !== undefined && day.lastRainHour >= 0 && hourIndex !== undefined) {
+    const hoursSinceRain = hourIndex - day.lastRainHour;
+    return day.hasRainBreak === true && hoursSinceRain >= 1 && hoursSinceRain <= 3;
+  }
+  return false;
 }
 
 export function formatTimeRange12h(start: Date | string, end: Date | string): string {
@@ -966,23 +1019,19 @@ export function getDetailedConditionExplanation(
   const tempF = hourData ? hourData.temp : day.maxTemp;
   const pressureTrend = day.pressureTrend;
   const score = hourData ? hourData.huntScore : day.huntScore;
-  
-  // Check if it is currently precipitating at the active/selected hour
-  const isPrecipitating = weatherCode === 51 || weatherCode === 53 || weatherCode === 55 || weatherCode === 61 || weatherCode === 63 || weatherCode === 65 || (weatherCode >= 71 && weatherCode <= 75) || (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95;
-
-  const isPostStorm = hourData
-    ? (day.isPostStorm && !isPrecipitating)
-    : day.isPostStorm;
   const tempDrop = day.tempDrop24h;
 
-  // Check if current hour or day represents a break in the rain.
-  // Pass the hour index so isHourlyRainBreak can verify rain stopped recently.
-  const hourIndex = hourData?.timestamp ? new Date(hourData.timestamp).getHours() : undefined;
+  // Check if the current hour represents a break in the rain. The post-storm
+  // flag must be derived from this same bounded hourly window; using the
+  // day-level `isPostStorm` flag directly made an early shower look recent for
+  // every later dry hour.
+  const hourIndex = hourData
+    ? day.hourly.findIndex((hour) => hour.timestamp === hourData.timestamp)
+    : undefined;
   const hasRainBreak = hourData
     ? isHourlyRainBreak(day, hourData.weatherCode, hourIndex)
-    // Day-level fallback: only show rain break if rain stopped within the
-    // last few hours (lastRainHour check) or the day is a post-storm day.
-    : (day.hasRainBreak === true && day.isPostStorm);
+    : false;
+  const isPostStorm = hourData ? hasRainBreak : false;
 
   // Unit-aware display helpers so every explanation cites the real numbers
   // in the user's chosen units. (temp / tempDrop24h are already stored in
