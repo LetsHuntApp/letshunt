@@ -12,6 +12,7 @@ import { PressureChart } from './PressureChart';
 import { DetailedPredictionView } from './DetailedPredictionView';
 import { SimpleWindMap } from './SimpleWindMap';
 import {
+  getBestStandForWind,
   getHour12Label,
   getRatingFromScore,
   getWeatherDetails,
@@ -90,16 +91,35 @@ const getDownwindText = (deg: number): string => {
   return directions[index];
 };
 
+/** True when an hourly forecast is still actively precipitating. */
+const isPrecipitatingHour = (h: HourlyForecast): boolean => {
+  if ((h.precipMm ?? 0) >= 0.1) return true;
+  const c = h.weatherCode;
+  return (c >= 51 && c <= 65) || (c >= 71 && c <= 75) || (c >= 80 && c <= 82) || c >= 95;
+};
+
+/** First upcoming dry hour after `fromIndex` in a day's hourly series, as a
+    12-hour clock label — or null when the rest of the day stays wet. */
+const nextDryHourLabel = (day: DailyForecast, fromIndex: number): string | null => {
+  if (!day.hourly || day.hourly.length === 0) return null;
+  for (let i = Math.max(0, fromIndex + 1); i < day.hourly.length; i++) {
+    if (!isPrecipitatingHour(day.hourly[i])) {
+      return getHour12Label(new Date(day.hourly[i].timestamp).getHours());
+    }
+  }
+  return null;
+};
+
 /**
- * Builds a coordinated Hunt Tip for the selected day/hour.
+ * Builds one short, punchy Hunt Tip for the selected day/hour.
  *
- * The tip is deliberately assembled in three layers — current weather,
- * movement context, and hunting plan — instead of appending unrelated alerts.
- * That keeps a rain-break message from being followed by a blanket "stay in
- * cover" warning, while still using the extra forecast variables available on
- * hourly data: precipitation probability/amount, humidity, cloud cover,
- * sustained wind, gusts, pressure trend, temperature trend, moon activity,
- * rut phase, and the hunt score.
+ * The tip is deliberately a single decision — the one thing a hunter needs to
+ * know right now — instead of a stack of separate alerts. Weather that blocks
+ * a hunt (storms, hard rain, snow) always wins, with the next dry hour called
+ * out when the forecast can see one. On moveable days the tip leans on the
+ * shared engine signals: significant cold fronts, rut phase, prime windows,
+ * and the hunter's own saved stands matched to their ideal wind direction —
+ * so it reads like advice from a buddy in the stand next to you.
  */
 const buildDailyTip = (
   day: DailyForecast,
@@ -110,28 +130,22 @@ const buildDailyTip = (
 ): string[] => {
   const isMetric = units === 'metric';
   const tempUnit = isMetric ? '°C' : '°F';
-  const windUnit = isMetric ? 'km/h' : 'mph';
   const code = hour?.weatherCode ?? day.weatherCode;
-  const weatherDesc = (hour?.weatherDesc ?? day.weatherDesc).toLowerCase();
   const temp = Math.round(hour?.temp ?? day.maxTemp);
   const tempDrop = Math.round(hour?.tempDrop24h ?? day.tempDrop24h ?? 0);
-  const windSpeed = Math.round(isMetric ? (hour?.windSpeedKmh ?? day.windSpeedMaxKmh) : (hour?.windSpeedMph ?? day.windSpeedMaxMph));
-  const windGust = hour
-    ? Math.round(isMetric ? (hour.windGustKmh ?? hour.windSpeedKmh) : (hour.windGustMph ?? hour.windSpeedMph))
-    : undefined;
   const precipProbability = Math.round(hour?.precipProbability ?? (day.hourly.length ? Math.max(...day.hourly.map((h) => h.precipProbability || 0)) : 0));
-  const precipAmount = hour
-    ? (isMetric ? hour.precipMm : hour.precipMm * 0.0393701)
-    : (isMetric ? day.precipSumMm : day.precipSumInches);
-  const precipUnit = isMetric ? 'mm' : 'in';
-  const humidity = hour?.humidity ?? day.humidityAvg;
   const cloudCover = hour?.cloudCover ?? day.cloudCoverAvg;
-  const pressureTrend = hour?.pressureTrend ?? day.pressureTrend;
-  const moonName = day.solunar?.moonPhaseName || '';
-  const solunarRating = hour?.solunarRating ?? 'Normal';
-  const isPrimeWindow = hour?.isPrimeWindow ?? false;
+  const tempInF = isMetric ? temp * 9 / 5 + 32 : temp;
+  const score = hour?.huntScore ?? day.huntScore;
   const rut = getRutPhase(day.date, location);
-  const downwindDir = getDownwindText(((hour?.windDirectionDeg ?? day.windDirectionDeg) + 180) % 360);
+  const windDeg = hour?.windDirectionDeg ?? day.windDirectionDeg;
+  const downwindDir = getDownwindText((windDeg + 180) % 360);
+  const bestStand = getBestStandForWind(windDeg);
+  // Where to sit: the hunter's own stand that best matches today's wind, or a
+  // plain scent-direction nudge when no stand has a preferred wind saved.
+  const standText = bestStand
+    ? ` Best stand for this wind: ${bestStand.name} (wants ${bestStand.idealWind}).`
+    : ` Set up so your scent blows ${downwindDir}, away from the trails.`;
 
   const isStorming = code >= 95;
   const isSnowing = code >= 71 && code <= 75;
@@ -143,119 +157,65 @@ const buildDailyTip = (
     ? isHourlyRainBreak(day, code, hourIndex)
     : false;
   const coldFront = isSignificantColdFront(hour?.tempDrop24h ?? day.tempDrop24h, units);
-  const windIsStrong = windSpeed >= (isMetric ? 29 : 18);
-  const gustIsStrong = windGust !== undefined && windGust >= (isMetric ? 40 : 25);
-  const scentIsUnstable = windIsStrong || gustIsStrong;
-  const windIsCalm = windSpeed <= (isMetric ? 5 : 3);
-  const tempInF = isMetric ? temp * 9 / 5 + 32 : temp;
-  const score = hour?.huntScore ?? day.huntScore;
-  const weatherActive = isStorming || isRaining || isSnowing;
+  const isFullMoonEvening = day.solunar?.moonPhaseName === 'Full Moon' &&
+    (hour?.timestamp ? new Date(hour.timestamp).getHours() >= 15 : true);
 
-  // Layer 1: choose exactly one weather state. These branches are mutually
-  // exclusive, so an active-rain message cannot coexist with a rain-break
-  // message in the same tip.
-  let weatherTip: string;
+  // Weather that blocks a hunt comes first — nothing else matters if you're
+  // stuck in a downpour. Each branch is short, specific, and leaves the
+  // hunter with one clear call.
   if (isStorming) {
-    weatherTip = `Thunderstorms are the main problem right now (${weatherDesc}); wait until they pass before settling in.`;
-  } else if (rainJustStopped) {
-    const amountText = precipAmount > 0
-      ? ` after about ${isMetric ? precipAmount.toFixed(1) : precipAmount.toFixed(2)} ${precipUnit} of rain`
-      : '';
-    weatherTip = `Rain just stopped${amountText}; the woods may be worth hunting for a little while if the wind and visibility cooperate.`;
-  } else if (isSnowing) {
-    weatherTip = `Snow is falling (${precipProbability}% chance); check field edges and food sources before and after it lets up.`;
-  } else if (isRaining) {
-    const rainLabel = code === 65 || (hour?.precipMm ?? 0) >= 3 ? 'steady or heavy rain' : 'rain/showers';
-    weatherTip = `${rainLabel[0].toUpperCase()}${rainLabel.slice(1)} are moving through (${precipProbability}% chance); wait for a lull or dry break instead of sitting in exposed cover.`;
-  } else if (isFoggy) {
-    weatherTip = `Fog is cutting visibility; move slowly, keep shots conservative, and stick to familiar, sheltered routes.`;
-  } else if (precipProbability >= 60) {
-    weatherTip = `It is dry right now, but there is a ${precipProbability}% chance of rain${precipAmount > 0 ? `, with about ${isMetric ? precipAmount.toFixed(1) : precipAmount.toFixed(2)} ${precipUnit} expected` : ''}; keep your plan flexible.`;
-  } else if ((cloudCover ?? 0) >= 80) {
-    weatherTip = `Thick clouds (${Math.round(cloudCover!)}%) should keep the woods dim and quiet; watch your visibility and the wind.`;
-  } else {
-    weatherTip = `It is dry with ${Math.round(cloudCover ?? 0)}% clouds; temperature, wind, and timing matter most today.`;
+    return [`Lightning is rolling through — stay off the ridges and out of the open until it passes. Deer will be bedded tight; there's no rush.`];
   }
-
-  // Layer 2: describe temperature and pressure as a single movement context.
-  // During active precipitation, any positive signal is explicitly deferred
-  // until the weather clears so it cannot promise movement in a storm.
-  let movementTip: string;
+  if (isRaining) {
+    const breakLabel = hourIndex !== undefined ? nextDryHourLabel(day, hourIndex) : null;
+    const timing = breakLabel
+      ? `best to stay back until ${breakLabel} when things clear up a bit`
+      : `best to stay back until it lets up`;
+    return [`It's raining hard right now — ${timing}. The deer won't move much in this, so save your energy for the break.`];
+  }
+  if (isSnowing) {
+    return [`Snow's falling (${precipProbability}% chance) — deer move before and after it, not during. Check field edges and food sources once it lets up.`];
+  }
+  if (rainJustStopped) {
+    return [`Rain just let up — now's the time to slip in! Wet woods mean quiet steps, and deer love the fresh air after a break.${standText}`];
+  }
+  if (coldFront) {
+    return [`Baby, it's cold outside! A ${tempDrop}${tempUnit} cold drop just came through and the deer will be moving!${standText}`];
+  }
+  if (isFoggy) {
+    return [`Fog's cutting visibility — move slow, keep shots conservative, and stick to familiar ground. Deer get extra spooky in this.`];
+  }
   if (tempInF >= 85) {
-    movementTip = `Warm air (${temp}${tempUnit}) makes first and last light, shade, and water your best bets`;
-  } else if (tempInF <= 20) {
-    movementTip = `Cold air (${temp}${tempUnit}) puts deer near food and sheltered cover`;
-  } else if (coldFront) {
-    movementTip = `A ${tempDrop}${tempUnit} drop can get deer moving in daylight`;
-  } else if (typeof hour?.tempDeltaF === 'number' && hour.tempDeltaF <= -6) {
-    const delta = isMetric ? Math.round(Math.abs(hour.tempDeltaF) * 5 / 9) : Math.round(Math.abs(hour.tempDeltaF));
-    movementTip = `This hour is about ${delta}${tempUnit} cooler than usual for this time of year, which can help deer move in daylight`;
-  } else {
-    movementTip = `Temperatures are workable at ${temp}${tempUnit}`;
+    return [`Hot one out there (${temp}${tempUnit}) — hunt first and last light near water and shade. Deer won't burn energy moving midday.${standText}`];
   }
-
-  if (pressureTrend === 'rapid_drop') {
-    movementTip += isStorming || isRaining
-      ? `, but pressure is dropping fast, so wait for the weather to pass before looking for the better window.`
-      : `, and falling pressure can get deer moving before the next weather change.`;
-  } else if (pressureTrend === 'rapid_rise') {
-    movementTip += rainJustStopped || day.isPostStorm
-      ? `; pressure is rising as things settle, so look for a better window after the weather breaks.`
-      : `; pressure is rising fast, which usually helps after the weather moves through.`;
-  } else if (pressureTrend === 'rising') {
-    movementTip += `; pressure is climbing slowly, but wind and rain still matter more.`;
-  } else if (pressureTrend === 'falling') {
-    movementTip += `; pressure is falling, so choose the safer, more comfortable side of the window.`;
-  } else {
-    movementTip += `; with pressure steady, focus on wind, rain, and how easy it is to get in and out.`;
+  if (tempInF <= 20) {
+    return [`Bitter cold (${temp}${tempUnit}) — deer are hugging food and sheltered cover to save calories. Sit where the feed is.${standText}`];
   }
-  if (weatherActive) {
-    movementTip += ` Any benefit from that change is for later, not a reason to sit through bad weather.`;
-  }
-  movementTip += '.';
-
-  // Layer 3: give one setup/timing plan. Wind and gusts affect scent and
-  // stand choice; humidity/clouds/moon/rut add specificity without making a
-  // second, incompatible claim about whether deer are moving right now.
-  let setupTip: string;
-  if (scentIsUnstable) {
-    setupTip = `Use sheltered cover and let the ${downwindDir} wind carry your scent away from deer trails`;
-    if (windGust !== undefined && windGust > windSpeed + (isMetric ? 12 : 7)) {
-      setupTip += ` — gusts are reaching ${windGust} ${windUnit}, so the open woods will be especially unpredictable`;
-    } else {
-      setupTip += ` — the steady wind is ${windSpeed} ${windUnit}`;
-    }
-  } else if (windIsCalm) {
-    setupTip = `With only ${windSpeed} ${windUnit} of wind, scent can hang around: use a blind and keep your route downwind of bedding`;
-  } else {
-    setupTip = `The ${windSpeed} ${windUnit} wind is manageable; set up so it carries your scent toward the ${downwindDir}, away from deer trails`;
-  }
-  if (weatherActive) {
-    setupTip = `Once conditions settle, ${setupTip.charAt(0).toLowerCase()}${setupTip.slice(1)}`;
-  }
-
-  if (humidity !== undefined && humidity >= 85 && windIsCalm) {
-    setupTip += `, especially with air this damp (${humidity}%)`;
-  } else if (humidity !== undefined && humidity <= 40 && !weatherActive && !rainJustStopped) {
-    setupTip += `; the dry ${humidity}% air makes scent control more important`;
-  }
-
   if (rut.phaseId === 'peak_rut') {
-    setupTip += weatherActive ? ` When conditions settle, check funnels and doe bedding because the peak rut can keep bucks moving in daylight.` : ` Peak rut favors funnels and doe bedding, especially during shooting light.`;
-  } else if (rut.phaseId === 'pre_rut') {
-    setupTip += weatherActive ? ` When conditions settle, pre-rut favors scrape lines, funnels, and a little rattling.` : ` Pre-rut favors scrape lines, funnels, and a little rattling.`;
-  } else if (solunarRating === 'High') {
-    setupTip += weatherActive ? ` When conditions clear, the moon is lining up for a strong movement window, so be ready.` : ` The moon is lining up for a strong movement window, so be ready before it starts.`;
-  } else if (moonName === 'Full Moon' && (hour?.timestamp ? new Date(hour.timestamp).getHours() >= 15 : true)) {
-    setupTip += weatherActive ? ` When conditions clear, be settled early for the full-moon evening movement window.` : ` With a full moon, be settled early for the evening movement window.`;
-  } else if (isPrimeWindow) {
-    setupTip += weatherActive ? ` When conditions clear, this is one of the forecast's best movement windows.` : ` This is one of the forecast's best movement windows, so be in position before it starts.`;
-  } else if (score < RATING_THRESHOLDS.okay) {
-    setupTip += ` The ${score}/100 score points to a slower window; save the longest sit for first or last light.`;
+    return [`Peak rut is ON — bucks are cruising in broad daylight. Hunt funnels and doe bedding, and stay on the stand.${standText}`];
   }
-
-  setupTip += '.';
-  return [weatherTip, movementTip, setupTip];
+  if (rut.phaseId === 'pre_rut') {
+    return [`Pre-rut is heating up — check scrape lines, hunt funnels, and don't be shy with a soft grunt or light rattling.${standText}`];
+  }
+  if (hour?.isPrimeWindow) {
+    return [`This is one of the forecast's best movement windows — be in position before it starts.${standText}`];
+  }
+  if (hour?.solunarRating === 'High') {
+    return [`The moon is lining up for a strong movement window — be ready before it starts.${standText}`];
+  }
+  if (isFullMoonEvening) {
+    return [`Full moon means deer feed late at night — be settled in early for the evening push.${standText}`];
+  }
+  if ((cloudCover ?? 0) >= 80) {
+    return [`Thick clouds (${Math.round(cloudCover ?? 0)}%) keep the woods dim and quiet — a good day to be patient.${standText}`];
+  }
+  // Default: a plain, huntable day. Keep it honest and lean on the score.
+  const scoreLine = score >= RATING_THRESHOLDS.good
+    ? `Score's a solid ${score}/100 — worth your time.`
+    : score >= RATING_THRESHOLDS.okay
+    ? `Score's ${score}/100 — a fair day; save the long sits for first and last light.`
+    : `Score's only ${score}/100 — keep the sit short and the steps quiet.`;
+  return [`${scoreLine}${standText}`];
 };
 
 /** Score-to-bar color used by the hourly and daily bars. */
@@ -845,20 +805,15 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             aria-valuemax={23}
             aria-valuenow={heroHour}
             onPointerDown={(e) => {
-              // Mouse users can click/drag immediately. Touch users must first
-              // move clearly sideways; a mostly vertical gesture belongs to
-              // page scrolling and never grabs the scrubber.
-              const isMouse = e.pointerType === 'mouse';
+              // Nothing is selected on press. The scrubber only engages once
+              // the pointer is clearly dragged sideways along its track — a
+              // tap or a vertical scroll gesture can never change the hour.
               scrubGestureRef.current = {
                 pointerId: e.pointerId,
                 startX: e.clientX,
                 startY: e.clientY,
-                active: isMouse,
+                active: false,
               };
-              if (isMouse) {
-                setHeroHourFromClientX(e.clientX);
-                e.currentTarget.setPointerCapture(e.pointerId);
-              }
             }}
             onPointerMove={(e) => {
               const gesture = scrubGestureRef.current;
@@ -867,11 +822,13 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 const deltaX = Math.abs(e.clientX - gesture.startX);
                 const deltaY = Math.abs(e.clientY - gesture.startY);
                 if (deltaY > 8 && deltaY > deltaX) {
-                  // Release the gesture so the browser can continue vertical
-                  // scrolling without the slider thumb following the finger.
+                  // A mostly vertical gesture belongs to page scrolling —
+                  // drop it so the browser keeps scrolling and the thumb
+                  // never follows the finger.
                   scrubGestureRef.current = null;
                   return;
                 }
+                // Only a deliberate sideways drag engages the scrubber.
                 if (deltaX > 8 && deltaX > deltaY) {
                   gesture.active = true;
                   e.currentTarget.setPointerCapture(e.pointerId);
@@ -879,17 +836,8 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
               }
               if (gesture.active) setHeroHourFromClientX(e.clientX);
             }}
-            onPointerUp={(e) => {
-              const gesture = scrubGestureRef.current;
-              if (gesture && gesture.pointerId === e.pointerId) {
-                const deltaX = Math.abs(e.clientX - gesture.startX);
-                const deltaY = Math.abs(e.clientY - gesture.startY);
-                // A stationary touch is still a tap-to-select; a vertical
-                // gesture was already canceled above and does nothing here.
-                if (!gesture.active && deltaX <= 8 && deltaY <= 8) {
-                  setHeroHourFromClientX(e.clientX);
-                }
-              }
+            onPointerUp={() => {
+              // No tap-to-select: the hour changes only from an actual drag.
               scrubGestureRef.current = null;
             }}
             onPointerCancel={() => { scrubGestureRef.current = null; }}
