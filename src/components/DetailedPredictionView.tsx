@@ -184,7 +184,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
     : 'bg-rose-500 text-white ring-2 ring-rose-500/20';
   const rutInfo = getRutPhase(day.date, location);
 
-  // Setup 24-hour Hunt Score Chart parameters
+  // Setup 24-hour Hunt Score Bar Chart parameters
   const chartWidth = 800;
   const chartHeight = 200;
   const paddingX = 40;
@@ -194,19 +194,27 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const innerWidth = chartWidth - paddingX * 2;
   const innerHeight = chartHeight - paddingTop - paddingBottom;
 
-  // Convert scores to SVG coordinate points
+  // Score-to-bar color — the exact palette the simple dashboard's hourly and
+  // daily bars use, so a score reads the same color everywhere in the app.
+  const getScoreColor = (score: number): string => {
+    if (score >= RATING_THRESHOLDS.excellent) return '#2f8f68';
+    if (score >= RATING_THRESHOLDS.good) return '#69a86f';
+    if (score >= RATING_THRESHOLDS.okay) return '#d9a92c';
+    if (score >= RATING_THRESHOLDS.slow) return '#d38a3a';
+    return '#c45b53';
+  };
+
+  // Convert scores to bar geometry. Each hour owns an equal slot; x is the
+  // bar's center so the scroll-follow and active cursor line up with it.
+  const slotWidth = innerWidth / day.hourly.length;
+  const barWidth = Math.max(4, slotWidth - 2.5);
   const points = day.hourly.map((h, i) => {
-    const x = paddingX + (i / (day.hourly.length - 1)) * innerWidth;
+    const x = paddingX + i * slotWidth + slotWidth / 2;
     const score = h.huntScore;
-    const y = chartHeight - paddingBottom - (score / 100) * innerHeight;
-    return { x, y, score, hourStr: h.time, isPrime: h.isPrimeWindow, h, index: i };
+    const barHeight = Math.max(3, (score / 100) * innerHeight);
+    const y = chartHeight - paddingBottom - barHeight;
+    return { x, y, barHeight, score, hourStr: h.time, isPrime: h.isPrimeWindow, h, index: i };
   });
-
-  const pathD = points.reduce((acc, pt, i) => {
-    return i === 0 ? `M ${pt.x},${pt.y}` : `${acc} L ${pt.x},${pt.y}`;
-  }, '');
-
-  const areaD = `${pathD} L ${points[points.length - 1].x},${chartHeight - paddingBottom} L ${points[0].x},${chartHeight - paddingBottom} Z`;
 
   // Determine active point (either hovered hour or selected hour)
   const activeIdx = hoveredHourIdx !== null ? hoveredHourIdx : selectedHour;
@@ -255,7 +263,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
 
       {/* Hero Header Area: Overall Day Score */}
       <div
-        className={`rounded-3xl border p-6 sm:p-8 flex flex-col items-center gap-6 sm:gap-8 shadow-xl relative overflow-hidden transition-all duration-300 ${
+        className={`rounded-3xl border p-4 sm:p-6 shadow-xl relative overflow-hidden transition-all duration-300 ${
           // Theme-aware card surface, matching the other cards on this page
           // (no solid rating tint — the border below carries the band color).
           isDark
@@ -278,9 +286,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             : 'border-rose-500/40'
         }`}
       >
-        {/* Keep the primary score immediately at the top of the hero, matching the dashboard hierarchy. */}
-        <div className="flex flex-col items-center justify-center space-y-2 shrink-0 z-10">
-          <div className="relative w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center">
+        {/* Compact media-object hero: dial on the left (desktop), the plan on
+            the right — it stacks tight on phones without losing anything. */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6">
+          <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 z-10 flex items-center justify-center">
             <svg
               className="absolute w-full h-full transform -rotate-90"
               viewBox="0 0 100 100"
@@ -310,36 +319,34 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             </svg>
             <div className="detailed-score-dial-content text-center z-10 flex flex-col items-center justify-center">
               <DeerIcon
-                className="w-9 h-9 sm:w-11 sm:h-11 fill-current -mb-0.5"
+                className="w-7 h-7 sm:w-8 sm:h-8 fill-current"
                 style={{ color: colors.stroke, fill: colors.stroke }}
               />
               <div
-                className="text-3xl sm:text-4xl font-black tracking-tight leading-none"
+                className="text-2xl sm:text-3xl font-black tracking-tight leading-none"
                 style={{ color: colors.stroke }}
               >
                 {activeScore}
               </div>
               <div
-                className="text-xs sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
+                className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
                 style={{ color: colors.stroke }}
               >
-                {isExcellentDay && <Star className="w-3.5 h-3.5" style={{ color: colors.stroke, fill: colors.stroke }} />}
+                {isExcellentDay && <Star className="w-3 h-3" style={{ color: colors.stroke, fill: colors.stroke }} />}
                 <span>{getRatingFromScore(activeScore)}</span>
               </div>
               <div
-                className="text-[10px] sm:text-[11px] font-bold uppercase tracking-widest -mt-0.5 opacity-90"
+                className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-90"
                 style={{ color: colors.stroke }}
               >
                 HUNT SCORE
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="w-full flex flex-col items-center text-center space-y-4 max-w-3xl z-10">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-              <span className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+          <div className="w-full min-w-0 flex-1 flex flex-col items-center sm:items-start text-center sm:text-left gap-2.5 z-10">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                 Today's Hunting Plan
               </span>
               <div className={`text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs transition-all flex items-center gap-1 ${
@@ -359,39 +366,38 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 <Info className="w-3 h-3 ml-0.5 opacity-80" />
               </button>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-tight">
               {day.dayName === 'Today' ? 'Today\'s' : `${day.dayName}'s`} Hunting Guide
             </h1>
-          </div>
 
-          <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {day.verdict}
-          </p>
+            <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              {day.verdict}
+            </p>
 
-          <div className="flex flex-wrap gap-2.5 pt-1">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'}`}>
-              <Sunrise className="w-3.5 h-3.5" /> Sunrise: {day.solunar?.sunrise || '6:30 AM'}
-            </span>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'}`}>
-              <Sunset className="w-3.5 h-3.5" /> Sunset: {day.solunar?.sunset || '6:45 PM'}
-            </span>
-          </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'}`}>
+                <Sunrise className="w-3.5 h-3.5" /> Sunrise: {day.solunar?.sunrise || '6:30 AM'}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold border inline-flex items-center gap-1 ${isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800 text-slate-300' : 'bg-slate-100/[var(--card-opacity)] border-slate-200 text-slate-700'}`}>
+                <Sunset className="w-3.5 h-3.5" /> Sunset: {day.solunar?.sunset || '6:45 PM'}
+              </span>
+            </div>
 
-          <div className={`w-full p-3.5 rounded-2xl border text-xs leading-relaxed flex items-start gap-3 ${
-            isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/85 text-slate-100' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
-          }`}>
-            <RutPhaseIcon iconName={rutInfo.iconName} className="w-7 h-7 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-extrabold text-[12px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                Rut: {rutInfo.name} ({rutInfo.description})
+            <div className={`w-full p-2.5 sm:p-3 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+              isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800/85 text-slate-100' : 'bg-slate-50/[var(--card-opacity)] border-slate-200 shadow-xs'
+            }`}>
+              <RutPhaseIcon iconName={rutInfo.iconName} className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-extrabold text-[11px] uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                  Rut: {rutInfo.name} ({rutInfo.description})
+                </div>
+                <p className={`mt-0.5 font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  {rutInfo.hunterTip}
+                </p>
               </div>
-              <p className={`mt-1 font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                {rutInfo.hunterTip}
-              </p>
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Main Grid Section */}
@@ -401,7 +407,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         <div className="lg:col-span-2 flex flex-col gap-6">
           
           {/* 24-Hour Deer Movement Score Graph */}
-          <div className="order-3">
+          <div className="order-1">
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
               isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800 text-slate-100' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200 text-slate-900'
@@ -423,7 +429,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                   <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Best Window</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-1 bg-emerald-500 rounded-full inline-block" />
+                  <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />
                   <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Movement Score</span>
                 </div>
               </div>
@@ -432,11 +438,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
             <div ref={movementChartScrollRef} className="relative w-full overflow-x-auto">
               <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-auto min-w-[550px] select-none">
                 <defs>
-                  <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chartAccent} stopOpacity="0.3" />
-                    <stop offset="100%" stopColor={chartAccent} stopOpacity="0.0" />
-                  </linearGradient>
-
                   <linearGradient id="primeWindowGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={chartAccent} stopOpacity="0.2" />
                     <stop offset="100%" stopColor={chartAccent} stopOpacity="0.02" />
@@ -482,16 +483,15 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                   );
                 })}
 
-                {/* Area Fill under score line */}
-                <path d={areaD} fill="url(#scoreGrad)" />
-
-                {/* Main Movement Score Line */}
-                <path d={pathD} fill="none" stroke={chartAccent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-
-                {/* Interactive Hourly Dots */}
+                {/* Interactive hourly bars — bar height is the movement
+                    score, colored with the same palette as the rest of the
+                    app. The selected/hovered bar pops with a ring so the
+                    active hour reads instantly. */}
                 {points.map((pt, i) => {
                   const isCurrentSelected = selectedHour === i;
                   const isCurrentlyHovered = hoveredHourIdx === i;
+                  const isActive = isCurrentSelected || isCurrentlyHovered;
+                  const x = pt.x - barWidth / 2;
                   return (
                     <g
                       key={i}
@@ -502,20 +502,24 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                     >
                       {/* Transparent wider tracking rect for hover ease */}
                       <rect
-                        x={pt.x - innerWidth / 48}
+                        x={pt.x - slotWidth / 2}
                         y={paddingTop}
-                        width={innerWidth / 24}
+                        width={slotWidth}
                         height={innerHeight}
                         fill="transparent"
                       />
 
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r={isCurrentlyHovered || isCurrentSelected ? 6.5 : pt.isPrime ? 4 : 2}
-                        fill={isCurrentlyHovered || isCurrentSelected ? '#3b82f6' : pt.isPrime ? chartAccent : '#64748b'}
-                        stroke={isDark ? '#0f172a' : '#ffffff'}
-                        strokeWidth={isCurrentlyHovered || isCurrentSelected ? 2.5 : 1}
+                      <rect
+                        x={x}
+                        y={pt.y}
+                        width={barWidth}
+                        height={pt.barHeight}
+                        rx={2.5}
+                        fill={getScoreColor(pt.score)}
+                        opacity={isActive ? 1 : 0.82}
+                        stroke={isActive ? (isDark ? '#0f172a' : '#ffffff') : 'none'}
+                        strokeWidth={isActive ? 2 : 0}
+                        className="transition-all duration-150"
                       />
 
                       {i % 3 === 0 && (
@@ -527,7 +531,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                   );
                 })}
 
-                {/* Hover line indicator */}
+                {/* Active-hour cursor line (selected or hovered) */}
                 {activePoint && (
                   <g className="pointer-events-none">
                     <line
@@ -539,7 +543,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                       strokeWidth="1.5"
                       strokeDasharray="2 2"
                     />
-                    <circle cx={activePoint.x} cy={activePoint.y} r="8" fill="#3b82f6" stroke="#ffffff" strokeWidth="2.5" />
                   </g>
                 )}
               </svg>
@@ -611,7 +614,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           </div>
 
           {/* Factor Breakdown Section */}
-          <div className="order-1">
+          <div className="order-3">
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
               isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
