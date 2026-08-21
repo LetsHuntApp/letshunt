@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DailyForecast, Location, UnitSystem, ThemeMode, ThemeVariantMode, PressureUnit } from '../types';
 import { WindCompass } from './WindCompass';
 import { PressureChart } from './PressureChart';
@@ -25,6 +25,19 @@ import {
   Star,
   BarChart3,
 } from 'lucide-react';
+
+/** Hourly-axis ticks, centered under their representative hour bar — the
+    same ticks the simple dashboard's hourly chart uses. */
+const HOUR_TICKS: { hour: number; label: string }[] = [
+  { hour: 0, label: '12 AM' },
+  { hour: 3, label: '3 AM' },
+  { hour: 6, label: '6 AM' },
+  { hour: 9, label: '9 AM' },
+  { hour: 12, label: '12 PM' },
+  { hour: 15, label: '3 PM' },
+  { hour: 18, label: '6 PM' },
+  { hour: 21, label: '9 PM' },
+];
 
 interface DetailedPredictionViewProps {
   day: DailyForecast;
@@ -54,7 +67,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   const [showFactors, setShowFactors] = useState(true);
   const [hoveredHourIdx, setHoveredHourIdx] = useState<number | null>(null);
   const [isRutModalOpen, setIsRutModalOpen] = useState(false);
-  const movementChartScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -162,7 +174,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
   };
 
   const colors = getScoreColorClasses(activeScore);
-  const chartAccent = isDark && theme === 'hunting' ? '#c77942' : '#10b981';
   const ratingBadgeClasses = theme === 'hunting'
     ? isExcellentDay
       ? 'bg-[#556b2f] text-white ring-2 ring-[#556b2f]/40'
@@ -184,16 +195,6 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
     : 'bg-rose-500 text-white ring-2 ring-rose-500/20';
   const rutInfo = getRutPhase(day.date, location);
 
-  // Setup 24-hour Hunt Score Bar Chart parameters
-  const chartWidth = 800;
-  const chartHeight = 200;
-  const paddingX = 40;
-  const paddingTop = 25;
-  const paddingBottom = 40;
-
-  const innerWidth = chartWidth - paddingX * 2;
-  const innerHeight = chartHeight - paddingTop - paddingBottom;
-
   // Score-to-bar color — the exact palette the simple dashboard's hourly and
   // daily bars use, so a score reads the same color everywhere in the app.
   const getScoreColor = (score: number): string => {
@@ -204,41 +205,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
     return '#c45b53';
   };
 
-  // Convert scores to bar geometry. Each hour owns an equal slot; x is the
-  // bar's center so the scroll-follow and active cursor line up with it.
-  const slotWidth = innerWidth / day.hourly.length;
-  const barWidth = Math.max(4, slotWidth - 2.5);
-  const points = day.hourly.map((h, i) => {
-    const x = paddingX + i * slotWidth + slotWidth / 2;
-    const score = h.huntScore;
-    const barHeight = Math.max(3, (score / 100) * innerHeight);
-    const y = chartHeight - paddingBottom - barHeight;
-    return { x, y, barHeight, score, hourStr: h.time, isPrime: h.isPrimeWindow, h, index: i };
-  });
-
-  // Determine active point (either hovered hour or selected hour)
+  // The hovered/selected hour drives the details card under the bars.
   const activeIdx = hoveredHourIdx !== null ? hoveredHourIdx : selectedHour;
-  const activePoint = points[activeIdx] || null;
-
-  // Keep the selected slider hour visible on narrow screens. The SVG has a
-  // minimum width, so the chart can overflow horizontally on phones; follow
-  // the selected point just like PressureChart does for its hourly graph.
-  useEffect(() => {
-    const container = movementChartScrollRef.current;
-    const selectedPoint = points[selectedHour];
-    if (!container || !selectedPoint) return;
-
-    const pointPx = (selectedPoint.x / chartWidth) * container.scrollWidth;
-    const targetScrollLeft = Math.max(
-      0,
-      Math.min(container.scrollWidth - container.clientWidth, pointPx - container.clientWidth / 2)
-    );
-
-    container.scrollTo({
-      left: targetScrollLeft,
-      behavior: 'auto',
-    });
-  }, [selectedHour, points, chartWidth]);
+  const activeHour = day.hourly[activeIdx] || null;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn">
@@ -406,7 +375,10 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         {/* Left/Center Column: Interactive Score Graph & Factor Breakdown */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           
-          {/* 24-Hour Deer Movement Score Graph */}
+          {/* 24-Hour Deer Movement Score Graph — a compact bar row matching the
+              simple dashboard's hourly hunt score, so the palette, shape, and
+              tap-to-preview behavior feel identical. Always fits its card —
+              no horizontal scroll. */}
           <div className="order-1">
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
@@ -419,157 +391,85 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                   <span className="inline-flex items-center gap-2"><TrendingUp className="w-4 h-4" /> When Deer May Move</span>
                 </h3>
                 <p className={`text-xs sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  A simple 0–100 guide to when deer may move. Tap a time or use the slider to see what is happening.
+                  A simple 0–100 guide to when deer may move. Tap a bar to preview that hour.
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 text-xs font-semibold">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-emerald-500/25 border border-emerald-500 inline-block" />
-                  <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Best Window</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" />
-                  <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>Movement Score</span>
-                </div>
+              {/* Same score-color legend as the simple dashboard's hourly chart */}
+              <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-bold flex-wrap">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreColor(90) }} /> Great</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreColor(80) }} /> Good</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreColor(50) }} /> Okay</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreColor(33) }} /> Slow</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: getScoreColor(15) }} /> Very Slow</span>
               </div>
             </div>
 
-            <div ref={movementChartScrollRef} className="relative w-full overflow-x-auto">
-              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-auto min-w-[550px] select-none">
-                <defs>
-                  <linearGradient id="primeWindowGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={chartAccent} stopOpacity="0.2" />
-                    <stop offset="100%" stopColor={chartAccent} stopOpacity="0.02" />
-                  </linearGradient>
-                </defs>
-
-                {/* Prime Time Window Highlights */}
-                <rect
-                  x={paddingX + (5 / 23) * innerWidth}
-                  y={paddingTop}
-                  width={(4 / 23) * innerWidth}
-                  height={innerHeight}
-                  fill="url(#primeWindowGrad)"
-                  rx="4"
-                />
-                <rect
-                  x={paddingX + (16 / 23) * innerWidth}
-                  y={paddingTop}
-                  width={(4 / 23) * innerWidth}
-                  height={innerHeight}
-                  fill="url(#primeWindowGrad)"
-                  rx="4"
-                />
-
-                {/* Horizontal Grid lines */}
-                {[0, 25, 50, 75, 100].map((score) => {
-                  const y = chartHeight - paddingBottom - (score / 100) * innerHeight;
-                  return (
-                    <g key={score}>
-                      <line
-                        x1={paddingX}
-                        y1={y}
-                        x2={chartWidth - paddingX}
-                        y2={y}
-                        stroke={isDark ? '#334155' : '#e2e8f0'}
-                        strokeDasharray="3 3"
-                        strokeWidth="1"
-                      />
-                      <text x={paddingX - 8} y={y + 3} fill={isDark ? '#94a3b8' : '#64748b'} fontSize="10" textAnchor="end" className="font-semibold">
-                        {score}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* Interactive hourly bars — bar height is the movement
-                    score, colored with the same palette as the rest of the
-                    app. The selected/hovered bar pops with a ring so the
-                    active hour reads instantly. */}
-                {points.map((pt, i) => {
-                  const isCurrentSelected = selectedHour === i;
-                  const isCurrentlyHovered = hoveredHourIdx === i;
-                  const isActive = isCurrentSelected || isCurrentlyHovered;
-                  const x = pt.x - barWidth / 2;
-                  return (
-                    <g
-                      key={i}
-                      className="cursor-pointer animate-fadeIn"
-                      onMouseEnter={() => setHoveredHourIdx(i)}
-                      onMouseLeave={() => setHoveredHourIdx(null)}
-                      onClick={() => onSelectHour(i)}
-                    >
-                      {/* Transparent wider tracking rect for hover ease */}
-                      <rect
-                        x={pt.x - slotWidth / 2}
-                        y={paddingTop}
-                        width={slotWidth}
-                        height={innerHeight}
-                        fill="transparent"
-                      />
-
-                      <rect
-                        x={x}
-                        y={pt.y}
-                        width={barWidth}
-                        height={pt.barHeight}
-                        rx={2.5}
-                        fill={getScoreColor(pt.score)}
-                        opacity={isActive ? 1 : 0.82}
-                        stroke={isActive ? (isDark ? '#0f172a' : '#ffffff') : 'none'}
-                        strokeWidth={isActive ? 2 : 0}
-                        className="transition-all duration-150"
-                      />
-
-                      {i % 3 === 0 && (
-                        <text x={pt.x} y={chartHeight - 12} fill={isDark ? '#94a3b8' : '#64748b'} fontSize="10" textAnchor="middle" className="font-bold">
-                          {pt.hourStr}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-
-                {/* Active-hour cursor line (selected or hovered) */}
-                {activePoint && (
-                  <g className="pointer-events-none">
-                    <line
-                      x1={activePoint.x}
-                      y1={paddingTop}
-                      x2={activePoint.x}
-                      y2={chartHeight - paddingBottom}
-                      stroke="#3b82f6"
-                      strokeWidth="1.5"
-                      strokeDasharray="2 2"
-                    />
-                  </g>
-                )}
-              </svg>
+            {/* Hourly bars — bar height is the movement score, colored with
+                the same palette as the rest of the app. The selected/hovered
+                bar glows so the active hour reads instantly. */}
+            <div className="flex items-end gap-[2px] h-20 sm:h-24">
+              {day.hourly.slice(0, 24).map((h, i) => {
+                const isActive = selectedHour === i || hoveredHourIdx === i;
+                return (
+                  <div
+                    key={`${h.time}-${i}`}
+                    title={`${h.time} · ${h.huntScore}/100 (${getRatingFromScore(h.huntScore)}) — tap to preview this hour`}
+                    onClick={() => onSelectHour(i)}
+                    onMouseEnter={() => setHoveredHourIdx(i)}
+                    onMouseLeave={() => setHoveredHourIdx(null)}
+                    role="button"
+                    tabIndex={-1}
+                    aria-label={`${h.time} — hunt score ${h.huntScore}, ${getRatingFromScore(h.huntScore)}. Tap to preview this hour.`}
+                    className="flex-1 rounded-t-sm min-w-0 cursor-pointer transition-all"
+                    style={{
+                      height: `${Math.max(6, h.huntScore)}%`,
+                      backgroundColor: getScoreColor(h.huntScore),
+                      boxShadow: isActive ? `0 0 10px 2px ${getScoreColor(h.huntScore)}cc` : 'none',
+                    }}
+                  />
+                );
+              })}
             </div>
 
-            {/* Selected Hourly details card directly below graph */}
-            {activePoint && (
+            {/* Hour ticks — same as the simple dashboard's hourly chart */}
+            <div className="flex gap-[2px] mt-1.5 leading-none select-none" aria-hidden="true">
+              {day.hourly.slice(0, 24).map((h, i) => {
+                const tick = HOUR_TICKS.find((t) => t.hour === i);
+                return (
+                  <div key={`tick-${h.time}-${i}`} className="flex-1 min-w-0 relative h-3">
+                    {tick && (
+                      <span className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {tick.label}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Selected hour details card directly below the bars */}
+            {activeHour && (
               <div
-                className={`mt-4 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-fadeIn ${
+                className={`mt-4 p-3 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-fadeIn ${
                   isDark ? 'bg-slate-950/[var(--card-opacity)] border-slate-800' : 'bg-slate-50/[var(--card-opacity)] border-slate-200'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="px-3 py-1 bg-blue-500/10 text-blue-500 font-extrabold rounded-lg border border-blue-500/30 text-xs">
-                    ⏰ {activePoint.hourStr} Details
+                    ⏰ {activeHour.time} Details
                   </span>
                   <div>
                     <div className={`font-black text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      <span>Movement: {activePoint.score}/100</span>
+                      <span>Movement: {activeHour.huntScore}/100</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        activePoint.score >= 86 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
-                        activePoint.score >= 61 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
-                        activePoint.score >= 41 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30' :
-                        activePoint.score >= 26 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' :
+                        activeHour.huntScore >= 86 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' :
+                        activeHour.huntScore >= 61 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                        activeHour.huntScore >= 41 ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/30' :
+                        activeHour.huntScore >= 26 ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' :
                         'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                       }`}>
-                        {getRatingFromScore(activePoint.score)}
+                        {getRatingFromScore(activeHour.huntScore)}
                       </span>
                     </div>
                   </div>
@@ -578,17 +478,17 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                 <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
                   <div>
                     <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Temp: </span>
-                    <span className={`font-extrabold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{activePoint.h.temp}°{units === 'imperial' ? 'F' : 'C'}</span>
+                    <span className={`font-extrabold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{activeHour.temp}°{units === 'imperial' ? 'F' : 'C'}</span>
                   </div>
                   <div>
                     <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Wind: </span>
                     <span className={`font-extrabold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      {activePoint.h.windDirectionText} {units === 'metric' ? `${activePoint.h.windSpeedKmh} km/h` : `${activePoint.h.windSpeedMph} mph`}
+                      {activeHour.windDirectionText} {units === 'metric' ? `${activeHour.windSpeedKmh} km/h` : `${activeHour.windSpeedMph} mph`}
                     </span>
                   </div>
                   <div>
                     <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>Precip: </span>
-                    <span className={`font-extrabold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{activePoint.h.precipProbability}%</span>
+                    <span className={`font-extrabold ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{activeHour.precipProbability}%</span>
                   </div>
                 </div>
               </div>
@@ -598,7 +498,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           </div>
 
           {/* 24-Hour Precipitation & Barometric Pressure Chart */}
-          <div className="order-2">
+          <div className="order-3">
           <PressureChart
             hourly={day.hourly}
             units={units}
@@ -614,7 +514,7 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
           </div>
 
           {/* Factor Breakdown Section */}
-          <div className="order-3">
+          <div className="order-2">
           <div
             className={`rounded-2xl p-4 sm:p-5 border shadow-md transition-colors ${
               isDark ? 'bg-slate-900/[var(--card-opacity)] backdrop-blur-md border-slate-800' : 'bg-white/[var(--card-opacity)] backdrop-blur-md border-slate-200'
