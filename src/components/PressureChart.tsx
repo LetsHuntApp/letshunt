@@ -28,6 +28,11 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   selectedDateFormatted,
 }) => {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  // True while the hold-and-drag scrubber is armed and following the pointer.
+  const [scrubbing, setScrubbing] = useState(false);
+  // Hour index under the press while the hold is still pending — drives the
+  // pulsing "keep holding" guide.
+  const [armingIdx, setArmingIdx] = useState<number | null>(null);
 
   if (!hourly || hourly.length === 0) return null;
 
@@ -88,14 +93,128 @@ export const PressureChart: React.FC<PressureChartProps> = ({
 
   const precipAreaD = `${precipLineD} L ${points[points.length - 1].x},${height - paddingBottom} L ${points[0].x},${height - paddingBottom} Z`;
 
-  const activeIdx = hoveredIdx !== null ? hoveredIdx : (selectedHour !== undefined ? selectedHour : null);
+  // While the scrubber is armed the pointer owns the selection; otherwise a
+  // mouse hover (desktop) previews, falling back to the externally selected
+  // hour (the simple-dash slider, detailed view, etc.).
+  const activeIdx = scrubbing
+    ? (selectedHour !== undefined ? selectedHour : null)
+    : hoveredIdx !== null
+      ? hoveredIdx
+      : (selectedHour !== undefined ? selectedHour : null);
   const activePoint = activeIdx !== null && points[activeIdx] ? points[activeIdx] : null;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // --- Hold-and-drag scrubber ---------------------------------------------
+  // The chart stays fully scrollable until the hunter deliberately arms the
+  // scrubber: press and hold for about a second anywhere on the graph, then
+  // slide the pointer along it — finger, pen, or mouse button all work. A
+  // pulsing guide appears under the press so the hold never feels dead.
+  const chartSvgRef = useRef<SVGSVGElement>(null);
+  const pointerGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    active: boolean;
+  } | null>(null);
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearPointerGesture = () => {
+    if (holdTimerRef.current !== null) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    pointerGestureRef.current = null;
+    setScrubbing(false);
+    setArmingIdx(null);
+  };
+
+  const getHourFromClientX = (clientX: number): number | null => {
+    const svg = chartSvgRef.current;
+    if (!svg || hourly.length < 2) return null;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0) return null;
+    const viewBoxX = ((clientX - rect.left) / rect.width) * width;
+    const ratio = (viewBoxX - paddingLeft) / chartWidth;
+    return Math.max(0, Math.min(hourly.length - 1, Math.round(ratio * (hourly.length - 1))));
+  };
+
+  const beginPointerGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    clearPointerGesture();
+    const pointerId = event.pointerId;
+    pointerGestureRef.current = {
+      pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      active: false,
+    };
+    // The guide appears the instant the press lands — the hold is watched.
+    setArmingIdx(getHourFromClientX(event.clientX));
+    holdTimerRef.current = setTimeout(() => {
+      const gesture = pointerGestureRef.current;
+      if (!gesture || gesture.pointerId !== pointerId) return;
+      gesture.active = true;
+      setScrubbing(true);
+      setArmingIdx(null);
+      // Freeze any desktop hover state so the cursor follows the pointer
+      // instead of whatever hour the mouse last crossed.
+      setHoveredIdx(null);
+      chartSvgRef.current?.setPointerCapture(pointerId);
+      const index = getHourFromClientX(gesture.lastX);
+      if (index !== null) onSelectHour?.(index);
+    }, 800);
+  };
+
+  const movePointerGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    const gesture = pointerGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.lastX = event.clientX;
+    if (!gesture.active) {
+      // Meaningful movement before the hold belongs to chart/page scrolling
+      // (touch) or a stray mouse drag — cancel the pending scrub either way.
+      const deltaX = Math.abs(event.clientX - gesture.startX);
+      const deltaY = Math.abs(event.clientY - gesture.startY);
+      if (deltaX > 10 || deltaY > 10) clearPointerGesture();
+      return;
+    }
+    event.preventDefault();
+    const index = getHourFromClientX(event.clientX);
+    if (index !== null) onSelectHour?.(index);
+    // Reach beyond the visible strip: with the pointer riding the chart's
+    // edge, nudge the scroll so a long scrub never dead-ends at the screen
+    // edge (the chart is wider than a phone).
+    const container = scrollContainerRef.current;
+    if (container) {
+      const rect = container.getBoundingClientRect();
+      if (event.clientX < rect.left + 26) {
+        container.scrollBy({ left: -26, behavior: 'auto' });
+      } else if (event.clientX > rect.right - 26) {
+        container.scrollBy({ left: 26, behavior: 'auto' });
+      }
+    }
+  };
+
+  const endPointerGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    const gesture = pointerGestureRef.current;
+    if (gesture?.pointerId === event.pointerId && gesture.active) {
+      event.preventDefault();
+      const index = getHourFromClientX(event.clientX);
+      if (index !== null) onSelectHour?.(index);
+    }
+    // Let the selection (not a stale hover) own the cursor after release.
+    setHoveredIdx(null);
+    clearPointerGesture();
+  };
+
   // Smoothly pan scroll container when selected hour changes from slider, avoiding animation frame conflicts
   useEffect(() => {
-    // If user is hovering directly on chart with mouse, don't force scroll
+    // If user is hovering directly on chart with mouse, don't force scroll.
+    // While the hold-and-drag scrubber is armed, the edge nudge inside
+    // movePointerGesture owns scrolling instead, so centering here would
+    // fight the pointer.
+    if (scrubbing) return;
     if (hoveredIdx !== null) return;
 
     const activeHourIdx = selectedHour !== undefined ? selectedHour : null;
@@ -121,90 +240,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         behavior: 'auto',
       });
     }
-  }, [selectedHour, hoveredIdx, width, points]);
-
-  // Touch interaction stays passive while the user is scrolling the chart.
-  // A short hold arms a scrub gesture; only then does horizontal movement
-  // select hours instead of moving the chart's native overflow strip.
-  const chartSvgRef = useRef<SVGSVGElement>(null);
-  const touchGestureRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    lastX: number;
-    active: boolean;
-  } | null>(null);
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [touchScrubbing, setTouchScrubbing] = useState(false);
-
-  const clearTouchGesture = () => {
-    if (longPressTimerRef.current !== null) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    touchGestureRef.current = null;
-    setTouchScrubbing(false);
-  };
-
-  const getHourFromClientX = (clientX: number): number | null => {
-    const svg = chartSvgRef.current;
-    if (!svg || hourly.length < 2) return null;
-    const rect = svg.getBoundingClientRect();
-    if (rect.width <= 0) return null;
-    const viewBoxX = ((clientX - rect.left) / rect.width) * width;
-    const ratio = (viewBoxX - paddingLeft) / chartWidth;
-    return Math.max(0, Math.min(hourly.length - 1, Math.round(ratio * (hourly.length - 1))));
-  };
-
-  const beginTouchGesture = (event: React.PointerEvent<SVGSVGElement>) => {
-    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
-    clearTouchGesture();
-    const pointerId = event.pointerId;
-    touchGestureRef.current = {
-      pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      lastX: event.clientX,
-      active: false,
-    };
-    longPressTimerRef.current = setTimeout(() => {
-      const gesture = touchGestureRef.current;
-      if (!gesture || gesture.pointerId !== pointerId) return;
-      gesture.active = true;
-      setTouchScrubbing(true);
-      chartSvgRef.current?.setPointerCapture(pointerId);
-      const index = getHourFromClientX(gesture.lastX);
-      if (index !== null) onSelectHour?.(index);
-    }, 450);
-  };
-
-  const moveTouchGesture = (event: React.PointerEvent<SVGSVGElement>) => {
-    const gesture = touchGestureRef.current;
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    gesture.lastX = event.clientX;
-    if (!gesture.active) {
-      const deltaX = Math.abs(event.clientX - gesture.startX);
-      const deltaY = Math.abs(event.clientY - gesture.startY);
-      // Any meaningful movement before the hold belongs to normal chart
-      // scrolling (or page scrolling), so cancel the pending scrub.
-      if (deltaX > 8 || deltaY > 8) clearTouchGesture();
-      return;
-    }
-    event.preventDefault();
-    const index = getHourFromClientX(event.clientX);
-    if (index !== null) onSelectHour?.(index);
-  };
-
-  const endTouchGesture = (event: React.PointerEvent<SVGSVGElement>) => {
-    const gesture = touchGestureRef.current;
-    if (gesture?.pointerId === event.pointerId && gesture.active) {
-      event.preventDefault();
-      const index = getHourFromClientX(event.clientX);
-      if (index !== null) onSelectHour?.(index);
-    }
-    clearTouchGesture();
-  };
-
+  }, [selectedHour, hoveredIdx, scrubbing, width, points]);
   return (
     <div
       id="barometer-chart"
@@ -260,13 +296,13 @@ export const PressureChart: React.FC<PressureChartProps> = ({
           ref={chartSvgRef}
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-auto min-w-[600px] select-none"
-          style={{ touchAction: touchScrubbing ? 'none' : 'pan-x pan-y' }}
+          style={{ touchAction: scrubbing ? 'none' : 'pan-x pan-y' }}
           onMouseLeave={() => setHoveredIdx(null)}
-          onPointerDown={beginTouchGesture}
-          onPointerMove={moveTouchGesture}
-          onPointerUp={endTouchGesture}
-          onPointerCancel={clearTouchGesture}
-          onLostPointerCapture={clearTouchGesture}
+          onPointerDown={beginPointerGesture}
+          onPointerMove={movePointerGesture}
+          onPointerUp={endPointerGesture}
+          onPointerCancel={clearPointerGesture}
+          onLostPointerCapture={clearPointerGesture}
         >
           <defs>
             <linearGradient id="pressureGrad" x1="0" y1="0" x2="0" y2="1">
@@ -463,6 +499,33 @@ export const PressureChart: React.FC<PressureChartProps> = ({
               />
             </g>
           )}
+
+          {/* Hold-to-scrub arming guide: a pulsing ring and soft line under
+              the press, shown while the ~1s hold is still pending so the
+              hunter knows the graph is listening. */}
+          {armingIdx !== null && points[armingIdx] && (
+            <g className="pointer-events-none">
+              <line
+                x1={points[armingIdx].x}
+                y1={paddingTop}
+                x2={points[armingIdx].x}
+                y2={height - paddingBottom}
+                stroke={isDark ? '#fbbf24' : '#d97706'}
+                strokeWidth="1.5"
+                strokeDasharray="2 4"
+                opacity="0.6"
+              />
+              <circle
+                cx={points[armingIdx].x}
+                cy={points[armingIdx].yP}
+                r="10"
+                fill="none"
+                stroke={isDark ? '#fbbf24' : '#d97706'}
+                strokeWidth="2.5"
+                className="animate-pulse"
+              />
+            </g>
+          )}
         </svg>
       </div>
 
@@ -535,7 +598,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         </div>
       ) : (
         <p className={`text-xs text-center mt-2.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-          Tap any hour, or press and hold before dragging, to scrub rain, the barometer, wind, and deer movement.
+          Tap any hour — or press and hold for a second, then drag, to scrub rain, the barometer, wind, and movement.
         </p>
       )}
     </div>
