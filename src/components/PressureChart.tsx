@@ -123,6 +123,88 @@ export const PressureChart: React.FC<PressureChartProps> = ({
     }
   }, [selectedHour, hoveredIdx, width, points]);
 
+  // Touch interaction stays passive while the user is scrolling the chart.
+  // A short hold arms a scrub gesture; only then does horizontal movement
+  // select hours instead of moving the chart's native overflow strip.
+  const chartSvgRef = useRef<SVGSVGElement>(null);
+  const touchGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    active: boolean;
+  } | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [touchScrubbing, setTouchScrubbing] = useState(false);
+
+  const clearTouchGesture = () => {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchGestureRef.current = null;
+    setTouchScrubbing(false);
+  };
+
+  const getHourFromClientX = (clientX: number): number | null => {
+    const svg = chartSvgRef.current;
+    if (!svg || hourly.length < 2) return null;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width <= 0) return null;
+    const viewBoxX = ((clientX - rect.left) / rect.width) * width;
+    const ratio = (viewBoxX - paddingLeft) / chartWidth;
+    return Math.max(0, Math.min(hourly.length - 1, Math.round(ratio * (hourly.length - 1))));
+  };
+
+  const beginTouchGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return;
+    clearTouchGesture();
+    const pointerId = event.pointerId;
+    touchGestureRef.current = {
+      pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      active: false,
+    };
+    longPressTimerRef.current = setTimeout(() => {
+      const gesture = touchGestureRef.current;
+      if (!gesture || gesture.pointerId !== pointerId) return;
+      gesture.active = true;
+      setTouchScrubbing(true);
+      chartSvgRef.current?.setPointerCapture(pointerId);
+      const index = getHourFromClientX(gesture.lastX);
+      if (index !== null) onSelectHour?.(index);
+    }, 450);
+  };
+
+  const moveTouchGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    const gesture = touchGestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    gesture.lastX = event.clientX;
+    if (!gesture.active) {
+      const deltaX = Math.abs(event.clientX - gesture.startX);
+      const deltaY = Math.abs(event.clientY - gesture.startY);
+      // Any meaningful movement before the hold belongs to normal chart
+      // scrolling (or page scrolling), so cancel the pending scrub.
+      if (deltaX > 8 || deltaY > 8) clearTouchGesture();
+      return;
+    }
+    event.preventDefault();
+    const index = getHourFromClientX(event.clientX);
+    if (index !== null) onSelectHour?.(index);
+  };
+
+  const endTouchGesture = (event: React.PointerEvent<SVGSVGElement>) => {
+    const gesture = touchGestureRef.current;
+    if (gesture?.pointerId === event.pointerId && gesture.active) {
+      event.preventDefault();
+      const index = getHourFromClientX(event.clientX);
+      if (index !== null) onSelectHour?.(index);
+    }
+    clearTouchGesture();
+  };
+
   return (
     <div
       id="barometer-chart"
@@ -175,9 +257,16 @@ export const PressureChart: React.FC<PressureChartProps> = ({
 
       <div ref={scrollContainerRef} className="relative w-full overflow-x-auto">
         <svg
+          ref={chartSvgRef}
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-auto min-w-[600px] select-none"
+          style={{ touchAction: touchScrubbing ? 'none' : 'pan-x pan-y' }}
           onMouseLeave={() => setHoveredIdx(null)}
+          onPointerDown={beginTouchGesture}
+          onPointerMove={moveTouchGesture}
+          onPointerUp={endTouchGesture}
+          onPointerCancel={clearTouchGesture}
+          onLostPointerCapture={clearTouchGesture}
         >
           <defs>
             <linearGradient id="pressureGrad" x1="0" y1="0" x2="0" y2="1">
@@ -446,7 +535,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         </div>
       ) : (
         <p className={`text-xs text-center mt-2.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-          Hover or tap any hour to see rain, the barometer, wind, and when deer may move.
+          Tap any hour, or press and hold before dragging, to scrub rain, the barometer, wind, and deer movement.
         </p>
       )}
     </div>
