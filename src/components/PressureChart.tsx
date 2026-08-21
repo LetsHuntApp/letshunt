@@ -15,6 +15,13 @@ interface PressureChartProps {
   selectedDateFormatted?: string;
 }
 
+// Prime hunting windows within the day's 24-hour series (half-open hour
+// ranges) — the same morning/evening bands the rest of the app highlights.
+const PRIME_RANGES: [number, number][] = [
+  [5, 9],
+  [16, 20],
+];
+
 export const PressureChart: React.FC<PressureChartProps> = ({
   hourly,
   units,
@@ -28,35 +35,50 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   selectedDateFormatted,
 }) => {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  // True while the hold-and-drag scrubber is armed and following the pointer.
+  // True while the pointer is actively scrubbing horizontally — the pointer
+  // owns the selection for as long as it's sliding across the graph.
   const [scrubbing, setScrubbing] = useState(false);
-  // Hour index under the press while the hold is still pending — drives the
-  // pulsing "keep holding" guide.
-  const [armingIdx, setArmingIdx] = useState<number | null>(null);
+  // While a drag is in progress the 12-hour window stays frozen so the
+  // cursor follows the finger 1:1 across the graph (Apple-Weather style); on
+  // release it re-centers on the chosen hour so any hour of the day stays
+  // reachable by dragging again.
+  const [frozenWindowStart, setFrozenWindowStart] = useState<number | null>(null);
 
   if (!hourly || hourly.length === 0) return null;
 
-  // Extract pressure and precipitation series
-  const pressures = hourly.map((h) => (pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa));
+  // A rolling 12-hour window centered on the selected hour (clamped to the
+  // day). The whole chart always fits its card — no horizontal scroll — and
+  // every hour of the day stays reachable by sliding across the graph.
+  const windowSize = Math.min(12, hourly.length);
+  const computedWindowStart = Math.max(
+    0,
+    Math.min((selectedHour ?? 6) - Math.floor(windowSize / 2), hourly.length - windowSize)
+  );
+  const windowStart = frozenWindowStart ?? computedWindowStart;
+  const windowHours = hourly.slice(windowStart, windowStart + windowSize);
+
+  // Extract pressure and precipitation series for the visible window
+  const pressures = windowHours.map((h) => (pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa));
 
   const minP = Math.min(...pressures);
   const maxP = Math.max(...pressures);
   const rangeP = Math.max(0.05, maxP - minP);
 
-  // SVG dimensions - padded for dual Y-axes
-  const width = 850;
+  // SVG dimensions — fitted to the container (no min-width, no scroll strip)
+  const width = 600;
   const height = 250;
-  const paddingLeft = 52;
-  const paddingRight = 52;
+  const paddingLeft = 48;
+  const paddingRight = 48;
   const paddingTop = 30;
   const paddingBottom = 48;
 
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
 
-  // Convert points to SVG coordinates
-  const points = hourly.map((h, i) => {
-    const x = paddingLeft + (i / (hourly.length - 1)) * chartWidth;
+  // Convert points to SVG coordinates. Each point remembers its index into
+  // the day's full 24-hour series so selection stays in sync everywhere.
+  const points = windowHours.map((h, i) => {
+    const x = paddingLeft + (i / (windowHours.length - 1)) * chartWidth;
     const valP = pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa;
     const normP = (valP - minP) / rangeP;
     const yP = height - paddingBottom - normP * (chartHeight - 15);
@@ -75,6 +97,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
       hourStr: h.time,
       score: h.huntScore,
       isPrime: h.isPrimeWindow,
+      fullIndex: windowStart + i,
       h,
     };
   });
@@ -93,23 +116,40 @@ export const PressureChart: React.FC<PressureChartProps> = ({
 
   const precipAreaD = `${precipLineD} L ${points[points.length - 1].x},${height - paddingBottom} L ${points[0].x},${height - paddingBottom} Z`;
 
-  // While the scrubber is armed the pointer owns the selection; otherwise a
-  // mouse hover (desktop) previews, falling back to the externally selected
-  // hour (the simple-dash slider, detailed view, etc.).
-  const activeIdx = scrubbing
+  // The selected/hovered hour in full-day indices. While actively scrubbing
+  // the pointer owns the selection; otherwise a mouse hover (desktop)
+  // previews, falling back to the externally selected hour (the simple-dash
+  // slider, detailed view, etc.).
+  const activeFullIdx = scrubbing
     ? (selectedHour !== undefined ? selectedHour : null)
     : hoveredIdx !== null
       ? hoveredIdx
       : (selectedHour !== undefined ? selectedHour : null);
-  const activePoint = activeIdx !== null && points[activeIdx] ? points[activeIdx] : null;
+  const activePoint =
+    activeFullIdx !== null &&
+    activeFullIdx >= windowStart &&
+    activeFullIdx < windowStart + windowHours.length
+      ? points[activeFullIdx - windowStart]
+      : null;
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Prime-window highlight rects, clipped to the visible 12 hours.
+  const primeRects = PRIME_RANGES
+    .map(([a, b]) => {
+      const start = Math.max(a - windowStart, 0);
+      const end = Math.min(b - windowStart, windowHours.length);
+      return { start, end };
+    })
+    .filter(({ start, end }) => end > start)
+    .map(({ start, end }) => ({
+      x: paddingLeft + (start / (windowHours.length - 1)) * chartWidth,
+      width: ((end - start) / (windowHours.length - 1)) * chartWidth,
+    }));
 
-  // --- Hold-and-drag scrubber ---------------------------------------------
-  // The chart stays fully scrollable until the hunter deliberately arms the
-  // scrubber: press and hold for about a second anywhere on the graph, then
-  // slide the pointer along it — finger, pen, or mouse button all work. A
-  // pulsing guide appears under the press so the hold never feels dead.
+  // --- Drag-to-scrub gesture ----------------------------------------------
+  // Slide a finger (or mouse) across the graph to scrub the hour — like
+  // Apple Weather. Vertical swipes still scroll the page because the SVG
+  // uses touch-action: pan-y, so the browser owns vertical pans while
+  // horizontal movement comes to us. A tap still selects the hour.
   const chartSvgRef = useRef<SVGSVGElement>(null);
   const pointerGestureRef = useRef<{
     pointerId: number;
@@ -118,129 +158,104 @@ export const PressureChart: React.FC<PressureChartProps> = ({
     lastX: number;
     active: boolean;
   } | null>(null);
-  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearPointerGesture = () => {
-    if (holdTimerRef.current !== null) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
     pointerGestureRef.current = null;
     setScrubbing(false);
-    setArmingIdx(null);
+    setFrozenWindowStart(null);
   };
+
+  // Safety net: if the finger lifts off the page instead of the graph (no
+  // pointer capture for touch, so vertical page scroll keeps working), make
+  // sure the scrub gesture always ends.
+  useEffect(() => {
+    if (!scrubbing) return;
+    const end = () => clearPointerGesture();
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => {
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+  }, [scrubbing]);
 
   const getHourFromClientX = (clientX: number): number | null => {
     const svg = chartSvgRef.current;
-    if (!svg || hourly.length < 2) return null;
+    if (!svg || windowHours.length < 2) return null;
     const rect = svg.getBoundingClientRect();
     if (rect.width <= 0) return null;
     const viewBoxX = ((clientX - rect.left) / rect.width) * width;
     const ratio = (viewBoxX - paddingLeft) / chartWidth;
-    return Math.max(0, Math.min(hourly.length - 1, Math.round(ratio * (hourly.length - 1))));
+    const localIdx = Math.max(0, Math.min(windowHours.length - 1, Math.round(ratio * (windowHours.length - 1))));
+    return windowStart + localIdx;
   };
 
   const beginPointerGesture = (event: React.PointerEvent<SVGSVGElement>) => {
     clearPointerGesture();
-    const pointerId = event.pointerId;
+    // Capturing the mouse keeps a drag flowing even off the chart's edge;
+    // touch is left uncaptured so the browser can still take over for
+    // vertical page scrolling.
+    if (event.pointerType !== 'touch') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
     pointerGestureRef.current = {
-      pointerId,
+      pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       lastX: event.clientX,
       active: false,
     };
-    // The guide appears the instant the press lands — the hold is watched.
-    setArmingIdx(getHourFromClientX(event.clientX));
-    holdTimerRef.current = setTimeout(() => {
-      const gesture = pointerGestureRef.current;
-      if (!gesture || gesture.pointerId !== pointerId) return;
-      gesture.active = true;
-      setScrubbing(true);
-      setArmingIdx(null);
-      // Freeze any desktop hover state so the cursor follows the pointer
-      // instead of whatever hour the mouse last crossed.
-      setHoveredIdx(null);
-      chartSvgRef.current?.setPointerCapture(pointerId);
-      const index = getHourFromClientX(gesture.lastX);
-      if (index !== null) onSelectHour?.(index);
-    }, 800);
   };
 
   const movePointerGesture = (event: React.PointerEvent<SVGSVGElement>) => {
     const gesture = pointerGestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     gesture.lastX = event.clientX;
+
     if (!gesture.active) {
-      // Meaningful movement before the hold belongs to chart/page scrolling
-      // (touch) or a stray mouse drag — cancel the pending scrub either way.
-      const deltaX = Math.abs(event.clientX - gesture.startX);
-      const deltaY = Math.abs(event.clientY - gesture.startY);
-      if (deltaX > 10 || deltaY > 10) clearPointerGesture();
-      return;
-    }
-    event.preventDefault();
-    const index = getHourFromClientX(event.clientX);
-    if (index !== null) onSelectHour?.(index);
-    // Reach beyond the visible strip: with the pointer riding the chart's
-    // edge, nudge the scroll so a long scrub never dead-ends at the screen
-    // edge (the chart is wider than a phone).
-    const container = scrollContainerRef.current;
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      if (event.clientX < rect.left + 26) {
-        container.scrollBy({ left: -26, behavior: 'auto' });
-      } else if (event.clientX > rect.right - 26) {
-        container.scrollBy({ left: 26, behavior: 'auto' });
+      const deltaX = event.clientX - gesture.startX;
+      const deltaY = event.clientY - gesture.startY;
+      // A mostly vertical movement belongs to page scrolling — drop the
+      // gesture and let the browser's pan (and pointercancel) take over.
+      if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        clearPointerGesture();
+        return;
+      }
+      // Only a deliberate sideways slide engages the scrubber. Freeze the
+      // window at its current position for the rest of the drag so the
+      // cursor tracks the finger exactly instead of re-centering under it.
+      if (Math.abs(deltaX) > 8 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        gesture.active = true;
+        setScrubbing(true);
+        setHoveredIdx(null);
+        setFrozenWindowStart(computedWindowStart);
+      } else {
+        return;
       }
     }
+
+    const index = getHourFromClientX(event.clientX);
+    if (index !== null) onSelectHour?.(index);
   };
 
   const endPointerGesture = (event: React.PointerEvent<SVGSVGElement>) => {
     const gesture = pointerGestureRef.current;
-    if (gesture?.pointerId === event.pointerId && gesture.active) {
-      event.preventDefault();
-      const index = getHourFromClientX(event.clientX);
-      if (index !== null) onSelectHour?.(index);
+    if (gesture?.pointerId === event.pointerId) {
+      if (gesture.active) {
+        // Final slide position wins.
+        const index = getHourFromClientX(event.clientX);
+        if (index !== null) onSelectHour?.(index);
+      } else {
+        // A tap with no meaningful slide selects the pressed hour.
+        const index = getHourFromClientX(event.clientX);
+        if (index !== null) onSelectHour?.(index);
+      }
+      // Let the selection (not a stale hover) own the cursor after release.
+      setHoveredIdx(null);
     }
-    // Let the selection (not a stale hover) own the cursor after release.
-    setHoveredIdx(null);
     clearPointerGesture();
   };
 
-  // Smoothly pan scroll container when selected hour changes from slider, avoiding animation frame conflicts
-  useEffect(() => {
-    // If user is hovering directly on chart with mouse, don't force scroll.
-    // While the hold-and-drag scrubber is armed, the edge nudge inside
-    // movePointerGesture owns scrolling instead, so centering here would
-    // fight the pointer.
-    if (scrubbing) return;
-    if (hoveredIdx !== null) return;
-
-    const activeHourIdx = selectedHour !== undefined ? selectedHour : null;
-    if (activeHourIdx === null) return;
-
-    const container = scrollContainerRef.current;
-    if (!container || !points[activeHourIdx]) return;
-
-    const activePt = points[activeHourIdx];
-    const containerScrollWidth = container.scrollWidth;
-    const containerClientWidth = container.clientWidth;
-
-    if (containerScrollWidth > containerClientWidth) {
-      const pointPx = (activePt.x / width) * containerScrollWidth;
-      const targetScrollLeft = Math.max(
-        0,
-        Math.min(containerScrollWidth - containerClientWidth, pointPx - containerClientWidth / 2)
-      );
-
-      // Use 'auto' behavior to sync continuously with slider updates without animation fighting/glitching
-      container.scrollTo({
-        left: targetScrollLeft,
-        behavior: 'auto',
-      });
-    }
-  }, [selectedHour, hoveredIdx, scrubbing, width, points]);
   return (
     <div
       id="barometer-chart"
@@ -269,7 +284,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
             )}
           </h3>
           <p className={`text-xs sm:text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            The last 24 hours of rain and barometer readings, with the best hunting windows marked
+            A 12-hour look at rain and barometer readings — slide across the graph to scrub — with the best hunting windows marked
           </p>
         </div>
 
@@ -291,243 +306,210 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="relative w-full overflow-x-auto">
-        <svg
-          ref={chartSvgRef}
-          viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-auto min-w-[600px] select-none"
-          style={{ touchAction: scrubbing ? 'none' : 'pan-x pan-y' }}
-          onMouseLeave={() => setHoveredIdx(null)}
-          onPointerDown={beginPointerGesture}
-          onPointerMove={movePointerGesture}
-          onPointerUp={endPointerGesture}
-          onPointerCancel={clearPointerGesture}
-          onLostPointerCapture={clearPointerGesture}
-        >
-          <defs>
-            <linearGradient id="pressureGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" />
-            </linearGradient>
+      <svg
+        ref={chartSvgRef}
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full h-auto select-none"
+        style={{ touchAction: 'pan-y' }}
+        onMouseLeave={() => setHoveredIdx(null)}
+        onPointerDown={beginPointerGesture}
+        onPointerMove={movePointerGesture}
+        onPointerUp={endPointerGesture}
+        onPointerCancel={clearPointerGesture}
+        onLostPointerCapture={clearPointerGesture}
+      >
+        <defs>
+          <linearGradient id="pressureGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" />
+          </linearGradient>
 
-            <linearGradient id="precipGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
-            </linearGradient>
+          <linearGradient id="precipGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
+          </linearGradient>
 
-            <linearGradient id="primeWindowGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
+          <linearGradient id="primeWindowGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
 
-          {/* Prime Time Window Highlights */}
+        {/* Prime Time Window Highlights (visible hours only) */}
+        {primeRects.map((rect, i) => (
           <rect
-            x={paddingLeft + (5 / 23) * chartWidth}
+            key={i}
+            x={rect.x}
             y={paddingTop}
-            width={(4 / 23) * chartWidth}
+            width={rect.width}
             height={chartHeight}
             fill="url(#primeWindowGrad)"
             rx="6"
           />
-          <rect
-            x={paddingLeft + (16 / 23) * chartWidth}
-            y={paddingTop}
-            width={(4 / 23) * chartWidth}
-            height={chartHeight}
-            fill="url(#primeWindowGrad)"
-            rx="6"
-          />
+        ))}
 
-          {/* Horizontal Grid lines with Left (Barometer) and Right (Rain Precip %) Axes */}
-          {[0, 0.25, 0.5, 0.75, 1.0].map((ratio) => {
-            const y = height - paddingBottom - ratio * (chartHeight - 15);
-            const valP = minP + ratio * rangeP;
-            const valPrecip = Math.round(ratio * 100);
+        {/* Horizontal Grid lines with Left (Barometer) and Right (Rain Precip %) Axes */}
+        {[0, 0.25, 0.5, 0.75, 1.0].map((ratio) => {
+          const y = height - paddingBottom - ratio * (chartHeight - 15);
+          const valP = minP + ratio * rangeP;
+          const valPrecip = Math.round(ratio * 100);
 
-            return (
-              <g key={ratio}>
-                <line
-                  x1={paddingLeft}
-                  y1={y}
-                  x2={width - paddingRight}
-                  y2={y}
-                  stroke={isDark ? '#334155' : '#e2e8f0'}
-                  strokeDasharray="3 3"
-                  strokeWidth="1"
-                />
-                {/* Left Axis: Pressure */}
-                <text
-                  x={paddingLeft - 8}
-                  y={y + 4}
-                  fill={isDark ? '#f59e0b' : '#d97706'}
-                  fontSize="13"
-                  fontWeight="800"
-                  textAnchor="end"
-                >
-                  {valP.toFixed(pressureUnit === 'inHg' ? 2 : 0)}
-                </text>
-                {/* Right Axis: Rain Precip % */}
-                <text
-                  x={width - paddingRight + 8}
-                  y={y + 4}
-                  fill={isDark ? '#22d3ee' : '#0284c7'}
-                  fontSize="13"
-                  fontWeight="800"
-                  textAnchor="start"
-                >
-                  {valPrecip}%
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Area Fill under Barometric Pressure line */}
-          <path d={pressureAreaD} fill="url(#pressureGrad)" />
-
-          {/* Area Fill under Rain Precipitation line */}
-          <path d={precipAreaD} fill="url(#precipGrad)" />
-
-          {/* Barometric Pressure Line */}
-          <path
-            d={pressureLineD}
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Rain Precipitation Line */}
-          <path
-            d={precipLineD}
-            fill="none"
-            stroke="#06b6d4"
-            strokeWidth="2.5"
-            strokeDasharray="5 3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Hourly Nodes & X-Axis Time Labels */}
-          {points.map((pt, i) => {
-            const isHovered = hoveredIdx === i;
-            const isSelected = activeIdx === i;
-
-            return (
-              <g
-                key={i}
-                className="cursor-pointer"
-                onMouseEnter={() => setHoveredIdx(i)}
-                onClick={() => onSelectHour && onSelectHour(i)}
-              >
-                {/* Wide invisible interaction block for easy hover/touch */}
-                <rect
-                  x={pt.x - chartWidth / 48}
-                  y={paddingTop}
-                  width={chartWidth / 24}
-                  height={chartHeight}
-                  fill="transparent"
-                />
-
-                {/* Rain Precip Point Node */}
-                <circle
-                  cx={pt.x}
-                  cy={pt.yPrecip}
-                  r={isHovered ? 5.5 : pt.precipProb > 30 ? 3.5 : 2}
-                  fill="#06b6d4"
-                  stroke={isDark ? '#0f172a' : '#ffffff'}
-                  strokeWidth={1.5}
-                />
-
-                {/* Barometer Point Node */}
-                <circle
-                  cx={pt.x}
-                  cy={pt.yP}
-                  r={isHovered ? 6 : pt.isPrime ? 4.5 : 3}
-                  fill={pt.isPrime ? '#10b981' : '#f59e0b'}
-                  stroke={isDark ? '#0f172a' : '#ffffff'}
-                  strokeWidth={1.5}
-                />
-
-                {/* X-Axis Time Labels (Slightly larger font size for readability) */}
-                {i % 3 === 0 && (
-                  <text
-                    x={pt.x}
-                    y={height - 12}
-                    fill={isDark ? '#e2e8f0' : '#334155'}
-                    fontSize="13"
-                    fontWeight="800"
-                    textAnchor="middle"
-                  >
-                    {pt.hourStr}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* Active Hover / Selected Hour Cursor Line */}
-          {activePoint && (
-            <g className="pointer-events-none">
+          return (
+            <g key={ratio}>
               <line
-                x1={activePoint.x}
-                y1={paddingTop}
-                x2={activePoint.x}
-                y2={height - paddingBottom}
-                stroke="#0284c7"
-                strokeWidth="2"
+                x1={paddingLeft}
+                y1={y}
+                x2={width - paddingRight}
+                y2={y}
+                stroke={isDark ? '#334155' : '#e2e8f0'}
                 strokeDasharray="3 3"
+                strokeWidth="1"
               />
-              {/* Pressure Active Ring */}
-              <circle
-                cx={activePoint.x}
-                cy={activePoint.yP}
-                r="7"
-                fill="#f59e0b"
-                stroke="#ffffff"
-                strokeWidth="2.5"
-              />
-              {/* Precip Active Ring */}
-              <circle
-                cx={activePoint.x}
-                cy={activePoint.yPrecip}
-                r="6"
-                fill="#06b6d4"
-                stroke="#ffffff"
-                strokeWidth="2"
-              />
+              {/* Left Axis: Pressure */}
+              <text
+                x={paddingLeft - 8}
+                y={y + 4}
+                fill={isDark ? '#f59e0b' : '#d97706'}
+                fontSize="16"
+                fontWeight="800"
+                textAnchor="end"
+              >
+                {valP.toFixed(pressureUnit === 'inHg' ? 2 : 0)}
+              </text>
+              {/* Right Axis: Rain Precip % */}
+              <text
+                x={width - paddingRight + 8}
+                y={y + 4}
+                fill={isDark ? '#22d3ee' : '#0284c7'}
+                fontSize="16"
+                fontWeight="800"
+                textAnchor="start"
+              >
+                {valPrecip}%
+              </text>
             </g>
-          )}
+          );
+        })}
 
-          {/* Hold-to-scrub arming guide: a pulsing ring and soft line under
-              the press, shown while the ~1s hold is still pending so the
-              hunter knows the graph is listening. */}
-          {armingIdx !== null && points[armingIdx] && (
-            <g className="pointer-events-none">
-              <line
-                x1={points[armingIdx].x}
-                y1={paddingTop}
-                x2={points[armingIdx].x}
-                y2={height - paddingBottom}
-                stroke={isDark ? '#fbbf24' : '#d97706'}
-                strokeWidth="1.5"
-                strokeDasharray="2 4"
-                opacity="0.6"
+        {/* Area Fill under Barometric Pressure line */}
+        <path d={pressureAreaD} fill="url(#pressureGrad)" />
+
+        {/* Area Fill under Rain Precipitation line */}
+        <path d={precipAreaD} fill="url(#precipGrad)" />
+
+        {/* Barometric Pressure Line */}
+        <path
+          d={pressureLineD}
+          fill="none"
+          stroke="#f59e0b"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Rain Precipitation Line */}
+        <path
+          d={precipLineD}
+          fill="none"
+          stroke="#06b6d4"
+          strokeWidth="2.5"
+          strokeDasharray="5 3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Hourly Nodes & X-Axis Time Labels */}
+        {points.map((pt, i) => {
+          const isHovered = hoveredIdx === pt.fullIndex;
+          const isSelected = activePoint === pt;
+          const slotWidth = chartWidth / windowHours.length;
+
+          return (
+            <g
+              key={pt.fullIndex}
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredIdx(pt.fullIndex)}
+              onClick={() => onSelectHour && onSelectHour(pt.fullIndex)}
+            >
+              {/* Wide invisible interaction block for easy hover/touch */}
+              <rect
+                x={pt.x - slotWidth / 2}
+                y={paddingTop}
+                width={slotWidth}
+                height={chartHeight}
+                fill="transparent"
               />
+
+              {/* Rain Precip Point Node */}
               <circle
-                cx={points[armingIdx].x}
-                cy={points[armingIdx].yP}
-                r="10"
-                fill="none"
-                stroke={isDark ? '#fbbf24' : '#d97706'}
-                strokeWidth="2.5"
-                className="animate-pulse"
+                cx={pt.x}
+                cy={pt.yPrecip}
+                r={isHovered ? 6 : pt.precipProb > 30 ? 4 : 2.5}
+                fill="#06b6d4"
+                stroke={isDark ? '#0f172a' : '#ffffff'}
+                strokeWidth={1.5}
               />
+
+              {/* Barometer Point Node */}
+              <circle
+                cx={pt.x}
+                cy={pt.yP}
+                r={isHovered ? 6.5 : pt.isPrime ? 4.5 : 3}
+                fill={pt.isPrime ? '#10b981' : '#f59e0b'}
+                stroke={isDark ? '#0f172a' : '#ffffff'}
+                strokeWidth={1.5}
+              />
+
+              {/* X-Axis Time Labels */}
+              {i % 3 === 0 && (
+                <text
+                  x={pt.x}
+                  y={height - 12}
+                  fill={isDark ? '#e2e8f0' : '#334155'}
+                  fontSize="15"
+                  fontWeight="800"
+                  textAnchor="middle"
+                >
+                  {pt.hourStr}
+                </text>
+              )}
             </g>
-          )}
-        </svg>
-      </div>
+          );
+        })}
+
+        {/* Active Hover / Selected Hour Cursor Line */}
+        {activePoint && (
+          <g className="pointer-events-none">
+            <line
+              x1={activePoint.x}
+              y1={paddingTop}
+              x2={activePoint.x}
+              y2={height - paddingBottom}
+              stroke="#0284c7"
+              strokeWidth="2"
+              strokeDasharray="3 3"
+            />
+            {/* Pressure Active Ring */}
+            <circle
+              cx={activePoint.x}
+              cy={activePoint.yP}
+              r="7"
+              fill="#f59e0b"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+            />
+            {/* Precip Active Ring */}
+            <circle
+              cx={activePoint.x}
+              cy={activePoint.yPrecip}
+              r="6"
+              fill="#06b6d4"
+              stroke="#ffffff"
+              strokeWidth="2"
+            />
+          </g>
+        )}
+      </svg>
 
       {/* Active Hover / Hour Detail Card */}
       {activePoint ? (
@@ -598,7 +580,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         </div>
       ) : (
         <p className={`text-xs text-center mt-2.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-          Tap any hour — or press and hold for a second, then drag, to scrub rain, the barometer, wind, and movement.
+          Tap an hour, or slide your finger across the graph, to scrub rain, the barometer, wind, and movement.
         </p>
       )}
     </div>
