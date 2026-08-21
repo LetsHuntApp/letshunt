@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { flushSync } from 'react-dom';
+import { AppSelect } from './AppSelect';
 import {
   Camera,
   Compass,
@@ -4507,7 +4508,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Zone Classification
                 </label>
-                <select
+                <AppSelect
                   value={polygonEditType}
                   onChange={(e) => setPolygonEditType(e.target.value as PolygonType)}
                   className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
@@ -4519,7 +4520,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       {meta.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div>
@@ -4604,7 +4605,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Zone Classification
                 </label>
-                <select
+                <AppSelect
                   value={polygonEditType}
                   onChange={(e) => setPolygonEditType(e.target.value as PolygonType)}
                   className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
@@ -4616,7 +4617,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       {meta.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div>
@@ -4701,7 +4702,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Path Classification
                 </label>
-                <select
+                <AppSelect
                   value={pathEditType}
                   onChange={(e) => setPathEditType(e.target.value as PathType)}
                   className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
@@ -4713,7 +4714,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       {meta.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div>
@@ -4798,7 +4799,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Path Classification
                 </label>
-                <select
+                <AppSelect
                   value={pathEditType}
                   onChange={(e) => setPathEditType(e.target.value as PathType)}
                   className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
@@ -4810,7 +4811,7 @@ export const MapView: React.FC<MapViewProps> = ({
                       {meta.label}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
 
               <div>
@@ -4895,7 +4896,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 <label className="text-xs font-black uppercase tracking-wider text-slate-400 block mb-1">
                   Marker Category
                 </label>
-                <select
+                <AppSelect
                   value={editType}
                   onChange={(e) => setEditType(e.target.value as PinType)}
                   className={`w-full rounded-xl border px-2.5 py-2 text-xs focus:outline-none ${
@@ -4909,7 +4910,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <option value="scrape">Scrapeline / Rubbing Tree</option>
                   <option value="home">Home / Cabin</option>
                   <option value="other">Other Marker</option>
-                </select>
+                </AppSelect>
               </div>
 
               <div>

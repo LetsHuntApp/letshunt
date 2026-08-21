@@ -8,6 +8,7 @@ import { TrailCameraDetail } from './TrailCameraDetail';
 import { TrailCameraAnalytics } from './TrailCameraAnalytics';
 import { TrailCameraTargetManager } from './TrailCameraTargetManager';
 import { TrailCameraInsights } from './TrailCameraInsights';
+import { AppSelect } from './AppSelect';
 import {
   getAllPhotos,
   startPhotoImport,
@@ -989,7 +990,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" /> Spots:
             </span>
-            <select
+            <AppSelect
               value={selectedSpotId}
               onChange={(e) => setSelectedSpotId(e.target.value)}
               title="Pick a spot — then use the buttons to set as default or delete it"
@@ -1003,7 +1004,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                   {spot._isMapPin ? '🗺 ' : ''}{spot.name}{spot.id === defaultLocId ? '  ★ default' : ''}
                 </option>
               ))}
-            </select>
+            </AppSelect>
 
             {/* Add Spot — sits directly to the right of the dropdown on every
                 breakpoint.  Compact: tiny padding + tiny text size, still has
@@ -1111,7 +1112,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
             <span className="w-full sm:w-auto font-bold opacity-70 flex items-center gap-1 flex-shrink-0 text-xs sm:text-xs">
               <Crosshair className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" /> Targets:
             </span>
-            <select
+            <AppSelect
               value={selectedTargetId}
               onChange={(e) => setSelectedTargetId(e.target.value)}
               title="Select a target before importing photos directly to it"
@@ -1125,7 +1126,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                   ● {t.name}
                 </option>
               ))}
-            </select>
+            </AppSelect>
 
             <input
               ref={targetImportInputRef}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { safeGetJSON, safeSetJSON } from '../utils/storage';
+import { AppSelect } from './AppSelect';
 import {
   Trophy,
   Plus,
@@ -1427,7 +1428,7 @@ const cardBgLight = hasCustomBackground
             {/* Filter Dropdowns */}
             <div className="flex items-center gap-2 flex-wrap">
               {/* Gender Filter */}
-              <select
+              <AppSelect
                 value={selectedGenderFilter}
                 onChange={(e) => setSelectedGenderFilter(e.target.value)}
                 className={`px-3 py-2 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1440,10 +1441,10 @@ const cardBgLight = hasCustomBackground
                 <option value="Buck">Bucks Only</option>
                 <option value="Doe">Does Only</option>
                 <option value="Button Buck">Button Bucks</option>
-              </select>
+              </AppSelect>
 
               {/* Stand Filter */}
-              <select
+              <AppSelect
                 value={selectedStandFilter}
                 onChange={(e) => setSelectedStandFilter(e.target.value)}
                 className={`px-3 py-2 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer max-w-[150px] truncate ${
@@ -1458,10 +1459,10 @@ const cardBgLight = hasCustomBackground
                     {st}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
 
               {/* Year Filter */}
-              <select
+              <AppSelect
                 value={selectedYearFilter}
                 onChange={(e) => setSelectedYearFilter(e.target.value)}
                 className={`px-3 py-2 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1476,7 +1477,7 @@ const cardBgLight = hasCustomBackground
                     {y}
                   </option>
                 ))}
-              </select>
+              </AppSelect>
 
               {(searchQuery || selectedGenderFilter !== 'All' || selectedStandFilter !== 'All' || selectedYearFilter !== 'All') && (
                 <button
@@ -1721,7 +1722,7 @@ const cardBgLight = hasCustomBackground
 
                 {mapPins.length > 0 ? (
                   <div className="space-y-2">
-                    <select
+                    <AppSelect
                       value={formStandId}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -1743,7 +1744,7 @@ const cardBgLight = hasCustomBackground
                           {pin.name} ({pin.type})
                         </option>
                       ))}
-                    </select>
+                    </AppSelect>
 
                     <input
                       type="text"
@@ -1777,7 +1778,7 @@ const cardBgLight = hasCustomBackground
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Gender *</label>
-                  <select
+                  <AppSelect
                     value={formGender}
                     onChange={(e) => setFormGender(e.target.value as DeerGender)}
                     className={`w-full p-3 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1791,12 +1792,12 @@ const cardBgLight = hasCustomBackground
                     <option value="Button Buck">Button Buck</option>
                     <option value="Shed Buck">Shed Buck</option>
                     <option value="Other">Other</option>
-                  </select>
+                  </AppSelect>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Age (Optional)</label>
-                  <select
+                  <AppSelect
                     value={formAge}
                     onChange={(e) => setFormAge(e.target.value)}
                     className={`w-full p-3 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1811,7 +1812,7 @@ const cardBgLight = hasCustomBackground
                         {opt}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
 
@@ -1840,7 +1841,7 @@ const cardBgLight = hasCustomBackground
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                     Weight ({units === 'metric' ? 'kg' : 'lbs'}) (Optional)
                   </label>
-                  <select
+                  <AppSelect
                     value={formWeight}
                     onChange={(e) => setFormWeight(e.target.value)}
                     className={`w-full p-3 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1855,14 +1856,14 @@ const cardBgLight = hasCustomBackground
                         {w} {units === 'metric' ? 'kg' : 'lbs'}
                       </option>
                     ))}
-                  </select>
+                  </AppSelect>
                 </div>
               </div>
 
               {/* Weapon Used */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Weapon Used</label>
-                <select
+                <AppSelect
                   value={formWeapon}
                   onChange={(e) => setFormWeapon(e.target.value)}
                   className={`w-full p-3 rounded-2xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1880,7 +1881,7 @@ const cardBgLight = hasCustomBackground
                   <option value="Shotgun Slug">Shotgun Slug</option>
                   <option value="Handgun">Handgun</option>
                   <option value="Traditional Bow / Recurve">Traditional Bow / Recurve</option>
-                </select>
+                </AppSelect>
               </div>
 
               {/* Weather Conditions Row (Temp, Wind Speed, Wind Dir) */}
@@ -1954,7 +1955,7 @@ const cardBgLight = hasCustomBackground
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Wind Direction
                     </label>
-                    <select
+                    <AppSelect
                       value={formWindDir}
                       onChange={(e) => setFormWindDir(e.target.value)}
                       className={`w-full p-2.5 rounded-xl text-xs font-bold border focus:outline-none cursor-pointer ${
@@ -1981,7 +1982,7 @@ const cardBgLight = hasCustomBackground
                       <option value="NW">North-West (NW)</option>
                       <option value="NNW">NNW</option>
                       <option value="Calm">Calm / Variable</option>
-                    </select>
+                    </AppSelect>
                   </div>
                 </div>
               </div>

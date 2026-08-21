@@ -4,6 +4,7 @@ import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, Tra
 import { getFullImageBlob, getThumbnailUrl, saveFullImageBlob, updatePhoto, matchWeatherForPhoto } from '../services/trailCameraService';
 import { downloadPhotoBlob, getPhotoDownloadUrl } from '../services/b2Service';
 import { getActiveClub } from '../services/huntClubService';
+import { AppSelect } from './AppSelect';
 
 interface TrailCameraDetailProps {
   theme?: ThemeVariantMode;
@@ -559,7 +560,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
               <MapPin className="w-3.5 h-3.5 text-sky-400" /> Camera Spot
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <select
+              <AppSelect
                 value={selectedLocId}
                 onChange={(e) => handleLocationChange(e.target.value)}
                 className={`w-full min-w-0 flex-1 p-2 text-xs font-bold rounded-xl border max-h-40 overflow-y-auto ${selectBg}`}
@@ -568,7 +569,7 @@ export const TrailCameraDetail: React.FC<TrailCameraDetailProps> = ({
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}
-              </select>
+              </AppSelect>
               <button
                 type="button"
                 onClick={handleAssignGpsLocation}

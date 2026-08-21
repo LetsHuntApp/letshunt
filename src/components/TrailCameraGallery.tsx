@@ -3,6 +3,7 @@ import { Star, Trash2, MapPin, Calendar, Clock, Wind, Thermometer, CheckSquare, 
 import { ThemeMode, ThemeVariantMode, TrailCameraPhoto, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { getThumbnailUrl, matchWeatherForPhoto, updatePhoto, reRunOcrOnPhotos } from '../services/trailCameraService';
 import { TeachingEmptyState } from './TeachingEmptyState';
+import { AppSelect } from './AppSelect';
 
 interface TrailCameraGalleryProps {
   theme?: ThemeVariantMode;
@@ -797,7 +798,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               Tag {selectedIds.length} selected photo(s) with a target to track activity patterns for specific deer.
             </p>
 
-            <select
+            <AppSelect
               value={targetAssignId}
               onChange={(e) => setTargetAssignId(e.target.value)}
               className={`w-full p-2 text-xs rounded-xl border ${tc.selectBg}`}
@@ -806,7 +807,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               {targets.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
-            </select>
+            </AppSelect>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -905,7 +906,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               Assign {selectedIds.length} selected photo(s) to a saved camera location to fetch historical weather.
             </p>
 
-<select
+<AppSelect
                 value={targetLocationId}
                 onChange={(e) => setTargetLocationId(e.target.value)}
                 className={`w-full p-2 text-xs rounded-xl border max-h-40 overflow-y-auto ${tc.selectBg}`}
@@ -914,7 +915,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id}>{loc.name}</option>
               ))}
-            </select>
+            </AppSelect>
 
             <div className="flex justify-end gap-2 pt-2">
               <button

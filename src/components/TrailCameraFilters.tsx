@@ -1,6 +1,7 @@
 import React from 'react';
 import { Filter, RotateCcw } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, TrailCameraFilterState, TrailCameraLocation, TrailCameraTarget } from '../types';
+import { AppSelect } from './AppSelect';
 
 interface TrailCameraFiltersProps {
   theme?: ThemeVariantMode;
@@ -127,7 +128,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
         {/* Camera Location */}
         <div className="space-y-1">
           <label className="font-bold opacity-80 uppercase tracking-wider text-[11px]">Location</label>
-          <select
+          <AppSelect
             value={filter.cameraLocationId || ''}
             onChange={(e) => onFilterChange({ ...filter, cameraLocationId: e.target.value || undefined })}
             className={`w-full min-w-0 p-1.5 text-xs rounded-lg border ${selectBg(isDark)}`}
@@ -136,13 +137,13 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {locations.map((loc) => (
               <option key={loc.id} value={loc.id}>{loc.name}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         {/* Target Tag */}
         <div className="space-y-1">
           <label className="font-bold opacity-80 uppercase tracking-wider text-[11px]">Target</label>
-          <select
+          <AppSelect
             value={filter.targetId || ''}
             onChange={(e) => onFilterChange({ ...filter, targetId: e.target.value || undefined })}
             className={`w-full min-w-0 p-1.5 text-xs rounded-lg border ${selectBg(isDark)}`}
@@ -151,13 +152,13 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {targets.map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         {/* Weather Condition */}
         <div className="space-y-1">
           <label className="font-bold opacity-80 uppercase tracking-wider text-[11px]">Weather</label>
-          <select
+          <AppSelect
             value={filter.weatherConditions?.[0] || ''}
             onChange={(e) => onFilterChange({ ...filter, weatherConditions: e.target.value ? [e.target.value] : undefined })}
             className={`w-full min-w-0 p-1.5 text-xs rounded-lg border ${selectBg(isDark)}`}
@@ -166,13 +167,13 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {WEATHER_DESCS.map((cond) => (
               <option key={cond} value={cond}>{cond}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         {/* Moon Phase */}
         <div className="space-y-1">
           <label className="font-bold opacity-80 uppercase tracking-wider text-[11px]">Moon Phase</label>
-          <select
+          <AppSelect
             value={filter.moonPhase || ''}
             onChange={(e) => onFilterChange({ ...filter, moonPhase: e.target.value || undefined })}
             className={`w-full min-w-0 p-1.5 text-xs rounded-lg border ${selectBg(isDark)}`}
@@ -181,13 +182,13 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {MOON_PHASES.map((m) => (
               <option key={m} value={m}>{m}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         {/* Wind — direction + speed stacked */}
         <div className="space-y-1">
           <label className="font-bold opacity-80 uppercase tracking-wider text-[11px]">Wind</label>
-          <select
+          <AppSelect
             value={filter.windDirection || ''}
             onChange={(e) => onFilterChange({ ...filter, windDirection: e.target.value || undefined })}
             className={`w-full min-w-0 p-1.5 text-xs rounded-lg border ${selectBg(isDark)}`}
@@ -196,8 +197,8 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {WIND_DIRECTIONS.map((dir) => (
               <option key={dir} value={dir}>{dir}</option>
             ))}
-          </select>
-          <select
+          </AppSelect>
+          <AppSelect
             value={activeWindPreset === -1 ? '-1' : String(activeWindPreset)}
             onChange={(e) => {
               const p = WIND_PRESETS[parseInt(e.target.value, 10)];
@@ -209,13 +210,13 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {WIND_PRESETS.map((p, i) => (
               <option key={p.label} value={i}>{p.label}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
 
         {/* Temperature + Pressure stacked */}
         <div className="space-y-1">
           <label className="font-bold opacity-80 uppercase tracking-wider text-[11px]">Temp & Pressure</label>
-          <select
+          <AppSelect
             value={activeTempPreset === -1 ? '-1' : String(activeTempPreset)}
             onChange={(e) => {
               const p = TEMP_PRESETS[parseInt(e.target.value, 10)];
@@ -227,8 +228,8 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {TEMP_PRESETS.map((p, i) => (
               <option key={p.label} value={i}>{p.label}</option>
             ))}
-          </select>
-          <select
+          </AppSelect>
+          <AppSelect
             value={activePressurePreset === -1 ? '-1' : String(activePressurePreset)}
             onChange={(e) => {
               const p = PRESSURE_PRESETS[parseInt(e.target.value, 10)];
@@ -240,7 +241,7 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
             {PRESSURE_PRESETS.map((p, i) => (
               <option key={p.label} value={i}>{p.label}</option>
             ))}
-          </select>
+          </AppSelect>
         </div>
       </div>
     </div>
