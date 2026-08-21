@@ -474,7 +474,12 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
   // Custom scrubber geometry: a 24-cell track mirroring the bar chart so the
   // thumb lines up exactly under the selected hour's bar.
   const hourlySliderRef = useRef<HTMLDivElement>(null);
-  const isScrubbingRef = useRef(false);
+  const scrubGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    active: boolean;
+  } | null>(null);
   const setHeroHourFromClientX = (clientX: number) => {
     const el = hourlySliderRef.current;
     if (!el) return;
@@ -840,22 +845,63 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
             aria-valuemax={23}
             aria-valuenow={heroHour}
             onPointerDown={(e) => {
-              isScrubbingRef.current = true;
-              setHeroHourFromClientX(e.clientX);
-              e.currentTarget.setPointerCapture(e.pointerId);
+              // Mouse users can click/drag immediately. Touch users must first
+              // move clearly sideways; a mostly vertical gesture belongs to
+              // page scrolling and never grabs the scrubber.
+              const isMouse = e.pointerType === 'mouse';
+              scrubGestureRef.current = {
+                pointerId: e.pointerId,
+                startX: e.clientX,
+                startY: e.clientY,
+                active: isMouse,
+              };
+              if (isMouse) {
+                setHeroHourFromClientX(e.clientX);
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }
             }}
             onPointerMove={(e) => {
-              if (isScrubbingRef.current) setHeroHourFromClientX(e.clientX);
+              const gesture = scrubGestureRef.current;
+              if (!gesture || gesture.pointerId !== e.pointerId) return;
+              if (!gesture.active) {
+                const deltaX = Math.abs(e.clientX - gesture.startX);
+                const deltaY = Math.abs(e.clientY - gesture.startY);
+                if (deltaY > 8 && deltaY > deltaX) {
+                  // Release the gesture so the browser can continue vertical
+                  // scrolling without the slider thumb following the finger.
+                  scrubGestureRef.current = null;
+                  return;
+                }
+                if (deltaX > 8 && deltaX > deltaY) {
+                  gesture.active = true;
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                }
+              }
+              if (gesture.active) setHeroHourFromClientX(e.clientX);
             }}
-            onPointerUp={() => { isScrubbingRef.current = false; }}
-            onPointerCancel={() => { isScrubbingRef.current = false; }}
+            onPointerUp={(e) => {
+              const gesture = scrubGestureRef.current;
+              if (gesture && gesture.pointerId === e.pointerId) {
+                const deltaX = Math.abs(e.clientX - gesture.startX);
+                const deltaY = Math.abs(e.clientY - gesture.startY);
+                // A stationary touch is still a tap-to-select; a vertical
+                // gesture was already canceled above and does nothing here.
+                if (!gesture.active && deltaX <= 8 && deltaY <= 8) {
+                  setHeroHourFromClientX(e.clientX);
+                }
+              }
+              scrubGestureRef.current = null;
+            }}
+            onPointerCancel={() => { scrubGestureRef.current = null; }}
+            onLostPointerCapture={() => { scrubGestureRef.current = null; }}
             onKeyDown={(e) => {
               if (e.key === 'ArrowLeft') { setHeroHour((h) => Math.max(0, h - 1)); e.preventDefault(); }
               else if (e.key === 'ArrowRight') { setHeroHour((h) => Math.min(23, h + 1)); e.preventDefault(); }
               else if (e.key === 'Home') { setHeroHour(0); e.preventDefault(); }
               else if (e.key === 'End') { setHeroHour(23); e.preventDefault(); }
             }}
-            className="relative h-7 cursor-pointer select-none touch-none outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
+            className="relative h-7 cursor-pointer select-none touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
+            style={{ touchAction: 'pan-y' }}
           >
             <div className="flex h-full items-center gap-[2px]">
               {hourlyBars.map((h, i) => {
