@@ -939,10 +939,18 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                   title={`${d.dayName} ${d.dateFormatted} · AM ${am} (${amRating}) · PM ${pm} (${pmRating})`}
                   className={`group flex-1 min-w-[112px] flex flex-col rounded-xl transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${ringClass}`}
                 >
-                  {/* Day header — compact day label + subtle status icons */}
+                  {/* Day header — compact day label + readable status badges */}
                   <div className="px-2 pt-2 pb-1.5 text-center">
-                    <div className="flex items-center justify-center gap-1 mb-0.5 h-3.5">
-                      {hasMoonBadge && <Moon className="w-3 h-3 text-amber-400 fill-amber-400" aria-label="Full moon" />}
+                    <div className="flex min-h-3.5 items-center justify-center gap-1 mb-0.5">
+                      {hasMoonBadge && (
+                        <span
+                          className="inline-flex items-center gap-0.5 whitespace-nowrap text-[8px] font-black leading-none text-amber-500"
+                          aria-label="Full Moon"
+                        >
+                          <Moon className="w-3 h-3 fill-amber-400" aria-hidden="true" />
+                          Full Moon
+                        </span>
+                      )}
                       {coldFront && (
                         <Snowflake className="w-3 h-3 text-sky-400" aria-label="Cold front" />
                       )}
