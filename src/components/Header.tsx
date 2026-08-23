@@ -375,7 +375,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/50'
                 }`}
               >
-                <LayoutDashboard className="w-3 h-3" />
+                <LayoutDashboard className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Dashboard</span>
               </button>
 
@@ -391,7 +391,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/50'
                 }`}
               >
-                <Map className="w-3 h-3" />
+                <Map className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Map</span>
               </button>
 
@@ -407,7 +407,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-amber-600 hover:bg-amber-50/50'
                 }`}
               >
-                <ScrollText className="w-3 h-3" />
+                <ScrollText className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Logs</span>
               </button>
 
@@ -423,7 +423,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-sky-600 hover:bg-sky-50/50'
                 }`}
               >
-                <Camera className="w-3 h-3" />
+                <Camera className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Trail Cams</span>
               </button>
 
@@ -443,7 +443,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
                 }`}
               >
-                <Settings className="w-3 h-3" />
+                <Settings className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Settings</span>
               </button>
             </nav>
