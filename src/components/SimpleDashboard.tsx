@@ -431,24 +431,6 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     };
   }, [tipOpen]);
 
-  // Custom scrubber geometry: a 24-cell track mirroring the bar chart so the
-  // thumb lines up exactly under the selected hour's bar.
-  const hourlySliderRef = useRef<HTMLDivElement>(null);
-  const scrubGestureRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    active: boolean;
-  } | null>(null);
-  const setHeroHourFromClientX = (clientX: number) => {
-    const el = hourlySliderRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const ratio = (clientX - rect.left) / rect.width;
-    setHeroHour(Math.max(0, Math.min(23, Math.round(ratio * 24 - 0.5))));
-  };
-
   const today = daily[0];
   const detailDay = daily.find((d) => d.date === detailDayDate) || null;
 
@@ -793,65 +775,14 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
           </div>
 
           {/* Slider track: thin sectional rail with the same 24-column flex
-              geometry as the bars above, so the drag pointer sits exactly
-              under the selected hour's bar. Fills up to the selected hour
-              like a normal slider; the rounded pointer marks the position. */}
-          <div
-            ref={hourlySliderRef}
-            role="slider"
-            tabIndex={0}
-            aria-label="Hourly hunt score slider"
-            aria-valuemin={0}
-            aria-valuemax={23}
-            aria-valuenow={heroHour}
-            onPointerDown={(e) => {
-              // Nothing is selected on press. The scrubber only engages once
-              // the pointer is clearly dragged sideways along its track — a
-              // tap or a vertical scroll gesture can never change the hour.
-              scrubGestureRef.current = {
-                pointerId: e.pointerId,
-                startX: e.clientX,
-                startY: e.clientY,
-                active: false,
-              };
-            }}
-            onPointerMove={(e) => {
-              const gesture = scrubGestureRef.current;
-              if (!gesture || gesture.pointerId !== e.pointerId) return;
-              if (!gesture.active) {
-                const deltaX = Math.abs(e.clientX - gesture.startX);
-                const deltaY = Math.abs(e.clientY - gesture.startY);
-                if (deltaY > 8 && deltaY > deltaX) {
-                  // A mostly vertical gesture belongs to page scrolling —
-                  // drop it so the browser keeps scrolling and the thumb
-                  // never follows the finger.
-                  scrubGestureRef.current = null;
-                  return;
-                }
-                // Only a deliberate sideways drag engages the scrubber.
-                if (deltaX > 8 && deltaX > deltaY) {
-                  gesture.active = true;
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                }
-              }
-              if (gesture.active) setHeroHourFromClientX(e.clientX);
-            }}
-            onPointerUp={() => {
-              // No tap-to-select: the hour changes only from an actual drag.
-              scrubGestureRef.current = null;
-            }}
-            onPointerCancel={() => { scrubGestureRef.current = null; }}
-            onLostPointerCapture={() => { scrubGestureRef.current = null; }}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowLeft') { setHeroHour((h) => Math.max(0, h - 1)); e.preventDefault(); }
-              else if (e.key === 'ArrowRight') { setHeroHour((h) => Math.min(23, h + 1)); e.preventDefault(); }
-              else if (e.key === 'Home') { setHeroHour(0); e.preventDefault(); }
-              else if (e.key === 'End') { setHeroHour(23); e.preventDefault(); }
-            }}
-            className="relative h-8 cursor-pointer select-none touch-pan-y outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full"
-            style={{ touchAction: 'pan-y' }}
-          >
-            <div className="flex h-full items-center gap-[2px]">
+              geometry as the bars above, so the thumb sits exactly under the
+              selected hour's bar. Fills up to the selected hour like a normal
+              slider; the rounded pointer marks the position. A transparent
+              native range input owns all interaction (slide, tap, keyboard)
+              so horizontal dragging works on every touch device — the same
+              pattern as the floating slider and the map's hour scrubber. */}
+          <div className="relative h-8 select-none rounded-full has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-500">
+            <div className="flex h-full items-center gap-[2px] pointer-events-none">
               {hourlyBars.map((h, i) => {
                 const selected = i === heroHour;
                 const filled = i <= heroHour;
@@ -875,6 +806,17 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 );
               })}
             </div>
+            <input
+              type="range"
+              min={0}
+              max={23}
+              step={1}
+              value={heroHour}
+              onChange={(e) => setHeroHour(parseInt(e.target.value, 10))}
+              aria-label="Hourly hunt score slider"
+              aria-valuetext={`${getHour12Label(heroHour)} — hunt score ${heroScore}, ${getRatingFromScore(heroScore)}`}
+              className="absolute inset-0 w-full h-full appearance-none opacity-0 cursor-pointer z-20"
+            />
           </div>
         </div>
       </div>
