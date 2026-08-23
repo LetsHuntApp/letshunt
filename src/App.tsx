@@ -994,7 +994,7 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar */}
       <nav
         data-bottom-nav="true"
-        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1.5 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-colors duration-200 ${
+        className={`sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t flex items-stretch gap-0 px-1.5 py-1 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] transition-colors duration-200 ${
           isDark
             ? themeVariant === 'hunting'
               ? 'bg-slate-950 border-slate-800/60 text-slate-100'
@@ -1015,7 +1015,7 @@ export default function App() {
             setSelectedDate('');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'dashboard' || activeTab === 'details'
               ? isDark
                 ? 'text-emerald-400 bg-emerald-400/10 scale-105'
@@ -1027,8 +1027,8 @@ export default function App() {
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Dashboard</span>
+          <LayoutDashboard className="w-4 h-4" />
+          <span className="text-[10px] tracking-wide uppercase whitespace-nowrap">Dashboard</span>
         </button>
 
         <button
@@ -1036,7 +1036,7 @@ export default function App() {
             setActiveTab('map');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'map'
               ? isDark
                 ? 'text-emerald-400 bg-emerald-400/10 scale-105'
@@ -1048,8 +1048,8 @@ export default function App() {
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <Map className="w-5 h-5" />
-          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Map</span>
+          <Map className="w-4 h-4" />
+          <span className="text-[10px] tracking-wide uppercase whitespace-nowrap">Map</span>
         </button>
 
         <button
@@ -1057,7 +1057,7 @@ export default function App() {
             setActiveTab('logs');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'logs'
               ? isDark
                 ? 'text-amber-400 bg-amber-400/10 scale-105'
@@ -1069,8 +1069,8 @@ export default function App() {
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <ScrollText className="w-5 h-5" />
-          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Logs</span>
+          <ScrollText className="w-4 h-4" />
+          <span className="text-[10px] tracking-wide uppercase whitespace-nowrap">Logs</span>
         </button>
 
         <button
@@ -1078,7 +1078,7 @@ export default function App() {
             setActiveTab('trailcams');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'trailcams'
               ? isDark
                 ? 'text-sky-400 bg-sky-400/10 scale-105'
@@ -1090,8 +1090,8 @@ export default function App() {
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <Camera className="w-5 h-5" />
-          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Trail Cams</span>
+          <Camera className="w-4 h-4" />
+          <span className="text-[10px] tracking-wide uppercase whitespace-nowrap">Trail Cams</span>
         </button>
 
         <button
@@ -1099,7 +1099,7 @@ export default function App() {
             setActiveTab('settings');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
+          className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-1 min-w-0 rounded-xl transition-all duration-200 cursor-pointer relative ${
             activeTab === 'settings'
               ? isDark
                 ? 'text-slate-200 bg-slate-700/40 scale-105'
@@ -1111,8 +1111,8 @@ export default function App() {
               : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 font-medium'
           }`}
         >
-          <Settings className="w-5 h-5" />
-          <span className="text-[11px] tracking-wide uppercase whitespace-nowrap">Settings</span>
+          <Settings className="w-4 h-4" />
+          <span className="text-[10px] tracking-wide uppercase whitespace-nowrap">Settings</span>
         </button>
       </nav>
 

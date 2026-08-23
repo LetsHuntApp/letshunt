@@ -365,7 +365,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}>
               <button
                 onClick={() => onTabChange('dashboard')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'dashboard' || activeTab === 'details'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md scale-105' : 'bg-emerald-600 text-white shadow-md scale-105'
                     : isDark
@@ -375,13 +375,13 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/50'
                 }`}
               >
-                <LayoutDashboard className="w-3.5 h-3.5" />
+                <LayoutDashboard className="w-3 h-3" />
                 <span className="hidden sm:inline">Dashboard</span>
               </button>
 
               <button
                 onClick={() => onTabChange('map')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'map'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#556b2f] text-white shadow-md scale-105' : 'bg-emerald-600 text-white shadow-md scale-105'
                     : isDark
@@ -391,13 +391,13 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50/50'
                 }`}
               >
-                <Map className="w-3.5 h-3.5" />
+                <Map className="w-3 h-3" />
                 <span className="hidden sm:inline">Map</span>
               </button>
 
               <button
                 onClick={() => onTabChange('logs')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'logs'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#b87333] text-white shadow-md scale-105' : 'bg-amber-500 text-slate-950 shadow-md scale-105'
                     : isDark
@@ -407,13 +407,13 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-amber-600 hover:bg-amber-50/50'
                 }`}
               >
-                <ScrollText className="w-3.5 h-3.5" />
+                <ScrollText className="w-3 h-3" />
                 <span className="hidden sm:inline">Logs</span>
               </button>
 
               <button
                 onClick={() => onTabChange('trailcams')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'trailcams'
                     ? (theme === 'olive' || theme === 'hunting') ? 'bg-[#4a7fb5] text-white shadow-md scale-105' : 'bg-sky-500 text-white shadow-md scale-105'
                     : isDark
@@ -423,13 +423,13 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-sky-600 hover:bg-sky-50/50'
                 }`}
               >
-                <Camera className="w-3.5 h-3.5" />
+                <Camera className="w-3 h-3" />
                 <span className="hidden sm:inline">Trail Cams</span>
               </button>
 
               <button
                 onClick={() => onTabChange('settings')}
-                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
+                className={`whitespace-nowrap px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 flex-1 min-w-0 ${
                   activeTab === 'settings'
                     ? isDark
                       ? 'bg-slate-700 text-slate-200 shadow-md scale-105'
@@ -443,7 +443,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
                 }`}
               >
-                <Settings className="w-3.5 h-3.5" />
+                <Settings className="w-3 h-3" />
                 <span className="hidden sm:inline">Settings</span>
               </button>
             </nav>
