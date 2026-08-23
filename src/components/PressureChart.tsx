@@ -15,13 +15,6 @@ interface PressureChartProps {
   selectedDateFormatted?: string;
 }
 
-// Prime hunting windows within the day's 24-hour series (half-open hour
-// ranges) — the same morning/evening bands the rest of the app highlights.
-const PRIME_RANGES: [number, number][] = [
-  [5, 9],
-  [16, 20],
-];
-
 export const PressureChart: React.FC<PressureChartProps> = ({
   hourly,
   units,
@@ -131,19 +124,6 @@ export const PressureChart: React.FC<PressureChartProps> = ({
     activeFullIdx < windowStart + windowHours.length
       ? points[activeFullIdx - windowStart]
       : null;
-
-  // Prime-window highlight rects, clipped to the visible 12 hours.
-  const primeRects = PRIME_RANGES
-    .map(([a, b]) => {
-      const start = Math.max(a - windowStart, 0);
-      const end = Math.min(b - windowStart, windowHours.length);
-      return { start, end };
-    })
-    .filter(({ start, end }) => end > start)
-    .map(({ start, end }) => ({
-      x: paddingLeft + (start / (windowHours.length - 1)) * chartWidth,
-      width: ((end - start) / (windowHours.length - 1)) * chartWidth,
-    }));
 
   // --- Drag-to-scrub gesture ----------------------------------------------
   // Slide a finger (or mouse) across the graph to scrub the hour — like
@@ -284,7 +264,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
             )}
           </h3>
           <p className={`text-xs sm:text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            A 12-hour look at rain and barometer readings — slide across the graph to scrub — with the best hunting windows marked
+            A 12-hour look at rain and barometer readings — slide across the graph to scrub the barometer and rain
           </p>
         </div>
 
@@ -328,25 +308,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
             <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
             <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
           </linearGradient>
-
-          <linearGradient id="primeWindowGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10b981" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
-          </linearGradient>
         </defs>
-
-        {/* Prime Time Window Highlights (visible hours only) */}
-        {primeRects.map((rect, i) => (
-          <rect
-            key={i}
-            x={rect.x}
-            y={paddingTop}
-            width={rect.width}
-            height={chartHeight}
-            fill="url(#primeWindowGrad)"
-            rx="6"
-          />
-        ))}
 
         {/* Horizontal Grid lines with Left (Barometer) and Right (Rain Precip %) Axes */}
         {[0, 0.25, 0.5, 0.75, 1.0].map((ratio) => {
