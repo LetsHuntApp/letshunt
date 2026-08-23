@@ -888,7 +888,13 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                         </span>
                       )}
                       {coldFront && (
-                        <Snowflake className="w-3 h-3 text-sky-400" aria-label="Cold front" />
+                        <span
+                          className="inline-flex items-center gap-0.5 whitespace-nowrap text-[9px] font-black leading-none text-sky-400"
+                          aria-label="Cold front"
+                        >
+                          <Snowflake className="w-3 h-3" aria-hidden="true" />
+                          Cold Front!
+                        </span>
                       )}
                     </div>
                     <div className={`text-xs font-black uppercase tracking-wider ${headText}`}>
