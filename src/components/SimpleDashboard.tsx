@@ -253,11 +253,18 @@ const parsePrimeTimeToken = (
     same `weatherService` uses for the daily score). Falls back to the
     daily `huntScore` when hourly data is missing so the cards still
     render on legacy / sparse days. */
+const GREAT_THRESHOLD = RATING_THRESHOLDS.excellent; // 86
+
 const computeAmPmScores = (
   d: DailyForecast,
-): { am: number; pm: number; amHours: number; pmHours: number } => {
+): {
+  am: number; pm: number;
+  amPeak: number; pmPeak: number;
+  amHasGreat: boolean; pmHasGreat: boolean;
+  amHours: number; pmHours: number;
+} => {
   if (!d.hourly || d.hourly.length === 0) {
-    return { am: d.huntScore, pm: d.huntScore, amHours: 0, pmHours: 0 };
+    return { am: d.huntScore, pm: d.huntScore, amPeak: d.huntScore, pmPeak: d.huntScore, amHasGreat: false, pmHasGreat: false, amHours: 0, pmHours: 0 };
   }
   const amStart = parsePrimeTimeToken(d.morningPrime, 'first', 360);   // 6:00 AM
   const amEnd = parsePrimeTimeToken(d.morningPrime, 'last', 540);      // 9:00 AM
@@ -281,10 +288,19 @@ const computeAmPmScores = (
 
   const avg = (arr: number[]) =>
     arr.length === 0 ? 0 : Math.round(arr.reduce((s, n) => s + n, 0) / arr.length);
+  const peak = (arr: number[]) =>
+    arr.length === 0 ? 0 : Math.max(...arr);
+
+  const amScore = amScores.length > 0 ? avg(amScores) : d.huntScore;
+  const pmScore = pmScores.length > 0 ? avg(pmScores) : d.huntScore;
 
   return {
-    am: amScores.length > 0 ? avg(amScores) : d.huntScore,
-    pm: pmScores.length > 0 ? avg(pmScores) : d.huntScore,
+    am: amScore,
+    pm: pmScore,
+    amPeak: amScores.length > 0 ? peak(amScores) : d.huntScore,
+    pmPeak: pmScores.length > 0 ? peak(pmScores) : d.huntScore,
+    amHasGreat: amScores.some((s) => s >= GREAT_THRESHOLD),
+    pmHasGreat: pmScores.some((s) => s >= GREAT_THRESHOLD),
     amHours: amScores.length,
     pmHours: pmScores.length,
   };
@@ -845,11 +861,11 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                 : `${(d.precipSumMm || 0).toFixed(1)} mm`;
               const coldFront = isSignificantColdFront(d.tempDrop24h, units);
               const hasMoonBadge = d.solunar?.moonPhaseName === 'Full Moon';
-              const { am, pm } = computeAmPmScores(d);
-              const amRating = getRatingFromScore(am);
-              const pmRating = getRatingFromScore(pm);
-              const amColor = getScoreBarColor(am);
-              const pmColor = getScoreBarColor(pm);
+              const { am, pm, amPeak, pmPeak, amHasGreat, pmHasGreat } = computeAmPmScores(d);
+              const amRating = amHasGreat ? "Great" : getRatingFromScore(am);
+              const pmRating = pmHasGreat ? "Great" : getRatingFromScore(pm);
+              const amColor = amHasGreat ? getScoreBarColor(amPeak) : getScoreBarColor(am);
+              const pmColor = pmHasGreat ? getScoreBarColor(pmPeak) : getScoreBarColor(pm);
               const ringClass = isSelected
                 ? (isDark ? 'ring-2 ring-emerald-400/80 bg-slate-800/55'
                   : theme === 'hunting' ? 'ring-2 ring-[#7a3208]/55 bg-[#f4eee1]/80'
@@ -929,7 +945,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                           className="w-3.5 h-3.5 shrink-0 text-white"
                           style={{ fill: 'white', color: 'white' }}
                         />
-                        <span className="text-lg font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{am}</span>
+                        <span className="text-lg font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{amHasGreat ? amPeak : am}</span>
                       </div>
                       <span className="mt-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
                         {amRating}
@@ -952,7 +968,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
                           className="w-3.5 h-3.5 shrink-0 text-white"
                           style={{ fill: 'white', color: 'white' }}
                         />
-                        <span className="text-lg font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{pm}</span>
+                        <span className="text-lg font-black text-white leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">{pmHasGreat ? pmPeak : pm}</span>
                       </div>
                       <span className="mt-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-white leading-none whitespace-nowrap">
                         {pmRating}
