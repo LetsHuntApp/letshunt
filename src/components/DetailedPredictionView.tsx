@@ -529,7 +529,9 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
                   <span className="inline-flex items-center gap-2"><BarChart3 className="w-4 h-4" /> What may get deer moving</span>
                 </h3>
                 <p className={`text-xs sm:text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Weather, moon, wind, and local details behind this hunt score
+                  {selectedHour !== undefined
+                    ? `Weather, moon, wind, and local details behind this ${getHour12Label(selectedHour)} hunt score`
+                    : 'Weather, moon, wind, and local details behind this hunt score'}
                 </p>
               </div>
 
