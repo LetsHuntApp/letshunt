@@ -205,6 +205,11 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
     return '#c45b53';
   };
 
+  const stroke = getScoreColor(activeScore);
+  const trackColor = isDark
+    ? theme === 'hunting' ? '#4a3320' : theme === 'olive' ? '#2a3620' : '#1e293b'
+    : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0';
+
   // The hovered/selected hour drives the details card under the bars.
   const activeIdx = hoveredHourIdx !== null ? hoveredHourIdx : selectedHour;
   const activeHour = day.hourly[activeIdx] || null;
@@ -258,58 +263,29 @@ export const DetailedPredictionView: React.FC<DetailedPredictionViewProps> = ({
         {/* Compact media-object hero: dial on the left (desktop), the plan on
             the right — it stacks tight on phones without losing anything. */}
         <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6">
-          <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 z-10 flex items-center justify-center">
-            <svg
-              className="absolute w-full h-full transform -rotate-90"
-              viewBox="0 0 100 100"
-              role="img"
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 z-10 w-full sm:w-auto sm:min-w-[280px]">
+            <DeerIcon className="w-8 h-8 sm:w-9 sm:h-9 shrink-0" style={{ color: stroke, fill: stroke }} />
+            <div
+              className="relative flex-1 min-w-0 h-9 sm:h-10 rounded-full overflow-hidden"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={activeScore}
               aria-label={`Hunt score ${activeScore} out of 100, rated ${getRatingFromScore(activeScore)}`}
             >
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke={isDark ? (theme === 'hunting' ? '#4a3320' : '#1e293b') : theme === 'hunting' ? '#d4c4a8' : theme === 'olive' ? '#ded8c8' : '#e2e8f0'}
-                strokeWidth="8"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="transparent"
-                stroke={colors.stroke}
-                strokeWidth="8"
-                strokeDasharray={`${2 * Math.PI * 40}`}
-                strokeDashoffset={`${2 * Math.PI * 40 * (1 - activeScore / 100)}`}
-                strokeLinecap="round"
-                className="transition-all duration-300 ease-out"
-              />
-            </svg>
-            <div className="detailed-score-dial-content text-center z-10 flex flex-col items-center justify-center">
-              <DeerIcon
-                className="w-7 h-7 sm:w-8 sm:h-8 fill-current"
-                style={{ color: colors.stroke, fill: colors.stroke }}
-              />
+              <div className="absolute inset-0" style={{ backgroundColor: trackColor }} />
               <div
-                className="text-2xl sm:text-3xl font-black tracking-tight leading-none"
-                style={{ color: colors.stroke }}
+                className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out flex items-center justify-end"
+                style={{ width: `${activeScore}%`, backgroundColor: stroke }}
               >
-                {activeScore}
+                <span className="text-white text-base sm:text-lg font-black leading-none pr-2.5 drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+                  {activeScore}
+                </span>
               </div>
-              <div
-                className="text-[10px] sm:text-xs font-black uppercase tracking-wider leading-tight mt-0.5 flex items-center justify-center gap-1"
-                style={{ color: colors.stroke }}
-              >
-                {isExcellentDay && <Star className="w-3 h-3" style={{ color: colors.stroke, fill: colors.stroke }} />}
-                <span>{getRatingFromScore(activeScore)}</span>
-              </div>
-              <div
-                className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-90"
-                style={{ color: colors.stroke }}
-              >
-                HUNT SCORE
-              </div>
+            </div>
+            <div className="shrink-0 flex items-center gap-1 leading-none" style={{ color: stroke }}>
+              {activeScore >= RATING_THRESHOLDS.excellent && <Star className="w-3 h-3" style={{ color: stroke, fill: stroke }} />}
+              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap">{getRatingFromScore(activeScore)}</span>
             </div>
           </div>
 
