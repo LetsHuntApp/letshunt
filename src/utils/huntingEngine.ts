@@ -470,25 +470,25 @@ export function calculateHuntScore(params: {
     if (deltaF >= 12) {
       tempScore = -12;
       tempStatus = 'poor';
-      tempDesc = `Much warmer than the normal for this local hour (${signedDelta}). Daylight hunting opportunity may be reduced.`;
+      tempDesc = `At ${maxTempDisp}${tempUnitStr} (${signedDelta} from seasonal normal), it's much warmer than usual for this hour. Daylight hunting opportunity may be reduced.`;
     } else if (deltaF >= 6) {
       tempScore = -7;
       tempStatus = 'poor';
-      tempDesc = `Warmer than the normal for this local hour (${signedDelta}). The better hunt may be near first or last light.`;
+      tempDesc = `At ${maxTempDisp}${tempUnitStr} (${signedDelta} from seasonal normal), it's warmer than usual. The better hunt may be near first or last light.`;
     } else if (deltaF > -6) {
       tempScore = 3;
       tempStatus = 'good';
-      tempDesc = `Near the normal for this local hour (${signedDelta}). No strong temperature advantage or warning.`;
+      tempDesc = `At ${maxTempDisp}${tempUnitStr} (${signedDelta} from seasonal normal), temps are near the average for this hour. No strong temperature advantage or warning.`;
     } else if (deltaF > -14) {
       tempScore = 6;
       tempStatus = 'optimal';
-      tempDesc = `Cooler than the normal for this local hour (-${absoluteDelta}${deltaUnit}). This can improve daytime hunting comfort and opportunity.`;
+      tempDesc = `At ${maxTempDisp}${tempUnitStr} (-${absoluteDelta}${deltaUnit} from seasonal normal), it's cooler than usual. This can improve daytime hunting comfort and opportunity.`;
     } else {
       // Very cold anomalies get only a limited seasonal bonus. Absolute cold
       // context below can reduce it when conditions become difficult to hunt.
       tempScore = 2;
       tempStatus = 'good';
-      tempDesc = `Far below the normal for this local hour (-${absoluteDelta}${deltaUnit}). Cold can help, but extreme conditions may shorten a productive sit.`;
+      tempDesc = `At ${maxTempDisp}${tempUnitStr} (-${absoluteDelta}${deltaUnit} from seasonal normal), it's far below average. Cold can help, but extreme conditions may shorten a productive sit.`;
     }
   } else {
     // If the climate request is unavailable, use conservative absolute context
