@@ -33,6 +33,7 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
+import { prefetchMapTiles } from './utils/mapTilePrefetch';
 import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays, MapPin, X, Loader2 } from 'lucide-react';
 
 const FALLBACK_DEFAULT_LOCATION: Location = {
@@ -510,6 +511,14 @@ export default function App() {
     }, 5 * 60 * 1000);
     return () => window.clearInterval(intervalId);
   }, [currentLocation, units, pressureUnit]);
+
+  // Pre-fetch map tiles once the forecast (and therefore location) is confirmed.
+  // Tiles land in the browser HTTP cache so the Map tab renders instantly.
+  useEffect(() => {
+    if (dailyForecast.length > 0 && currentLocation) {
+      prefetchMapTiles(currentLocation.latitude, currentLocation.longitude);
+    }
+  }, [dailyForecast, currentLocation]);
 
   const handleToggleTheme = () => {
     // Mobile cycle button only flips the variant — light/dark is handled
