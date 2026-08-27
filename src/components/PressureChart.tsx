@@ -31,24 +31,15 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   // True while the pointer is actively scrubbing horizontally — the pointer
   // owns the selection for as long as it's sliding across the graph.
   const [scrubbing, setScrubbing] = useState(false);
-  // While a drag is in progress the 12-hour window stays frozen so the
-  // cursor follows the finger 1:1 across the graph (Apple-Weather style); on
-  // release it re-centers on the chosen hour so any hour of the day stays
-  // reachable by dragging again.
-  const [frozenWindowStart, setFrozenWindowStart] = useState<number | null>(null);
 
   if (!hourly || hourly.length === 0) return null;
 
-  // A rolling 12-hour window centered on the selected hour (clamped to the
-  // day). The whole chart always fits its card — no horizontal scroll — and
-  // every hour of the day stays reachable by sliding across the graph.
+  // Fixed 12-hour window showing the first 12 hours (or all available).
+  // The graph never pans — it always shows the same fixed slice and the
+  // tracker slides across it.
   const windowSize = Math.min(12, hourly.length);
-  const computedWindowStart = Math.max(
-    0,
-    Math.min((selectedHour ?? 6) - Math.floor(windowSize / 2), hourly.length - windowSize)
-  );
-  const windowStart = frozenWindowStart ?? computedWindowStart;
-  const windowHours = hourly.slice(windowStart, windowStart + windowSize);
+  const windowStart = 0;
+  const windowHours = hourly.slice(0, windowSize);
 
   // Extract pressure and precipitation series for the visible window
   const pressures = windowHours.map((h) => (pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa));
@@ -142,7 +133,6 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   const clearPointerGesture = () => {
     pointerGestureRef.current = null;
     setScrubbing(false);
-    setFrozenWindowStart(null);
   };
 
   // Safety net: if the finger lifts off the page instead of the graph (no
@@ -208,7 +198,6 @@ export const PressureChart: React.FC<PressureChartProps> = ({
         gesture.active = true;
         setScrubbing(true);
         setHoveredIdx(null);
-        setFrozenWindowStart(computedWindowStart);
       } else {
         return;
       }
