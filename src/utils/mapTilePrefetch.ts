@@ -4,7 +4,7 @@
  *
  * Strategy:
  *  - Satellite imagery is the priority: all satellite tiles are fetched first
- *    and at higher priority; street tiles only follow afterwards.
+ *    and at high priority; street tiles only follow afterwards.
  *  - Cover zoom 12 → 16 (regional → street-level) which spans the typical
  *    range a hunter will browse.
  *  - At each zoom, load enough tiles to fill a generous viewport plus a
@@ -12,7 +12,7 @@
  *  - Satellite requests use `priority: 'high'` so the browser schedules them
  *    ahead of other background work; street tiles use default priority.
  *  - The prefetch is restartable per location: if the user switches to a
- *    different default location, the new location's tiles are prefetched too.
+ *    different location, the new location's tiles are prefetched too.
  */
 
 // Web Mercator helpers (duplicated from MapView to avoid a circular import)
