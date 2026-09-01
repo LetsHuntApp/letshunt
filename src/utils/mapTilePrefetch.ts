@@ -3,15 +3,16 @@
  * already in the browser's HTTP cache when the user opens the Map tab.
  *
  * Strategy:
+ *  - Satellite imagery is the priority: all satellite tiles are fetched first
+ *    and at higher priority; street tiles only follow afterwards.
  *  - Cover zoom 12 → 16 (regional → street-level) which spans the typical
  *    range a hunter will browse.
  *  - At each zoom, load enough tiles to fill a generous viewport plus a
  *    buffer so the user can pan slightly without triggering new requests.
- *  - Only the primary (satellite) tile provider is prefetched to keep the
- *    request count manageable; the browser will still have the HTTP cache
- *    warm for that provider when the map mounts.
- *  - Requests use `priority: 'low'` and `mode: 'cors'` so they never
- *    block interactive rendering.
+ *  - Satellite requests use `priority: 'high'` so the browser schedules them
+ *    ahead of other background work; street tiles use default priority.
+ *  - The prefetch is restartable per location: if the user switches to a
+ *    different default location, the new location's tiles are prefetched too.
  */
 
 // Web Mercator helpers (duplicated from MapView to avoid a circular import)
@@ -43,15 +44,66 @@ const VIEWPORT_TILE_WIDTH = 5;  // ~1280px viewport ÷ 256
 const VIEWPORT_TILE_HEIGHT = 4; // ~1024px viewport ÷ 256
 const BUFFER = 2;               // extra tiles each side for panning
 
-let prefetched = false;
+const prefetchedLocations = new Set<string>();
+
+function collectTileUrls(
+  lat: number,
+  lng: number,
+  urlFor: (z: number, ty: number, tx: number) => string,
+): string[] {
+  const urls: string[] = [];
+  for (const zoom of PREFETCH_ZOOMS) {
+    const center = latLngToTileCoords(lat, lng, zoom);
+    const cx = Math.round(center.x);
+    const cy = Math.round(center.y);
+    const halfW = Math.floor(VIEWPORT_TILE_WIDTH / 2) + BUFFER;
+    const halfH = Math.floor(VIEWPORT_TILE_HEIGHT / 2) + BUFFER;
+    const maxTile = Math.pow(2, zoom);
+
+    for (let dy = -halfH; dy <= halfH; dy++) {
+      for (let dx = -halfW; dx <= halfW; dx++) {
+        const tx = cx + dx;
+        const ty = cy + dy;
+        if (ty < 0 || ty >= maxTile) continue;
+        urls.push(urlFor(zoom, ty, tx));
+      }
+    }
+  }
+  return urls;
+}
+
+function fetchBatched(urls: string[], priority: RequestPriority): void {
+  // Stagger requests in small batches to avoid overwhelming the network
+  // and triggering browser connection limits.
+  const BATCH = 8;
+  let i = 0;
+  const nextBatch = () => {
+    const end = Math.min(i + BATCH, urls.length);
+    for (; i < end; i++) {
+      fetch(urls[i], {
+        mode: 'cors',
+        credentials: 'omit',
+        priority,
+      }).catch(() => { /* best-effort */ });
+    }
+    if (i < urls.length) {
+      setTimeout(nextBatch, 30);
+    }
+  };
+  nextBatch();
+}
 
 /**
  * Kick off background tile prefetches for a given location.
- * Safe to call multiple times — only runs once per page load.
+ * Satellite tiles are fetched first at high priority; street tiles follow
+ * afterwards at low priority. Safe to call multiple times — satellite tiles
+ * are prefetched once per location, and switching to a new location triggers
+ * a fresh prefetch for that location.
  */
 export function prefetchMapTiles(lat: number, lng: number): void {
-  if (prefetched) return;
-  prefetched = true;
+  const locKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+  if (prefetchedLocations.has(locKey)) return;
+  prefetchedLocations.add(locKey);
 
   // Use requestIdleCallback when available so we never compete with
   // initial render / forecast fetch; fall back to a short setTimeout.
@@ -64,43 +116,13 @@ export function prefetchMapTiles(lat: number, lng: number): void {
   };
 
   schedule(() => {
-    const urls: string[] = [];
+    // Satellite tiles first, at high priority — satellite imagery is the
+    // default map style and the one users wait on.
+    const satelliteUrls = collectTileUrls(lat, lng, getSatelliteTileUrl);
+    fetchBatched(satelliteUrls, 'high');
 
-    for (const zoom of PREFETCH_ZOOMS) {
-      const center = latLngToTileCoords(lat, lng, zoom);
-      const cx = Math.round(center.x);
-      const cy = Math.round(center.y);
-      const halfW = Math.floor(VIEWPORT_TILE_WIDTH / 2) + BUFFER;
-      const halfH = Math.floor(VIEWPORT_TILE_HEIGHT / 2) + BUFFER;
-      const maxTile = Math.pow(2, zoom);
-
-      for (let dy = -halfH; dy <= halfH; dy++) {
-        for (let dx = -halfW; dx <= halfW; dx++) {
-          const tx = cx + dx;
-          const ty = cy + dy;
-          if (ty < 0 || ty >= maxTile) continue;
-          urls.push(getSatelliteTileUrl(zoom, ty, tx));
-          urls.push(getStreetTileUrl(zoom, ty, tx));
-        }
-      }
-    }
-
-    // Stagger requests in small batches to avoid overwhelming the network
-    // and triggering browser connection limits.
-    const BATCH = 8;
-    let i = 0;
-    const nextBatch = () => {
-      const end = Math.min(i + BATCH, urls.length);
-      for (; i < end; i++) {
-        fetch(urls[i], {
-          mode: 'cors',
-          credentials: 'omit',
-        }).catch(() => { /* best-effort */ });
-      }
-      if (i < urls.length) {
-        setTimeout(nextBatch, 30);
-      }
-    };
-    nextBatch();
+    // Street tiles follow afterwards at low priority.
+    const streetUrls = collectTileUrls(lat, lng, getStreetTileUrl);
+    fetchBatched(streetUrls, 'low');
   });
 }

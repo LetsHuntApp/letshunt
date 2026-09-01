@@ -289,12 +289,16 @@ const MapTile = React.memo(({ tileKey, urls, left, top, size, zIndex = 1, z }: M
 
   // Opacity stays at zero until the tile decodes so a failed request reveals
   // the low-resolution overview instead of painting a black hole.
+  // fetchPriority=high on the primary satellite URL tells the browser to
+  // schedule these tile requests ahead of other background work.
+  const isPrimarySatellite = urlIndex === 0 && /World_Imagery/.test(currentUrl);
   return (
     <img
       src={src}
       alt=""
       draggable={false}
       decoding="async"
+      fetchPriority={isPrimarySatellite ? 'high' : 'auto'}
       crossOrigin="anonymous"
       ref={imgRef}
       onLoad={handleLoad}

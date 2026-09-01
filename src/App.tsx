@@ -512,6 +512,28 @@ export default function App() {
     return () => window.clearInterval(intervalId);
   }, [currentLocation, units, pressureUnit]);
 
+  // Pre-fetch map tiles as soon as the default location is known — even
+  // before the forecast resolves — so satellite tiles land in the browser
+  // HTTP cache while the user is still on other tabs. The prefetcher is
+  // restartable per location, so switching the default location warms the
+  // new location's tiles too.
+  useEffect(() => {
+    if (currentLocation) {
+      prefetchMapTiles(currentLocation.latitude, currentLocation.longitude);
+    }
+  }, [currentLocation]);
+
+  // Pre-fetch map tiles as soon as the default location is known — even
+  // before the forecast resolves — so satellite tiles land in the browser
+  // HTTP cache while the user is still on other tabs. The prefetcher is
+  // restartable per location, so switching the default location warms the
+  // new location's tiles too.
+  useEffect(() => {
+    if (currentLocation) {
+      prefetchMapTiles(currentLocation.latitude, currentLocation.longitude);
+    }
+  }, [currentLocation]);
+
   // Pre-fetch map tiles once the forecast (and therefore location) is confirmed.
   // Tiles land in the browser HTTP cache so the Map tab renders instantly.
   useEffect(() => {
