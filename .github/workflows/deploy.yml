@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   pages: write
+  deployments: write
   id-token: write
   actions: write
 
@@ -50,6 +51,57 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      # GitHub Pages allows only ONE in-progress deployment at a time. When a
+      # previous run is cancelled mid-deploy (or GitHub's Pages backend never
+      # clears an in_progress state), deploy-pages fails with a 400 "in progress
+      # deployment" error that can persist for minutes — which is exactly what
+      # the last few failed runs hit. Cancel any stale in-progress deployment
+      # for the github-pages environment before this run tries to deploy, so
+      # the guard is always released. `gh` is preinstalled on runners.
+      - name: Cancel stale in-progress Pages deployments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Scanning for stale in-progress deployments..."
+          entries=$(gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=100" \
+            --jq '.[] | {id, sha} | @base64' 2>/dev/null || true)
+          if [ -z "$entries" ]; then
+            echo "No previous deployments found — nothing to clean up."
+            exit 0
+          fi
+          for entry in $entries; do
+            dep_id=$(echo "$entry" | base64 -d | jq -r '.id')
+            dep_sha=$(echo "$entry" | base64 -d | jq -r '.sha')
+            state=$(gh api "repos/${{ github.repository }}/deployments/$dep_id/statuses" \
+              --jq 'sort_by(.created_at) | reverse | .[0].state' 2>/dev/null || echo '')
+            case "$state" in
+              in_progress|queued|pending|waiting)
+                echo "Stale '$state' deployment $dep_id (sha $dep_sha) — cancelling"
+                gh api --silent -X POST \
+                  "repos/${{ github.repository }}/pages/deployment/cancel/$dep_sha" \
+                  -f reason="Superseded by a newer deploy" 2>/dev/null \
+                  && echo "  cancelled via Pages API" \
+                  || true
+                gh api --silent -X POST \
+                  "repos/${{ github.repository }}/deployments/$dep_id/statuses" \
+                  -f state=inactive \
+                  -f description="Superseded by a newer deploy" 2>/dev/null \
+                  && echo "  marked inactive" \
+                  || true
+                # Last resort: delete the stale deployment record. Only ever
+                # runs for deployments stuck in a non-terminal state, never
+                # for completed (success/failure) deploys, so no deploy
+                # history is lost.
+                gh api --silent -X DELETE \
+                  "repos/${{ github.repository }}/deployments/$dep_id" 2>/dev/null \
+                  && echo "  deleted stale deployment record" \
+                  || echo "  (left in place — retries below cover a short-lived conflict)"
+                ;;
+              *)
+                echo "Deployment $dep_id state: ${state:-unknown} — skipping"
+                ;;
+            esac
+          done
       # Re-running a failed run uploads a second "github-pages" artifact, and
       # deploy-pages then fails with "Multiple artifacts ... Artifact count is
       # 2". Delete any stale one from this run before uploading a fresh copy.
@@ -78,7 +130,7 @@ jobs:
         continue-on-error: true
       - name: Wait before Pages deploy retry
         if: steps.deployment.outcome == 'failure'
-        run: sleep 45
+        run: sleep 60
       - name: Deploy to GitHub Pages (retry 1)
         id: deployment-retry-1
         if: steps.deployment.outcome == 'failure'
@@ -86,7 +138,7 @@ jobs:
         continue-on-error: true
       - name: Wait before final Pages deploy retry
         if: steps.deployment-retry-1.outcome == 'failure'
-        run: sleep 90
+        run: sleep 150
       - name: Deploy to GitHub Pages (retry 2)
         id: deployment-retry-2
         if: steps.deployment-retry-1.outcome == 'failure'

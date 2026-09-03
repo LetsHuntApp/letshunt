@@ -580,7 +580,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                   )}
 
                   {/* Gradient Overlays */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/25" />
                 </div>
 
                 {/* Top Card Bar */}
@@ -610,12 +610,12 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                             e.stopPropagation();
                             onToggleFavorite(photo);
                           }}
-                          className={`p-2 rounded-xl flex items-center justify-center transition-all backdrop-blur-md touch-manipulation ${
+                          className={`p-1.5 rounded-lg flex items-center justify-center transition-all backdrop-blur-md touch-manipulation ${
                             photo.isFavorite
                               ? 'bg-amber-500 text-slate-950 shadow-md'
                               : 'bg-black/40 text-white/70 hover:text-amber-400 hover:bg-black/60 active:bg-amber-500/30'
                           }`}
-                          style={{ minWidth: '40px', minHeight: '40px' }}
+                          style={{ minWidth: '36px', minHeight: '36px' }}
                         >
                           <Star className={`w-4 h-4 ${photo.isFavorite ? 'fill-slate-950' : ''}`} />
                         </button>
@@ -626,12 +626,12 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                                 e.stopPropagation();
                                 setActiveTagPhotoId(activeTagPhotoId === photo.id ? null : photo.id);
                               }}
-                              className={`p-2 rounded-xl flex items-center justify-center transition-all backdrop-blur-md touch-manipulation ${
+                              className={`p-1.5 rounded-lg flex items-center justify-center transition-all backdrop-blur-md touch-manipulation ${
                                 (photo.tags || []).length > 0
                                   ? 'bg-emerald-500 text-slate-950 shadow-md'
                                   : 'bg-black/40 text-white/70 hover:text-emerald-400 hover:bg-black/60 active:bg-emerald-500/30'
                               }`}
-                              style={{ minWidth: '40px', minHeight: '40px' }}
+                              style={{ minWidth: '36px', minHeight: '36px' }}
                             >
                               <Crosshair className="w-4 h-4" />
                             </button>
@@ -684,7 +684,7 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                         return (
                           <span
                             key={t.id}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-xs font-bold shadow-sm"
+                            className="inline-flex items-center gap-0.5 px-1 py-px rounded text-[10px] font-bold shadow-sm"
                             style={{ backgroundColor: t.color, color: '#fff' }}
                           >
                             <Crosshair className="w-2 h-2" />
@@ -701,32 +701,32 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                           e.stopPropagation();
                           openDateModal(photo.id);
                         }}
-                        className="font-extrabold text-amber-300 drop-shadow underline decoration-dotted underline-offset-2 hover:text-amber-200 text-left w-full truncate"
+                        className="font-extrabold text-amber-300 drop-shadow underline decoration-dotted underline-offset-2 hover:text-amber-200 text-left w-full truncate text-[11px]"
                         title="OCR could not read the timestamp bar. Click to set the date manually."
                       >
                         {NO_DATE_BADGE}
                       </button>
                       {photo.rawOcrText && (
                         <div
-                          className="text-[11px] text-slate-400 truncate leading-tight"
+                          className="text-[10px] text-slate-400/80 truncate leading-tight"
                           title={`Raw OCR output: ${photo.rawOcrText}`}
                         >
-                          OCR saw: {photo.rawOcrText.slice(0, 60)}
+                          OCR: {photo.rawOcrText.slice(0, 60)}
                         </div>
                       )}
                     </div>
                   ) : timeWasDefaulted ? (
                     <div className="space-y-0.5">
                       <div
-                        className="font-extrabold truncate drop-shadow flex items-center gap-1"
+                        className="font-extrabold truncate drop-shadow flex items-center gap-1 text-[11px]"
                         title={timeWarning}
                       >
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+                        <AlertTriangle className="w-3 h-3 text-amber-300 flex-shrink-0" />
                         <span className="text-sky-300">{dateStr}</span>
                         <span className="text-amber-300 text-xs font-bold">12:00 PM</span>
                       </div>
                       <div
-                        className="text-[11px] text-amber-400/70 truncate leading-tight"
+                        className="text-[10px] text-amber-400/70 truncate leading-tight"
                         title={timeWarning}
                       >
                         Time not recognized
@@ -734,27 +734,31 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
                     </div>
                   ) : (
                     <div
-                      className="font-extrabold truncate drop-shadow text-sky-300"
+                      className="font-extrabold truncate drop-shadow text-sky-300 text-[11px]"
                       title={`OCR-extracted: ${new Date(photo.dateTime!).toISOString()}`}
                     >
                       {dateStr} {timeStr}
                     </div>
                   )}
-                  {photo.cameraLocationName && (
-                    <div className="text-xs text-sky-300 font-bold truncate flex items-center gap-0.5">
-                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" /> {photo.cameraLocationName}
-                    </div>
-                  )}
-
-                  {photo.weather && photo.dateTime && (
-                    <div className="flex items-center gap-2 text-xs font-semibold text-sky-300/90 pt-0.5">
-                      <span>{(() => { const hh = parseInt(photo.dateTime!.slice(11, 13), 10); if (isNaN(hh)) return ''; const ampm = hh >= 12 ? 'PM' : 'AM'; return `${hh === 12 ? 12 : hh % 12}${ampm}`; })()}</span>
-                      <span>•</span>
-                      <span>{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>
-                      <span>•</span>
-                      <span>{photo.weather.windDirection} {units === 'metric' ? photo.weather.windSpeedKmh : photo.weather.windSpeedMph}{units === 'metric' ? 'km/h' : 'mph'}</span>
-                    </div>
-                  )}
+                  {/* Camera spot + weather on one compact row. The spot name
+                      truncates when long; temp/wind always stay visible. The
+                      time is NOT repeated here — the timestamp line above
+                      already carries the capture hour. */}
+                  <div className="flex items-center justify-between gap-1.5 min-w-0">
+                    {photo.cameraLocationName && (
+                      <span className="min-w-0 flex items-center gap-0.5 text-[11px] text-sky-300 font-bold truncate">
+                        <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                        <span className="truncate">{photo.cameraLocationName}</span>
+                      </span>
+                    )}
+                    {photo.weather && photo.dateTime && (
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-sky-300/90 shrink-0">
+                        <span>{units === 'metric' ? Math.round((photo.weather.temperature - 32) * 5 / 9) : photo.weather.temperature}°{units === 'metric' ? 'C' : 'F'}</span>
+                        <span>·</span>
+                        <span>{photo.weather.windDirection} {units === 'metric' ? photo.weather.windSpeedKmh : photo.weather.windSpeedMph}{units === 'metric' ? 'km/h' : 'mph'}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
