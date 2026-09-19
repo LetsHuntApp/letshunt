@@ -34,12 +34,20 @@ export const PressureChart: React.FC<PressureChartProps> = ({
 
   if (!hourly || hourly.length === 0) return null;
 
-  // Fixed 12-hour window showing the first 12 hours (or all available).
+  // Fixed 12-hour window anchored to "now": on today's forecast the slice
+  // starts at the current (in-progress) hour, so the graph always shows the
+  // NEXT 12 hours of data instead of a fixed midnight slice. Future days have
+  // no "now" hour (every timestamp is ahead) and past days have none left
+  // (no timestamp qualifies), so both naturally fall back to a midnight start.
   // The graph never pans — it always shows the same fixed slice and the
   // tracker slides across it.
-  const windowSize = Math.min(12, hourly.length);
-  const windowStart = 0;
-  const windowHours = hourly.slice(0, windowSize);
+  const now = new Date();
+  const firstLiveIdx = hourly.findIndex((h) => h.timestamp + 60 * 60 * 1000 > now.getTime());
+  const windowStart = Math.max(0, firstLiveIdx);
+  const windowSize = Math.min(12, hourly.length - windowStart);
+  const windowHours = hourly.slice(windowStart, windowStart + windowSize);
+  // Guards against a 1-hour window (late-night today) dividing by zero.
+  const xDenom = Math.max(1, windowHours.length - 1);
 
   // Extract pressure and precipitation series for the visible window
   const pressures = windowHours.map((h) => (pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa));
@@ -62,7 +70,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   // Convert points to SVG coordinates. Each point remembers its index into
   // the day's full 24-hour series so selection stays in sync everywhere.
   const points = windowHours.map((h, i) => {
-    const x = paddingLeft + (i / (windowHours.length - 1)) * chartWidth;
+    const x = paddingLeft + (i / xDenom) * chartWidth;
     const valP = pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa;
     const normP = (valP - minP) / rangeP;
     const yP = height - paddingBottom - normP * (chartHeight - 15);
@@ -156,7 +164,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
     if (rect.width <= 0) return null;
     const viewBoxX = ((clientX - rect.left) / rect.width) * width;
     const ratio = (viewBoxX - paddingLeft) / chartWidth;
-    const localIdx = Math.max(0, Math.min(windowHours.length - 1, Math.round(ratio * (windowHours.length - 1))));
+    const localIdx = Math.max(0, Math.min(windowHours.length - 1, Math.round(ratio * xDenom)));
     return windowStart + localIdx;
   };
 
@@ -253,7 +261,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
             )}
           </h3>
           <p className={`text-xs sm:text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            A 12-hour look at rain and barometer readings — slide across the graph to scrub the barometer and rain
+            The next 12 hours of rain and barometer readings — slide across the graph to scrub the barometer and rain
           </p>
         </div>
 
