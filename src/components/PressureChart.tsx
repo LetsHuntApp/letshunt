@@ -49,6 +49,25 @@ export const PressureChart: React.FC<PressureChartProps> = ({
   // Guards against a 1-hour window (late-night today) dividing by zero.
   const xDenom = Math.max(1, windowHours.length - 1);
 
+  // Which points get an X-axis timestamp. A fixed "every third point" rule left
+  // short windows (evenings, when the next 12 hours spill past midnight) with
+  // only two labels, so the stride now adapts to the window and the last hour is
+  // always labelled. Ticks never sit closer than two slots apart — at ~60px per
+  // "7:00 PM" label, adjacent slots would collide.
+  const labelIndexSet = (() => {
+    const n = windowHours.length;
+    if (n <= 1) return new Set<number>([0]);
+    const stride = n <= 6 ? 1 : n <= 10 ? 2 : 3;
+    const indices: number[] = [];
+    for (let i = 0; i < n; i += stride) indices.push(i);
+    if (indices[indices.length - 1] !== n - 1) {
+      // Replace the previous tick instead of adding a crowded neighbour.
+      if (n - 1 - indices[indices.length - 1] < 2) indices.pop();
+      indices.push(n - 1);
+    }
+    return new Set(indices);
+  })();
+
   // Extract pressure and precipitation series for the visible window
   const pressures = windowHours.map((h) => (pressureUnit === 'inHg' ? h.pressureInHg : h.pressureHpa));
 
@@ -420,7 +439,7 @@ export const PressureChart: React.FC<PressureChartProps> = ({
               />
 
               {/* X-Axis Time Labels */}
-              {i % 3 === 0 && (
+              {labelIndexSet.has(i) && (
                 <text
                   x={pt.x}
                   y={height - 12}
