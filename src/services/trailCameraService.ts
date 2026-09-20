@@ -10,8 +10,53 @@ const LOCATIONS_STORE = 'cameraLocations';
 const TARGETS_STORE = 'targets';
 const ANALYTICS_CACHE_STORE = 'analyticsCache';
 
+// ---- Fast trail-cam opens ----
+// TrailCameraView is mounted only while the Trail Cams tab is selected, so every
+// visit used to start from an empty screen and wait on a full IndexedDB read of
+// the photo index. Keep the last read in memory (metadata only — image blobs
+// live in their own store) and let the app warm it in the background so the
+// gallery paints immediately when the user gets there.
+let photosCache: TrailCameraPhoto[] | null = null;
+let photosPreloadPromise: Promise<TrailCameraPhoto[]> | null = null;
+
+/** Drop the in-memory photo index; the next read repopulates it. */
+function invalidatePhotosCache(): void {
+  photosCache = null;
+  photosPreloadPromise = null;
+}
+
+/**
+ * Warm the photo index without a trail-cam view mounted. Safe (and cheap) to
+ * call at app start; resolves with the cached list once the read completes.
+ */
+export function preloadTrailCamPhotos(): Promise<TrailCameraPhoto[]> {
+  if (photosCache) return Promise.resolve(photosCache);
+  if (!photosPreloadPromise) {
+    photosPreloadPromise = getAllFromStore<TrailCameraPhoto>(PHOTOS_STORE)
+      .then((photos) => {
+        photosCache = photos;
+        // Hand out a copy so a caller sorting/filtering in place can never
+        // corrupt the shared cache.
+        return photos.slice();
+      })
+      .catch((err) => {
+        photosPreloadPromise = null;
+        throw err;
+      });
+  }
+  return photosPreloadPromise;
+}
+
+// A single shared connection for the whole app session. Every store helper used
+// to call indexedDB.open() again — each open is an async round-trip to the
+// browser's database thread, so galleries that read many thumbnails paid that
+// cost once per photo. Cache the handle and reconnect only if the connection is
+// closed by a version upgrade in another tab.
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -39,9 +84,21 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore(ANALYTICS_CACHE_STORE, { keyPath: 'id' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => {
+        try { db.close(); } catch { /* ignore */ }
+        dbPromise = null;
+      };
+      resolve(db);
+    };
+    req.onerror = () => {
+      dbPromise = null;
+      reject(req.error);
+    };
+    req.onblocked = () => { /* another tab holds an older version open */ };
   });
+  return dbPromise;
 }
 
 function getAllFromStore<T>(storeName: string): Promise<T[]> {
@@ -65,6 +122,7 @@ function getFromStore<T>(storeName: string, id: string): Promise<T | undefined> 
 }
 
 function putInStore(storeName: string, value: any): Promise<void> {
+  if (storeName === PHOTOS_STORE) invalidatePhotosCache();
   return openDB().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
@@ -78,6 +136,7 @@ function putInStore(storeName: string, value: any): Promise<void> {
 }
 
 function deleteFromStore(storeName: string, id: string): Promise<void> {
+  if (storeName === PHOTOS_STORE) invalidatePhotosCache();
   return openDB().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
@@ -1057,6 +1116,10 @@ export async function importPhotos(files: FileList | File[], onProgress?: (compl
           tx.objectStore(FULL_IMAGES_STORE).put({ id, blob: file, thumbnailUrl: thumbnailDataUrl || '' });
           await new Promise<void>((resolve, reject) => {
             tx.oncomplete = () => {
+              // This transaction bypasses putInStore, so drop the photo cache
+              // here too — otherwise a reload right after an import would still
+              // show the pre-import list.
+              invalidatePhotosCache();
               notifyDataChanged();
               resolve();
             };
@@ -1168,7 +1231,10 @@ export function startPhotoImport(
 
 // ---- Photo CRUD ----
 export async function getAllPhotos(): Promise<TrailCameraPhoto[]> {
-  return getAllFromStore<TrailCameraPhoto>(PHOTOS_STORE);
+  // Serve the warmed in-memory index when available; any write to the photos
+  // store clears it, so the next call re-reads IndexedDB.
+  if (photosCache) return photosCache.slice();
+  return preloadTrailCamPhotos();
 }
 
 export async function getPhoto(id: string): Promise<TrailCameraPhoto | undefined> {

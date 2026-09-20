@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Camera, BarChart3, Plus, MapPin, Crosshair, Navigation, Target, TreePine, X, Search, Clock, Save, AlertTriangle, Upload, Loader2, Trash2, Filter, Sparkles, Settings2 } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, Location, TrailCameraPhoto, TrailCameraFilterState, TrailCameraLocation, TrailCameraTab, TrailCameraTarget, SavedPin } from '../types';
 import { TrailCameraImport } from './TrailCameraImport';
-import { TrailCameraFilters } from './TrailCameraFilters';
+import { TrailCameraFilters, FilterDropdownPosition } from './TrailCameraFilters';
 import { TrailCameraGallery } from './TrailCameraGallery';
 import { TrailCameraDetail } from './TrailCameraDetail';
 import { TrailCameraAnalytics } from './TrailCameraAnalytics';
@@ -57,8 +57,7 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
   const [mapPins, setMapPins] = useState<SavedPin[]>([]);
   const [filter, setFilter] = useState<TrailCameraFilterState>({});
   const [showFilters, setShowFilters] = useState(false);
-  const [filterDropdownLeft, setFilterDropdownLeft] = useState(0);
-  const [filterDropdownMaxHeight, setFilterDropdownMaxHeight] = useState<number | undefined>(undefined);
+  const [filterDropdownPos, setFilterDropdownPos] = useState<FilterDropdownPosition | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<TrailCameraPhoto | null>(null);
 
   // Import State
@@ -123,8 +122,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   // Click outside + Escape close for the filters overlay dropdown
   const filtersRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!showFilters) return;
+  // The panel is portaled to <body>, so it needs its own ref for outside-click
+  // detection (filtersRef only wraps the toggle button).
+  const filtersPanelRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!showFilters) {
+      setFilterDropdownPos(null);
+      return;
+    }
 
     // Keep the panel's left edge aligned with the button until that would push
     // it past the viewport. In that case, shift only as much as necessary to
@@ -142,8 +147,8 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
       const panelWidth = Math.min(320, Math.max(0, vw - 24));
       const maxLeft = Math.max(12, vw - panelWidth - 12);
-      const viewportLeft = Math.max(12, Math.min(anchorRect.left, maxLeft));
-      setFilterDropdownLeft(viewportLeft - anchorRect.left);
+      const left = Math.max(12, Math.min(anchorRect.left, maxLeft));
+      const top = anchorRect.bottom + 8;
 
       // Bottom gutter: 12px normally, or the visible height of the fixed
       // mobile bottom nav (plus 12px) so the panel never slides underneath it.
@@ -155,19 +160,32 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
           bottomInset = vh - navRect.top + 12;
         }
       }
-      const spaceBelow = vh - anchorRect.bottom - 8 - bottomInset;
-      setFilterDropdownMaxHeight(Math.max(120, spaceBelow));
+      const maxHeight = Math.max(120, vh - top - bottomInset);
+      setFilterDropdownPos((prev) =>
+        prev && prev.left === left && prev.top === top && prev.width === panelWidth && prev.maxHeight === maxHeight
+          ? prev
+          : { left, top, width: panelWidth, maxHeight },
+      );
     };
 
     updateFilterDropdownPosition();
     window.addEventListener('resize', updateFilterDropdownPosition);
-    return () => window.removeEventListener('resize', updateFilterDropdownPosition);
+    // Fixed positioning is viewport-relative, so the portaled panel has to
+    // follow the button as the page scrolls (capture sees inner scrollers too).
+    window.addEventListener('scroll', updateFilterDropdownPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateFilterDropdownPosition);
+      window.removeEventListener('scroll', updateFilterDropdownPosition, true);
+    };
   }, [showFilters]);
 
   useEffect(() => {
     if (!showFilters) return;
     const handler = (e: MouseEvent | TouchEvent) => {
-      if (filtersRef.current && !filtersRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideButton = filtersRef.current?.contains(target) ?? false;
+      const insidePanel = filtersPanelRef.current?.contains(target) ?? false;
+      if (!insideButton && !insidePanel) {
         setShowFilters(false);
       }
     };
@@ -253,9 +271,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
 
   const loadData = async () => {
     try {
-      const allPhotos = await getAllPhotos();
-      const allLocs = await getCameraLocations();
-      const allTargets = await getTargets();
+      // Read all three stores concurrently. These used to be awaited one after
+      // another, which stacked three IndexedDB round-trips before the gallery
+      // had any photos to render.
+      const [allPhotos, allLocs, allTargets] = await Promise.all([
+        getAllPhotos(),
+        getCameraLocations(),
+        getTargets(),
+      ]);
 
       // Load map pins from localStorage (stands, food plots, etc.)
       let savedPins: SavedPin[] = [];
@@ -879,8 +902,8 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
                 locations={allSpots}
                 targets={targets}
                 activeFilterCount={activeFilterCount}
-                dropdownLeft={filterDropdownLeft}
-                dropdownMaxHeight={filterDropdownMaxHeight}
+                dropdownPosition={filterDropdownPos}
+                panelRef={filtersPanelRef}
               />
             )}
           </div>

@@ -1,7 +1,15 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Filter, RotateCcw } from 'lucide-react';
 import { ThemeMode, ThemeVariantMode, TrailCameraFilterState, TrailCameraLocation, TrailCameraTarget } from '../types';
 import { AppSelect } from './AppSelect';
+
+export interface FilterDropdownPosition {
+  left: number;
+  top: number;
+  width: number;
+  maxHeight: number;
+}
 
 interface TrailCameraFiltersProps {
   theme?: ThemeVariantMode;
@@ -11,8 +19,10 @@ interface TrailCameraFiltersProps {
   locations: TrailCameraLocation[];
   targets: TrailCameraTarget[];
   activeFilterCount: number;
-  dropdownLeft?: number;
-  dropdownMaxHeight?: number;
+  /** Viewport-space rect for the portaled panel, measured off the toggle button. */
+  dropdownPosition: FilterDropdownPosition | null;
+  /** Ref to the portaled panel so outside-click detection can ignore taps inside it. */
+  panelRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const WIND_DIRECTIONS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -53,11 +63,13 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   locations,
   targets,
   activeFilterCount,
-  dropdownLeft = 0,
-  dropdownMaxHeight,
+  dropdownPosition,
+  panelRef,
 }) => {
   const isHunting = theme === 'hunting';
   const isOlive = theme === 'olive';
+
+  if (!dropdownPosition) return null;
 
   const handleReset = () => {
     onFilterChange({});
@@ -67,10 +79,16 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
   const activeWindPreset = WIND_PRESETS.findIndex((p) => p.min === filter.windSpeedMin && p.max === filter.windSpeedMax);
   const activePressurePreset = PRESSURE_PRESETS.findIndex((p) => p.min === filter.pressureMin && p.max === filter.pressureMax);
 
-  return (
+  const panel = (
     <div
-      style={{ left: dropdownLeft, maxHeight: dropdownMaxHeight }}
-      className={`absolute left-0 right-auto top-full mt-2 z-50 w-80 max-w-[calc(100vw-1.5rem)] max-h-[min(70vh,calc(100dvh-5rem))] overflow-y-auto rounded-2xl border shadow-2xl backdrop-blur-xl p-3 space-y-2.5 text-xs ${
+      ref={panelRef}
+      style={{
+        left: dropdownPosition.left,
+        top: dropdownPosition.top,
+        width: dropdownPosition.width,
+        maxHeight: dropdownPosition.maxHeight,
+      }}
+      className={`fixed z-[60] overflow-y-auto overscroll-contain rounded-2xl border shadow-2xl backdrop-blur-xl p-3 space-y-2.5 text-xs ${
         isDark
           ? 'bg-slate-900/95 border-slate-700 text-slate-100'
           : isHunting
@@ -246,4 +264,10 @@ export const TrailCameraFilters: React.FC<TrailCameraFiltersProps> = ({
       </div>
     </div>
   );
+
+  // Portal to <body> so the panel escapes the header card's backdrop-blur
+  // stacking context. Inside the card, a later sibling with the same z-index
+  // (the Camera setup card) painted over the whole dropdown regardless of the
+  // panel's own z-50, which is what hid it behind colliding UI.
+  return typeof document === 'undefined' ? panel : createPortal(panel, document.body);
 };

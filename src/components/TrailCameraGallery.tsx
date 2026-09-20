@@ -173,14 +173,19 @@ export const TrailCameraGallery: React.FC<TrailCameraGalleryProps> = ({
   useEffect(() => {
     let active = true;
     const loadThumbnails = async () => {
+      // Resolve the whole page at once. Awaiting one photo at a time made a
+      // 24-photo page serialize 24 IndexedDB reads before the grid could show
+      // a single image.
+      const missing = paginatedPhotos.filter((p) => !thumbnails[p.id]);
+      const entries = await Promise.all(
+        missing.map(async (p) => [p.id, await getThumbnailUrl(p.id)] as const),
+      );
+      if (!active) return;
       const newThumbs: Record<string, string> = {};
-      for (const p of paginatedPhotos) {
-        if (!thumbnails[p.id]) {
-          const url = await getThumbnailUrl(p.id);
-          if (url) newThumbs[p.id] = url;
-        }
+      for (const [id, url] of entries) {
+        if (url) newThumbs[id] = url;
       }
-      if (active && Object.keys(newThumbs).length > 0) {
+      if (Object.keys(newThumbs).length > 0) {
         setThumbnails((prev) => ({ ...prev, ...newThumbs }));
       }
     };

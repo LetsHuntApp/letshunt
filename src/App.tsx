@@ -33,6 +33,7 @@ import { MeteorologyGuideModal } from './components/MeteorologyGuideModal';
 import { PwaInstallModal } from './components/PwaInstallModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { TrailCameraView } from './components/TrailCameraView';
+import { preloadTrailCamPhotos } from './services/trailCameraService';
 import { prefetchMapTiles } from './utils/mapTilePrefetch';
 import { RefreshCw, AlertTriangle, CheckCircle, Smartphone, LayoutDashboard, Map, Settings, ScrollText, Camera, ArrowLeft, CalendarDays, MapPin, X, Loader2 } from 'lucide-react';
 
@@ -522,6 +523,33 @@ export default function App() {
       prefetchMapTiles(currentLocation.latitude, currentLocation.longitude);
     }
   }, [currentLocation]);
+
+  // Warm the trail-cam photo index while the browser is idle, so opening the
+  // Trail Cams tab paints from memory instead of waiting on a fresh IndexedDB
+  // read. Idle scheduling keeps this off the critical path of the first paint.
+  useEffect(() => {
+    let cancelled = false;
+    const warm = () => {
+      if (cancelled) return;
+      void preloadTrailCamPhotos().catch(() => { /* tab will retry on open */ });
+    };
+    const w = window as typeof window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (typeof w.requestIdleCallback === 'function') {
+      const handle = w.requestIdleCallback(warm, { timeout: 3000 });
+      return () => {
+        cancelled = true;
+        w.cancelIdleCallback?.(handle);
+      };
+    }
+    const timer = window.setTimeout(warm, 1500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   const handleToggleTheme = () => {
     // Mobile cycle button only flips the variant — light/dark is handled
