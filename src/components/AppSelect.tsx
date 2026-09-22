@@ -21,6 +21,20 @@ const MAX_LIST_HEIGHT = 240;
 const VIEWPORT_MARGIN = 8;
 const LIST_GAP = 4;
 
+/**
+ * Marker on the portaled option list. The list lives under <body>, so it is NOT
+ * a DOM descendant of whatever surface rendered the trigger. Any surface that
+ * dismisses itself on an outside tap (the trail cam filters panel) has to ignore
+ * taps that land in here, otherwise picking an option closes the surface before
+ * the option's click can run.
+ */
+export const APP_SELECT_PORTAL_ATTR = 'data-app-select-portal';
+
+export const isInsideAppSelectPortal = (target: EventTarget | null): boolean => {
+  if (typeof Element === 'undefined') return false;
+  return target instanceof Element && target.closest(`[${APP_SELECT_PORTAL_ATTR}]`) !== null;
+};
+
 const getLayoutClasses = (className = '') => className
   .split(/\s+/)
   .filter((token) => /^(w-|min-w-|max-w-|flex-|grow|shrink|basis-|sm:w-|sm:min-w-|sm:max-w-|sm:flex-)/.test(token))
@@ -165,6 +179,7 @@ export const AppSelect: React.FC<AppSelectProps> = ({
   const list = (
     <div
       ref={listRef}
+      {...{ [APP_SELECT_PORTAL_ATTR]: '' }}
       role="listbox"
       aria-label={buttonProps['aria-label'] || buttonProps.title || placeholder}
       style={{

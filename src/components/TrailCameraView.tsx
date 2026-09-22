@@ -8,7 +8,7 @@ import { TrailCameraDetail } from './TrailCameraDetail';
 import { TrailCameraAnalytics } from './TrailCameraAnalytics';
 import { TrailCameraTargetManager } from './TrailCameraTargetManager';
 import { TrailCameraInsights } from './TrailCameraInsights';
-import { AppSelect } from './AppSelect';
+import { AppSelect, isInsideAppSelectPortal } from './AppSelect';
 import {
   getAllPhotos,
   startPhotoImport,
@@ -183,9 +183,14 @@ export const TrailCameraView: React.FC<TrailCameraViewProps> = ({
     if (!showFilters) return;
     const handler = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node;
+      // An AppSelect option list is portaled to <body> so it can float outside
+      // this panel's scroll box — which means it is NOT a descendant of the
+      // panel. Without this exemption, picking an option registered as an
+      // outside tap: the panel closed (and the select unmounted) before the
+      // option's click could land, so the filter silently never applied.
       const insideButton = filtersRef.current?.contains(target) ?? false;
       const insidePanel = filtersPanelRef.current?.contains(target) ?? false;
-      if (!insideButton && !insidePanel) {
+      if (!insideButton && !insidePanel && !isInsideAppSelectPortal(e.target)) {
         setShowFilters(false);
       }
     };
