@@ -531,13 +531,18 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
     : 'text-emerald-700';
 
   return (
-    <div className="w-full space-y-5 sm:space-y-7 animate-fadeIn">
+    /* Desktop (>=1024px) flows these stacked cards into a two-column grid so
+       a laptop shows two cards per row instead of one card per 1200px row.
+       Below 1024px the space-y-* stack and the single-column phone layout are
+       unchanged. The title and hero span both columns; the score/chart/map
+       cards pair up. */
+    <div className="w-full space-y-5 sm:space-y-7 desktop-grid desktop-grid-2 animate-fadeIn">
       {/* Page title — Oswald/display face on the Hunting theme, standard
           sans elsewhere (h1 picks it up automatically). Follows the
           selected day so the header always labels whose data is shown. The
           Hunt Tip badge sits to the right of the selected day's title and
           opens a dropdown with an ultra-specific tip for that day/hour. */}
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 desktop-col-span-full">
         <h1 className={`text-3xl sm:text-4xl font-black tracking-tight leading-tight ${
           isDark ? 'text-white' : theme === 'hunting' ? 'text-[#2a1b0e]' : theme === 'olive' ? 'text-[#1e2e1b]' : 'text-slate-900'
         }`}>
@@ -596,7 +601,7 @@ export const SimpleDashboard: React.FC<SimpleDashboardProps> = ({
       </div>
 
       {/* 1. Compact hero */}
-      <div className={`rounded-3xl border p-4 sm:p-5 shadow-xl relative overflow-hidden ${cardSurface}`}>
+      <div className={`rounded-3xl border p-4 sm:p-5 shadow-xl relative overflow-hidden desktop-col-span-full ${cardSurface}`}>
         <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3 relative z-10">
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
             isDark ? 'bg-slate-950/60 border-slate-700 text-slate-200'

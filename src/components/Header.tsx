@@ -343,8 +343,10 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Desktop separator between left controls and nav tabs */}
-          <div className="hidden sm:block w-px self-stretch my-1.5 flex-shrink-0" style={{
+          {/* Desktop separator between left controls and nav tabs. Hidden at
+              lg+ where the left navigation rail owns navigation and this
+              header reduces to search + location controls. */}
+          <div className="hidden sm:block lg:hidden w-px self-stretch my-1.5 flex-shrink-0" style={{
             backgroundColor: isDark
               ? 'rgba(148,163,184,0.15)'
               : theme === 'hunting'
@@ -354,8 +356,12 @@ export const Header: React.FC<HeaderProps> = ({
               : 'rgba(148,163,184,0.2)',
           }} />
 
-          {/* Right: Navigation Tabs (visible from sm / 640px+ desktop) */}
-          <div className="hidden sm:flex items-center gap-1 flex-shrink-0 min-w-0">
+          {/* Right: Navigation Tabs (visible from sm / 640px+).
+              Hidden at lg+ (1024px+) where DesktopRail provides the same five
+              destinations in a persistent left rail — keeping both would
+              duplicate navigation and squeeze the header row. The 640-1023px
+              tablet range keeps these tabs, unchanged. */}
+          <div className="hidden sm:flex lg:hidden items-center gap-1 flex-shrink-0 min-w-0">
             <nav className={`flex items-center gap-1 p-0.5 rounded-2xl border flex-shrink-0 ${
               isDark
                 ? 'bg-slate-900/[var(--card-opacity)] border-slate-800'

@@ -926,6 +926,208 @@ rect:focus {
   background-color: rgb(14 165 233 / 0.1) !important;
   color: #38bdf8 !important;
 }
+
+/* =====================================================================
+   DESKTOP / LAPTOP LAYOUT LAYER  (min-width: 1024px and up)
+   =====================================================================
+   Everything above this line is tuned for a phone held at arm's length:
+   large type, big touch targets, one card per row. That is correct for
+   mobile and MUST stay untouched — so every rule below is fenced behind
+   a `min-width: 1024px` query and never leaks down to a phone.
+
+   A 1440px laptop is a fundamentally different canvas: a mouse instead
+   of a thumb, a desk at 24-32in instead of a hand at 6in, and ~4x the
+   horizontal room. Running the phone layout there means the page renders
+   as a single 1386px-wide, 2400px-tall ribbon of giant cards that forces
+   endless scrolling and wastes most of the screen.
+
+   Three things fix that, in order of impact:
+
+     1. DENSITY  — pull the type ramp and element scale back down to
+        desktop norms. The mobile readability pass above deliberately
+        shifted text-xs 12px -> 14px; on a laptop that same ramp reads as
+        cartoonishly oversized. These overrides undo that shift for large
+        screens only, so the phone keeps its field-legible sizing.
+
+     2. RAIL     — replace the cramped horizontal tab strip with a
+        persistent left navigation rail, freeing the full page width for
+        content and giving the app a desktop app-frame feel.
+
+     3. COLUMNS  — let card stacks flow into multi-column grids on wide
+        viewports instead of one card per 1386px row.
+
+   The break at 1024px (Tailwind's `lg`) is deliberate: iPad landscape and
+   small tablets keep the tablet/tablet-ish single column, since the
+   density ramp plus a rail would be too cramped at that width. */
+
+/* ---------- 1. DENSITY: desktop type + element scale ---------- */
+
+/* The @theme block above raises text-xs to 14px and text-sm to 15px for
+   phone legibility. Desktop re-seats those tokens to standard UI sizes.
+   Because the theme tokens are plain custom properties, overriding them
+   here inside a min-width query re-scales every text-xs / text-sm in the
+   app at once — including the hundreds of call sites — without editing a
+   single component. Leading is set alongside so line boxes tighten with
+   the glyphs instead of leaving ragged vertical gaps. */
+@media (min-width: 1024px) {
+  :root {
+    --text-xs: 0.75rem;      /* 14px -> 12px */
+    --text-xs--line-height: 1.125rem;
+    --text-sm: 0.8125rem;    /* 15px -> 13px */
+    --text-sm--line-height: 1.25rem;
+  }
+}
+
+@layer utilities {
+  /* Arbitrary micro-sizes follow the same shift. These are the tiny
+     uppercase labels that dominate the card chrome; at 12-14px they were
+     shouting on a laptop. Desktop floors them a notch lower. */
+  @media (min-width: 1024px) {
+    .text-\[9px\]  { font-size: 0.625rem; }   /* 11px -> 10px */
+    .text-\[10px\] { font-size: 0.6875rem; }   /* 12px -> 11px */
+    .text-\[11px\] { font-size: 0.75rem; }    /* 13px -> 12px */
+  }
+}
+
+/* Icon pairs that the mobile pass grew (w-3 h-3 -> 14px). On desktop the
+   surrounding type came back down, so the icons come back down with it or
+   the glyphs visually overpower their labels. Icons that were NOT part of
+   the mobile bump (w-4 and up) keep their standard Tailwind sizes. */
+@media (min-width: 1024px) {
+  .w-3.h-3   { width: 0.6875rem; height: 0.6875rem; }   /* 14 -> 11px */
+  .w-3\.5.h-3\.5 { width: 0.75rem; height: 0.75rem; }     /* 16 -> 12px */
+}
+
+/* Section headers (h2/h3) carry the mobile `sm:text-2xl` step-up. On
+   desktop the same step reads oversized against the tightened body copy,
+   so the two largest heading steps step back down by one notch. */
+@media (min-width: 1024px) {
+  .sm\:text-3xl { font-size: 1.5rem; line-height: 2rem; }
+  .sm\:text-4xl { font-size: 1.875rem; line-height: 2.25rem; }
+}
+
+/* ---------- 2. APP FRAME: left navigation rail ---------- */
+
+/* The phone layout is a single scrolling column. On desktop the app
+   becomes a fixed two-pane frame: a navigation rail pinned to the left
+   edge, and the scrolling content column beside it. The rail is
+   position:fixed (out of flow) so it never participates in the content
+   stack, and the content column is offset by --rail-w to clear it.
+
+   --rail-w is the single source of truth for the rail's width, shared by
+   the rail itself, the content offset, and the responsive breakpoints
+   that key off it. */
+@media (min-width: 1024px) {
+  :root { --rail-w: 200px; }
+}
+
+@media (min-width: 1440px) {
+  :root { --rail-w: 224px; }
+}
+
+@media (min-width: 1024px) {
+  /* Reserve the rail's width on the mount point so every full-width part of
+     the app (header, main, footer) starts clear of it. The rail is
+     position:fixed, so it stays out of flow and does not double-count. */
+  #root { padding-left: var(--rail-w); }
+
+  /* Fixed-position elements are laid out against the viewport, not against
+     #root, so the rail's padding does not move them. The floating hourly
+     slider centers itself with `left-50% + translateX(-50%)`, which would
+     center it over the whole window — half a rail width to the LEFT of the
+     content it belongs to. Shifting it right by HALF the rail re-centers it
+     over the content column (viewport center + rail/2 = content center).
+     Scoped to the slider's own class so no other fixed element moves. */
+  .hourly-slider-shell { margin-left: calc(var(--rail-w) / 2); }
+}
+
+/* The rail itself. `lg:` visibility is handled by the component that
+   renders it (hidden below 1024px, fixed above); these rules only supply
+   the desktop geometry. */
+.desktop-rail {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .desktop-rail {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--rail-w);
+    z-index: 40;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* On a short laptop window the rail scrolls internally rather than
+     pushing nav items off-screen. */
+  .desktop-rail-nav { flex: 1 1 auto; min-height: 0; }
+}
+
+/* ---------- 3. COLUMNS: multi-card grids on wide viewports ---------- */
+
+/* Cards that stack one-per-row on a phone become side-by-side on a
+   laptop. Applied to the dashboard and other card stacks. The gap is
+   tightened from the mobile `space-y-7` rhythm to a true 2D grid gap so
+   rows and columns share one consistent gutter. */
+@media (min-width: 1024px) {
+  .desktop-grid {
+    display: grid;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  /* Card stacks on mobile are spaced with `space-y-*`, which works by giving
+     every child after the first a top margin. In a grid those margins stack
+     on top of the `gap` and produce uneven gutters, so they are zeroed once
+     the stack becomes a grid. Scoped to direct children so nested card
+     internals keep their own spacing. */
+  .desktop-grid > :not([hidden]) ~ :not([hidden]) { margin-top: 0; }
+
+  /* Two equal columns for generic card stacks. */
+  .desktop-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* Three columns for dense stat/score tiles. */
+  .desktop-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  /* 2:1 split for a wide primary card beside a narrower companion. */
+  .desktop-grid-2-1 { grid-template-columns: 2fr 1fr; }
+  .desktop-grid-1-2 { grid-template-columns: 1fr 2fr; }
+}
+
+@media (min-width: 1440px) {
+  .desktop-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* A card that should stay full-bleed inside a multi-column grid —
+   typically the hero/summary card, whose internal two-column stat layout
+   needs the full track width to stay legible. */
+@media (min-width: 1024px) {
+  .desktop-col-span-full { grid-column: 1 / -1; }
+}
+
+/* ---------- 4. DENSITY: spacing + card chrome ---------- */
+
+/* Card padding is `p-4 sm:p-5` (20px) on mobile, sized for a thumb. On
+   desktop a 20px inset around dense text is wasted chrome, so the
+   `sm:` step is pulled back to the `p-4` step. Only the sm: variants are
+   touched, so phones are bit-for-bit identical. */
+@media (min-width: 1024px) {
+  .sm\:p-5 { padding: 1rem; }
+  .sm\:p-6 { padding: 1.125rem; }
+  .sm\:p-4 { padding: 0.875rem; }
+}
+
+/* Rounded corners read as friendly/tappable at mobile radius; at desktop
+   density a slightly tighter radius looks more deliberate. Only the sm:
+   steps change. */
+@media (min-width: 1024px) {
+  .sm\:rounded-3xl { border-radius: 1.25rem; }
+  .sm\:rounded-2xl { border-radius: 1rem; }
+}
 .dark.hunting [data-bottom-nav] > button[class*="bg-slate-"] {
   background-color: rgba(51, 65, 85, 0.4) !important;
   color: #e2e8f0 !important;

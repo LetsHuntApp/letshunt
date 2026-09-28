@@ -618,9 +618,17 @@ const getScoreBadgeColor = (score: number) => {
               />
 
               {/* COMPACT CARD HEADER (always visible, click-toggleable) */}
-              <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+              {/* lg:flex-wrap + the min-width below keep this row from crushing
+                  the weather summary when the card is only ~570px wide (two
+                  columns in the desktop grid). The right-hand action cluster is
+                  shrink-0, so without a floor on the left side it would win all
+                  the space and squeeze the text column to a few pixels wide,
+                  stretching each card to ~690px tall. Demanding 300px forces
+                  the action row to wrap onto its own line instead, and the card
+                  collapses back to a compact height. Mobile is unaffected. */}
+              <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none lg:flex-wrap">
                 {/* Left side: Date, Sunrise/Sunset + Weather mini summary */}
-                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <div className="flex items-center gap-3.5 min-w-0 flex-1 lg:min-w-[300px]">
                   <div className="flex flex-col min-w-[95px] sm:min-w-[110px] shrink-0">
                     <span className={`text-[15px] sm:text-base font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       {day.dayName}
@@ -680,8 +688,10 @@ const getScoreBadgeColor = (score: number) => {
                   </div>
                 </div>
 
-                {/* Right side: keep Prime -> See forecast -> Score in one compact row. */}
-                <div className="flex w-full min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5 overflow-visible sm:w-auto sm:flex-nowrap sm:gap-2.5 shrink-0 ml-auto">
+                {/* Right side: keep Prime -> See forecast -> Score in one compact row.
+                    When the header wraps at lg it takes the full card width and
+                    right-aligns, so the actions still line up with the card edge. */}
+                <div className="flex w-full min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5 overflow-visible sm:w-auto sm:flex-nowrap sm:gap-2.5 shrink-0 ml-auto lg:w-full">
                   <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 shrink-0 sm:flex-nowrap sm:gap-2.5">
                     {/* Badges container stays on one line so Prime never pushes the action or score down. */}
                   <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 shrink-0 sm:flex-nowrap sm:gap-1.5">

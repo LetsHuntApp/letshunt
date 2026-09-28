@@ -21,6 +21,7 @@ import { fetch5DayHuntingForecast } from './services/weatherService';
 import { safeGetString, safeGetJSON, safeSet, safeSetJSON, safeRemove, DATA_CHANGED_EVENT } from './utils/storage';
 import { getActiveClub, publishClubData, pullClubDataIfChanged } from './services/huntClubService';
 import { Header } from './components/Header';
+import { DesktopRail } from './components/DesktopRail';
 import { ForecastCards } from './components/ForecastCards';
 import { DayDetailView } from './components/DayDetailView';
 import { SimpleDashboard } from './components/SimpleDashboard';
@@ -700,6 +701,25 @@ export default function App() {
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* Desktop left navigation rail. Only rendered into view at >=1024px
+          (see `.desktop-rail` in index.css); below that it is display:none
+          and the mobile bottom nav + header tabs handle navigation exactly
+          as before. #root reserves --rail-w of left padding at that width so
+          this fixed rail never overlaps the content column. */}
+      <DesktopRail
+        activeTab={activeTab}
+        theme={theme}
+        isDark={isDark}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          // Returning to Dashboard from any route always lands on the main
+          // dashboard, not the hidden extended subpage. Mirrors the header
+          // and bottom-nav handlers.
+          setIsFourteenDayView(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       {/* Top Header Navigation */}
       <Header
