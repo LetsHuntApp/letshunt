@@ -15,7 +15,7 @@ import {              Compass,
             } from 'lucide-react';
 import { Location, ThemeVariantMode } from '../types';
 import { searchLocations } from '../services/weatherService';
-import horizontalLogoRaw from '../../letshunthorizontallogo.svg?raw';
+import { buildThemedLogo } from '../utils/themedLogo';
 
 interface HeaderProps {
   currentLocation: Location;
@@ -53,22 +53,11 @@ export const Header: React.FC<HeaderProps> = ({
   // stays theme-aware like the old hand-built inline SVG while the file
   // remains the single source of truth. The HUNT photo is the app icon
   // everywhere else (PWA icons, favicon, and splash screen).
-  const logoAccent = theme === 'hunting'
-    ? (isDark ? '#c77942' : '#c85a17')
-    : theme === 'olive'
-    ? '#556b2f'
-    : '#10b981';
-  const logoText = isDark
-    ? (theme === 'hunting' ? '#e8dfd2' : '#ffffff')
-    : theme === 'hunting'
-    ? '#2a1b0e'
-    : theme === 'olive'
-    ? '#1e2e1b'
-    : '#0f172a';
-  const themedLogo = horizontalLogoRaw
-    .replace('<svg ', '<svg class="h-12 sm:h-14 w-auto -my-3" ')
-    .split('#ff751f').join(logoAccent) // deer accent
-    .split('#000000').join(logoText);  // wordmark text
+  //
+  // The recoloring itself now lives in buildThemedLogo so the desktop
+  // navigation rail renders the exact same artwork from the exact same
+  // source, and the two cannot drift apart.
+  const themedLogo = buildThemedLogo(theme, isDark, 'h-12 sm:h-14 w-auto -my-3');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);

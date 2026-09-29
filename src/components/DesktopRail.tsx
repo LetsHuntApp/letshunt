@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 import React from 'react';
-import { LayoutDashboard, Map, ScrollText, Camera, Settings, Leaf } from 'lucide-react';
+import { LayoutDashboard, Map, ScrollText, Camera, Settings } from 'lucide-react';
 import { ThemeVariantMode } from '../types';
+import { buildThemedLogo } from '../utils/themedLogo';
 
 /* 'details' is a dashboard sub-route, not a rail destination — it appears in
    this union only so the active-state check can narrow on it. It mirrors
@@ -152,40 +153,16 @@ export function DesktopRail({
           : 'bg-white/[var(--card-opacity)] border-slate-200'
       }`}
     >
-      {/* Wordmark. The header's inline logo is SVG-injected with per-theme
-          recoloring, so the rail uses a compact icon + wordmark pair rather
-          than duplicating that theming logic. */}
-      <div className="flex items-center gap-2 px-4 h-14 shrink-0 border-b border-current/10">
-        <Leaf
-          className={`w-4 h-4 flex-shrink-0 ${
-            isDark
-              ? theme === 'hunting'
-                ? 'text-[#f0ba7a]'
-                : theme === 'olive'
-                ? 'text-[#c0d094]'
-                : 'text-emerald-400'
-              : theme === 'hunting'
-              ? 'text-[#c85a17]'
-              : theme === 'olive'
-              ? 'text-[#556b2f]'
-              : 'text-emerald-600'
-          }`}
+      {/* Wordmark. The exact same header logo SVG, recolored through the
+          shared helper so the rail can never drift from the header's theming. */}
+      <div className="flex items-center px-4 h-14 shrink-0 border-b border-current/10">
+        <div
+          className="flex items-center"
+          dangerouslySetInnerHTML={{
+            __html: buildThemedLogo(theme, isDark, 'h-9 w-auto'),
+          }}
+          aria-hidden="true"
         />
-        <span
-          className={`text-sm font-black tracking-tight ${
-            isDark
-              ? theme === 'hunting' || theme === 'olive'
-                ? 'text-[#d8c8a8]'
-                : 'text-white'
-              : theme === 'hunting'
-              ? 'text-[#2a1b0e]'
-              : theme === 'olive'
-              ? 'text-[#1e2e1b]'
-              : 'text-slate-900'
-          }`}
-        >
-          LetsHunt
-        </span>
       </div>
 
       {/* Primary navigation */}
